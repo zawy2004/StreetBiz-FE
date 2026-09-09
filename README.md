@@ -1,141 +1,156 @@
 # StreetBiz Frontend
 
-The frontend for **StreetBiz**, a mobile-first Progressive Web App that connects
-micro food and beverage vendors with ward authorities through a transparent
-sidewalk registration, rental, permit, and compliance workflow.
+StreetBiz-FE is the Expo React Native foundation for the StreetBiz universal
+application. It targets Android, iOS, and React Native Web for mobile PWAs and
+desktop-oriented dashboards.
 
-> **Project status:** requirements and repository initialization. The application
-> has not been scaffolded yet, so this repository is not currently runnable.
-> Scope in this README follows the revised SRS baseline dated 30 August 2026.
+This repository currently contains configuration, dependency preparation,
+documentation, three technical route files, and one rendering smoke test. It
+contains no business implementation.
 
-## Product overview
+## Technology baseline
 
-StreetBiz helps vendors request lawful use of configured sidewalk vending slots
-and gives ward officers one place to review applications, issue verifiable digital
-permits, collect fees, and record violations. Residents can browse active vendors
-and verify permits without signing in.
+- Expo SDK 57
+- React Native 0.86
+- React 19.2
+- TypeScript with strict checks
+- Expo Router with typed routes
+- React Native Web with Metro
+- npm
+- Jest Expo and React Native Testing Library
+- ESLint and Prettier
 
-StreetBiz records and presents decisions made by the relevant ward authority. It
-does not independently issue a business licence, certify food safety, or create a
-legal right to use public space.
+## Prerequisites
 
-## Release scope
+- Node.js 22.13 or newer for Expo SDK 57
+- npm
+- Expo Go, Android Emulator, or a supported browser
+- macOS/Xcode or an Expo/EAS workflow for native iOS builds
 
-### Core
+## Install
 
-- Phone/OTP authentication and role-based experiences.
-- Vendor classification: **Fixed Storefront** or **Itinerant**.
-- Independent business-registration and sidewalk-rental applications.
-- Interactive legal-slot map, pricing, schedules, and availability.
-- QR permit display and live public/on-site verification.
-- Rental-fee and penalty payment, invoices, and due-date tracking.
-- Renewal, address change, new-slot proposal, and slot-transfer flows.
-- Ward dashboards for application review, occupancy, compliance, and reporting.
-- Public vendor map, comments, and suspicious-vendor reports.
-- Platform-level account and category administration.
+Run all commands from StreetBiz-FE:
 
-### Core extension
+~~~powershell
+npm install
+~~~
 
-AI-assisted compliance tools may be added only after their supporting Core flow is
-stable. All AI results must be labelled and remain suggestions; a ward officer
-retains every approval, rejection, penalty, and permit decision.
+No force or legacy-peer-deps option is used.
 
-### Phase 2
+## Environment
 
-The marketplace is deliberately deferred. It will add storefronts, menus,
-discovery, prepaid checkout, pickup order tracking, reviews, and complaints only
-for vendors with an approved registration and an active rental contract. Delivery,
-shippers, and cash on delivery are out of scope.
+Copy .env.example to .env and adjust public values for the current environment.
+Do not commit .env.
 
-## User experiences
+~~~dotenv
+EXPO_PUBLIC_APP_ENV=development
+EXPO_PUBLIC_API_BASE_URL=http://localhost:5000/api
+EXPO_PUBLIC_ENABLE_AI_COMPLIANCE=false
+EXPO_PUBLIC_ENABLE_PHASE_2=false
+EXPO_PUBLIC_ENABLE_PUSH_NOTIFICATIONS=false
+EXPO_PUBLIC_ENABLE_PAYMENT_SANDBOX=false
+~~~
 
-| Surface | Primary capabilities |
+EXPO_PUBLIC values are included in the client bundle. Never store passwords,
+JWTs, OTP secrets, payment secrets, provider keys, or database connection
+strings in them.
+
+The API URL is a configuration placeholder only. No backend endpoint or API
+client has been implemented.
+
+## Run
+
+~~~powershell
+npm start
+npm run android
+npm run ios
+npm run web
+~~~
+
+Android Emulator uses 10.0.2.2 to reach a backend on the host computer. A
+physical device uses the LAN IP of the machine running StreetBiz-BE.
+
+## Quality checks
+
+~~~powershell
+npm run doctor
+npm run lint
+npm run typecheck
+npm test -- --runInBand
+npm run export:web
+~~~
+
+The web export is written to dist and is ignored by Git.
+
+## npm scripts
+
+| Script | Purpose |
 | --- | --- |
-| Vendor PWA | Registration, slot application, permits, fees, penalties, renewals, transfers |
-| Ward Authority dashboard | Slot-grid management, reviews, inspection, compliance, reporting |
-| Guest/Customer PWA | Active-vendor map, QR scan, public profile, comments and reports |
-| Platform Admin dashboard | Accounts and categories; Phase 2 content and complaint moderation |
+| start | Start the Expo development server |
+| android | Start Expo and open Android |
+| ios | Start Expo and open iOS |
+| web | Start Expo for web |
+| lint | Run Expo ESLint |
+| typecheck | Run TypeScript without emitting files |
+| test | Run Jest |
+| test:watch | Run Jest in watch mode |
+| doctor | Run Expo Doctor |
+| export:web | Create the static web export |
 
-The Ward Authority and Platform Administrator roles are intentionally separate.
-Platform administrators cannot approve registrations, rentals, fees, penalties,
-or permits.
+## Source layout
 
-```mermaid
-flowchart LR
-    A[Choose vendor type] --> B[Submit business registration]
-    B --> C[Ward review]
-    C --> D[Choose eligible sidewalk slot]
-    D --> E[Submit rental application]
-    E --> F[Ward approval]
-    F --> G[QR permit and fee schedule]
-    G --> H[Live public or on-site verification]
-```
+~~~text
+src/
+|-- app/                 Expo Router entry files
+|-- assets/              Future fonts, icons, and images
+|-- components/          Future proven shared UI
+|-- core/                Future cross-cutting contracts/configuration
+|-- features/            Core and gated Core Extension boundaries
+|-- hooks/               Future shared hooks
+|-- providers/           Future application providers
+|-- services/            Future external/device adapters
+|-- store/               Future client-only state
+|-- theme/               Future design tokens
+|-- types/               Future cross-cutting types
++-- utils/               Future pure utilities
 
-## Planned frontend stack
+tests/
+|-- components/
+|-- features/
+|-- navigation/
++-- utils/
+~~~
 
-- React and TypeScript
-- Vite with PWA/service-worker support (Workbox or equivalent)
-- Responsive mobile and desktop UI
-- Leaflet with OpenStreetMap-compatible map services
-- Firebase Cloud Messaging or an equivalent web-push provider
-- Vitest and Testing Library for component tests
-- Playwright for critical end-to-end journeys
-- ESLint and an approved formatter
+Only src/app/_layout.tsx, src/app/index.tsx, and src/app/+not-found.tsx contain
+runtime source. All business routes remain plans in docs/route-plan.md.
 
-External services must be accessed through replaceable adapters. Unsupported or
-denied push, geolocation, camera, and PWA-installation capabilities need usable
-fallbacks.
+## Prepared dependencies
 
-## Getting started
+- Device/platform: Router, Linking, Constants, Status Bar, Secure Store,
+  Location, Camera, Image Picker, Document Picker, File System, Sharing,
+  Notifications, Async Storage, Safe Area, Screens, React Native Web.
+- Application preparation: Axios, React Query, Zustand, React Hook Form, Zod,
+  Hook Form resolvers, SignalR, and Day.js.
+- Tooling: Jest Expo, React Native Testing Library, TypeScript, ESLint, and
+  Prettier.
 
-There is no package manifest or frontend source code in the repository yet. After
-the application foundation is committed, this section will document the exact:
+Installing a package does not activate the related feature. No camera/location
+permission is requested in app.json.
 
-1. Node.js and package-manager versions.
-2. Environment-file template and required public configuration.
-3. Install, development, build, lint, and test commands.
-4. Local backend URL and mock/sandbox setup.
+## Scope boundaries
 
-Expected configuration categories include the backend base URL, map/geocoding
-provider, web-push settings, and environment name. Do not commit credentials or
-real identity/payment data.
+Core capabilities, AI-assisted Core Extension items, and Phase 2 marketplace
+items are documented in docs/phase-boundary.md.
 
-## Frontend requirements
+There is no authentication, permission guard, Zustand store, React Query hook,
+validation schema, API call, map, QR scanner, payment, notification, AI,
+marketplace, delivery, shipper, or mock business data in this foundation.
 
-- Support agreed current Chrome, Edge, and Safari versions on mobile and desktop.
-- Use HTTPS for full PWA, geolocation, camera, and notification functionality.
-- Keep public permit verification live and server-authoritative, not offline or
-  cache-authoritative.
-- Show clear loading, empty, validation, permission, and provider-failure states.
-- Display money in VND and dates in the `Asia/Ho_Chi_Minh` time zone.
-- Protect role-specific routes and still rely on backend authorization for every
-  protected operation.
-- Cover critical registration, rental, fee, and permit UI states with automated
-  tests and end-to-end journeys.
-- Meet accessible-label, keyboard, contrast, and representative responsive-layout
-  checks before release.
+## Documentation
 
-## Related repository
-
-The REST API, domain workflows, persistence, payment callbacks, QR validation, and
-integration adapters live in
-[StreetBiz-BE](https://github.com/zawy2004/StreetBiz-BE).
-
-## Contributing
-
-Use a short-lived `feature/<issue>-short-name` or `fix/<issue>-short-name` branch.
-Pull requests should identify the relevant requirement, explain the change and
-risk, include test evidence, and receive at least one approval before merge.
-
-## Team
-
-- Dinh Gia Huy — Team Leader
-- Nguyen Duy Luong
-- Park Jea Minh
-- Truong Huynh Long Vien
-- Do Thanh Tin
-- Nguyen Quoc Long — Supervisor
-
-## Licence
-
-No open-source licence has been published for this repository yet.
+- docs/architecture.md
+- docs/project-structure.md
+- docs/role-permission-matrix.md
+- docs/route-plan.md
+- docs/phase-boundary.md
+- docs/api-integration-plan.md
