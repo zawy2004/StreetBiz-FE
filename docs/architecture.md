@@ -11,13 +11,14 @@ StreetBiz-FE is an Expo Universal App:
   Administrator dashboards.
 - Expo Router supplies file-based navigation across all supported platforms.
 
-Only the root layout, foundation screen, and not-found screen exist in this
-initial scaffold.
+Business screens for all four roles are implemented (see
+docs/project-structure.md), backed by an in-memory mock data layer
+(src/mocks/) rather than StreetBiz-BE.
 
 ## Feature-based organization
 
-Future business code will be grouped under src/features by business capability,
-not by technical file type. Cross-feature infrastructure belongs under src/core,
+Business code is grouped under src/features by business capability, not by
+technical file type. Cross-feature infrastructure belongs under src/core,
 while device/provider boundaries belong under src/services.
 
 Dependency direction should remain:
@@ -55,12 +56,17 @@ permissions are not requested until a feature actually needs them.
 
 ## State and validation
 
-React Query, Zustand, React Hook Form, Zod, and storage packages are installed but
-unused. Their concrete boundaries will be designed only with implemented use
-cases and the backend contract.
+Zustand backs the session (src/store/auth-store.ts), the mock backend
+(src/mocks/db.ts), and small feature-local state (cart, multi-step wizards).
+React Query is wired via AppProviders but not yet used by any screen, since
+there is no network layer to cache — it activates once feature `api.ts`
+files call a real backend. React Hook Form, Zod, and storage packages remain
+installed but unused pending the real API contract.
 
-Server authorization remains authoritative. Future frontend route guards improve
-navigation but never replace backend role, ward-scope, and ownership checks.
+src/core/auth/RoleGuard.tsx enforces role-scoped route access on the
+frontend today. Server authorization remains authoritative once
+StreetBiz-BE is integrated — this guard never replaces backend role,
+ward-scope, and ownership checks.
 
 ## Cross-platform constraints
 

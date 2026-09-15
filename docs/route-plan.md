@@ -1,8 +1,17 @@
 # Route plan
 
-This is a planning artifact derived from Report 3. None of these business routes
-or screens exists yet. Final paths may change when navigation design and backend
-contracts are approved.
+**Status (2026-09): implemented, with different paths.** Every business
+route below now has a real screen, but role-scoped routes were nested inside
+each role's tab folder (e.g. `/vendor/slots/contracts/[id]/permit`, not the
+flat `/vendor/contracts/[contractId]/permit` sketched below) so each tab
+could own its own navigation Stack under `expo-router/js-tabs` without a
+long list of hidden tab entries — see README.md § Navigation shape. Treat
+this document as the historical use-case → screen inventory (still accurate
+for *what* each route does) rather than the literal URL structure; the
+`src/app/` tree is the source of truth for actual paths.
+
+This is a planning artifact derived from Report 3, originally written before
+implementation. Final paths changed when navigation was implemented.
 
 ## Public and common authentication
 

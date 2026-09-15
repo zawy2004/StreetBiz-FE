@@ -1,7 +1,13 @@
 # Role and permission matrix
 
-This document records intended product authority from Report 3. It is not an
-implemented permission guard. Backend authorization will remain authoritative.
+This document records intended product authority from Report 3.
+`src/core/auth/RoleGuard.tsx` now enforces route-group access on the
+frontend (a signed-in account can only reach its own role's tab group; guest
+access is allowed only where marked below), and screens scope mock-data
+reads/writes to the signed-in account's own records. This is still a
+frontend-only, client-side check against mock data — backend authorization
+remains authoritative once StreetBiz-BE is integrated, and none of this
+should be treated as a security boundary.
 
 ## Actors
 
