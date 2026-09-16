@@ -1,86 +1,132 @@
 # Project structure
 
-## src/app
+Updated for the React/Vite migration (2026-09): every route below is real
+and navigable, backed by the mock data layer in `src/mocks/` (see
+README.md § Mock data layer). No StreetBiz-BE integration exists yet. This
+supersedes the earlier Expo Router version of this document — the route
+tree now lives in code (`src/router.tsx`), not as a `src/app/` file tree.
 
-Expo Router route entry points. At foundation stage this contains only:
+## src/router.tsx, src/layouts
 
-- _layout.tsx: root Stack layout.
-- index.tsx: StreetBiz foundation message.
-- +not-found.tsx: unmatched-route message.
+`router.tsx` declares the full `react-router-dom` route tree in one place:
+public `/auth/*` and shared `/account/*` routes, then four role subtrees
+(`/customer`, `/vendor`, `/ward`, `/platform`) each wrapped by
+`layouts/RoleShell.tsx`, which combines `src/core/auth/RoleGuard.tsx` (route
+access control) with `components/layout/RoleTabBar.tsx` (bottom bar on
+phones, indigo sidebar at desktop width). `layouts/role-tabs.ts` holds each
+role's tab list (path, label, icon name). `/` redirects to the signed-in
+user's role home (or the guest customer experience) via
+`core/auth/role-routes.ts`. See README.md § Navigation shape for why paths
+deviate from route-plan.md's original flat sketch.
 
-Business routes are documented in route-plan.md and are not implemented.
+## src/App.tsx, src/main.tsx
+
+`main.tsx` is the Vite entry point — mounts `<App/>` into `#root`. `App.tsx`
+wraps `AppRouter` in `BrowserRouter` and `AppProviders`.
 
 ## src/assets
 
-Future fonts, icons, and images owned by the application. No branded or business
-asset is included yet.
+Still empty — no branded or business asset is included; the brand mark is
+drawn as inline SVG in `src/components/common/BrandLogo.tsx` instead of a
+static image.
 
 ## src/components
 
-Reserved for proven cross-feature UI:
+Shared cross-feature UI, all implemented as plain HTML + Tailwind CSS:
 
-- common: small broadly reusable primitives.
-- feedback: loading, empty, error, and success feedback.
-- forms: shared form presentation only.
-- layout: responsive layout primitives.
-- status: shared status presentation.
-
-No shared component is created speculatively.
+- common: BrandLogo, Button, Card, Money, ListRow, IconButton, Avatar,
+  Divider, QrCode (via `qrcode.react`), Icon (maps the old MaterialCommunityIcons
+  glyph names to `react-icons/md`), Spinner.
+- status: StatusChip (maps backend status codes via
+  `core/constants/status-labels.ts` to one of 3 tones), AiHint (labelled,
+  advisory-only AI suggestion card).
+- forms: TextField, PhoneField, PasswordField, OtpInput, SelectField,
+  PhotoPicker (native `<input type="file">`), SegmentedControl, FilterChips —
+  all keep their original custom `onChangeText`-style prop API.
+- layout: Screen, AppHeader, Section, StickyActions, BottomSheet,
+  RoleTabBar (renders `react-router-dom` `NavLink`s — bottom row on phones,
+  indigo sidebar at desktop width via `useBreakpoint`).
+- feedback: EmptyState, LoadingState, ErrorState, ConfirmDialog, Toast.
 
 ## src/core
 
-- api: future generated OpenAPI types and transport setup.
-- auth: future authentication contracts.
-- config: validated runtime/public configuration.
-- constants: application-wide constants with a demonstrated need.
-- errors: normalized client errors.
-- navigation: navigation contracts and route metadata.
-- permissions: future frontend permission helpers.
-- storage: storage abstractions.
-- types: technical cross-feature types.
+- auth: `RoleGuard` (route-group access control, `react-router-dom`
+  `<Navigate>`-based) and `role-routes.ts` (role → route-tree-root mapping).
+- config: `env.ts` — typed reader for the `VITE_*` flags (`import.meta.env`).
+- constants: `status-labels.ts` — backend status code → Vietnamese label/tone.
+- types: `role.ts` — `RoleCode` and its Vietnamese labels.
+- utils: `phone.ts`.
 
-There is no API client, auth logic, role guard, or business type today.
+`api`, `errors`, `navigation`, `permissions`, `storage` remain unused/empty —
+they matter once a real API client replaces the mock layer.
 
 ## src/features
 
-One folder per Core or Core Extension capability named in Report 3. Each folder
-is empty until that capability is explicitly requested. Phase 2 feature folders
-are intentionally absent.
+One folder per capability area, each with a `screens/` directory (barrel
+`index.ts`) and, where a flow needs it, small local state (e.g.
+`business-registrations/new-registration-store.ts` for the multi-step
+registration wizard, `cart/cart-store.ts` for CART-01). Folder names don't
+map 1:1 to the original reserved-folder list in Report 3 — related use cases
+were grouped for locality (e.g. all Ward Authority review screens live in
+`ward-administration`) rather than split into many near-empty folders. Phase
+2 folders (`storefronts`, `cart`, `orders`, `buyer-discovery`) are populated.
 
 ## src/hooks and src/providers
 
-Reserved for genuinely shared hooks and application-level providers. React Query
-or other providers are not wired during foundation setup.
+`hooks/useBreakpoint.ts` (desktop ≥1024px check, `window.matchMedia`-based).
+`providers/AppProviders.tsx` wraps the app in `QueryClientProvider` and
+mounts `ToastHost`; fonts load via a Google Fonts `<link>` in `index.html`
+rather than a JS gate.
 
 ## src/services
 
-Adapter boundaries for camera, map, notification, payment, QR, realtime, and
-upload integrations. No SDK wrapper is implemented yet.
+Still reserved/empty. Photo picking goes through a plain
+`<input type="file">` in `components/forms/PhotoPicker.tsx`; a dedicated
+adapter layer would matter once a real upload/QR/map SDK is wired.
 
 ## src/store
 
-Reserved for future client-only state. No Zustand store exists.
+`auth-store.ts` — the signed-in session (Zustand + `localStorage`
+persistence), including the dev-only `switchRoleDemo` action gated by
+`VITE_APP_ENV=development`.
 
 ## src/theme
 
-Reserved for future design tokens after design work is approved. No visual
-system is defined in this scaffold.
+Implemented: `colors.ts` (Heritage Tech palette, unchanged from the source
+design), `typography.ts`, `spacing.ts`, `shadows.ts` — all plain TypeScript
+data with no framework coupling. `tailwind.config.ts` at the repo root
+imports these directly to build the Tailwind color/spacing/radius/fontSize
+scale, so the theme has one source of truth.
+
+## src/mocks
+
+The temporary backend. `types.ts` mirrors StreetBiz-BE's scaffolded column
+names; `seed.ts` is a small realistic dataset for one ward; `db.ts` is a
+Zustand store exposing both the data and the state-changing actions screens
+call (approve/reject, pay, scan, record violation, …); `ids.ts` generates
+readable mock ids and reserves every hardcoded seed id so generated ids can
+never collide with them (a real bug this caught — see
+`tests/features/mock-db.test.ts`).
 
 ## src/types and src/utils
 
-Reserved for cross-cutting types and pure utilities after concrete requirements
-exist. Backend models will not be guessed here.
+Still reserved — cross-cutting types live next to what uses them
+(`mocks/types.ts`, `core/types/role.ts`) rather than here for now.
 
 ## tests
 
-- components: minimal foundation rendering smoke test.
-- features: future feature tests.
-- navigation: future routing tests.
-- utils: future utility tests.
+Run with Vitest + React Testing Library (`vitest.config.ts`).
 
-No business test or mock business data is included.
+- components: Button, StatusChip.
+- features: mock-db action behaviour (approve → contract + permit + fee
+  item, pay → invoice, reject → slot released).
+- navigation: role → route mapping.
+
+A use-case-to-route coverage test is not implemented yet — see
+`docs/route-plan.md` for the route inventory to check the app against
+manually if needed.
 
 ## docs
 
-Architecture, structure, route planning, actor authority, phase boundaries, and
-future backend integration guidance.
+Architecture, structure, route planning, actor authority, phase boundaries,
+and future backend integration guidance.
