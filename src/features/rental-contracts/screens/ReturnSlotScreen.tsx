@@ -1,16 +1,14 @@
 import { useState } from 'react';
-import { Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Card } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { ConfirmDialog, ErrorState, showToast } from '@/components/feedback';
-import { colors, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function ReturnSlotScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const contract = useMockDb((s) => s.contracts.find((c) => c.id === id));
   const slot = useMockDb((s) => s.slots.find((sl) => sl.id === contract?.slotId));
   const returnSlot = useMockDb((s) => s.returnSlot);
@@ -28,10 +26,10 @@ export function ReturnSlotScreen() {
     >
       <AppHeader title="Trả ô vỉa hè" back subtitle={slot?.slot_code} />
       <Card>
-        <Text style={[typography.bodyMd, { color: colors.muted }]}>
+        <p className="text-body-md text-muted">
           Sau khi trả ô, giấy phép số sẽ hết hiệu lực và ô sẽ được mở lại cho các hộ kinh doanh
           khác. Vui lòng thanh toán mọi khoản phí còn nợ trước khi trả ô.
-        </Text>
+        </p>
       </Card>
       <ConfirmDialog
         visible={confirm}
@@ -43,7 +41,7 @@ export function ReturnSlotScreen() {
           returnSlot(contract.id);
           setConfirm(false);
           showToast('Đã trả ô');
-          router.replace('/vendor/slots/contracts');
+          navigate('/vendor/slots/contracts', { replace: true });
         }}
         onCancel={() => setConfirm(false)}
       />

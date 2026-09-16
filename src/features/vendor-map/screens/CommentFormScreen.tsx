@@ -1,19 +1,17 @@
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button } from '@/components/common';
+import { Button, Icon } from '@/components/common';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { ErrorState, showToast } from '@/components/feedback';
-import { colors, spacing } from '@/theme';
+import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
 export function CommentFormScreen() {
-  const { vendorId } = useLocalSearchParams<{ vendorId: string }>();
-  const router = useRouter();
+  const { vendorId } = useParams<{ vendorId: string }>();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const vendor = useMockDb((s) => s.vendors.find((v) => v.id === vendorId));
   const addComment = useMockDb((s) => s.addComment);
@@ -25,7 +23,7 @@ export function CommentFormScreen() {
   const submit = () => {
     addComment({ vendorId: vendor.id, authorId: user.id, authorName: user.fullName, rating, text });
     showToast('Đã gửi đánh giá');
-    router.back();
+    navigate(-1);
   };
 
   return (
@@ -37,17 +35,13 @@ export function CommentFormScreen() {
       }
     >
       <AppHeader title="Viết đánh giá" back subtitle={vendor.business_name} />
-      <View style={{ flexDirection: 'row', gap: spacing.xs, justifyContent: 'center' }}>
+      <div className="flex justify-center gap-xs">
         {[1, 2, 3, 4, 5].map((n) => (
-          <Pressable key={n} onPress={() => setRating(n)} hitSlop={6}>
-            <MaterialCommunityIcons
-              name={n <= rating ? 'star' : 'star-outline'}
-              size={32}
-              color={colors.secondary}
-            />
-          </Pressable>
+          <button key={n} type="button" onClick={() => setRating(n)}>
+            <Icon name={n <= rating ? 'star' : 'star-outline'} size={32} color={colors.secondary} />
+          </button>
         ))}
-      </View>
+      </div>
       <TextField
         label="Nhận xét"
         value={text}

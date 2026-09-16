@@ -1,16 +1,14 @@
-import { Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Card } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { ErrorState, showToast } from '@/components/feedback';
-import { colors, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
 export function AcceptTransferScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const transfer = useMockDb((s) => s.transfers.find((t) => t.id === id));
   const registrations = useMockDb((s) => s.registrations).filter(
@@ -33,7 +31,7 @@ export function AcceptTransferScreen() {
               if (!user?.vendorId) return;
               acceptTransfer(transfer.id, user.vendorId);
               showToast('Đã gửi yêu cầu, chờ Phường duyệt');
-              router.back();
+              navigate(-1);
             }}
           />
         </StickyActions>
@@ -41,16 +39,16 @@ export function AcceptTransferScreen() {
     >
       <AppHeader title="Chấp nhận chuyển nhượng" back />
       <Card>
-        <Text style={[typography.bodyMd, { color: colors.text }]}>
+        <p className="text-body-md text-text">
           Một hộ kinh doanh muốn chuyển nhượng ô đang thuê cho bạn. Yêu cầu cần Phường duyệt trước
           khi có hiệu lực.
-        </Text>
+        </p>
       </Card>
       {!hasApprovedRegistration ? (
         <Card style={{ backgroundColor: '#E09F3E18', borderColor: '#E09F3E40' }}>
-          <Text style={[typography.bodyMd, { color: colors.onSecondary }]}>
+          <p className="text-body-md text-on-secondary">
             Bạn cần có hồ sơ đăng ký kinh doanh đã được duyệt trước khi nhận chuyển nhượng.
-          </Text>
+          </p>
         </Card>
       ) : null}
     </Screen>

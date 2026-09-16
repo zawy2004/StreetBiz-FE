@@ -1,14 +1,13 @@
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Button, Card } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { colors, spacing, statusTones, typography } from '@/theme';
+import { statusTones } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function SlotOccupancyScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const slots = useMockDb((s) => s.slots).filter((s) => s.proposal_review_status !== 'PENDING');
 
   return (
@@ -20,7 +19,7 @@ export function SlotOccupancyScreen() {
             label="Cấu hình"
             variant="outline"
             fullWidth={false}
-            onPress={() => router.push('/ward/slots/editor')}
+            onPress={() => navigate('/ward/slots/editor')}
           />
         }
       />
@@ -35,25 +34,16 @@ export function SlotOccupancyScreen() {
           ];
         return (
           <Card key={slot.id} style={{ padding: 0, overflow: 'hidden' }}>
-            <View style={{ flexDirection: 'row' }}>
-              <View style={{ width: 6, backgroundColor: tone.fg }} />
-              <View
-                style={{
-                  flex: 1,
-                  padding: spacing.md,
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <View>
-                  <Text style={[typography.headlineSm, { color: colors.text }]}>
-                    {slot.slot_code}
-                  </Text>
-                  <Text style={[typography.bodySm, { color: colors.muted }]}>{slot.street}</Text>
-                </View>
+            <div className="flex flex-row">
+              <div className="w-1.5" style={{ backgroundColor: tone.fg }} />
+              <div className="flex flex-1 flex-row items-center justify-between p-md">
+                <div>
+                  <p className="text-headline-sm text-text">{slot.slot_code}</p>
+                  <p className="text-body-sm text-muted">{slot.street}</p>
+                </div>
                 <StatusChip code={slot.slot_status} />
-              </View>
-            </View>
+              </div>
+            </div>
           </Card>
         );
       })}

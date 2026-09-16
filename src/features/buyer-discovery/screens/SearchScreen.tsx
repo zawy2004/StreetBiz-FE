@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Card, Money } from '@/components/common';
 import { TextField } from '@/components/forms';
@@ -8,11 +7,10 @@ import { AppHeader, Screen } from '@/components/layout';
 import { AiHint } from '@/components/status';
 import { EmptyState } from '@/components/feedback';
 import { env } from '@/core/config/env';
-import { colors, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function SearchScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const menuItems = useMockDb((s) => s.menuItems);
   const storefronts = useMockDb((s) => s.storefronts);
   const [query, setQuery] = useState('');
@@ -51,16 +49,14 @@ export function SearchScreen() {
         results.map((item) => {
           const storefront = storefronts.find((st) => st.id === item.storefrontId);
           return (
-            <Card key={item.id} onPress={() => router.push(`/customer/explore/items/${item.id}`)}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <View>
-                  <Text style={[typography.headlineSm, { color: colors.text }]}>{item.name}</Text>
-                  <Text style={[typography.bodySm, { color: colors.muted }]}>
-                    {storefront?.name}
-                  </Text>
-                </View>
+            <Card key={item.id} onPress={() => navigate(`/customer/explore/items/${item.id}`)}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-headline-sm text-text">{item.name}</p>
+                  <p className="text-body-sm text-muted">{storefront?.name}</p>
+                </div>
                 <Money amountVnd={item.price} />
-              </View>
+              </div>
             </Card>
           );
         })

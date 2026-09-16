@@ -1,18 +1,16 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigate } from 'react-router-dom';
 
-import { Button, Card, Divider, ListRow } from '@/components/common';
+import { Button, Card, Divider, Icon, ListRow } from '@/components/common';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { EmptyState } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
+import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function PublicScanScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const permits = useMockDb((s) => s.permits);
   const contracts = useMockDb((s) => s.contracts);
   const slots = useMockDb((s) => s.slots);
@@ -30,20 +28,20 @@ export function PublicScanScreen() {
   return (
     <Screen>
       <AppHeader title="Quét mã QR" subtitle="Xác thực giấy phép kinh doanh vỉa hè" />
-      <View style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
-        <MaterialCommunityIcons name="qrcode-scan" size={64} color={colors.muted} />
-      </View>
-      <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-end' }}>
-        <View style={{ flex: 1 }}>
+      <div className="flex items-center justify-center py-lg">
+        <Icon name="qrcode-scan" size={64} color={colors.muted} />
+      </div>
+      <div className="flex items-end gap-sm">
+        <div className="flex-1">
           <TextField
             label="Nhập mã giấy phép"
             value={code}
             onChangeText={setCode}
             placeholder="SB-HC1-2026-0815"
           />
-        </View>
+        </div>
         <Button label="Kiểm tra" fullWidth={false} onPress={() => setSearched(true)} />
-      </View>
+      </div>
 
       {searched && !permit ? (
         <EmptyState
@@ -58,32 +56,30 @@ export function PublicScanScreen() {
           <Card
             style={isValid ? undefined : { backgroundColor: '#FFDAD614', borderColor: '#BA1A1A33' }}
           >
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={[typography.headlineSm, { color: colors.text }]}>
-                {vendor.business_name}
-              </Text>
+            <div className="flex items-center justify-between">
+              <span className="text-headline-sm text-text">{vendor.business_name}</span>
               <StatusChip code={permit.permit_status} />
-            </View>
+            </div>
           </Card>
           <Card padded={false}>
-            <View style={{ paddingHorizontal: spacing.md }}>
+            <div className="px-md">
               <ListRow title="Vị trí cấp phép" subtitle={`${slot.slot_code} · ${slot.street}`} />
               <Divider />
               <ListRow
                 title="Hiệu lực đến"
                 subtitle={new Date(permit.expires_at).toLocaleDateString('vi-VN')}
               />
-            </View>
+            </div>
           </Card>
           <Button
             label="Xem hồ sơ hộ kinh doanh"
             variant="outline"
-            onPress={() => router.push(`/customer/explore/vendors/${vendor.id}`)}
+            onPress={() => navigate(`/customer/explore/vendors/${vendor.id}`)}
           />
           <Button
             label="Báo cáo bất thường"
             variant="ghost"
-            onPress={() => router.push(`/customer/explore/vendors/${vendor.id}/reports/new`)}
+            onPress={() => navigate(`/customer/explore/vendors/${vendor.id}/reports/new`)}
           />
         </>
       ) : null}

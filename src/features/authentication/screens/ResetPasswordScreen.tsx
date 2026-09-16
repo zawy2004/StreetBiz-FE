@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { AuthShell } from '../components/AuthShell';
 import { Button } from '@/components/common';
@@ -8,8 +8,9 @@ import { showToast } from '@/components/feedback';
 import { useMockDb } from '@/mocks/db';
 
 export function ResetPasswordScreen() {
-  const router = useRouter();
-  const { phone } = useLocalSearchParams<{ phone: string }>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const phone = searchParams.get('phone');
   const users = useMockDb((s) => s.users);
   const updatePassword = useMockDb((s) => s.updateUserPassword);
   const [password, setPassword] = useState('');
@@ -23,7 +24,7 @@ export function ResetPasswordScreen() {
     if (!user) return setError('Không tìm thấy tài khoản.');
     updatePassword(user.id, password);
     showToast('Đặt lại mật khẩu thành công');
-    router.replace('/auth/sign-in');
+    navigate('/auth/sign-in', { replace: true });
   };
 
   return (

@@ -1,18 +1,16 @@
 import { useState } from 'react';
-import { Text } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/common';
 import { PhotoPicker, TextField } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { showToast } from '@/components/feedback';
-import { colors, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 import { WARD } from '@/mocks/seed';
 
 export function SlotProposalScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const proposeSlot = useMockDb((s) => s.proposeSlot);
   const [street, setStreet] = useState('');
@@ -39,7 +37,7 @@ export function SlotProposalScreen() {
       proposedByVendorId: user?.vendorId,
     });
     showToast('Đã gửi đề xuất ô mới, chờ Phường xét duyệt');
-    router.back();
+    navigate(-1);
   };
 
   return (
@@ -69,7 +67,7 @@ export function SlotProposalScreen() {
         onChange={setPhotoUri}
         onRemove={() => setPhotoUri(undefined)}
       />
-      {error ? <Text style={[typography.bodySm, { color: colors.error }]}>{error}</Text> : null}
+      {error ? <span className="text-body-sm text-error">{error}</span> : null}
     </Screen>
   );
 }

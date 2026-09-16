@@ -1,22 +1,26 @@
-import { Text, TextStyle } from 'react-native';
+import { CSSProperties } from 'react';
 
-import { colors, typography } from '@/theme';
+import { colors } from '@/theme';
 
 type Props = {
   amountVnd: number;
   size?: 'md' | 'lg';
   color?: string;
-  style?: TextStyle;
+  style?: CSSProperties;
+  className?: string;
 };
 
 export function formatVnd(amount: number): string {
   return `${amount.toLocaleString('vi-VN')} đ`;
 }
 
-export function Money({ amountVnd, size = 'md', color = colors.text, style }: Props) {
+export function Money({ amountVnd, size = 'md', color = colors.text, style, className }: Props) {
   return (
-    <Text style={[size === 'lg' ? typography.moneyLg : typography.money, { color }, style]}>
+    <span
+      style={{ color, ...style }}
+      className={`font-number font-tabular ${size === 'lg' ? 'text-money-lg' : 'text-money'} ${className ?? ''}`}
+    >
       {formatVnd(amountVnd)}
-    </Text>
+    </span>
   );
 }

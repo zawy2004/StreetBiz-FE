@@ -1,16 +1,14 @@
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Card, Money } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { EmptyState } from '@/components/feedback';
-import { colors, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
 export function ContractsListScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const contracts = useMockDb((s) => s.contracts).filter((c) => c.vendorId === user?.vendorId);
   const slots = useMockDb((s) => s.slots);
@@ -24,21 +22,19 @@ export function ContractsListScreen() {
         contracts.map((c) => {
           const slot = slots.find((s) => s.id === c.slotId);
           return (
-            <Card key={c.id} onPress={() => router.push(`/vendor/slots/contracts/${c.id}`)}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <View style={{ gap: 4 }}>
-                  <Text style={[typography.headlineSm, { color: colors.text }]}>
-                    {slot?.slot_code ?? c.slotId}
-                  </Text>
-                  <Text style={[typography.bodySm, { color: colors.muted }]}>
+            <Card key={c.id} onPress={() => navigate(`/vendor/slots/contracts/${c.id}`)}>
+              <div className="flex justify-between">
+                <div className="flex flex-col gap-2xs">
+                  <span className="text-headline-sm text-text">{slot?.slot_code ?? c.slotId}</span>
+                  <span className="text-body-sm text-muted">
                     Đến {new Date(c.end_date).toLocaleDateString('vi-VN')}
-                  </Text>
-                </View>
+                  </span>
+                </div>
                 <StatusChip code={c.contract_status} />
-              </View>
-              <View style={{ marginTop: 8 }}>
+              </div>
+              <div className="mt-xs">
                 <Money amountVnd={c.fee_monthly} />
-              </View>
+              </div>
             </Card>
           );
         })

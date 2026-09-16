@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/common';
 import { SelectField, TextField } from '@/components/forms';
@@ -15,8 +15,8 @@ const TYPES = [
 ];
 
 export function OrderComplaintScreen() {
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
-  const router = useRouter();
+  const { orderId } = useParams<{ orderId: string }>();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const order = useMockDb((s) => s.orders.find((o) => o.id === orderId));
   const addComplaint = useMockDb((s) => s.addComplaint);
@@ -40,7 +40,7 @@ export function OrderComplaintScreen() {
                 description,
               });
               showToast('Đã gửi khiếu nại tới quản trị viên');
-              router.back();
+              navigate(-1);
             }}
           />
         </StickyActions>

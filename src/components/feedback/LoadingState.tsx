@@ -1,11 +1,10 @@
-import { ActivityIndicator, View } from 'react-native';
-
-import { colors, spacing } from '@/theme';
+import { Spinner } from '@/components/common';
+import { colors } from '@/theme';
 
 export function LoadingState() {
   return (
-    <View style={{ paddingVertical: spacing.xl, alignItems: 'center' }}>
-      <ActivityIndicator color={colors.primary} />
-    </View>
+    <div className="flex items-center justify-center py-xl">
+      <Spinner size={24} color={colors.primary} />
+    </div>
   );
 }

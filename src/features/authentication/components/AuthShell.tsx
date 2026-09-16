@@ -1,9 +1,7 @@
 import { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { BrandLogo, IconButton } from '@/components/common';
-import { colors, spacing, typography } from '@/theme';
 
 type Props = {
   title: string;
@@ -13,56 +11,23 @@ type Props = {
 };
 
 export function AuthShell({ title, subtitle, back, children }: Props) {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.bg }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+    <div className="flex min-h-full flex-1 flex-col bg-bg">
+      <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col p-lg pt-xl">
         {back ? (
-          <View style={{ marginBottom: spacing.sm }}>
-            <IconButton
-              icon="arrow-left"
-              accessibilityLabel="Quay lại"
-              onPress={() => router.back()}
-            />
-          </View>
+          <div className="mb-sm">
+            <IconButton icon="arrow-left" accessibilityLabel="Quay lại" onPress={() => navigate(-1)} />
+          </div>
         ) : null}
-        <View style={styles.header}>
+        <div className="mb-lg flex flex-col items-center">
           <BrandLogo size={48} />
-          <Text style={[typography.headlineLg, { color: colors.text, marginTop: spacing.sm }]}>
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text
-              style={[
-                typography.bodyMd,
-                { color: colors.muted, marginTop: 4, textAlign: 'center' },
-              ]}
-            >
-              {subtitle}
-            </Text>
-          ) : null}
-        </View>
-        <View style={{ gap: spacing.md }}>{children}</View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <h1 className="mt-sm text-headline-lg text-text">{title}</h1>
+          {subtitle ? <p className="mt-1 text-center text-body-md text-muted">{subtitle}</p> : null}
+        </div>
+        <div className="flex flex-col gap-md">{children}</div>
+      </div>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  scroll: {
-    flexGrow: 1,
-    padding: spacing.lg,
-    paddingTop: spacing.xl,
-    maxWidth: 420,
-    width: '100%',
-    alignSelf: 'center',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-});

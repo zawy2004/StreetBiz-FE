@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/common';
 import { PasswordField } from '@/components/forms';
@@ -9,7 +9,7 @@ import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
 export function ChangePasswordScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const updatePassword = useMockDb((s) => s.updateUserPassword);
@@ -27,7 +27,7 @@ export function ChangePasswordScreen() {
     updatePassword(user.id, next);
     setUser({ ...user, password: next });
     showToast('Đổi mật khẩu thành công');
-    router.back();
+    navigate(-1);
   };
 
   return (

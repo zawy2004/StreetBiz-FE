@@ -1,16 +1,14 @@
-import { Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Card, Divider, ListRow, Money } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ErrorState } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function ContractDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const contract = useMockDb((s) => s.contracts.find((c) => c.id === id));
   const slot = useMockDb((s) => s.slots.find((sl) => sl.id === contract?.slotId));
   const feeItems = useMockDb((s) => s.feeItems).filter((f) => f.contractId === id);
@@ -23,63 +21,63 @@ export function ContractDetailScreen() {
     <Screen>
       <AppHeader title={slot?.slot_code ?? 'Hợp đồng'} back subtitle={slot?.street} />
       <Card>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <div className="flex justify-between">
           <Money amountVnd={contract.fee_monthly} size="lg" />
           <StatusChip code={contract.contract_status} />
-        </View>
-        <Text style={[typography.bodySm, { color: colors.muted }]}>
+        </div>
+        <p className="text-body-sm text-muted">
           {new Date(contract.start_date).toLocaleDateString('vi-VN')} —{' '}
           {new Date(contract.end_date).toLocaleDateString('vi-VN')}
-        </Text>
+        </p>
       </Card>
 
       {isActive ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-          <View style={{ flexGrow: 1, minWidth: 150 }}>
+        <div className="flex flex-wrap gap-sm">
+          <div className="min-w-[150px] flex-grow">
             <Button
               label="Xem giấy phép QR"
-              onPress={() => router.push(`/vendor/slots/contracts/${contract.id}/permit`)}
+              onPress={() => navigate(`/vendor/slots/contracts/${contract.id}/permit`)}
             />
-          </View>
-          <View style={{ flexGrow: 1, minWidth: 150 }}>
+          </div>
+          <div className="min-w-[150px] flex-grow">
             <Button
               label="Gia hạn"
               variant="outline"
-              onPress={() => router.push(`/vendor/slots/contracts/${contract.id}/renewal`)}
+              onPress={() => navigate(`/vendor/slots/contracts/${contract.id}/renewal`)}
             />
-          </View>
-          <View style={{ flexGrow: 1, minWidth: 150 }}>
+          </div>
+          <div className="min-w-[150px] flex-grow">
             <Button
               label="Chuyển nhượng"
               variant="outline"
-              onPress={() => router.push(`/vendor/slots/contracts/${contract.id}/transfer`)}
+              onPress={() => navigate(`/vendor/slots/contracts/${contract.id}/transfer`)}
             />
-          </View>
-          <View style={{ flexGrow: 1, minWidth: 150 }}>
+          </div>
+          <div className="min-w-[150px] flex-grow">
             <Button
               label="Trả ô"
               variant="ghost"
-              onPress={() => router.push(`/vendor/slots/contracts/${contract.id}/return`)}
+              onPress={() => navigate(`/vendor/slots/contracts/${contract.id}/return`)}
             />
-          </View>
-        </View>
+          </div>
+        </div>
       ) : null}
 
       {feeItems.length > 0 ? (
         <Section title="Lịch phí">
           <Card padded={false}>
-            <View style={{ paddingHorizontal: spacing.md }}>
+            <div className="px-md">
               {feeItems.map((fee, i) => (
-                <View key={fee.id}>
+                <div key={fee.id}>
                   {i > 0 ? <Divider /> : null}
                   <ListRow
                     title={fee.period_label}
                     subtitle={`Hạn ${new Date(fee.due_date).toLocaleDateString('vi-VN')}`}
                     trailing={<StatusChip code={fee.item_status} />}
                   />
-                </View>
+                </div>
               ))}
-            </View>
+            </div>
           </Card>
         </Section>
       ) : null}

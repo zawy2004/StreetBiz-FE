@@ -1,19 +1,18 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Card, Divider, ListRow, Money } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ConfirmDialog, ErrorState, showToast } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
+import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 const CANCELLABLE = ['PENDING', 'ACCEPTED'];
 
 export function OrderDetailScreen() {
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
-  const router = useRouter();
+  const { orderId } = useParams<{ orderId: string }>();
+  const navigate = useNavigate();
   const order = useMockDb((s) => s.orders.find((o) => o.id === orderId));
   const storefront = useMockDb((s) => s.storefronts.find((st) => st.id === order?.storefrontId));
   const cancelOrder = useMockDb((s) => s.cancelOrder);
@@ -46,7 +45,7 @@ export function OrderDetailScreen() {
             {isDone ? (
               <Button
                 label="Đánh giá đơn hàng"
-                onPress={() => router.push(`/customer/orders/${order.id}/review`)}
+                onPress={() => navigate(`/customer/orders/${order.id}/review`)}
               />
             ) : null}
           </StickyActions>
@@ -54,37 +53,37 @@ export function OrderDetailScreen() {
       }
     >
       <AppHeader title={`#${order.order_code}`} back subtitle={storefront?.name} />
-      <View style={{ alignItems: 'flex-start' }}>
+      <div className="flex items-start">
         <StatusChip code={order.order_status} />
-      </View>
+      </div>
       <Card padded={false}>
-        <View style={{ paddingHorizontal: spacing.md }}>
+        <div className="px-md">
           {order.items.map((item, i) => (
-            <View key={item.menuItemId}>
+            <div key={item.menuItemId}>
               {i > 0 ? <Divider /> : null}
               <ListRow
                 title={`${item.quantity}× ${item.name}`}
                 trailing={<Money amountVnd={item.price * item.quantity} />}
               />
-            </View>
+            </div>
           ))}
-        </View>
+        </div>
       </Card>
       <Card>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Text style={[typography.headlineSm, { color: colors.text }]}>Tổng đã thanh toán</Text>
+        <div className="flex items-center justify-between">
+          <span className="text-headline-sm text-text">Tổng đã thanh toán</span>
           <Money amountVnd={order.total} size="lg" />
-        </View>
-        <Text style={[typography.bodySm, { color: colors.muted, marginTop: 4 }]}>
+        </div>
+        <p className="mt-1 text-body-sm text-muted">
           {new Date(order.created_at).toLocaleString('vi-VN')}
-        </Text>
+        </p>
       </Card>
 
       {order.order_status === 'REJECTED' || order.order_status === 'CANCELLED' ? (
         <Card style={{ backgroundColor: '#2D7D4614', borderColor: '#2D7D4633' }}>
-          <Text style={[typography.bodyMd, { color: colors.tertiary }]}>
+          <p className="text-body-md" style={{ color: colors.tertiary }}>
             Đã hoàn tiền vào ví thanh toán.
-          </Text>
+          </p>
         </Card>
       ) : null}
 
@@ -92,7 +91,7 @@ export function OrderDetailScreen() {
         <Button
           label="Khiếu nại / yêu cầu hoàn tiền"
           variant="ghost"
-          onPress={() => router.push(`/customer/orders/${order.id}/complaint`)}
+          onPress={() => navigate(`/customer/orders/${order.id}/complaint`)}
         />
       ) : null}
 

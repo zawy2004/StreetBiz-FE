@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
@@ -8,8 +8,8 @@ import { useMockDb } from '@/mocks/db';
 import { PaymentSummary } from '../components/PaymentSummary';
 
 export function PenaltyPaymentScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const penalty = useMockDb((s) => s.penalties.find((p) => p.id === id));
   const payPenalty = useMockDb((s) => s.payPenalty);
   const [processing, setProcessing] = useState(false);
@@ -22,7 +22,7 @@ export function PenaltyPaymentScreen() {
       payPenalty(penalty.id);
       setProcessing(false);
       showToast('Thanh toán thành công');
-      router.back();
+      navigate(-1);
     }, 900);
   };
 

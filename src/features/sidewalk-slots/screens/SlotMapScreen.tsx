@@ -1,21 +1,19 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigate } from 'react-router-dom';
 
-import { Button, Card, Money } from '@/components/common';
+import { Button, Card, Icon, Money } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { FilterChips } from '@/components/forms';
 import { EmptyState, showToast } from '@/components/feedback';
-import { colors, spacing, statusTones, typography } from '@/theme';
+import { colors, statusTones } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
 type Filter = 'ALL' | 'AVAILABLE' | 'RENTED';
 
 export function SlotMapScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const slots = useMockDb((s) => s.slots).filter((s) => s.proposal_review_status !== 'PENDING');
   const submitRentalApplication = useMockDb((s) => s.submitRentalApplication);
@@ -38,7 +36,7 @@ export function SlotMapScreen() {
     showToast(`Đã gửi đơn thuê ${selected.length} ô`);
     setSelected([]);
     setSelectMode(false);
-    router.push('/vendor/slots/rental-applications');
+    navigate('/vendor/slots/rental-applications');
   };
 
   return (
@@ -104,38 +102,35 @@ export function SlotMapScreen() {
                 isSelectable
                   ? toggle(slot.id)
                   : !selectMode
-                    ? router.push(`/vendor/slots/${slot.id}`)
+                    ? navigate(`/vendor/slots/${slot.id}`)
                     : undefined
               }
-              style={{ padding: 0, overflow: 'hidden' }}
+              padded={false}
+              style={{ overflow: 'hidden' }}
             >
-              <View style={{ flexDirection: 'row' }}>
-                <View style={{ width: 6, backgroundColor: tone.fg }} />
-                <View style={{ flex: 1, padding: spacing.md }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={[typography.headlineSm, { color: colors.text }]}>
-                      {slot.slot_code}
-                    </Text>
+              <div className="flex">
+                <div className="w-1.5" style={{ backgroundColor: tone.fg }} />
+                <div className="flex-1 p-md">
+                  <div className="flex justify-between">
+                    <span className="text-headline-sm text-text">{slot.slot_code}</span>
                     {isSelectable ? (
-                      <MaterialCommunityIcons
-                        name={
-                          isSelected ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'
-                        }
+                      <Icon
+                        name={isSelected ? 'check-circle' : 'check-circle-outline'}
                         size={22}
                         color={isSelected ? colors.primary : colors.muted}
                       />
                     ) : (
                       <StatusChip code={slot.slot_status} />
                     )}
-                  </View>
-                  <Text style={[typography.bodyMd, { color: colors.muted, marginTop: 2 }]}>
+                  </div>
+                  <p className="mt-0.5 text-body-md text-muted">
                     {slot.street} · {slot.size_m2} m² · {slot.time_window}
-                  </Text>
-                  <View style={{ marginTop: 6 }}>
+                  </p>
+                  <div className="mt-1.5">
                     <Money amountVnd={slot.price_monthly} />
-                  </View>
-                </View>
-              </View>
+                  </div>
+                </div>
+              </div>
             </Card>
           );
         })

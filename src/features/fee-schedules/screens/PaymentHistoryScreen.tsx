@@ -1,10 +1,7 @@
-import { View } from 'react-native';
-
 import { Card, Divider, ListRow, Money } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { EmptyState } from '@/components/feedback';
-import { spacing } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -37,23 +34,23 @@ export function PaymentHistoryScreen() {
         <EmptyState icon="history" title="Chưa có giao dịch nào" />
       ) : (
         <Card padded={false}>
-          <View style={{ paddingHorizontal: spacing.md }}>
+          <div className="px-md">
             {rows.map((row, i) => (
-              <View key={row.id}>
+              <div key={row.id}>
                 {i > 0 ? <Divider /> : null}
                 <ListRow
                   title={row.title}
                   subtitle={row.kind}
                   trailing={
-                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    <div className="flex flex-col items-end gap-2xs">
                       <Money amountVnd={row.amount} />
                       <StatusChip code={row.status} />
-                    </View>
+                    </div>
                   }
                 />
-              </View>
+              </div>
             ))}
-          </View>
+          </div>
         </Card>
       )}
     </Screen>

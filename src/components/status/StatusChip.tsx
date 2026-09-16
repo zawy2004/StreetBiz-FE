@@ -1,7 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
-
 import { statusLabel } from '@/core/constants/status-labels';
-import { radius, spacing, statusTones, typography, type StatusTone } from '@/theme';
+import { statusTones, type StatusTone } from '@/theme';
 
 type Props =
   | { code: string; label?: undefined; tone?: undefined }
@@ -16,27 +14,11 @@ export function StatusChip(props: Props) {
   const colorsForTone = statusTones[tone];
 
   return (
-    <View
-      style={[
-        styles.chip,
-        { backgroundColor: colorsForTone.bg, borderColor: colorsForTone.border },
-      ]}
+    <span
+      style={{ backgroundColor: colorsForTone.bg, borderColor: colorsForTone.border, color: colorsForTone.fg }}
+      className="inline-flex h-6 w-fit items-center justify-center truncate rounded-full border px-xs text-badge"
     >
-      <Text style={[typography.badge, { color: colorsForTone.fg }]} numberOfLines={1}>
-        {label.toUpperCase()}
-      </Text>
-    </View>
+      {label.toUpperCase()}
+    </span>
   );
 }
-
-const styles = StyleSheet.create({
-  chip: {
-    alignSelf: 'flex-start',
-    height: 24,
-    paddingHorizontal: spacing.xs,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

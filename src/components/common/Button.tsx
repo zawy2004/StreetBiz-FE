@@ -1,35 +1,28 @@
-import { ReactNode } from 'react';
-import {
-  ActivityIndicator,
-  GestureResponderEvent,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ButtonHTMLAttributes, ReactNode } from 'react';
 
-import { colors, radius, spacing, touchHeight, typography } from '@/theme';
+import { Spinner } from './Spinner';
 
 export type ButtonVariant = 'primary' | 'civic' | 'approve' | 'outline' | 'ghost' | 'danger';
 
 type Props = {
   label: string;
-  onPress?: (e: GestureResponderEvent) => void;
+  onPress?: () => void;
   variant?: ButtonVariant;
   disabled?: boolean;
   loading?: boolean;
   icon?: ReactNode;
   fullWidth?: boolean;
   testID?: string;
+  type?: ButtonHTMLAttributes<HTMLButtonElement>['type'];
 };
 
-const variantStyles: Record<ButtonVariant, { bg: string; fg: string; border?: string }> = {
-  primary: { bg: colors.primary, fg: colors.onPrimary },
-  civic: { bg: colors.indigo, fg: colors.onIndigo },
-  approve: { bg: colors.tertiary, fg: colors.white },
-  outline: { bg: 'transparent', fg: colors.indigo, border: colors.border },
-  ghost: { bg: 'transparent', fg: colors.primary },
-  danger: { bg: colors.error, fg: colors.white },
+const variantClass: Record<ButtonVariant, string> = {
+  primary: 'bg-primary text-on-primary',
+  civic: 'bg-indigo text-on-indigo',
+  approve: 'bg-tertiary text-white',
+  outline: 'bg-transparent text-indigo border border-border',
+  ghost: 'bg-transparent text-primary',
+  danger: 'bg-error text-white',
 };
 
 export function Button({
@@ -41,52 +34,28 @@ export function Button({
   icon,
   fullWidth = true,
   testID,
+  type = 'button',
 }: Props) {
-  const v = variantStyles[variant];
-
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled: disabled || loading }}
-      testID={testID}
-      onPress={onPress}
+    <button
+      type={type}
+      data-testid={testID}
+      onClick={onPress}
       disabled={disabled || loading}
-      style={({ pressed }) => [
-        styles.base,
-        {
-          backgroundColor: v.bg,
-          borderColor: v.border ?? 'transparent',
-          borderWidth: v.border ? 1 : 0,
-          opacity: disabled ? 0.5 : pressed ? 0.9 : 1,
-          alignSelf: fullWidth ? 'stretch' : 'flex-start',
-          paddingHorizontal: fullWidth ? spacing.md : spacing.lg,
-        },
-      ]}
+      className={[
+        'inline-flex h-12 items-center justify-center rounded-sm text-headline-sm transition-opacity active:opacity-90 disabled:cursor-not-allowed disabled:opacity-50',
+        fullWidth ? 'w-full px-md' : 'w-auto px-lg',
+        variantClass[variant],
+      ].join(' ')}
     >
       {loading ? (
-        <ActivityIndicator color={v.fg} size="small" />
+        <Spinner size={18} />
       ) : (
-        <View style={styles.content}>
+        <span className="flex items-center gap-xs truncate">
           {icon}
-          <Text style={[typography.headlineSm, { color: v.fg }]} numberOfLines={1}>
-            {label}
-          </Text>
-        </View>
+          {label}
+        </span>
       )}
-    </Pressable>
+    </button>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    height: touchHeight,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-});

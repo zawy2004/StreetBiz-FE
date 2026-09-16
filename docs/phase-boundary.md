@@ -1,6 +1,6 @@
 # Phase boundary
 
-Updated for the UI implementation pass (2026-09). All three tiers below now
+Updated for the React/Vite migration (2026-09). All three tiers below now
 have real, navigable screens backed by the mock data layer in `src/mocks/`
 (no StreetBiz-BE integration). The flags still gate what's *visible* —
 `.env.example` now defaults AI and Phase 2 to `true` so a fresh checkout
@@ -71,7 +71,7 @@ as originally planned:
 Controlled by:
 
 ~~~dotenv
-EXPO_PUBLIC_ENABLE_AI_COMPLIANCE=true
+VITE_ENABLE_AI_COMPLIANCE=true
 ~~~
 
 ## Phase 2
@@ -94,7 +94,7 @@ The marketplace flow is implemented end to end against the mock data layer:
 Controlled by:
 
 ~~~dotenv
-EXPO_PUBLIC_ENABLE_PHASE_2=true
+VITE_ENABLE_PHASE_2=true
 ~~~
 
 ## Explicitly outside every phase

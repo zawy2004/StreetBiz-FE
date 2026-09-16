@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
 
 import { Button, Card } from '@/components/common';
 import { SegmentedControl } from '@/components/forms';
@@ -7,7 +6,6 @@ import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { EmptyState, showToast } from '@/components/feedback';
 import { env } from '@/core/config/env';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 type Tab = 'CONTENT' | 'COMPLAINTS';
@@ -52,32 +50,28 @@ export function ModerationScreen() {
         ) : (
           reportedContent.map((r) => (
             <Card key={r.id}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={[typography.headlineSm, { color: colors.text }]}>
-                  {CONTENT_LABEL[r.content_type]}
-                </Text>
+              <div className="flex justify-between">
+                <span className="text-headline-sm text-text">{CONTENT_LABEL[r.content_type]}</span>
                 <StatusChip code={r.status} />
-              </View>
-              <Text style={[typography.bodyMd, { color: colors.muted, marginTop: 4 }]}>
-                {r.reason}
-              </Text>
+              </div>
+              <p className="mt-1 text-body-md text-muted">{r.reason}</p>
               {r.status === 'PENDING' ? (
-                <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
-                  <View style={{ flex: 1 }}>
+                <div className="mt-sm flex gap-sm">
+                  <div className="flex-1">
                     <Button
                       label="Bỏ qua"
                       variant="outline"
                       onPress={() => moderateContent(r.id, false)}
                     />
-                  </View>
-                  <View style={{ flex: 1 }}>
+                  </div>
+                  <div className="flex-1">
                     <Button
                       label="Ẩn nội dung"
                       variant="danger"
                       onPress={() => moderateContent(r.id, true)}
                     />
-                  </View>
-                </View>
+                  </div>
+                </div>
               ) : null}
             </Card>
           ))
@@ -87,15 +81,11 @@ export function ModerationScreen() {
       ) : (
         complaints.map((c) => (
           <Card key={c.id}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={[typography.headlineSm, { color: colors.text }]}>
-                {c.complaint_type}
-              </Text>
+            <div className="flex justify-between">
+              <span className="text-headline-sm text-text">{c.complaint_type}</span>
               <StatusChip code={c.status} />
-            </View>
-            <Text style={[typography.bodyMd, { color: colors.muted, marginTop: 4 }]}>
-              {c.description}
-            </Text>
+            </div>
+            <p className="mt-1 text-body-md text-muted">{c.description}</p>
             {c.status === 'PENDING' ? (
               <Button
                 label="Đánh dấu đã xử lý"

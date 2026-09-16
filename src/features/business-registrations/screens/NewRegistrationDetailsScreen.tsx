@@ -1,17 +1,14 @@
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
-
-import { Text } from 'react-native';
+import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/common';
 import { TextField } from '@/components/forms';
-import { colors, typography } from '@/theme';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { Stepper } from '../components/Stepper';
 import { useNewRegistrationStore } from '../new-registration-store';
 
 export function NewRegistrationDetailsScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const draft = useNewRegistrationStore();
   const [error, setError] = useState<string>();
 
@@ -23,7 +20,7 @@ export function NewRegistrationDetailsScreen() {
       return setError('Cửa hàng cố định cần nhập địa chỉ kinh doanh.');
     }
     setError(undefined);
-    router.push('/vendor/registrations/new/evidence');
+    navigate('/vendor/registrations/new/evidence');
   };
 
   return (
@@ -61,7 +58,7 @@ export function NewRegistrationDetailsScreen() {
           placeholder="Số nhà, đường, phường"
         />
       ) : null}
-      {error ? <Text style={[typography.bodySm, { color: colors.error }]}>{error}</Text> : null}
+      {error ? <span className="text-body-sm text-error">{error}</span> : null}
     </Screen>
   );
 }

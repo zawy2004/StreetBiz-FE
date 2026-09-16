@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/common';
 import { PhoneField } from '@/components/forms';
@@ -8,8 +8,8 @@ import { ErrorState, showToast } from '@/components/feedback';
 import { useMockDb } from '@/mocks/db';
 
 export function TransferInitiateScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const contract = useMockDb((s) => s.contracts.find((c) => c.id === id));
   const initiateTransfer = useMockDb((s) => s.initiateTransfer);
   const [phone, setPhone] = useState('');
@@ -21,7 +21,7 @@ export function TransferInitiateScreen() {
     if (phone.replace(/\D/g, '').length < 9) return setError('Số điện thoại chưa hợp lệ.');
     initiateTransfer(contract.id, contract.vendorId, phone);
     showToast('Đã gửi yêu cầu chuyển nhượng');
-    router.back();
+    navigate(-1);
   };
 
   return (

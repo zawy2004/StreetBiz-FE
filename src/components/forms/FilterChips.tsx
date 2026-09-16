@@ -1,7 +1,3 @@
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
-
-import { colors, radius, spacing, typography } from '@/theme';
-
 export type FilterChipOption<T extends string> = { value: T; label: string; count?: number };
 
 type Props<T extends string> = {
@@ -12,49 +8,26 @@ type Props<T extends string> = {
 
 export function FilterChips<T extends string>({ options, value, onChange }: Props<T>) {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.row}
-    >
+    <div className="flex gap-xs overflow-x-auto py-0.5">
       {options.map((opt) => {
         const active = opt.value === value;
         return (
-          <Pressable
+          <button
             key={opt.value}
-            onPress={() => onChange(opt.value)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
-            style={[
-              styles.chip,
-              {
-                backgroundColor: active ? colors.indigo : colors.card,
-                borderColor: active ? colors.indigo : colors.border,
-              },
-            ]}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            role="tab"
+            aria-selected={active}
+            className={[
+              'h-9 shrink-0 truncate rounded-full border px-sm text-label transition-colors',
+              active ? 'border-indigo bg-indigo text-white' : 'border-border bg-card text-text',
+            ].join(' ')}
           >
-            <Text
-              style={[typography.label, { color: active ? colors.white : colors.text }]}
-              numberOfLines={1}
-            >
-              {opt.label}
-              {opt.count !== undefined ? ` (${opt.count})` : ''}
-            </Text>
-          </Pressable>
+            {opt.label}
+            {opt.count !== undefined ? ` (${opt.count})` : ''}
+          </button>
         );
       })}
-    </ScrollView>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  row: { gap: spacing.xs, paddingVertical: 2 },
-  chip: {
-    height: 36,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

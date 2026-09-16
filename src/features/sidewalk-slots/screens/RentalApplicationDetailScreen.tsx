@@ -1,15 +1,13 @@
-import { Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useParams } from 'react-router-dom';
 
 import { Card, Divider, ListRow } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ErrorState } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function RentalApplicationDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>();
   const application = useMockDb((s) => s.applications.find((a) => a.id === id));
   const slots = useMockDb((s) => s.slots);
 
@@ -19,29 +17,29 @@ export function RentalApplicationDetailScreen() {
     <Screen>
       <AppHeader title="Chi tiết đơn thuê" back />
       <Card>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Text style={[typography.headlineSm, { color: colors.text }]}>
+        <div className="flex justify-between">
+          <span className="text-headline-sm text-text">
             {application.application_type === 'STOREFRONT_ADJACENT' ? 'Ô liền kề mặt tiền' : 'Ô mở'}
-          </Text>
+          </span>
           <StatusChip code={application.application_status} />
-        </View>
-        <Text style={[typography.bodySm, { color: colors.muted, marginTop: 4 }]}>
+        </div>
+        <p className="mt-1 text-body-sm text-muted">
           Nộp ngày {new Date(application.submitted_at).toLocaleDateString('vi-VN')}
-        </Text>
+        </p>
       </Card>
       <Card padded={false}>
-        <View style={{ paddingHorizontal: spacing.md }}>
+        <div className="px-md">
           {application.slotIds.map((slotId, i) => {
             const slot = slots.find((s) => s.id === slotId);
             if (!slot) return null;
             return (
-              <View key={slotId}>
+              <div key={slotId}>
                 {i > 0 ? <Divider /> : null}
                 <ListRow title={slot.slot_code} subtitle={`${slot.street} · ${slot.size_m2} m²`} />
-              </View>
+              </div>
             );
           })}
-        </View>
+        </div>
       </Card>
     </Screen>
   );

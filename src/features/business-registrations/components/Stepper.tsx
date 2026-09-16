@@ -1,7 +1,3 @@
-import { StyleSheet, Text, View } from 'react-native';
-
-import { colors, spacing, typography } from '@/theme';
-
 type Props = {
   step: number;
   total: number;
@@ -10,23 +6,18 @@ type Props = {
 
 export function Stepper({ step, total, label }: Props) {
   return (
-    <View style={{ gap: spacing['2xs'] }}>
-      <View style={styles.track}>
+    <div className="flex flex-col gap-2xs">
+      <div className="flex gap-1">
         {Array.from({ length: total }, (_, i) => (
-          <View
+          <div
             key={i}
-            style={[styles.segment, i < step ? { backgroundColor: colors.primary } : null]}
+            className={`h-1 flex-1 rounded-full ${i < step ? 'bg-primary' : 'bg-border'}`}
           />
         ))}
-      </View>
-      <Text style={[typography.bodySm, { color: colors.muted }]}>
+      </div>
+      <span className="text-body-sm text-muted">
         Bước {step}/{total} · {label}
-      </Text>
-    </View>
+      </span>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  track: { flexDirection: 'row', gap: 4 },
-  segment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border },
-});

@@ -31,14 +31,11 @@ unused until this work is explicitly requested.
 
 ## Local addressing
 
-- Web running on the development computer may use localhost.
-- Android Emulator reaches the host computer through 10.0.2.2.
-- A physical Android or iOS device uses the LAN IP address of the computer
-  running StreetBiz-BE.
-- iOS Simulator on macOS can normally reach a host service through localhost,
-  subject to the backend listener and firewall configuration.
+- The browser running on the development computer may use localhost.
+- There is no native mobile target, so no emulator/device LAN-IP addressing
+  applies.
 
-EXPO_PUBLIC_API_BASE_URL is public build-time/runtime configuration. It must
+VITE_API_BASE_URL is public build-time/runtime configuration. It must
 contain only the API base URL, never credentials or tokens.
 
 ## Security and reliability

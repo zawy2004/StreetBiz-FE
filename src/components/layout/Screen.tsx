@@ -1,8 +1,4 @@
 import { ReactNode } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { colors, spacing } from '@/theme';
 
 type Props = {
   children: ReactNode;
@@ -13,44 +9,20 @@ type Props = {
   footer?: ReactNode;
 };
 
-/** Base screen container: safe area + optional scroll + consistent padding. */
-export function Screen({
-  children,
-  scroll = true,
-  padded = true,
-  onRefresh,
-  refreshing,
-  footer,
-}: Props) {
-  const body = scroll ? (
-    <ScrollView
-      contentContainerStyle={[padded && styles.padded, { flexGrow: 1 }]}
-      refreshControl={
-        onRefresh ? (
-          <RefreshControl
-            refreshing={!!refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-          />
-        ) : undefined
-      }
-      showsVerticalScrollIndicator={false}
-    >
-      {children}
-    </ScrollView>
-  ) : (
-    <View style={[{ flex: 1 }, padded && styles.padded]}>{children}</View>
-  );
-
+/** Base screen container: optional scroll + consistent padding. */
+export function Screen({ children, scroll = true, padded = true, footer }: Props) {
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
-      {body}
+    <div className="flex h-full min-h-0 flex-1 flex-col bg-bg">
+      <div
+        className={[
+          'flex-1',
+          scroll ? 'overflow-y-auto' : 'overflow-hidden',
+          padded ? 'flex flex-col gap-md p-md' : '',
+        ].join(' ')}
+      >
+        {children}
+      </div>
       {footer}
-    </SafeAreaView>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
-  padded: { padding: spacing.md, gap: spacing.md },
-});

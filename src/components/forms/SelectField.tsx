@@ -1,7 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-import { colors, radius, spacing, touchHeight, typography } from '@/theme';
+import { Icon } from '@/components/common';
+import { colors } from '@/theme';
 
 export type SelectOption<T extends string> = { value: T; label: string; description?: string };
 
@@ -21,67 +19,39 @@ export function SelectField<T extends string>({
   layout = 'cards',
 }: Props<T>) {
   return (
-    <View style={{ gap: spacing.xs }}>
-      {label ? <Text style={[typography.label, { color: colors.text }]}>{label}</Text> : null}
-      <View style={layout === 'cards' ? styles.cards : styles.inline}>
+    <div className="flex flex-col gap-xs">
+      {label ? <span className="text-label text-text">{label}</span> : null}
+      <div className={layout === 'cards' ? 'flex flex-col gap-sm' : 'flex flex-wrap gap-xs'}>
         {options.map((opt) => {
           const selected = opt.value === value;
           return (
-            <Pressable
+            <button
               key={opt.value}
-              onPress={() => onChange(opt.value)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              style={[
-                layout === 'cards' ? styles.card : styles.pill,
-                {
-                  borderColor: selected ? colors.primary : colors.border,
-                  backgroundColor: selected ? '#C84B3114' : colors.card,
-                },
-              ]}
+              type="button"
+              onClick={() => onChange(opt.value)}
+              role="radio"
+              aria-checked={selected}
+              className={[
+                'flex items-center border-[1.5px] text-left transition-colors',
+                layout === 'cards'
+                  ? 'gap-sm rounded-md p-sm'
+                  : 'h-12 gap-xs rounded-sm px-sm',
+                selected ? 'border-primary bg-tint-primary' : 'border-border bg-card',
+              ].join(' ')}
             >
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    typography.headlineSm,
-                    { color: selected ? colors.primary : colors.text },
-                  ]}
-                >
+              <div className="flex-1">
+                <div className={`text-headline-sm ${selected ? 'text-primary' : 'text-text'}`}>
                   {opt.label}
-                </Text>
+                </div>
                 {opt.description ? (
-                  <Text style={[typography.bodySm, { color: colors.muted, marginTop: 2 }]}>
-                    {opt.description}
-                  </Text>
+                  <div className="mt-0.5 text-body-sm text-muted">{opt.description}</div>
                 ) : null}
-              </View>
-              {selected ? (
-                <MaterialCommunityIcons name="check-circle" size={20} color={colors.primary} />
-              ) : null}
-            </Pressable>
+              </div>
+              {selected ? <Icon name="check-circle" size={20} color={colors.primary} /> : null}
+            </button>
           );
         })}
-      </View>
-    </View>
+      </div>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  cards: { gap: spacing.sm },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-  },
-  inline: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  pill: {
-    height: touchHeight,
-    borderWidth: 1.5,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-});

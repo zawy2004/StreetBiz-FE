@@ -2,14 +2,16 @@
 
 ## Application shape
 
-StreetBiz-FE is an Expo Universal App:
+StreetBiz-FE is a React single-page web app (Vite + react-router-dom), with
+no native mobile target:
 
-- Android and iOS provide the mobile experience.
-- React Native Web provides browser delivery for the Vendor and
-  Guest/Customer PWAs.
-- React Native Web also supports desktop-oriented Ward Authority and Platform
-  Administrator dashboards.
-- Expo Router supplies file-based navigation across all supported platforms.
+- A responsive layout serves both the Vendor / Guest-Customer mobile-web
+  experience (bottom tab bar, ≤1024px) and the desktop-oriented Ward
+  Authority / Platform Administrator dashboards (fixed sidebar, ≥1024px)
+  from the same codebase — see `src/hooks/useBreakpoint.ts` and
+  `src/components/layout/RoleTabBar.tsx`.
+- `react-router-dom` supplies client-side routing; the full route tree is
+  declared in `src/router.tsx` (see docs/project-structure.md).
 
 Business screens for all four roles are implemented (see
 docs/project-structure.md), backed by an in-memory mock data layer
@@ -56,12 +58,13 @@ permissions are not requested until a feature actually needs them.
 
 ## State and validation
 
-Zustand backs the session (src/store/auth-store.ts), the mock backend
-(src/mocks/db.ts), and small feature-local state (cart, multi-step wizards).
-React Query is wired via AppProviders but not yet used by any screen, since
-there is no network layer to cache — it activates once feature `api.ts`
-files call a real backend. React Hook Form, Zod, and storage packages remain
-installed but unused pending the real API contract.
+Zustand backs the session (src/store/auth-store.ts, persisted to
+`localStorage`), the mock backend (src/mocks/db.ts), and small feature-local
+state (cart, multi-step wizards). React Query is wired via AppProviders but
+not yet used by any screen, since there is no network layer to cache — it
+activates once feature `api.ts` files call a real backend. React Hook Form,
+Zod, and storage packages remain installed but unused pending the real API
+contract.
 
 src/core/auth/RoleGuard.tsx enforces role-scoped route access on the
 frontend today. Server authorization remains authoritative once
@@ -70,10 +73,12 @@ ward-scope, and ownership checks.
 
 ## Cross-platform constraints
 
-- Layouts must eventually support mobile touch and desktop mouse/keyboard use.
-- Camera, location, push, and PWA installation need permission-denied and
-  unsupported-platform fallbacks.
+- Layouts support both mobile touch and desktop mouse/keyboard use from one
+  responsive codebase (see Application shape above).
+- Camera/photo access goes through a plain `<input type="file">`; push
+  notifications and PWA installation are not implemented and need
+  permission-denied / unsupported-browser fallbacks whenever they are.
 - Live QR verification must use current server state, never cached validity.
 - Public configuration may be exposed in the client bundle; secrets must never
-  use an EXPO_PUBLIC variable.
-- No native android or ios directory is manually maintained at this stage.
+  use a VITE_ variable.
+- There is no native mobile app at this stage — no android/ios directory.

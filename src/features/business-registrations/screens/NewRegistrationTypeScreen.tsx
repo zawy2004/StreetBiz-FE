@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/common';
 import { SelectField } from '@/components/forms';
@@ -7,7 +7,7 @@ import { Stepper } from '../components/Stepper';
 import { useNewRegistrationStore } from '../new-registration-store';
 
 export function NewRegistrationTypeScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const vendorType = useNewRegistrationStore((s) => s.vendorType);
   const setField = useNewRegistrationStore((s) => s.setField);
 
@@ -17,7 +17,7 @@ export function NewRegistrationTypeScreen() {
         <StickyActions>
           <Button
             label="Tiếp tục"
-            onPress={() => router.push('/vendor/registrations/new/details')}
+            onPress={() => navigate('/vendor/registrations/new/details')}
           />
         </StickyActions>
       }

@@ -1,7 +1,6 @@
-import { View } from 'react-native';
-import RNQRCode from 'react-native-qrcode-svg';
+import { QRCodeSVG } from 'qrcode.react';
 
-import { colors, radius } from '@/theme';
+import { colors } from '@/theme';
 
 type Props = {
   value: string;
@@ -10,15 +9,8 @@ type Props = {
 
 export function QrCode({ value, size = 200 }: Props) {
   return (
-    <View
-      style={{
-        alignSelf: 'center',
-        padding: 16,
-        backgroundColor: colors.white,
-        borderRadius: radius.md,
-      }}
-    >
-      <RNQRCode value={value} size={size} color={colors.indigo} backgroundColor={colors.white} />
-    </View>
+    <div className="mx-auto w-fit rounded-md bg-white p-md">
+      <QRCodeSVG value={value} size={size} fgColor={colors.indigo} bgColor={colors.white} />
+    </div>
   );
 }

@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Image, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Card, Divider, ListRow } from '@/components/common';
 import { TextField } from '@/components/forms';
@@ -8,12 +7,11 @@ import { AppHeader, Screen, Section, StickyActions } from '@/components/layout';
 import { AiHint, StatusChip } from '@/components/status';
 import { ErrorState, showToast } from '@/components/feedback';
 import { env } from '@/core/config/env';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function RegistrationReviewScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const registration = useMockDb((s) => s.registrations.find((r) => r.id === id));
   const approve = useMockDb((s) => s.approveRegistration);
   const reject = useMockDb((s) => s.rejectRegistration);
@@ -28,30 +26,30 @@ export function RegistrationReviewScreen() {
     if (action === 'EVIDENCE')
       requestEvidence(registration.id, note || 'Vui lòng bổ sung giấy tờ rõ nét hơn');
     showToast('Đã cập nhật hồ sơ');
-    router.back();
+    navigate(-1);
   };
 
   return (
     <Screen
       footer={
         <StickyActions>
-          <View style={{ flex: 1 }}>
+          <div className="flex-1">
             <Button label="Yêu cầu bổ sung" variant="outline" onPress={() => act('EVIDENCE')} />
-          </View>
-          <View style={{ flex: 1 }}>
+          </div>
+          <div className="flex-1">
             <Button label="Từ chối" variant="danger" onPress={() => act('REJECT')} />
-          </View>
-          <View style={{ flex: 1 }}>
+          </div>
+          <div className="flex-1">
             <Button label="Duyệt" variant="approve" onPress={() => act('APPROVE')} />
-          </View>
+          </div>
         </StickyActions>
       }
     >
       <AppHeader title={registration.business_name} back />
-      <View style={{ flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap' }}>
+      <div className="flex flex-row flex-wrap gap-xs">
         <StatusChip code={registration.registration_status} />
         {registration.fast_track ? <StatusChip label="Ưu tiên xét nhanh" tone="ok" /> : null}
-      </View>
+      </div>
 
       {env.enableAiCompliance ? (
         <AiHint title="Đối chiếu tự động">
@@ -62,7 +60,7 @@ export function RegistrationReviewScreen() {
 
       <Section title="Thông tin hộ kinh doanh">
         <Card padded={false}>
-          <View style={{ paddingHorizontal: spacing.md }}>
+          <div className="px-md">
             <ListRow title="Chủ hộ" subtitle={registration.owner_name} />
             <Divider />
             <ListRow title="Số CCCD" subtitle={registration.id_number} />
@@ -77,35 +75,23 @@ export function RegistrationReviewScreen() {
             />
             <Divider />
             <ListRow title="Địa chỉ" subtitle={registration.address} />
-          </View>
+          </div>
         </Card>
       </Section>
 
       <Section title="Giấy tờ minh chứng">
-        <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
+        <div className="flex flex-row flex-wrap gap-sm">
           {registration.evidence.map((ev) => (
-            <View key={ev.type} style={{ alignItems: 'center', gap: 4 }}>
+            <div key={ev.type} className="flex flex-col items-center gap-1">
               {ev.uri ? (
-                <Image
-                  source={{ uri: ev.uri }}
-                  style={{ width: 96, height: 96, borderRadius: 8 }}
-                />
+                <img src={ev.uri} alt={ev.label} className="h-24 w-24 rounded-sm object-cover" />
               ) : (
-                <View
-                  style={{
-                    width: 96,
-                    height: 96,
-                    borderRadius: 8,
-                    backgroundColor: colors.bg,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                />
+                <div className="h-24 w-24 rounded-sm border border-border bg-bg" />
               )}
-              <Text style={[typography.bodySm, { color: colors.muted }]}>{ev.label}</Text>
-            </View>
+              <span className="text-body-sm text-muted">{ev.label}</span>
+            </div>
           ))}
-        </View>
+        </div>
       </Section>
 
       <Section title="Ghi chú phản hồi (nếu từ chối / yêu cầu bổ sung)">

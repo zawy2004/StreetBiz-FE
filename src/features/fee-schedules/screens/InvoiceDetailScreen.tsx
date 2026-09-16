@@ -1,15 +1,13 @@
-import { Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useParams } from 'react-router-dom';
 
-import { Button, Card, Divider, ListRow, Money } from '@/components/common';
+import { Button, Card, Divider, Icon, ListRow, Money } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { ErrorState, showToast } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
+import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function InvoiceDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>();
   const invoice = useMockDb((s) => s.invoices.find((i) => i.id === id));
   const feeItem = useMockDb((s) => s.feeItems.find((f) => f.id === invoice?.feeItemId));
 
@@ -29,21 +27,21 @@ export function InvoiceDetailScreen() {
     >
       <AppHeader title={invoice.invoice_number} back />
       <Card>
-        <View style={{ alignItems: 'center', gap: spacing.xs }}>
-          <MaterialCommunityIcons name="receipt" size={32} color={colors.tertiary} />
+        <div className="flex flex-col items-center gap-xs">
+          <Icon name="receipt" size={32} color={colors.tertiary} />
           <Money amountVnd={invoice.amount} size="lg" />
-          <Text style={[typography.bodySm, { color: colors.muted }]}>
+          <span className="text-body-sm text-muted">
             Xuất ngày {new Date(invoice.issued_at).toLocaleDateString('vi-VN')}
-          </Text>
-        </View>
+          </span>
+        </div>
       </Card>
       {feeItem ? (
         <Card padded={false}>
-          <View style={{ paddingHorizontal: spacing.md }}>
+          <div className="px-md">
             <ListRow title="Khoản phí" subtitle={feeItem.period_label} />
             <Divider />
             <ListRow title="Trạng thái" subtitle="Đã thanh toán" />
-          </View>
+          </div>
         </Card>
       ) : null}
     </Screen>

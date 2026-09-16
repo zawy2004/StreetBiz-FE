@@ -1,10 +1,5 @@
-import { Pressable, StyleSheet } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import type { ComponentProps } from 'react';
-
-import { colors, radius } from '@/theme';
-
-type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+import { Icon, IconName } from './Icon';
+import { colors } from '@/theme';
 
 type Props = {
   icon: IconName;
@@ -26,27 +21,15 @@ export function IconButton({
   testID,
 }: Props) {
   return (
-    <Pressable
-      testID={testID}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      style={({ pressed }) => [
-        styles.base,
-        { backgroundColor: background, opacity: pressed ? 0.85 : 1 },
-      ]}
+    <button
+      type="button"
+      data-testid={testID}
+      onClick={onPress}
+      aria-label={accessibilityLabel}
+      style={{ backgroundColor: background }}
+      className="flex h-10 w-10 items-center justify-center rounded-full transition-opacity active:opacity-85"
     >
-      <MaterialCommunityIcons name={icon} size={size} color={color} />
-    </Pressable>
+      <Icon name={icon} size={size} color={color} />
+    </button>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

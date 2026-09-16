@@ -1,8 +1,7 @@
 import { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { colors, radius, spacing, tints, typography } from '@/theme';
+import { Icon } from '@/components/common';
+import { colors, tints } from '@/theme';
 
 type Props = {
   title: string;
@@ -15,32 +14,16 @@ type Props = {
  */
 export function AiHint({ title, children }: Props) {
   return (
-    <View style={styles.wrap}>
-      <View style={styles.header}>
-        <MaterialCommunityIcons name="creation" size={16} color={colors.tertiary} />
-        <Text style={[typography.badge, { color: colors.onTertiary }]}>AI GỢI Ý</Text>
-      </View>
-      <Text style={[typography.headlineSm, { color: colors.text, marginTop: spacing['2xs'] }]}>
-        {title}
-      </Text>
-      {children ? (
-        <Text style={[typography.bodyMd, { color: colors.muted, marginTop: 2 }]}>{children}</Text>
-      ) : null}
-    </View>
+    <div
+      style={{ backgroundColor: tints.tertiary, borderColor: '#2D7D4633' }}
+      className="rounded-md border p-sm"
+    >
+      <div className="flex items-center gap-1">
+        <Icon name="creation" size={16} color={colors.tertiary} />
+        <span className="text-badge text-on-tertiary">AI GỢI Ý</span>
+      </div>
+      <p className="mt-2xs text-headline-sm text-text">{title}</p>
+      {children ? <p className="mt-0.5 text-body-md text-muted">{children}</p> : null}
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: {
-    backgroundColor: tints.tertiary,
-    borderWidth: 1,
-    borderColor: '#2D7D4633',
-    borderRadius: radius.md,
-    padding: spacing.sm,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-});

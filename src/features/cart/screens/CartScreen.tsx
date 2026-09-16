@@ -1,15 +1,13 @@
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Button, Card, IconButton, Money } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { EmptyState } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useCartStore } from '../cart-store';
 
 export function CartScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const items = useCartStore((s) => s.items);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const menuItems = useMockDb((s) => s.menuItems);
@@ -30,7 +28,7 @@ export function CartScreen() {
           <StickyActions>
             <Button
               label={`Thanh toán · ${total.toLocaleString('vi-VN')} đ`}
-              onPress={() => router.push('/customer/checkout')}
+              onPress={() => navigate('/customer/checkout')}
             />
           </StickyActions>
         ) : undefined
@@ -42,33 +40,25 @@ export function CartScreen() {
       ) : (
         rows.map(({ cartItem, menuItem }) => (
           <Card key={cartItem.menuItemId}>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={[typography.headlineSm, { color: colors.text }]}>{menuItem.name}</Text>
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-headline-sm text-text">{menuItem.name}</p>
                 <Money amountVnd={menuItem.price} />
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              </div>
+              <div className="flex items-center gap-sm">
                 <IconButton
                   icon="minus"
                   accessibilityLabel="Giảm số lượng"
                   onPress={() => updateQuantity(cartItem.menuItemId, cartItem.quantity - 1)}
                 />
-                <Text style={[typography.headlineSm, { color: colors.text }]}>
-                  {cartItem.quantity}
-                </Text>
+                <span className="text-headline-sm text-text">{cartItem.quantity}</span>
                 <IconButton
                   icon="plus"
                   accessibilityLabel="Tăng số lượng"
                   onPress={() => updateQuantity(cartItem.menuItemId, cartItem.quantity + 1)}
                 />
-              </View>
-            </View>
+              </div>
+            </div>
           </Card>
         ))
       )}

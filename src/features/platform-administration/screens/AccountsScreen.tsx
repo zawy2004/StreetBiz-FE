@@ -1,12 +1,10 @@
-import { Text, View } from 'react-native';
+import { useState } from 'react';
 
 import { Button, Card } from '@/components/common';
 import { FilterChips } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { useState } from 'react';
 import { ROLE_LABELS, type RoleCode } from '@/core/types/role';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 type Filter = 'ALL' | RoleCode;
@@ -32,26 +30,20 @@ export function AccountsScreen() {
       />
       {visible.map((u) => (
         <Card key={u.id}>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-            }}
-          >
-            <View style={{ gap: 4 }}>
-              <Text style={[typography.headlineSm, { color: colors.text }]}>{u.fullName}</Text>
-              <Text style={[typography.bodySm, { color: colors.muted }]}>
+          <div className="flex items-start justify-between">
+            <div className="flex flex-col gap-1">
+              <span className="text-headline-sm text-text">{u.fullName}</span>
+              <span className="text-body-sm text-muted">
                 {ROLE_LABELS[u.role_code]} · {u.phone}
-              </Text>
-            </View>
+              </span>
+            </div>
             <StatusChip
               label={u.account_status === 'ACTIVE' ? 'Hoạt động' : 'Đã khoá'}
               tone={u.account_status === 'ACTIVE' ? 'ok' : 'danger'}
             />
-          </View>
+          </div>
           {u.role_code === 'CUSTOMER' || u.role_code === 'VENDOR' ? (
-            <View style={{ marginTop: spacing.sm }}>
+            <div className="mt-sm">
               <Button
                 label={u.account_status === 'ACTIVE' ? 'Khoá tài khoản' : 'Mở khoá tài khoản'}
                 variant={u.account_status === 'ACTIVE' ? 'danger' : 'approve'}
@@ -59,7 +51,7 @@ export function AccountsScreen() {
                   setAccountStatus(u.id, u.account_status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE')
                 }
               />
-            </View>
+            </div>
           ) : null}
         </Card>
       ))}

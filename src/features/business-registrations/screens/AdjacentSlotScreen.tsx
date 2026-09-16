@@ -1,16 +1,14 @@
-import { Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Card, Money } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { EmptyState, ErrorState, showToast } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function AdjacentSlotScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const registration = useMockDb((s) => s.registrations.find((r) => r.id === id));
   const slots = useMockDb((s) => s.slots);
   const submitRentalApplication = useMockDb((s) => s.submitRentalApplication);
@@ -28,7 +26,7 @@ export function AdjacentSlotScreen() {
       application_type: 'STOREFRONT_ADJACENT',
     });
     showToast('Đã gửi đơn thuê ô liền kề');
-    router.replace('/vendor/slots/rental-applications');
+    navigate('/vendor/slots/rental-applications', { replace: true });
   };
 
   return (
@@ -50,22 +48,20 @@ export function AdjacentSlotScreen() {
         />
       ) : (
         <Card>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <View style={{ gap: 4 }}>
-              <Text style={[typography.headlineSm, { color: colors.text }]}>
-                {suggested.slot_code}
-              </Text>
-              <Text style={[typography.bodyMd, { color: colors.muted }]}>{suggested.street}</Text>
-              <Text style={[typography.bodySm, { color: colors.muted }]}>
+          <div className="flex justify-between">
+            <div className="flex flex-col gap-2xs">
+              <span className="text-headline-sm text-text">{suggested.slot_code}</span>
+              <span className="text-body-md text-muted">{suggested.street}</span>
+              <span className="text-body-sm text-muted">
                 {suggested.size_m2} m² · {suggested.time_window}
-              </Text>
-            </View>
+              </span>
+            </div>
             <StatusChip code={suggested.slot_status} />
-          </View>
-          <View style={{ marginTop: spacing.sm }}>
+          </div>
+          <div className="mt-sm">
             <Money amountVnd={suggested.price_monthly} size="lg" />
-            <Text style={[typography.bodySm, { color: colors.muted }]}>mỗi tháng</Text>
-          </View>
+            <p className="text-body-sm text-muted">mỗi tháng</p>
+          </div>
         </Card>
       )}
     </Screen>

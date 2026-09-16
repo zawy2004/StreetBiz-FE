@@ -1,50 +1,88 @@
-import { forwardRef } from 'react';
-import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
+import { forwardRef, InputHTMLAttributes } from 'react';
 
-import { colors, radius, spacing, touchHeight, typography } from '@/theme';
+type KeyboardType = 'default' | 'number-pad' | 'numeric' | 'phone-pad' | 'email-address';
 
-type Props = TextInputProps & {
+type InputMode = InputHTMLAttributes<HTMLInputElement>['inputMode'];
+
+type Props = {
   label?: string;
   error?: string;
   helperText?: string;
+  value: string;
+  onChangeText: (value: string) => void;
+  placeholder?: string;
+  keyboardType?: KeyboardType;
+  multiline?: boolean;
+  autoFocus?: boolean;
+  disabled?: boolean;
+  testID?: string;
 };
 
-export const TextField = forwardRef<TextInput, Props>(
-  ({ label, error, helperText, style, ...rest }, ref) => {
+const inputModeByKeyboardType: Record<KeyboardType, { inputMode?: InputMode; type: string }> = {
+  default: { type: 'text' },
+  'number-pad': { inputMode: 'numeric', type: 'text' },
+  numeric: { inputMode: 'numeric', type: 'text' },
+  'phone-pad': { inputMode: 'tel', type: 'tel' },
+  'email-address': { inputMode: 'email', type: 'email' },
+};
+
+export const TextField = forwardRef<HTMLInputElement | HTMLTextAreaElement, Props>(
+  (
+    {
+      label,
+      error,
+      helperText,
+      value,
+      onChangeText,
+      placeholder,
+      keyboardType = 'default',
+      multiline,
+      autoFocus,
+      disabled,
+      testID,
+    },
+    ref,
+  ) => {
+    const inputClassName = [
+      'h-12 w-full rounded-sm border bg-card px-sm text-body-lg text-text placeholder:text-muted',
+      error ? 'border-error' : 'border-border',
+    ].join(' ');
+
     return (
-      <View style={styles.wrap}>
-        {label ? <Text style={[typography.label, { color: colors.text }]}>{label}</Text> : null}
-        <TextInput
-          ref={ref}
-          placeholderTextColor={colors.muted}
-          style={[
-            styles.input,
-            typography.bodyLg,
-            { color: colors.text, borderColor: error ? colors.error : colors.border },
-            style,
-          ]}
-          {...rest}
-        />
+      <div className="flex flex-col gap-2xs">
+        {label ? <span className="text-label text-text">{label}</span> : null}
+        {multiline ? (
+          <textarea
+            ref={ref as never}
+            data-testid={testID}
+            value={value}
+            onChange={(e) => onChangeText(e.target.value)}
+            placeholder={placeholder}
+            autoFocus={autoFocus}
+            disabled={disabled}
+            rows={4}
+            className={`${inputClassName} h-auto min-h-[96px] py-sm`}
+          />
+        ) : (
+          <input
+            ref={ref as never}
+            data-testid={testID}
+            value={value}
+            onChange={(e) => onChangeText(e.target.value)}
+            placeholder={placeholder}
+            autoFocus={autoFocus}
+            disabled={disabled}
+            {...inputModeByKeyboardType[keyboardType]}
+            className={inputClassName}
+          />
+        )}
         {error ? (
-          <Text style={[typography.bodySm, { color: colors.error }]}>{error}</Text>
+          <span className="text-body-sm text-error">{error}</span>
         ) : helperText ? (
-          <Text style={[typography.bodySm, { color: colors.muted }]}>{helperText}</Text>
+          <span className="text-body-sm text-muted">{helperText}</span>
         ) : null}
-      </View>
+      </div>
     );
   },
 );
 TextField.displayName = 'TextField';
-
-const styles = StyleSheet.create({
-  wrap: {
-    gap: spacing['2xs'],
-  },
-  input: {
-    height: touchHeight,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    backgroundColor: colors.card,
-  },
-});

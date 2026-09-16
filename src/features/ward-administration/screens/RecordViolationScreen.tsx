@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Button, Card } from '@/components/common';
 import { PhotoPicker, SelectField, TextField } from '@/components/forms';
@@ -8,15 +7,13 @@ import { AppHeader, Screen, Section, StickyActions } from '@/components/layout';
 import { AiHint } from '@/components/status';
 import { showToast } from '@/components/feedback';
 import { env } from '@/core/config/env';
-import { colors, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function RecordViolationScreen() {
-  const { vendorId: paramVendorId, slotId } = useLocalSearchParams<{
-    vendorId?: string;
-    slotId?: string;
-  }>();
-  const router = useRouter();
+  const [searchParams] = useSearchParams();
+  const paramVendorId = searchParams.get('vendorId') ?? undefined;
+  const slotId = searchParams.get('slotId') ?? undefined;
+  const navigate = useNavigate();
   const vendors = useMockDb((s) => s.vendors);
   const violationTypes = useMockDb((s) => s.violationTypes);
   const recordViolation = useMockDb((s) => s.recordViolation);
@@ -42,7 +39,7 @@ export function RecordViolationScreen() {
       violationType?.default_amount,
     );
     showToast('Đã lập biên bản vi phạm');
-    router.back();
+    navigate(-1);
   };
 
   return (
@@ -100,10 +97,10 @@ export function RecordViolationScreen() {
 
       {violationType ? (
         <Card>
-          <Text style={[typography.bodyMd, { color: colors.muted }]}>Mức phạt áp dụng</Text>
-          <Text style={[typography.headlineLg, { color: colors.primary }]}>
+          <p className="text-body-md text-muted">Mức phạt áp dụng</p>
+          <p className="text-headline-lg text-primary">
             {violationType.default_amount.toLocaleString('vi-VN')} đ
-          </Text>
+          </p>
         </Card>
       ) : null}
     </Screen>

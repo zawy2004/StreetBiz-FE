@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Button } from '@/components/common';
 import { TextField } from '@/components/forms';
@@ -7,11 +7,13 @@ import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { showToast } from '@/components/feedback';
 import { useMockDb } from '@/mocks/db';
 
-type Params = { contentType: 'STOREFRONT' | 'MENU_ITEM' | 'REVIEW'; targetId: string };
+type ContentType = 'STOREFRONT' | 'MENU_ITEM' | 'REVIEW';
 
 export function ReportContentScreen() {
-  const { contentType, targetId } = useLocalSearchParams<Params>();
-  const router = useRouter();
+  const [searchParams] = useSearchParams();
+  const contentType = searchParams.get('contentType') as ContentType;
+  const targetId = searchParams.get('targetId') ?? '';
+  const navigate = useNavigate();
   const reportContent = useMockDb((s) => s.reportContent);
   const [reason, setReason] = useState('');
 
@@ -26,7 +28,7 @@ export function ReportContentScreen() {
             onPress={() => {
               reportContent({ content_type: contentType, targetId, reason });
               showToast('Đã gửi báo cáo tới quản trị viên');
-              router.back();
+              navigate(-1);
             }}
           />
         </StickyActions>

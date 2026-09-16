@@ -1,17 +1,15 @@
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigate } from 'react-router-dom';
 
-import { Button, Card, ListRow } from '@/components/common';
+import { Button, Card, Icon, ListRow } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { EmptyState } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
+import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
 export function VendorHomeScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const registrations = useMockDb((s) => s.registrations).filter(
     (r) => r.vendorId === user?.vendorId,
@@ -35,17 +33,17 @@ export function VendorHomeScreen() {
       .map((r) => ({
         key: r.id,
         title: `Bổ sung hồ sơ: ${r.business_name}`,
-        onPress: () => router.push(`/vendor/registrations/${r.id}` as never),
+        onPress: () => navigate(`/vendor/registrations/${r.id}`),
       })),
     ...feeItems.map((f) => ({
       key: f.id,
       title: `Thanh toán phí ${f.period_label}`,
-      onPress: () => router.push(`/vendor/finance/fees/${f.id}/payment` as never),
+      onPress: () => navigate(`/vendor/finance/fees/${f.id}/payment`),
     })),
     ...penalties.map((p) => ({
       key: p.id,
       title: `Thanh toán biên bản phạt`,
-      onPress: () => router.push(`/vendor/finance/penalties/${p.id}/payment` as never),
+      onPress: () => navigate(`/vendor/finance/penalties/${p.id}/payment`),
     })),
   ];
 
@@ -56,19 +54,15 @@ export function VendorHomeScreen() {
       <AppHeader title={`Chào ${user?.fullName ?? ''}`} subtitle="Hộ kinh doanh" />
 
       {permit ? (
-        <Card
-          onPress={() =>
-            router.push(`/vendor/slots/contracts/${permit.contractId}/permit` as never)
-          }
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <MaterialCommunityIcons name="qrcode" size={28} color={colors.tertiary} />
-            <View style={{ flex: 1 }}>
-              <Text style={[typography.headlineSm, { color: colors.text }]}>Giấy phép số</Text>
-              <Text style={[typography.bodyMd, { color: colors.muted }]}>{permit.permit_code}</Text>
-            </View>
+        <Card onPress={() => navigate(`/vendor/slots/contracts/${permit.contractId}/permit`)}>
+          <div className="flex items-center gap-sm">
+            <Icon name="qrcode" size={28} color={colors.tertiary} />
+            <div className="flex flex-1 flex-col gap-2xs">
+              <span className="truncate text-headline-sm text-text">Giấy phép số</span>
+              <span className="truncate text-body-md text-muted">{permit.permit_code}</span>
+            </div>
             <StatusChip code={permit.permit_status} />
-          </View>
+          </div>
         </Card>
       ) : null}
 
@@ -77,32 +71,32 @@ export function VendorHomeScreen() {
           <EmptyState icon="check-circle-outline" title="Không có việc cần xử lý" />
         ) : (
           <Card padded={false}>
-            <View style={{ paddingHorizontal: spacing.md }}>
+            <div className="px-md">
               {todos.map((t) => (
                 <ListRow key={t.key} title={t.title} showChevron onPress={t.onPress} />
               ))}
-            </View>
+            </div>
           </Card>
         )}
       </Section>
 
       <Section title="Lối tắt">
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-          <View style={{ flexGrow: 1, minWidth: 150 }}>
+        <div className="flex flex-wrap gap-sm">
+          <div className="min-w-[150px] grow">
             <Button
               label="Đăng ký kinh doanh"
               variant="outline"
-              onPress={() => router.push('/vendor/registrations')}
+              onPress={() => navigate('/vendor/registrations')}
             />
-          </View>
-          <View style={{ flexGrow: 1, minWidth: 150 }}>
+          </div>
+          <div className="min-w-[150px] grow">
             <Button
               label="Thuê ô vỉa hè"
               variant="outline"
-              onPress={() => router.push('/vendor/slots')}
+              onPress={() => navigate('/vendor/slots')}
             />
-          </View>
-        </View>
+          </div>
+        </div>
       </Section>
 
       {registrations.length === 0 ? (
@@ -113,7 +107,7 @@ export function VendorHomeScreen() {
           action={
             <Button
               label="Đăng ký ngay"
-              onPress={() => router.push('/vendor/registrations/new/type')}
+              onPress={() => navigate('/vendor/registrations/new/type')}
             />
           }
         />

@@ -1,17 +1,15 @@
-import { Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Card, Divider, ListRow } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { AiHint } from '@/components/status';
 import { ErrorState, showToast } from '@/components/feedback';
 import { env } from '@/core/config/env';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function SlotProposalReviewScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const slot = useMockDb((s) => s.slots.find((sl) => sl.id === id));
   const reviewProposal = useMockDb((s) => s.reviewSlotProposal);
 
@@ -20,19 +18,19 @@ export function SlotProposalReviewScreen() {
   const act = (approve: boolean) => {
     reviewProposal(slot.id, approve);
     showToast(approve ? 'Đã thêm ô vào lưới' : 'Đã từ chối đề xuất');
-    router.back();
+    navigate(-1);
   };
 
   return (
     <Screen
       footer={
         <StickyActions>
-          <View style={{ flex: 1 }}>
+          <div className="flex-1">
             <Button label="Từ chối" variant="danger" onPress={() => act(false)} />
-          </View>
-          <View style={{ flex: 1 }}>
+          </div>
+          <div className="flex-1">
             <Button label="Thêm vào lưới" variant="approve" onPress={() => act(true)} />
-          </View>
+          </div>
         </StickyActions>
       }
     >
@@ -46,27 +44,16 @@ export function SlotProposalReviewScreen() {
       ) : null}
 
       <Card padded={false}>
-        <View style={{ paddingHorizontal: spacing.md }}>
+        <div className="px-md">
           <ListRow title="Diện tích ước tính" subtitle={`${slot.size_m2} m²`} />
           <Divider />
           <ListRow title="Toạ độ" subtitle={`${slot.lat.toFixed(4)}, ${slot.lng.toFixed(4)}`} />
-        </View>
+        </div>
       </Card>
 
       <Card>
-        <Text style={[typography.bodySm, { color: colors.muted, marginBottom: spacing.xs }]}>
-          Ảnh vị trí
-        </Text>
-        <View
-          style={{
-            width: 120,
-            height: 120,
-            borderRadius: 8,
-            backgroundColor: colors.bg,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
-        />
+        <p className="mb-xs text-body-sm text-muted">Ảnh vị trí</p>
+        <div className="h-[120px] w-[120px] rounded-sm border border-border bg-bg" />
       </Card>
     </Screen>
   );

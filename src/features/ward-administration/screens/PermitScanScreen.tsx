@@ -1,19 +1,17 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigate } from 'react-router-dom';
 
-import { Button, Card, Divider, ListRow } from '@/components/common';
+import { Button, Card, Divider, Icon, ListRow } from '@/components/common';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
 import { AiHint, StatusChip } from '@/components/status';
 import { EmptyState } from '@/components/feedback';
 import { env } from '@/core/config/env';
-import { colors, spacing, typography } from '@/theme';
+import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function PermitScanScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const permits = useMockDb((s) => s.permits);
   const contracts = useMockDb((s) => s.contracts);
   const slots = useMockDb((s) => s.slots);
@@ -29,17 +27,17 @@ export function PermitScanScreen() {
   return (
     <Screen>
       <AppHeader title="Tuần tra hiện trường" subtitle="Quét / nhập mã giấy phép QR" />
-      <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-end' }}>
-        <View style={{ flex: 1 }}>
+      <div className="flex flex-row items-end gap-sm">
+        <div className="flex-1">
           <TextField
             label="Mã giấy phép"
             value={code}
             onChangeText={setCode}
             placeholder="SB-HC1-2026-0815"
           />
-        </View>
+        </div>
         <Button label="Kiểm tra" fullWidth={false} onPress={() => setSearched(true)} />
-      </View>
+      </div>
 
       {searched && !permit ? (
         <EmptyState
@@ -52,15 +50,13 @@ export function PermitScanScreen() {
       {permit && contract && slot && vendor ? (
         <>
           <Card>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={[typography.headlineSm, { color: colors.text }]}>
-                {vendor.business_name}
-              </Text>
+            <div className="flex flex-row items-center justify-between">
+              <p className="text-headline-sm text-text">{vendor.business_name}</p>
               <StatusChip code={permit.permit_status} />
-            </View>
+            </div>
           </Card>
           <Card padded={false}>
-            <View style={{ paddingHorizontal: spacing.md }}>
+            <div className="px-md">
               <ListRow title="Ô cấp phép" subtitle={`${slot.slot_code} · ${slot.street}`} />
               <Divider />
               <ListRow title="Diện tích cho phép" subtitle={`${slot.size_m2} m²`} />
@@ -69,7 +65,7 @@ export function PermitScanScreen() {
                 title="Hiệu lực đến"
                 subtitle={new Date(permit.expires_at).toLocaleDateString('vi-VN')}
               />
-            </View>
+            </div>
           </Card>
 
           {env.enableAiCompliance ? (
@@ -78,34 +74,31 @@ export function PermitScanScreen() {
             </AiHint>
           ) : null}
 
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <View style={{ flex: 1 }}>
+          <div className="flex flex-row gap-sm">
+            <div className="flex-1">
               <Button
                 label="Lập biên bản"
                 variant="outline"
                 onPress={() =>
-                  router.push({
-                    pathname: '/ward/patrol/violations/new',
-                    params: { vendorId: vendor.id, slotId: slot.id },
-                  })
+                  navigate(`/ward/patrol/violations/new?vendorId=${vendor.id}&slotId=${slot.id}`)
                 }
               />
-            </View>
-            <View style={{ flex: 1 }}>
+            </div>
+            <div className="flex-1">
               <Button
                 label="Đình chỉ / thu hồi"
                 variant="danger"
-                onPress={() => router.push(`/ward/patrol/permits/${permit.id}/action`)}
+                onPress={() => navigate(`/ward/patrol/permits/${permit.id}/action`)}
               />
-            </View>
-          </View>
+            </div>
+          </div>
         </>
       ) : null}
 
       {!searched && !permit ? (
-        <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
-          <MaterialCommunityIcons name="qrcode-scan" size={48} color={colors.muted} />
-        </View>
+        <div className="flex items-center justify-center py-xl">
+          <Icon name="qrcode-scan" size={48} color={colors.muted} />
+        </div>
       ) : null}
     </Screen>
   );

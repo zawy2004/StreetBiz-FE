@@ -1,20 +1,19 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Button, Card, Money } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { SegmentedControl } from '@/components/forms';
 import { StatusChip } from '@/components/status';
 import { EmptyState } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
+import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
 type Tab = 'FEES' | 'PENALTIES' | 'INVOICES';
 
 export function FinanceHomeScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const feeItems = useMockDb((s) => s.feeItems).filter((f) => f.vendorId === user?.vendorId);
   const penalties = useMockDb((s) => s.penalties).filter((p) => p.vendorId === user?.vendorId);
@@ -31,8 +30,12 @@ export function FinanceHomeScreen() {
     <Screen>
       <AppHeader title="Tài chính" />
       <Card style={{ backgroundColor: colors.indigo }}>
-        <Text style={[typography.bodyMd, { color: '#C7CCDB' }]}>Tổng cần thanh toán</Text>
-        <Money amountVnd={totalDue} size="lg" color={colors.white} />
+        <div className="flex flex-col gap-2xs">
+          <span className="text-body-md" style={{ color: '#C7CCDB' }}>
+            Tổng cần thanh toán
+          </span>
+          <Money amountVnd={totalDue} size="lg" color={colors.white} />
+        </div>
       </Card>
 
       <SegmentedControl
@@ -55,24 +58,22 @@ export function FinanceHomeScreen() {
                 key={f.id}
                 onPress={
                   f.item_status === 'PENDING'
-                    ? () => router.push(`/vendor/finance/fees/${f.id}/payment`)
+                    ? () => navigate(`/vendor/finance/fees/${f.id}/payment`)
                     : undefined
                 }
               >
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <View style={{ gap: 4 }}>
-                    <Text style={[typography.headlineSm, { color: colors.text }]}>
-                      {f.period_label}
-                    </Text>
-                    <Text style={[typography.bodySm, { color: colors.muted }]}>
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-2xs">
+                    <span className="text-headline-sm text-text">{f.period_label}</span>
+                    <span className="text-body-sm text-muted">
                       Hạn {new Date(f.due_date).toLocaleDateString('vi-VN')}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end gap-2xs">
                     <Money amountVnd={f.amount} />
                     <StatusChip code={f.item_status} />
-                  </View>
-                </View>
+                  </div>
+                </div>
               </Card>
             ))
           )}
@@ -89,24 +90,22 @@ export function FinanceHomeScreen() {
                 key={p.id}
                 onPress={
                   p.penalty_status === 'PENDING'
-                    ? () => router.push(`/vendor/finance/penalties/${p.id}/payment`)
+                    ? () => navigate(`/vendor/finance/penalties/${p.id}/payment`)
                     : undefined
                 }
               >
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <View style={{ flex: 1, gap: 4, paddingRight: spacing.sm }}>
-                    <Text style={[typography.headlineSm, { color: colors.text }]} numberOfLines={2}>
-                      {p.reason}
-                    </Text>
-                    <Text style={[typography.bodySm, { color: colors.muted }]}>
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-1 flex-col gap-2xs pr-sm">
+                    <span className="line-clamp-2 text-headline-sm text-text">{p.reason}</span>
+                    <span className="text-body-sm text-muted">
                       {new Date(p.issued_at).toLocaleDateString('vi-VN')}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end gap-2xs">
                     <Money amountVnd={p.amount} />
                     <StatusChip code={p.penalty_status} />
-                  </View>
-                </View>
+                  </div>
+                </div>
               </Card>
             ))
           )}
@@ -119,18 +118,16 @@ export function FinanceHomeScreen() {
             <EmptyState icon="receipt" title="Chưa có hoá đơn nào" />
           ) : (
             invoices.map((inv) => (
-              <Card key={inv.id} onPress={() => router.push(`/vendor/finance/invoices/${inv.id}`)}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <View style={{ gap: 4 }}>
-                    <Text style={[typography.headlineSm, { color: colors.text }]}>
-                      {inv.invoice_number}
-                    </Text>
-                    <Text style={[typography.bodySm, { color: colors.muted }]}>
+              <Card key={inv.id} onPress={() => navigate(`/vendor/finance/invoices/${inv.id}`)}>
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-2xs">
+                    <span className="text-headline-sm text-text">{inv.invoice_number}</span>
+                    <span className="text-body-sm text-muted">
                       {new Date(inv.issued_at).toLocaleDateString('vi-VN')}
-                    </Text>
-                  </View>
+                    </span>
+                  </div>
                   <Money amountVnd={inv.amount} />
-                </View>
+                </div>
               </Card>
             ))
           )}
@@ -140,12 +137,12 @@ export function FinanceHomeScreen() {
       <Button
         label="Lịch sử thanh toán"
         variant="outline"
-        onPress={() => router.push('/vendor/finance/payments')}
+        onPress={() => navigate('/vendor/finance/payments')}
       />
       <Button
         label="Lịch sử vi phạm"
         variant="ghost"
-        onPress={() => router.push('/vendor/finance/violations')}
+        onPress={() => navigate('/vendor/finance/violations')}
       />
     </Screen>
   );

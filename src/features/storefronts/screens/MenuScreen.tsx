@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
 
 import { Button, Card, Money } from '@/components/common';
 import { TextField } from '@/components/forms';
@@ -7,7 +6,6 @@ import { AppHeader, Screen, Section } from '@/components/layout';
 import { AiHint, StatusChip } from '@/components/status';
 import { EmptyState, showToast } from '@/components/feedback';
 import { env } from '@/core/config/env';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -67,21 +65,15 @@ export function MenuScreen() {
         ) : (
           menuItems.map((item) => (
             <Card key={item.id}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                }}
-              >
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={[typography.headlineSm, { color: colors.text }]}>{item.name}</Text>
+              <div className="flex items-start justify-between">
+                <div className="flex flex-1 flex-col gap-2xs">
+                  <span className="text-headline-sm text-text">{item.name}</span>
                   <Money amountVnd={item.price} />
-                </View>
+                </div>
                 <StatusChip code={item.availability_status} />
-              </View>
-              <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
-                <View style={{ flex: 1 }}>
+              </div>
+              <div className="mt-sm flex gap-sm">
+                <div className="flex-1">
                   <Button
                     label={
                       item.availability_status === 'AVAILABLE'
@@ -96,11 +88,11 @@ export function MenuScreen() {
                       })
                     }
                   />
-                </View>
-                <View style={{ flex: 1 }}>
+                </div>
+                <div className="flex-1">
                   <Button label="Gỡ món" variant="ghost" onPress={() => removeMenuItem(item.id)} />
-                </View>
-              </View>
+                </div>
+              </div>
             </Card>
           ))
         )}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { AuthShell } from '../components/AuthShell';
 import { Button } from '@/components/common';
@@ -8,7 +8,7 @@ import { toLocalPhone } from '@/core/utils/phone';
 import { useMockDb } from '@/mocks/db';
 
 export function ResetPasswordRequestScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const users = useMockDb((s) => s.users);
   const [phone, setPhone] = useState('');
   const [error, setError] = useState<string>();
@@ -20,10 +20,9 @@ export function ResetPasswordRequestScreen() {
       return;
     }
     setError(undefined);
-    router.push({
-      pathname: '/auth/verify-phone',
-      params: { purpose: 'RESET', phone: normalized },
-    });
+    navigate(
+      `/auth/verify-phone?purpose=RESET&phone=${encodeURIComponent(normalized)}`,
+    );
   };
 
   return (

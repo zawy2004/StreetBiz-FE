@@ -1,17 +1,16 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Button, Card, Divider, ListRow, Money } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { EmptyState, showToast } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
+import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 import { useCartStore } from '../cart-store';
 
 export function CheckoutScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clear);
@@ -38,7 +37,7 @@ export function CheckoutScreen() {
   }
 
   const pay = () => {
-    if (!user) return router.push('/auth/sign-in');
+    if (!user) return navigate('/auth/sign-in');
     setProcessing(true);
     setFailed(false);
     // Demo: fail once in a while so PAY-02 (retry) has something to show.
@@ -62,7 +61,7 @@ export function CheckoutScreen() {
       });
       clearCart();
       showToast('Thanh toán thành công, đơn hàng đã được gửi');
-      router.replace(`/customer/orders/${order.id}`);
+      navigate(`/customer/orders/${order.id}`, { replace: true });
     }, 900);
   };
 
@@ -81,34 +80,34 @@ export function CheckoutScreen() {
     >
       <AppHeader title="Thanh toán" back subtitle={storefront.name} />
       <Card padded={false}>
-        <View style={{ paddingHorizontal: spacing.md }}>
+        <div className="px-md">
           {rows.map((r, i) => (
-            <View key={r.cartItem.menuItemId}>
+            <div key={r.cartItem.menuItemId}>
               {i > 0 ? <Divider /> : null}
               <ListRow
                 title={`${r.cartItem.quantity}× ${r.menuItem.name}`}
                 trailing={<Money amountVnd={r.menuItem.price * r.cartItem.quantity} />}
               />
-            </View>
+            </div>
           ))}
-        </View>
+        </div>
       </Card>
       <Card>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Text style={[typography.headlineSm, { color: colors.text }]}>Tổng cộng</Text>
+        <div className="flex items-center justify-between">
+          <span className="text-headline-sm text-text">Tổng cộng</span>
           <Money amountVnd={total} size="lg" />
-        </View>
+        </div>
       </Card>
       {failed ? (
         <Card style={{ backgroundColor: '#FFDAD614', borderColor: '#BA1A1A33' }}>
-          <Text style={[typography.bodyMd, { color: colors.error }]}>
+          <p className="text-body-md" style={{ color: colors.error }}>
             Thanh toán thất bại. Vui lòng thử lại.
-          </Text>
+          </p>
         </Card>
       ) : null}
-      <Text style={[typography.bodySm, { color: colors.muted, textAlign: 'center' }]}>
+      <p className="text-center text-body-sm text-muted">
         Đơn hàng chỉ được tạo sau khi thanh toán thành công · Nhận tại quầy
-      </Text>
+      </p>
     </Screen>
   );
 }

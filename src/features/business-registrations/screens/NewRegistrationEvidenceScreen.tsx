@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/common';
 import { PhotoPicker } from '@/components/forms';
@@ -8,14 +7,13 @@ import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { AiHint } from '@/components/status';
 import { showToast } from '@/components/feedback';
 import { env } from '@/core/config/env';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 import { Stepper } from '../components/Stepper';
 import { useNewRegistrationStore } from '../new-registration-store';
 
 export function NewRegistrationEvidenceScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const draft = useNewRegistrationStore();
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
@@ -66,7 +64,7 @@ export function NewRegistrationEvidenceScreen() {
 
     draft.reset();
     showToast('Đã nộp hồ sơ đăng ký');
-    router.replace('/vendor/registrations');
+    navigate('/vendor/registrations', { replace: true });
   };
 
   return (
@@ -87,7 +85,7 @@ export function NewRegistrationEvidenceScreen() {
         </AiHint>
       ) : null}
 
-      <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
+      <div className="flex flex-wrap gap-sm">
         <PhotoPicker
           label="CCCD gắn chip"
           uri={idCardUri}
@@ -102,8 +100,8 @@ export function NewRegistrationEvidenceScreen() {
             onRemove={() => setLicenceUri(undefined)}
           />
         ) : null}
-      </View>
-      {error ? <Text style={[typography.bodySm, { color: colors.error }]}>{error}</Text> : null}
+      </div>
+      {error ? <span className="text-body-sm text-error">{error}</span> : null}
     </Screen>
   );
 }

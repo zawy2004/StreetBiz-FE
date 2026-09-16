@@ -1,17 +1,15 @@
 import { useState } from 'react';
-import { Image, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Card, Divider, ListRow } from '@/components/common';
 import { AppHeader, Screen, Section, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ConfirmDialog, ErrorState } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function RegistrationDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const registration = useMockDb((s) => s.registrations.find((r) => r.id === id));
   const withdraw = useMockDb((s) => s.withdrawRegistration);
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
@@ -37,87 +35,65 @@ export function RegistrationDetailScreen() {
     >
       <AppHeader title={registration.business_name} back />
       <Card>
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-          }}
-        >
-          <View style={{ gap: 4 }}>
-            <Text style={[typography.bodyMd, { color: colors.muted }]}>
+        <div className="flex items-start justify-between">
+          <div className="flex flex-col gap-2xs">
+            <span className="text-body-md text-muted">
               {registration.vendor_type === 'FIXED_STOREFRONT'
                 ? 'Cửa hàng cố định'
                 : 'Bán hàng lưu động'}
-            </Text>
-            <Text style={[typography.bodySm, { color: colors.muted }]}>
+            </span>
+            <span className="text-body-sm text-muted">
               Nộp ngày {new Date(registration.submitted_at).toLocaleDateString('vi-VN')}
-            </Text>
-          </View>
+            </span>
+          </div>
           <StatusChip code={registration.registration_status} />
-        </View>
+        </div>
       </Card>
 
       {registration.review_note ? (
         <Card style={{ backgroundColor: '#FFDAD614', borderColor: '#BA1A1A33' }}>
-          <Text style={[typography.label, { color: colors.error, marginBottom: 4 }]}>
-            Phản hồi từ Phường
-          </Text>
-          <Text style={[typography.bodyMd, { color: colors.text }]}>
-            {registration.review_note}
-          </Text>
+          <p className="mb-1 text-label text-error">Phản hồi từ Phường</p>
+          <p className="text-body-md text-text">{registration.review_note}</p>
         </Card>
       ) : null}
 
       <Section title="Thông tin đã nộp">
         <Card padded={false}>
-          <View style={{ paddingHorizontal: spacing.md }}>
+          <div className="px-md">
             <ListRow title="Chủ hộ" subtitle={registration.owner_name} />
             <Divider />
             <ListRow title="Số CCCD" subtitle={registration.id_number} />
             <Divider />
             <ListRow title="Địa chỉ" subtitle={registration.address} />
-          </View>
+          </div>
         </Card>
       </Section>
 
       <Section title="Giấy tờ minh chứng">
-        <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
+        <div className="flex flex-wrap gap-sm">
           {registration.evidence.map((ev) => (
-            <View key={ev.type} style={{ alignItems: 'center', gap: 4 }}>
+            <div key={ev.type} className="flex flex-col items-center gap-2xs">
               {ev.uri ? (
-                <Image
-                  source={{ uri: ev.uri }}
-                  style={{ width: 96, height: 96, borderRadius: 8 }}
-                />
+                <img src={ev.uri} alt={ev.label} className="h-24 w-24 rounded-sm object-cover" />
               ) : (
-                <View
-                  style={{
-                    width: 96,
-                    height: 96,
-                    borderRadius: 8,
-                    backgroundColor: colors.bg,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                />
+                <div className="h-24 w-24 rounded-sm border border-border bg-bg" />
               )}
-              <Text style={[typography.bodySm, { color: colors.muted }]}>{ev.label}</Text>
-            </View>
+              <span className="text-body-sm text-muted">{ev.label}</span>
+            </div>
           ))}
-        </View>
+        </div>
       </Section>
 
       {isFixedApproved ? (
         <Section title="Tiếp theo">
           <Button
             label="Thuê ô vỉa hè liền kề"
-            onPress={() => router.push(`/vendor/registrations/${registration.id}/adjacent-slot`)}
+            onPress={() => navigate(`/vendor/registrations/${registration.id}/adjacent-slot`)}
           />
           <Button
             label="Cập nhật địa chỉ kinh doanh"
             variant="outline"
-            onPress={() => router.push(`/vendor/registrations/${registration.id}/address`)}
+            onPress={() => navigate(`/vendor/registrations/${registration.id}/address`)}
           />
         </Section>
       ) : null}
@@ -131,7 +107,7 @@ export function RegistrationDetailScreen() {
         onConfirm={() => {
           withdraw(registration.id);
           setConfirmWithdraw(false);
-          router.back();
+          navigate(-1);
         }}
         onCancel={() => setConfirmWithdraw(false)}
       />

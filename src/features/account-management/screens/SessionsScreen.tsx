@@ -1,7 +1,4 @@
-import { View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-import { Card, Divider, IconButton, ListRow } from '@/components/common';
+import { Card, Divider, Icon, IconButton, ListRow } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { EmptyState } from '@/components/feedback';
@@ -21,14 +18,14 @@ export function SessionsScreen() {
         <EmptyState icon="devices" title="Không có phiên nào khác" />
       ) : (
         <Card padded={false}>
-          <View style={{ paddingHorizontal: 16 }}>
+          <div className="px-md">
             {sessions.map((sess, i) => (
-              <View key={sess.id}>
+              <div key={sess.id}>
                 {i > 0 ? <Divider /> : null}
                 <ListRow
                   title={sess.device}
                   subtitle={`${sess.location} · Hoạt động gần nhất ${new Date(sess.last_active).toLocaleString('vi-VN')}`}
-                  leading={<MaterialCommunityIcons name="laptop" size={20} color={colors.muted} />}
+                  leading={<Icon name="laptop" size={20} color={colors.muted} />}
                   trailing={
                     sess.current ? (
                       <StatusChip label="Đang dùng" tone="ok" />
@@ -42,9 +39,9 @@ export function SessionsScreen() {
                     )
                   }
                 />
-              </View>
+              </div>
             ))}
-          </View>
+          </div>
         </Card>
       )}
     </Screen>

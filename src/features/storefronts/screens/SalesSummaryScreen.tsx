@@ -1,9 +1,7 @@
-import { Text, View } from 'react-native';
-
 import { Card, Money } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { EmptyState } from '@/components/feedback';
-import { colors, typography } from '@/theme';
+import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -20,21 +18,25 @@ export function SalesSummaryScreen() {
     <Screen>
       <AppHeader title="Doanh thu" back />
       <Card style={{ backgroundColor: colors.indigo }}>
-        <Text style={[typography.bodyMd, { color: '#C7CCDB' }]}>Doanh thu đã hoàn tất</Text>
-        <Money amountVnd={total} size="lg" color={colors.white} />
-        <Text style={[typography.bodySm, { color: '#C7CCDB', marginTop: 4 }]}>
-          {orders.length} đơn hàng
-        </Text>
+        <div className="flex flex-col gap-2xs">
+          <span className="text-body-md" style={{ color: '#C7CCDB' }}>
+            Doanh thu đã hoàn tất
+          </span>
+          <Money amountVnd={total} size="lg" color={colors.white} />
+          <span className="text-body-sm" style={{ color: '#C7CCDB' }}>
+            {orders.length} đơn hàng
+          </span>
+        </div>
       </Card>
       {orders.length === 0 ? (
         <EmptyState icon="chart-line" title="Chưa có đơn hoàn tất" />
       ) : (
         orders.map((o) => (
           <Card key={o.id}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={[typography.bodyMd, { color: colors.text }]}>#{o.order_code}</Text>
+            <div className="flex items-center justify-between">
+              <span className="text-body-md text-text">#{o.order_code}</span>
               <Money amountVnd={o.total} />
-            </View>
+            </div>
           </Card>
         ))
       )}

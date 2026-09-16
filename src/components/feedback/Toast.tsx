@@ -1,8 +1,6 @@
-import { create } from 'zustand';
-import { StyleSheet, Text, View } from 'react-native';
 import { useEffect } from 'react';
-
-import { colors, radius, sheetShadow, spacing, typography } from '@/theme';
+import { createPortal } from 'react-dom';
+import { create } from 'zustand';
 
 type ToastState = {
   message: string | null;
@@ -32,29 +30,12 @@ export function ToastHost() {
 
   if (!message) return null;
 
-  return (
-    <View pointerEvents="none" style={styles.wrap}>
-      <View style={styles.toast}>
-        <Text style={[typography.bodyMd, { color: colors.white }]}>{message}</Text>
-      </View>
-    </View>
+  return createPortal(
+    <div className="pointer-events-none fixed inset-x-0 bottom-xl z-50 flex justify-center">
+      <div className="max-w-[90%] rounded-sm bg-indigo px-md py-sm text-body-md text-white shadow-sheet">
+        {message}
+      </div>
+    </div>,
+    document.body,
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: {
-    position: 'absolute',
-    bottom: spacing.xl,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  toast: {
-    backgroundColor: colors.indigo,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.sm,
-    maxWidth: '90%',
-    ...sheetShadow,
-  },
-});

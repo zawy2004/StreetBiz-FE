@@ -1,10 +1,7 @@
-import { Text, View } from 'react-native';
-
 import { Card, Money } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { AiHint } from '@/components/status';
 import { env } from '@/core/config/env';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function CollectionReportScreen() {
@@ -29,26 +26,26 @@ export function CollectionReportScreen() {
     <Screen>
       <AppHeader title="Báo cáo thu phí" subtitle="Tháng hiện tại" />
 
-      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+      <div className="flex flex-row gap-sm">
         <Card style={{ flex: 1 }}>
-          <Text style={[typography.bodySm, { color: colors.muted }]}>Phí đã thu</Text>
+          <p className="text-body-sm text-muted">Phí đã thu</p>
           <Money amountVnd={feeCollected} size="lg" />
         </Card>
         <Card style={{ flex: 1 }}>
-          <Text style={[typography.bodySm, { color: colors.muted }]}>Phạt đã thu</Text>
+          <p className="text-body-sm text-muted">Phạt đã thu</p>
           <Money amountVnd={penaltyCollected} size="lg" />
         </Card>
-      </View>
-      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+      </div>
+      <div className="flex flex-row gap-sm">
         <Card style={{ flex: 1 }}>
-          <Text style={[typography.bodySm, { color: colors.muted }]}>Phí còn nợ</Text>
+          <p className="text-body-sm text-muted">Phí còn nợ</p>
           <Money amountVnd={feePending} />
         </Card>
         <Card style={{ flex: 1 }}>
-          <Text style={[typography.bodySm, { color: colors.muted }]}>Phạt còn nợ</Text>
+          <p className="text-body-sm text-muted">Phạt còn nợ</p>
           <Money amountVnd={penaltyPending} />
         </Card>
-      </View>
+      </div>
 
       {env.enableAiCompliance ? (
         <AiHint title="Tóm tắt tự động">
@@ -61,10 +58,8 @@ export function CollectionReportScreen() {
       <Section title="Vi phạm gần đây">
         {violations.map((v) => (
           <Card key={v.id}>
-            <Text style={[typography.headlineSm, { color: colors.text }]}>{v.violation_type}</Text>
-            <Text style={[typography.bodySm, { color: colors.muted }]} numberOfLines={2}>
-              {v.note}
-            </Text>
+            <p className="text-headline-sm text-text">{v.violation_type}</p>
+            <p className="line-clamp-2 text-body-sm text-muted">{v.note}</p>
           </Card>
         ))}
       </Section>

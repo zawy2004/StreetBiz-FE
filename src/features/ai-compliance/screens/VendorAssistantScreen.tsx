@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 
 import { Button } from '@/components/common';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
-import { colors, radius, spacing, typography } from '@/theme';
 
 type Message = { id: string; from: 'BOT' | 'ME'; text: string };
 
@@ -38,42 +36,32 @@ export function VendorAssistantScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <div className="flex h-full flex-1 flex-col">
       <Screen
         footer={
           <StickyActions>
-            <View style={{ flex: 1 }}>
+            <div className="flex-1">
               <TextField value={input} onChangeText={setInput} placeholder="Nhập câu hỏi..." />
-            </View>
+            </div>
             <Button label="Gửi" fullWidth={false} onPress={send} />
           </StickyActions>
         }
       >
         <AppHeader title="Trợ lý StreetBiz" subtitle="Hỗ trợ AI · chỉ mang tính tư vấn" back />
         {messages.map((m) => (
-          <View
+          <div
             key={m.id}
-            style={{
-              alignSelf: m.from === 'ME' ? 'flex-end' : 'flex-start',
-              backgroundColor: m.from === 'ME' ? colors.primary : colors.card,
-              borderWidth: m.from === 'ME' ? 0 : 1,
-              borderColor: colors.border,
-              borderRadius: radius.md,
-              padding: spacing.sm,
-              maxWidth: '85%',
-            }}
+            className={[
+              'max-w-[85%] rounded-md p-sm',
+              m.from === 'ME' ? 'self-end bg-primary' : 'self-start border border-border bg-card',
+            ].join(' ')}
           >
-            <Text
-              style={[typography.bodyMd, { color: m.from === 'ME' ? colors.white : colors.text }]}
-            >
+            <span className={`text-body-md ${m.from === 'ME' ? 'text-white' : 'text-text'}`}>
               {m.text}
-            </Text>
-          </View>
+            </span>
+          </div>
         ))}
       </Screen>
-    </KeyboardAvoidingView>
+    </div>
   );
 }

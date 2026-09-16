@@ -1,10 +1,7 @@
-import { Pressable, Text, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-import { Card, Divider } from '@/components/common';
+import { Card, Divider, Icon } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { EmptyState } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
+import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -23,38 +20,31 @@ export function NotificationsScreen() {
         <EmptyState icon="bell-outline" title="Chưa có thông báo" />
       ) : (
         <Card padded={false}>
-          <View style={{ paddingHorizontal: spacing.md }}>
+          <div className="px-md">
             {notifications.map((n, i) => (
-              <View key={n.id}>
+              <div key={n.id}>
                 {i > 0 ? <Divider /> : null}
-                <Pressable
-                  onPress={() => markRead(n.id)}
-                  style={{ flexDirection: 'row', gap: spacing.sm, paddingVertical: spacing.sm }}
+                <button
+                  type="button"
+                  onClick={() => markRead(n.id)}
+                  className="flex w-full items-start gap-sm py-sm text-left"
                 >
-                  <MaterialCommunityIcons
+                  <Icon
                     name={n.read ? 'bell-outline' : 'bell-ring'}
                     size={20}
                     color={n.read ? colors.muted : colors.primary}
                   />
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={[typography.headlineSm, { color: colors.text }]}>{n.title}</Text>
-                    <Text style={[typography.bodyMd, { color: colors.muted }]}>{n.body}</Text>
-                  </View>
+                  <div className="flex flex-1 flex-col gap-0.5">
+                    <span className="text-headline-sm text-text">{n.title}</span>
+                    <span className="text-body-md text-muted">{n.body}</span>
+                  </div>
                   {!n.read ? (
-                    <View
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: 4,
-                        backgroundColor: colors.primary,
-                        marginTop: 6,
-                      }}
-                    />
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
                   ) : null}
-                </Pressable>
-              </View>
+                </button>
+              </div>
             ))}
-          </View>
+          </div>
         </Card>
       )}
     </Screen>

@@ -1,15 +1,13 @@
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Card, Money } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { EmptyState } from '@/components/feedback';
-import { colors, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
 export function InvoicesListScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const invoices = useMockDb((s) => s.invoices).filter((i) => i.vendorId === user?.vendorId);
 
@@ -20,18 +18,16 @@ export function InvoicesListScreen() {
         <EmptyState icon="receipt" title="Chưa có hoá đơn nào" />
       ) : (
         invoices.map((inv) => (
-          <Card key={inv.id} onPress={() => router.push(`/vendor/finance/invoices/${inv.id}`)}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <View style={{ gap: 4 }}>
-                <Text style={[typography.headlineSm, { color: colors.text }]}>
-                  {inv.invoice_number}
-                </Text>
-                <Text style={[typography.bodySm, { color: colors.muted }]}>
+          <Card key={inv.id} onPress={() => navigate(`/vendor/finance/invoices/${inv.id}`)}>
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-2xs">
+                <span className="text-headline-sm text-text">{inv.invoice_number}</span>
+                <span className="text-body-sm text-muted">
                   {new Date(inv.issued_at).toLocaleDateString('vi-VN')}
-                </Text>
-              </View>
+                </span>
+              </div>
               <Money amountVnd={inv.amount} />
-            </View>
+            </div>
           </Card>
         ))
       )}

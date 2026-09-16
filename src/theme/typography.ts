@@ -1,33 +1,34 @@
-import { TextStyle } from 'react-native';
-
 export const fontFamily = {
-  body: 'BeVietnamPro_400Regular',
-  bodyMedium: 'BeVietnamPro_500Medium',
-  bodySemiBold: 'BeVietnamPro_600SemiBold',
-  bodyBold: 'BeVietnamPro_700Bold',
-  number: 'PlusJakartaSans_600SemiBold',
-  numberBold: 'PlusJakartaSans_700Bold',
+  body: '"Be Vietnam Pro", system-ui, sans-serif',
+  number: '"Plus Jakarta Sans", system-ui, sans-serif',
 } as const;
 
-type Variant = TextStyle & { fontFamily: string };
+type Variant = {
+  fontFamily: string;
+  fontWeight: 400 | 500 | 600 | 700;
+  fontSize: number;
+  lineHeight: number;
+  letterSpacing?: number;
+};
 
 /** Type scale. Keep titles short — see simplification rules in memory. */
 export const typography: Record<string, Variant> = {
-  displayLg: { fontFamily: fontFamily.bodyBold, fontSize: 32, lineHeight: 40 },
-  headlineLg: { fontFamily: fontFamily.bodySemiBold, fontSize: 22, lineHeight: 28 },
-  headlineMd: { fontFamily: fontFamily.bodySemiBold, fontSize: 18, lineHeight: 24 },
-  headlineSm: { fontFamily: fontFamily.bodySemiBold, fontSize: 16, lineHeight: 22 },
-  bodyLg: { fontFamily: fontFamily.body, fontSize: 16, lineHeight: 24 },
-  bodyMd: { fontFamily: fontFamily.body, fontSize: 14, lineHeight: 20 },
-  bodySm: { fontFamily: fontFamily.body, fontSize: 12, lineHeight: 16 },
-  label: { fontFamily: fontFamily.bodyMedium, fontSize: 13, lineHeight: 18 },
+  displayLg: { fontFamily: fontFamily.body, fontWeight: 700, fontSize: 32, lineHeight: 40 },
+  headlineLg: { fontFamily: fontFamily.body, fontWeight: 600, fontSize: 22, lineHeight: 28 },
+  headlineMd: { fontFamily: fontFamily.body, fontWeight: 600, fontSize: 18, lineHeight: 24 },
+  headlineSm: { fontFamily: fontFamily.body, fontWeight: 600, fontSize: 16, lineHeight: 22 },
+  bodyLg: { fontFamily: fontFamily.body, fontWeight: 400, fontSize: 16, lineHeight: 24 },
+  bodyMd: { fontFamily: fontFamily.body, fontWeight: 400, fontSize: 14, lineHeight: 20 },
+  bodySm: { fontFamily: fontFamily.body, fontWeight: 400, fontSize: 12, lineHeight: 16 },
+  label: { fontFamily: fontFamily.body, fontWeight: 500, fontSize: 13, lineHeight: 18 },
   badge: {
-    fontFamily: fontFamily.bodyBold,
+    fontFamily: fontFamily.body,
+    fontWeight: 700,
     fontSize: 11,
     lineHeight: 14,
     letterSpacing: 0.4,
   },
-  money: { fontFamily: fontFamily.numberBold, fontSize: 18, lineHeight: 24 },
-  moneyLg: { fontFamily: fontFamily.numberBold, fontSize: 28, lineHeight: 34 },
-  code: { fontFamily: fontFamily.number, fontSize: 13, lineHeight: 18, letterSpacing: 0.5 },
+  money: { fontFamily: fontFamily.number, fontWeight: 700, fontSize: 18, lineHeight: 24 },
+  moneyLg: { fontFamily: fontFamily.number, fontWeight: 700, fontSize: 28, lineHeight: 34 },
+  code: { fontFamily: fontFamily.number, fontWeight: 600, fontSize: 13, lineHeight: 18, letterSpacing: 0.5 },
 };

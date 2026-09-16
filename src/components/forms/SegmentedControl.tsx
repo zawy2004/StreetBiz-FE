@@ -1,7 +1,3 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-
-import { colors, radius, typography } from '@/theme';
-
 type Props<T extends string> = {
   options: { value: T; label: string }[];
   value: T;
@@ -10,46 +6,25 @@ type Props<T extends string> = {
 
 export function SegmentedControl<T extends string>({ options, value, onChange }: Props<T>) {
   return (
-    <View style={styles.track}>
+    <div className="flex gap-1 rounded-sm bg-bg p-1">
       {options.map((opt) => {
         const active = opt.value === value;
         return (
-          <Pressable
+          <button
             key={opt.value}
-            onPress={() => onChange(opt.value)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
-            style={[styles.segment, active && styles.segmentActive]}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            role="tab"
+            aria-selected={active}
+            className={[
+              'h-9 flex-1 truncate rounded-[6px] text-label transition-colors',
+              active ? 'bg-card text-text' : 'text-muted',
+            ].join(' ')}
           >
-            <Text
-              style={[typography.label, { color: active ? colors.text : colors.muted }]}
-              numberOfLines={1}
-            >
-              {opt.label}
-            </Text>
-          </Pressable>
+            {opt.label}
+          </button>
         );
       })}
-    </View>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  track: {
-    flexDirection: 'row',
-    backgroundColor: colors.bg,
-    borderRadius: radius.sm,
-    padding: 4,
-    gap: 4,
-  },
-  segment: {
-    flex: 1,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.sm - 2,
-  },
-  segmentActive: {
-    backgroundColor: colors.card,
-  },
-});

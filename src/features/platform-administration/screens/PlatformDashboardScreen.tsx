@@ -1,14 +1,12 @@
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Button, Card, IconButton } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { showToast } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function PlatformDashboardScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const users = useMockDb((s) => s.users);
   const vendors = useMockDb((s) => s.vendors);
   const storefronts = useMockDb((s) => s.storefronts);
@@ -38,20 +36,18 @@ export function PlatformDashboardScreen() {
           <IconButton
             icon="account-circle-outline"
             accessibilityLabel="Tài khoản"
-            onPress={() => router.push('/account')}
+            onPress={() => navigate('/account')}
           />
         }
       />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+      <div className="flex flex-wrap gap-sm">
         {stats.map((s) => (
           <Card key={s.label} style={{ flexGrow: 1, minWidth: 150 }}>
-            <Text style={[typography.bodySm, { color: colors.muted }]}>{s.label}</Text>
-            <Text style={[typography.headlineLg, { color: colors.text, marginTop: 2 }]}>
-              {s.value}
-            </Text>
+            <span className="block text-body-sm text-muted">{s.label}</span>
+            <span className="mt-2xs block text-headline-lg text-text">{s.value}</span>
           </Card>
         ))}
-      </View>
+      </div>
       <Button
         label="Xuất báo cáo vận hành"
         variant="outline"

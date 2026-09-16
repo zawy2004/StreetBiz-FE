@@ -1,20 +1,18 @@
-import { Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigate, useParams } from 'react-router-dom';
 
-import { Avatar, Button, Card, Money } from '@/components/common';
+import { Avatar, Button, Card, Icon, Money } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { AiHint, StatusChip } from '@/components/status';
 import { EmptyState, ErrorState } from '@/components/feedback';
 import { env } from '@/core/config/env';
-import { colors, spacing, typography } from '@/theme';
+import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 import { useCartStore } from '@/features/cart/cart-store';
 
 export function VendorProfileScreen() {
-  const { vendorId } = useLocalSearchParams<{ vendorId: string }>();
-  const router = useRouter();
+  const { vendorId } = useParams<{ vendorId: string }>();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const vendor = useMockDb((s) => s.vendors.find((v) => v.id === vendorId));
   const contracts = useMockDb((s) => s.contracts).filter(
@@ -40,47 +38,47 @@ export function VendorProfileScreen() {
     <Screen>
       <AppHeader title={vendor.business_name} back />
       <Card>
-        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+        <div className="flex gap-sm">
           <Avatar name={vendor.business_name} size={56} />
-          <View style={{ flex: 1, gap: 4 }}>
+          <div className="flex flex-1 flex-col gap-1">
             {permit ? <StatusChip code={permit.permit_status} /> : null}
             {comments.length ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <MaterialCommunityIcons name="star" size={16} color={colors.secondary} />
-                <Text style={[typography.bodyMd, { color: colors.text }]}>
+              <div className="flex items-center gap-1">
+                <Icon name="star" size={16} color={colors.secondary} />
+                <span className="text-body-md text-text">
                   {ratingAvg.toFixed(1)} ({comments.length} đánh giá)
-                </Text>
-              </View>
+                </span>
+              </div>
             ) : null}
-          </View>
-        </View>
+          </div>
+        </div>
         {slot ? (
-          <Text style={[typography.bodyMd, { color: colors.muted, marginTop: spacing.sm }]}>
+          <p className="mt-sm text-body-md text-muted">
             {slot.street} · Ô {slot.slot_code} · {slot.time_window}
-          </Text>
+          </p>
         ) : null}
       </Card>
 
-      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-        <View style={{ flex: 1 }}>
+      <div className="flex gap-sm">
+        <div className="flex-1">
           <Button
             label="Viết đánh giá"
             variant="outline"
             onPress={() =>
               user
-                ? router.push(`/customer/explore/vendors/${vendor.id}/comments/new`)
-                : router.push('/auth/sign-in')
+                ? navigate(`/customer/explore/vendors/${vendor.id}/comments/new`)
+                : navigate('/auth/sign-in')
             }
           />
-        </View>
-        <View style={{ flex: 1 }}>
+        </div>
+        <div className="flex-1">
           <Button
             label="Báo cáo vi phạm"
             variant="ghost"
-            onPress={() => router.push(`/customer/explore/vendors/${vendor.id}/reports/new`)}
+            onPress={() => navigate(`/customer/explore/vendors/${vendor.id}/reports/new`)}
           />
-        </View>
-      </View>
+        </div>
+      </div>
 
       {env.enableAiCompliance && comments.length > 2 ? (
         <AiHint title="Tóm tắt đánh giá">
@@ -98,17 +96,17 @@ export function VendorProfileScreen() {
                 label={`Giỏ hàng (${cartItems.length})`}
                 fullWidth={false}
                 variant="outline"
-                onPress={() => router.push('/customer/explore/cart')}
+                onPress={() => navigate('/customer/explore/cart')}
               />
             ) : undefined
           }
         >
           {menuItems.map((item) => (
-            <Card key={item.id} onPress={() => router.push(`/customer/explore/items/${item.id}`)}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={[typography.headlineSm, { color: colors.text }]}>{item.name}</Text>
+            <Card key={item.id} onPress={() => navigate(`/customer/explore/items/${item.id}`)}>
+              <div className="flex items-center justify-between">
+                <span className="text-headline-sm text-text">{item.name}</span>
                 <Money amountVnd={item.price} />
-              </View>
+              </div>
             </Card>
           ))}
         </Section>
@@ -120,16 +118,14 @@ export function VendorProfileScreen() {
         ) : (
           comments.map((c) => (
             <Card key={c.id}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={[typography.headlineSm, { color: colors.text }]}>{c.authorName}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                  <MaterialCommunityIcons name="star" size={14} color={colors.secondary} />
-                  <Text style={[typography.bodySm, { color: colors.muted }]}>{c.rating}</Text>
-                </View>
-              </View>
-              <Text style={[typography.bodyMd, { color: colors.muted, marginTop: 4 }]}>
-                {c.text}
-              </Text>
+              <div className="flex items-center justify-between">
+                <span className="text-headline-sm text-text">{c.authorName}</span>
+                <div className="flex items-center gap-0.5">
+                  <Icon name="star" size={14} color={colors.secondary} />
+                  <span className="text-body-sm text-muted">{c.rating}</span>
+                </div>
+              </div>
+              <p className="mt-1 text-body-md text-muted">{c.text}</p>
             </Card>
           ))
         )}

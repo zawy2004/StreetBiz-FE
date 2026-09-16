@@ -1,173 +1,88 @@
-import { ComponentProps } from 'react';
-import { ColorValue, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import type { BottomTabBarProps } from 'expo-router/js-tabs';
+import { NavLink } from 'react-router-dom';
 
-import { BrandLogo } from '@/components/common';
+import { BrandLogo, Icon } from '@/components/common';
+import type { IconName } from '@/components/common/Icon';
 import { useIsDesktop } from '@/hooks/useBreakpoint';
-import { colors, spacing, typography } from '@/theme';
+import { colors } from '@/theme';
 
 const SIDEBAR_WIDTH = 280;
 
+export type RoleTabItem = {
+  to: string;
+  label: string;
+  icon: IconName;
+};
+
+type Props = {
+  roleLabel: string;
+  items: RoleTabItem[];
+};
+
 /**
- * Custom tab bar rendered by every role's `_layout.tsx` via `<Tabs tabBar={...}>`.
- * Bottom row on mobile/tablet, fixed indigo sidebar on desktop (>=1024px) —
- * matches the "Modern Heritage" layout spec (280px sidebar, 24px gutter).
- *
- * The navigator invokes `tabBar(props)` as a plain function call (not via
- * JSX), so hooks cannot be called directly inside it — that breaks the
- * Rules of Hooks with an "Invalid hook call" error. The fix is to have the
- * `tabBar` function only return JSX for a real component (`RoleTabBarInner`)
- * instead of calling hooks itself; React then mounts that component through
- * its normal element-reconciliation path, where hooks work fine.
+ * Role-scoped tab bar: fixed indigo sidebar on desktop (>=1024px), bottom
+ * bar on mobile/tablet — matches the "Modern Heritage" layout spec (280px
+ * sidebar, 24px gutter). Driven by react-router-dom's `NavLink`, so active
+ * state and navigation come from ordinary route matching, not a navigator
+ * render-prop (that indirection was the root cause of a past "Invalid hook
+ * call" bug under expo-router and no longer applies here).
  */
-export function createRoleTabBar(roleLabel: string) {
-  return function RoleTabBar(props: BottomTabBarProps) {
-    return <RoleTabBarInner {...props} roleLabel={roleLabel} />;
-  };
-}
-
-function RoleTabBarInner({
-  state,
-  descriptors,
-  navigation,
-  roleLabel,
-}: BottomTabBarProps & { roleLabel: string }) {
+export function RoleTabBar({ roleLabel, items }: Props) {
   const isDesktop = useIsDesktop();
-  const routes = state.routes.filter((route) => {
-    const options = descriptors[route.key]?.options;
-    return options?.tabBarItemStyle !== undefined
-      ? JSON.stringify(options.tabBarItemStyle) !== JSON.stringify({ display: 'none' })
-      : true;
-  });
-
-  const items = routes.map((route) => {
-    const { options } = descriptors[route.key]!;
-    const index = state.routes.findIndex((r) => r.key === route.key);
-    const focused = state.index === index;
-    const color = focused ? colors.primary : isDesktop ? colors.white : colors.muted;
-    const label = (options.title ?? route.name) as string;
-    const icon = options.tabBarIcon?.({ focused, color, size: 22 });
-
-    const onPress = () => {
-      if (!focused) {
-        navigation.navigate(route.name);
-      }
-    };
-
-    return { key: route.key, label, icon, focused, onPress };
-  });
 
   if (isDesktop) {
     return (
-      <SafeAreaView edges={['top', 'left', 'bottom']} style={styles.sidebar}>
-        <View style={styles.sidebarHeader}>
+      <nav
+        style={{ width: SIDEBAR_WIDTH }}
+        className="flex shrink-0 flex-col bg-indigo p-md"
+      >
+        <div className="mb-lg flex items-center gap-xs">
           <BrandLogo size={28} />
-          <Text style={[typography.headlineSm, { color: colors.white }]} numberOfLines={1}>
-            StreetBiz
-          </Text>
-        </View>
-        <Text style={[typography.badge, { color: '#9AA3B8', marginBottom: spacing.sm }]}>
-          {roleLabel.toUpperCase()}
-        </Text>
-        <ScrollView contentContainerStyle={{ gap: 4 }}>
+          <span className="truncate text-headline-sm text-white">StreetBiz</span>
+        </div>
+        <span className="mb-sm text-badge text-[#9AA3B8]">{roleLabel.toUpperCase()}</span>
+        <div className="flex flex-col gap-1 overflow-y-auto">
           {items.map((item) => (
-            <Pressable
-              key={item.key}
-              onPress={item.onPress}
-              accessibilityRole="button"
-              accessibilityState={{ selected: item.focused }}
-              style={[styles.sidebarItem, item.focused && styles.sidebarItemActive]}
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                [
+                  'flex h-11 items-center gap-sm rounded-lg px-sm text-headline-sm',
+                  isActive ? 'bg-white/10 text-primary' : 'text-white',
+                ].join(' ')
+              }
             >
-              {item.icon}
-              <Text
-                style={[
-                  typography.headlineSm,
-                  { color: item.focused ? colors.primary : colors.white },
-                ]}
-                numberOfLines={1}
-              >
-                {item.label}
-              </Text>
-            </Pressable>
+              {({ isActive }) => (
+                <>
+                  <Icon name={item.icon} size={22} color={isActive ? colors.primary : colors.white} />
+                  <span className="truncate">{item.label}</span>
+                </>
+              )}
+            </NavLink>
           ))}
-        </ScrollView>
-      </SafeAreaView>
+        </div>
+      </nav>
     );
   }
 
   return (
-    <SafeAreaView edges={['bottom']} style={styles.bottomBar}>
-      <View style={styles.bottomRow}>
-        {items.map((item) => (
-          <Pressable
-            key={item.key}
-            onPress={item.onPress}
-            accessibilityRole="button"
-            accessibilityState={{ selected: item.focused }}
-            style={styles.bottomItem}
-          >
-            {item.icon}
-            <Text
-              style={[typography.bodySm, { color: item.focused ? colors.primary : colors.muted }]}
-              numberOfLines={1}
-            >
-              {item.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-    </SafeAreaView>
+    <nav className="flex border-t border-border bg-card">
+      {items.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 py-xs"
+        >
+          {({ isActive }) => (
+            <>
+              <Icon name={item.icon} size={22} color={isActive ? colors.primary : colors.muted} />
+              <span className={`truncate text-body-sm ${isActive ? 'text-primary' : 'text-muted'}`}>
+                {item.label}
+              </span>
+            </>
+          )}
+        </NavLink>
+      ))}
+    </nav>
   );
 }
-
-export type RoleTabIcon = ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-/** Typed `tabBarIcon` factory for `Tabs.Screen` options — keeps icon wiring one-liners. */
-export function tabIcon(name: RoleTabIcon) {
-  return function TabIcon({ color, size }: { focused: boolean; color: ColorValue; size: number }) {
-    return <MaterialCommunityIcons name={name} size={size} color={color as string} />;
-  };
-}
-
-const styles = StyleSheet.create({
-  sidebar: {
-    width: SIDEBAR_WIDTH,
-    backgroundColor: colors.indigo,
-    padding: spacing.md,
-  },
-  sidebarHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.lg,
-  },
-  sidebarItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    height: 44,
-    borderRadius: 8,
-  },
-  sidebarItemActive: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  bottomBar: {
-    backgroundColor: colors.card,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  bottomRow: {
-    flexDirection: 'row',
-  },
-  bottomItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    paddingVertical: spacing.xs,
-    minHeight: 56,
-  },
-});

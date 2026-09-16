@@ -1,7 +1,3 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
-
-import { colors, radius, typography } from '@/theme';
-
 type Props = {
   uri?: string;
   name: string;
@@ -13,30 +9,21 @@ export function Avatar({ uri, name, size = 40 }: Props) {
 
   if (uri) {
     return (
-      <Image
-        source={{ uri }}
-        style={[styles.base, { width: size, height: size, borderRadius: size / 2 }]}
+      <img
+        src={uri}
+        alt={name}
+        style={{ width: size, height: size, borderRadius: size / 2 }}
+        className="object-cover"
       />
     );
   }
 
   return (
-    <View
-      style={[styles.base, styles.fallback, { width: size, height: size, borderRadius: size / 2 }]}
+    <div
+      style={{ width: size, height: size, borderRadius: size / 2 }}
+      className="flex items-center justify-center bg-indigo text-headline-sm text-on-indigo"
     >
-      <Text style={[typography.headlineSm, { color: colors.onIndigo }]}>{initial}</Text>
-    </View>
+      {initial}
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    overflow: 'hidden',
-  },
-  fallback: {
-    backgroundColor: colors.indigo,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.full,
-  },
-});

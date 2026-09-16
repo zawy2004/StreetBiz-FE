@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
 
 import { Button, Card, IconButton } from '@/components/common';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
-import { colors, spacing, typography } from '@/theme';
+import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function CategoriesScreen() {
@@ -16,15 +15,15 @@ export function CategoriesScreen() {
   return (
     <Screen>
       <AppHeader title="Danh mục món ăn" />
-      <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-end' }}>
-        <View style={{ flex: 1 }}>
+      <div className="flex items-end gap-sm">
+        <div className="flex-1">
           <TextField
             label="Danh mục mới"
             value={name}
             onChangeText={setName}
             placeholder="VD: Bánh tráng trộn"
           />
-        </View>
+        </div>
         <Button
           label="Thêm"
           fullWidth={false}
@@ -34,23 +33,21 @@ export function CategoriesScreen() {
             setName('');
           }}
         />
-      </View>
+      </div>
       {categories.map((c) => (
         <Card key={c.id}>
-          <View
-            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-          >
-            <View>
-              <Text style={[typography.headlineSm, { color: colors.text }]}>{c.name}</Text>
-              <Text style={[typography.bodySm, { color: colors.muted }]}>{c.itemCount} món</Text>
-            </View>
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="block text-headline-sm text-text">{c.name}</span>
+              <span className="block text-body-sm text-muted">{c.itemCount} món</span>
+            </div>
             <IconButton
               icon="trash-can-outline"
               accessibilityLabel="Xoá danh mục"
               color={colors.error}
               onPress={() => removeCategory(c.id)}
             />
-          </View>
+          </div>
         </Card>
       ))}
     </Screen>

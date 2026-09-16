@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Redirect } from 'expo-router';
+import { Navigate } from 'react-router-dom';
 
 import { useAuthStore } from '@/store/auth-store';
 import type { RoleCode } from '@/core/types/role';
@@ -18,11 +18,11 @@ export function RoleGuard({ role, allowGuest, children }: Props) {
 
   if (!user) {
     if (allowGuest) return <>{children}</>;
-    return <Redirect href="/auth/sign-in" />;
+    return <Navigate to="/auth/sign-in" replace />;
   }
 
   if (user.role_code !== role) {
-    return <Redirect href={ROLE_HOME_ROUTE[user.role_code] as never} />;
+    return <Navigate to={ROLE_HOME_ROUTE[user.role_code]} replace />;
   }
 
   return <>{children}</>;

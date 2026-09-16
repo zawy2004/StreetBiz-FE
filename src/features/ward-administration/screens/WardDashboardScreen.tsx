@@ -1,16 +1,14 @@
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Card, IconButton } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { AiHint } from '@/components/status';
 import { env } from '@/core/config/env';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { WARD } from '@/mocks/seed';
 
 export function WardDashboardScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const slots = useMockDb((s) => s.slots);
   const registrations = useMockDb((s) => s.registrations);
   const applications = useMockDb((s) => s.applications);
@@ -39,31 +37,29 @@ export function WardDashboardScreen() {
         title="Tổng quan"
         subtitle={WARD.unit_type}
         right={
-          <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+          <div className="flex flex-row gap-xs">
             <IconButton
               icon="cog-outline"
               accessibilityLabel="Cấu hình"
-              onPress={() => router.push('/ward/settings/pricing')}
+              onPress={() => navigate('/ward/settings/pricing')}
             />
             <IconButton
               icon="account-circle-outline"
               accessibilityLabel="Tài khoản"
-              onPress={() => router.push('/account')}
+              onPress={() => navigate('/account')}
             />
-          </View>
+          </div>
         }
       />
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+      <div className="flex flex-row flex-wrap gap-sm">
         {stats.map((s) => (
           <Card key={s.label} style={{ flexGrow: 1, minWidth: 140 }}>
-            <Text style={[typography.bodySm, { color: colors.muted }]}>{s.label}</Text>
-            <Text style={[typography.headlineLg, { color: colors.text, marginTop: 2 }]}>
-              {s.value}
-            </Text>
+            <span className="block text-body-sm text-muted">{s.label}</span>
+            <span className="mt-0.5 block text-headline-lg text-text">{s.value}</span>
           </Card>
         ))}
-      </View>
+      </div>
 
       {env.enableAiCompliance ? (
         <AiHint title="Tóm tắt tuần này">
@@ -73,23 +69,17 @@ export function WardDashboardScreen() {
       ) : null}
 
       <Section title="Lối tắt">
-        <Card onPress={() => router.push('/ward/inbox')}>
-          <Text style={[typography.headlineSm, { color: colors.text }]}>Hộp duyệt</Text>
-          <Text style={[typography.bodySm, { color: colors.muted }]}>
-            {pendingCount} việc cần xử lý
-          </Text>
+        <Card onPress={() => navigate('/ward/inbox')}>
+          <h3 className="text-headline-sm text-text">Hộp duyệt</h3>
+          <p className="text-body-sm text-muted">{pendingCount} việc cần xử lý</p>
         </Card>
-        <Card onPress={() => router.push('/ward/slots')}>
-          <Text style={[typography.headlineSm, { color: colors.text }]}>Lưới ô vỉa hè</Text>
-          <Text style={[typography.bodySm, { color: colors.muted }]}>
-            Theo dõi trạng thái từng ô
-          </Text>
+        <Card onPress={() => navigate('/ward/slots')}>
+          <h3 className="text-headline-sm text-text">Lưới ô vỉa hè</h3>
+          <p className="text-body-sm text-muted">Theo dõi trạng thái từng ô</p>
         </Card>
-        <Card onPress={() => router.push('/ward/patrol')}>
-          <Text style={[typography.headlineSm, { color: colors.text }]}>Tuần tra hiện trường</Text>
-          <Text style={[typography.bodySm, { color: colors.muted }]}>
-            Quét QR &amp; lập biên bản
-          </Text>
+        <Card onPress={() => navigate('/ward/patrol')}>
+          <h3 className="text-headline-sm text-text">Tuần tra hiện trường</h3>
+          <p className="text-body-sm text-muted">Quét QR &amp; lập biên bản</p>
         </Card>
       </Section>
     </Screen>

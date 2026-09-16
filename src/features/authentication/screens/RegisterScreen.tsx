@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { AuthShell } from '../components/AuthShell';
 import { Button } from '@/components/common';
@@ -8,7 +8,7 @@ import { toLocalPhone } from '@/core/utils/phone';
 import { useMockDb } from '@/mocks/db';
 
 export function RegisterScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const users = useMockDb((s) => s.users);
   const [role, setRole] = useState<'CUSTOMER' | 'VENDOR'>('CUSTOMER');
   const [fullName, setFullName] = useState('');
@@ -25,10 +25,14 @@ export function RegisterScreen() {
       return setError('Số điện thoại đã được đăng ký.');
     }
     setError(undefined);
-    router.push({
-      pathname: '/auth/verify-phone',
-      params: { purpose: 'SIGNUP', phone: normalized, fullName, password, role },
+    const params = new URLSearchParams({
+      purpose: 'SIGNUP',
+      phone: normalized,
+      fullName,
+      password,
+      role,
     });
+    navigate(`/auth/verify-phone?${params.toString()}`);
   };
 
   return (
@@ -50,12 +54,7 @@ export function RegisterScreen() {
           },
         ]}
       />
-      <TextField
-        label="Họ và tên"
-        value={fullName}
-        onChangeText={setFullName}
-        autoCapitalize="words"
-      />
+      <TextField label="Họ và tên" value={fullName} onChangeText={setFullName} />
       <PhoneField value={phone} onChangeText={setPhone} />
       <PasswordField
         value={password}

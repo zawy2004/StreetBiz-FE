@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { AuthShell } from '../components/AuthShell';
 import { Button } from '@/components/common';
@@ -9,22 +8,18 @@ import { showToast } from '@/components/feedback';
 import { ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
-import { colors, typography } from '@/theme';
 
 const RESEND_SECONDS = 60;
 const DEMO_OTP = '123456';
 
-type Params = {
-  purpose: 'SIGNUP' | 'RESET';
-  phone: string;
-  fullName?: string;
-  password?: string;
-  role?: 'CUSTOMER' | 'VENDOR';
-};
-
 export function VerifyPhoneScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams<Params>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const purpose = searchParams.get('purpose');
+  const phone = searchParams.get('phone') ?? '';
+  const fullName = searchParams.get('fullName') ?? '';
+  const password = searchParams.get('password') ?? '';
+  const role = searchParams.get('role');
   const registerUser = useMockDb((s) => s.registerUser);
   const signIn = useAuthStore((s) => s.signIn);
   const [code, setCode] = useState('');
@@ -42,59 +37,54 @@ export function VerifyPhoneScreen() {
     if (code !== DEMO_OTP) return setError(`Mã không đúng. (Demo: ${DEMO_OTP})`);
     setError(undefined);
 
-    if (params.purpose === 'SIGNUP') {
+    if (purpose === 'SIGNUP') {
       registerUser({
-        fullName: params.fullName ?? '',
-        phone: params.phone,
-        password: params.password ?? '',
-        role_code: params.role === 'VENDOR' ? 'VENDOR' : 'CUSTOMER',
+        fullName,
+        phone,
+        password,
+        role_code: role === 'VENDOR' ? 'VENDOR' : 'CUSTOMER',
         account_status: 'ACTIVE',
       });
-      const result = signIn(params.phone, params.password ?? '');
+      const result = signIn(phone, password);
       if (result.ok) {
         const user = useAuthStore.getState().user!;
         showToast('Tạo tài khoản thành công');
-        router.replace(ROLE_HOME_ROUTE[user.role_code] as never);
+        navigate(ROLE_HOME_ROUTE[user.role_code], { replace: true });
       }
       return;
     }
 
-    router.replace({ pathname: '/auth/password/reset', params: { phone: params.phone } });
+    navigate(`/auth/password/reset?phone=${encodeURIComponent(phone)}`, { replace: true });
   };
 
   return (
     <AuthShell
       title="Xác thực số điện thoại"
-      subtitle={`Nhập mã 6 số vừa gửi tới ${params.phone}`}
+      subtitle={`Nhập mã 6 số vừa gửi tới ${phone}`}
       back
     >
       <OtpInput value={code} onChangeText={setCode} />
       {error ? (
-        <Text style={[typography.bodySm, { color: colors.error, textAlign: 'center' }]}>
-          {error}
-        </Text>
+        <p className="text-center text-body-sm text-error">{error}</p>
       ) : (
-        <Text style={[typography.bodySm, { color: colors.muted, textAlign: 'center' }]}>
-          Demo: dùng mã {DEMO_OTP}
-        </Text>
+        <p className="text-center text-body-sm text-muted">Demo: dùng mã {DEMO_OTP}</p>
       )}
       <Button label="Xác nhận" onPress={verify} />
-      <Pressable
+      <button
+        type="button"
         disabled={seconds > 0}
-        onPress={() => {
+        onClick={() => {
           setSeconds(RESEND_SECONDS);
           showToast('Đã gửi lại mã OTP');
         }}
+        className="disabled:cursor-not-allowed"
       >
-        <Text
-          style={[
-            typography.label,
-            { color: seconds > 0 ? colors.muted : colors.primary, textAlign: 'center' },
-          ]}
+        <span
+          className={`block text-center text-label ${seconds > 0 ? 'text-muted' : 'text-primary'}`}
         >
           {seconds > 0 ? `Gửi lại mã sau ${seconds}s` : 'Gửi lại mã'}
-        </Text>
-      </Pressable>
+        </span>
+      </button>
     </AuthShell>
   );
 }

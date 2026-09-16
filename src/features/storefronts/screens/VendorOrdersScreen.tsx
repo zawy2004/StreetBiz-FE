@@ -1,10 +1,7 @@
-import { Text, View } from 'react-native';
-
 import { Button, Card, Money } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { EmptyState, showToast } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -37,31 +34,29 @@ export function VendorOrdersScreen() {
       ) : (
         orders.map((order) => (
           <Card key={order.id}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={[typography.headlineSm, { color: colors.text }]}>
-                #{order.order_code}
-              </Text>
+            <div className="flex items-center justify-between">
+              <span className="text-headline-sm text-text">#{order.order_code}</span>
               <StatusChip code={order.order_status} />
-            </View>
+            </div>
             {order.items.map((item) => (
-              <Text key={item.menuItemId} style={[typography.bodyMd, { color: colors.muted }]}>
+              <p key={item.menuItemId} className="text-body-md text-muted">
                 {item.quantity}× {item.name}
-              </Text>
+              </p>
             ))}
-            <View style={{ marginTop: spacing.xs }}>
+            <div className="mt-xs">
               <Money amountVnd={order.total} />
-            </View>
-            <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
+            </div>
+            <div className="mt-sm flex gap-sm">
               {order.order_status === 'PENDING' ? (
                 <>
-                  <View style={{ flex: 1 }}>
+                  <div className="flex-1">
                     <Button
                       label="Nhận đơn"
                       variant="approve"
                       onPress={() => updateOrderStatus(order.id, 'ACCEPTED')}
                     />
-                  </View>
-                  <View style={{ flex: 1 }}>
+                  </div>
+                  <div className="flex-1">
                     <Button
                       label="Từ chối"
                       variant="outline"
@@ -70,7 +65,7 @@ export function VendorOrdersScreen() {
                         showToast('Đã từ chối, hoàn tiền cho khách');
                       }}
                     />
-                  </View>
+                  </div>
                 </>
               ) : NEXT_STATUS[order.order_status] ? (
                 <Button
@@ -78,7 +73,7 @@ export function VendorOrdersScreen() {
                   onPress={() => updateOrderStatus(order.id, NEXT_STATUS[order.order_status]!)}
                 />
               ) : null}
-            </View>
+            </div>
           </Card>
         ))
       )}

@@ -1,17 +1,15 @@
-import { Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Card } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { ErrorState, showToast } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 const RENEW_MONTHS = 3;
 
 export function RenewalRequestScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const contract = useMockDb((s) => s.contracts.find((c) => c.id === id));
   const requestRenewal = useMockDb((s) => s.requestRenewal);
 
@@ -24,7 +22,7 @@ export function RenewalRequestScreen() {
   const submit = () => {
     requestRenewal(contract.id, newEnd.toISOString());
     showToast('Đã gửi yêu cầu gia hạn');
-    router.back();
+    navigate(-1);
   };
 
   return (
@@ -37,16 +35,14 @@ export function RenewalRequestScreen() {
     >
       <AppHeader title="Gia hạn hợp đồng" back />
       <Card>
-        <Text style={[typography.bodyMd, { color: colors.muted }]}>Hết hạn hiện tại</Text>
-        <Text style={[typography.headlineSm, { color: colors.text, marginBottom: spacing.sm }]}>
+        <p className="text-body-md text-muted">Hết hạn hiện tại</p>
+        <p className="mb-sm text-headline-sm text-text">
           {currentEnd.toLocaleDateString('vi-VN')}
-        </Text>
-        <Text style={[typography.bodyMd, { color: colors.muted }]}>
+        </p>
+        <p className="text-body-md text-muted">
           Gia hạn thêm {RENEW_MONTHS} tháng, hết hạn mới
-        </Text>
-        <Text style={[typography.headlineSm, { color: colors.primary }]}>
-          {newEnd.toLocaleDateString('vi-VN')}
-        </Text>
+        </p>
+        <p className="text-headline-sm text-primary">{newEnd.toLocaleDateString('vi-VN')}</p>
       </Card>
     </Screen>
   );

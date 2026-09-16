@@ -1,16 +1,14 @@
-import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Card } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { EmptyState } from '@/components/feedback';
-import { colors, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
 export function RentalApplicationsScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const applications = useMockDb((s) => s.applications).filter(
     (a) => a.vendorId === user?.vendorId,
@@ -34,22 +32,20 @@ export function RentalApplicationsScreen() {
             return (
               <Card
                 key={app.id}
-                onPress={() => router.push(`/vendor/slots/rental-applications/${app.id}`)}
+                onPress={() => navigate(`/vendor/slots/rental-applications/${app.id}`)}
               >
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <View style={{ gap: 4, flex: 1 }}>
-                    <Text style={[typography.headlineSm, { color: colors.text }]}>
-                      {slotCodes || '—'}
-                    </Text>
-                    <Text style={[typography.bodySm, { color: colors.muted }]}>
+                <div className="flex justify-between">
+                  <div className="flex flex-1 flex-col gap-2xs">
+                    <span className="text-headline-sm text-text">{slotCodes || '—'}</span>
+                    <span className="text-body-sm text-muted">
                       {app.application_type === 'STOREFRONT_ADJACENT'
                         ? 'Ô liền kề mặt tiền'
                         : 'Ô mở'}{' '}
                       · {new Date(app.submitted_at).toLocaleDateString('vi-VN')}
-                    </Text>
-                  </View>
+                    </span>
+                  </div>
                   <StatusChip code={app.application_status} />
-                </View>
+                </div>
               </Card>
             );
           })

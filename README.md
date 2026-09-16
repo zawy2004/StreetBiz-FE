@@ -1,8 +1,8 @@
 # StreetBiz Frontend
 
-StreetBiz-FE is the Expo React Native client for the StreetBiz sidewalk
-vendor-management platform. It targets Android, iOS, and React Native Web for
-mobile PWAs and desktop-oriented dashboards.
+StreetBiz-FE is the React web client for the StreetBiz sidewalk
+vendor-management platform — a Vite single-page app targeting desktop and
+mobile browsers (no native app).
 
 The app implements the full Core, Core Extension (AI), and Phase 2 use-case
 catalog from Report 3 (115 use cases across Guest/Customer, Vendor, Ward
@@ -15,20 +15,20 @@ per-feature `api.ts` change, not a rewrite of any screen.
 
 ## Technology baseline
 
-- Expo SDK 57, React Native 0.86, React 19.2
+- Vite, React 19.2
 - TypeScript with strict checks (`noUncheckedIndexedAccess` on)
-- Expo Router with typed routes (`expo-router/js-tabs` for role tab bars)
+- react-router-dom for client-side routing (role-scoped route trees)
+- Tailwind CSS for styling, tokens sourced from `src/theme/`
+- react-icons (Material Icons) for iconography
 - Zustand for client state (auth session, cart, mock domain data)
-- React Native Web with Metro
-- Jest Expo and React Native Testing Library
+- Vitest and React Testing Library
 - ESLint and Prettier
 
 ## Prerequisites
 
-- Node.js 22.13 or newer for Expo SDK 57
+- Node.js 20 or newer
 - npm
-- Expo Go, Android Emulator, or a supported browser
-- macOS/Xcode or an Expo/EAS workflow for native iOS builds
+- A modern desktop or mobile browser
 
 ## Install
 
@@ -46,64 +46,58 @@ Copy .env.example to .env and adjust public values for the current environment.
 Do not commit .env.
 
 ~~~dotenv
-EXPO_PUBLIC_APP_ENV=development
-EXPO_PUBLIC_API_BASE_URL=http://localhost:5000/api
-EXPO_PUBLIC_ENABLE_AI_COMPLIANCE=true
-EXPO_PUBLIC_ENABLE_PHASE_2=true
-EXPO_PUBLIC_ENABLE_PUSH_NOTIFICATIONS=false
-EXPO_PUBLIC_ENABLE_PAYMENT_SANDBOX=true
+VITE_APP_ENV=development
+VITE_API_BASE_URL=http://localhost:5000/api
+VITE_ENABLE_AI_COMPLIANCE=true
+VITE_ENABLE_PHASE_2=true
+VITE_ENABLE_PUSH_NOTIFICATIONS=false
+VITE_ENABLE_PAYMENT_SANDBOX=true
 ~~~
 
-EXPO_PUBLIC values are included in the client bundle. Never store passwords,
+`VITE_*` values are included in the client bundle. Never store passwords,
 JWTs, OTP secrets, payment secrets, provider keys, or database connection
 strings in them.
 
-`EXPO_PUBLIC_ENABLE_AI_COMPLIANCE` and `EXPO_PUBLIC_ENABLE_PHASE_2` are `true`
-by default in `.env.example` so the demo shows the AI-assist cards and the
-marketplace (storefront/menu/cart/checkout) screens; set either to `false` to
-preview the Core-only experience. `EXPO_PUBLIC_API_BASE_URL` is currently
-unused — no HTTP client is wired up (see Mock data layer below).
+`VITE_ENABLE_AI_COMPLIANCE` and `VITE_ENABLE_PHASE_2` are `true` by default in
+`.env.example` so the demo shows the AI-assist cards and the marketplace
+(storefront/menu/cart/checkout) screens; set either to `false` to preview the
+Core-only experience. `VITE_API_BASE_URL` is currently unused — no HTTP
+client is wired up (see Mock data layer below).
 
 ## Run
 
 ~~~powershell
-npm start
-npm run android
-npm run ios
-npm run web
+npm install
+npm run dev
 ~~~
 
-Sign in with a demo account (see Mock data layer), or use the dev-only role
-switcher on the sign-in screen / Account tab to jump straight into any role.
-Android Emulator uses 10.0.2.2 to reach a backend on the host computer. A
-physical device uses the LAN IP of the machine running StreetBiz-BE.
+Open the printed local URL (default `http://localhost:5173`). Sign in with a
+demo account (see Mock data layer), or use the dev-only role switcher on the
+sign-in screen / Account tab to jump straight into any role.
 
 ## Quality checks
 
 ~~~powershell
-npm run doctor
 npm run lint
 npm run typecheck
-npm test -- --runInBand
-npm run export:web
+npm test
+npm run build
 ~~~
 
-The web export is written to dist and is ignored by Git.
+`npm run build` type-checks then produces a static bundle in `dist/` (ignored
+by Git); `npm run preview` serves that build locally.
 
 ## npm scripts
 
 | Script | Purpose |
 | --- | --- |
-| start | Start the Expo development server |
-| android | Start Expo and open Android |
-| ios | Start Expo and open iOS |
-| web | Start Expo for web |
-| lint | Run Expo ESLint |
+| dev | Start the Vite dev server |
+| build | Type-check and build the production bundle to `dist/` |
+| preview | Serve the production build locally |
+| lint | Run ESLint |
 | typecheck | Run TypeScript without emitting files |
-| test | Run Jest |
-| test:watch | Run Jest in watch mode |
-| doctor | Run Expo Doctor |
-| export:web | Create the static web export |
+| test | Run the Vitest suite once |
+| test:watch | Run Vitest in watch mode |
 
 ## Mock data layer and demo accounts
 
@@ -115,7 +109,7 @@ the actions screens call (`approveRentalApplication`, `payFee`,
 `recordViolation`, …) — approving a rental application, for example, really
 does create a `RentalContract`, a `DigitalPermit`, and the first `FeeItem`
 (SYS-03), the way the real backend is expected to. `src/store/auth-store.ts`
-holds the signed-in session and persists it via AsyncStorage.
+holds the signed-in session and persists it via the browser's `localStorage`.
 
 Demo accounts (phone / password `123456` for all):
 
@@ -128,26 +122,31 @@ Demo accounts (phone / password `123456` for all):
 | Platform Administrator | 0905000005 | Đỗ Quốc Anh |
 
 The "switch role" shortcut on the sign-in screen and the Account tab only
-renders when `EXPO_PUBLIC_APP_ENV=development` — it is not part of AUTH-03
-and must not ship to a real build.
+renders when `VITE_APP_ENV=development` — it is not part of AUTH-03 and must
+not ship to a real build.
 
 ## Source layout
 
 ~~~text
 src/
-|-- app/          Expo Router route files only — one thin file per route that
-|                  renders the matching screen from src/features/**/screens
-|-- components/    Shared UI: common, status, forms, layout, feedback
-|-- core/          auth (RoleGuard, role-routes), config/env, constants
-|                  (status-labels), types (RoleCode), utils (phone)
-|-- features/      One folder per capability; each has screens/ and, where
-|                  needed, small feature-local state (cart-store,
-|                  new-registration-store)
-|-- hooks/         useBreakpoint (desktop-sidebar vs mobile-tabs)
-|-- mocks/         The in-memory backend — see above
-|-- providers/     AppProviders (fonts, SafeArea, React Query)
-|-- store/         auth-store (session, dev role switch)
-+-- theme/         Heritage Tech palette, typography, spacing, shadows
+|-- App.tsx        Top-level BrowserRouter + AppProviders + AppRouter
+|-- main.tsx        Vite entry point (mounts <App/> into #root)
+|-- router.tsx       Full react-router-dom route tree (replaces the old
+|                    Expo Router `src/app/` file tree — see Navigation shape)
+|-- layouts/         RoleShell (role guard + responsive tab bar wrapper) and
+|                    the per-role tab item lists
+|-- components/      Shared UI: common, status, forms, layout, feedback
+|-- core/            auth (RoleGuard, role-routes), config/env, constants
+|                    (status-labels), types (RoleCode), utils (phone)
+|-- features/        One folder per capability; each has screens/ and, where
+|                    needed, small feature-local state (cart-store,
+|                    new-registration-store)
+|-- hooks/           useBreakpoint (desktop-sidebar vs mobile-tabs)
+|-- mocks/           The in-memory backend — see above
+|-- providers/       AppProviders (React Query)
+|-- store/           auth-store (session, dev role switch)
++-- theme/           Heritage Tech palette, typography, spacing, shadows —
+                     also the source tailwind.config.ts reads its tokens from
 
 tests/
 |-- components/    Button, StatusChip
@@ -157,18 +156,18 @@ tests/
 
 ## Navigation shape
 
-Four role-scoped tab groups (`(customer)` shown as `/customer`, `/vendor`,
-`/ward`, `/platform`), each an `expo-router/js-tabs` navigator with a custom
-`RoleTabBar` (bottom bar on phones, a 280px indigo sidebar at ≥1024px — see
-`src/components/layout/RoleTabBar.tsx`), gated by `RoleGuard`
-(`src/core/auth/RoleGuard.tsx`) so a signed-in account can only reach its own
-role's routes; `/customer` additionally allows a signed-out guest. Shared
-`/auth/*` and `/account/*` routes sit outside every role group. This departs
-from the flatter paths sketched in docs/route-plan.md (e.g. vendor detail
-routes live under `/vendor/slots/...` rather than a bare `/vendor/...`) so
-that each tab can own a nested Stack without an explosion of hidden
-`Tabs.Screen` entries — route-plan.md's own note that paths may change once
-navigation is implemented covers this.
+Four role-scoped route subtrees (`/customer`, `/vendor`, `/ward`,
+`/platform`), each wrapped by `RoleShell` (`src/layouts/RoleShell.tsx`) which
+combines `RoleGuard` (`src/core/auth/RoleGuard.tsx` — a signed-in account can
+only reach its own role's routes; `/customer` additionally allows a
+signed-out guest) with `RoleTabBar` (`src/components/layout/RoleTabBar.tsx`
+— a bottom bar on phones, a 280px indigo sidebar at ≥1024px, driven by
+ordinary `react-router-dom` `NavLink`s). Shared `/auth/*` and `/account/*`
+routes sit outside every role group. Route paths depart from the flatter
+paths sketched in docs/route-plan.md (e.g. vendor detail routes live under
+`/vendor/slots/...` rather than a bare `/vendor/...`) — see
+docs/route-plan.md for the historical use-case → screen mapping and
+`src/router.tsx` for the actual path tree.
 
 ## Design system
 
@@ -176,16 +175,19 @@ The palette, typography, and spacing in `src/theme/` are kept from the
 Stitch-generated "Heritage Tech" design system, unchanged: primary
 `#C84B31`, secondary `#E09F3E`, tertiary (approved/verified) `#2D7D46`,
 indigo `#1A2238` for navigation chrome, Be Vietnam Pro for text and Plus
-Jakarta Sans (tabular) for money/codes. Screens were deliberately simplified
-from that source design — one primary action per screen, three status tones
-only, no decorative legal citations or raw coordinates — see the
-`streetbiz-fe-ui-decisions` note for the full rationale.
+Jakarta Sans (tabular) for money/codes — loaded via Google Fonts in
+`index.html`, and re-exposed as Tailwind tokens in `tailwind.config.ts`
+(reads `src/theme/*.ts` directly, so the two never drift). Screens were
+deliberately simplified from that source design — one primary action per
+screen, three status tones only, no decorative legal citations or raw
+coordinates — see the `streetbiz-fe-ui-decisions` note for the full
+rationale.
 
 ## Prepared but not yet wired
 
-- `EXPO_PUBLIC_API_BASE_URL` / an HTTP client — screens call `src/mocks/db.ts`
+- `VITE_API_BASE_URL` / an HTTP client — screens call `src/mocks/db.ts`
   directly instead of a network layer.
-- Push notifications, camera/location permissions in app.json.
+- Push notifications, camera access beyond a plain `<input type="file">`.
 - SignalR/real-time updates.
 
 ## Documentation

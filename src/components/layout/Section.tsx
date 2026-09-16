@@ -1,7 +1,4 @@
 import { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-
-import { colors, spacing, typography } from '@/theme';
 
 type Props = {
   title?: string;
@@ -11,22 +8,14 @@ type Props = {
 
 export function Section({ title, action, children }: Props) {
   return (
-    <View style={{ gap: spacing.sm }}>
+    <div className="flex flex-col gap-sm">
       {title ? (
-        <View style={styles.header}>
-          <Text style={[typography.headlineSm, { color: colors.text }]}>{title}</Text>
+        <div className="flex items-center justify-between">
+          <h2 className="text-headline-sm text-text">{title}</h2>
           {action}
-        </View>
+        </div>
       ) : null}
       {children}
-    </View>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-});

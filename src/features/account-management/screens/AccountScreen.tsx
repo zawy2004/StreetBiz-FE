@@ -1,9 +1,7 @@
-import { View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-import { Avatar, Button, Card, Divider, ListRow } from '@/components/common';
+import { Avatar, Button, Card, Divider, Icon, ListRow } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { ConfirmDialog } from '@/components/feedback';
 import { isDev } from '@/core/config/env';
@@ -11,12 +9,11 @@ import { ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
 import { ROLE_LABELS, type RoleCode } from '@/core/types/role';
 import { colors } from '@/theme';
 import { useAuthStore } from '@/store/auth-store';
-import { useState } from 'react';
 
 const DEMO_ROLES: RoleCode[] = ['CUSTOMER', 'VENDOR', 'WARD_AUTHORITY', 'PLATFORM_ADMIN'];
 
 export function AccountScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
   const switchRoleDemo = useAuthStore((s) => s.switchRoleDemo);
@@ -27,73 +24,69 @@ export function AccountScreen() {
   const doSignOut = () => {
     signOut();
     setConfirmSignOut(false);
-    router.replace('/auth/sign-in');
+    navigate('/auth/sign-in', { replace: true });
   };
 
   return (
     <Screen>
       <AppHeader title="Tài khoản" />
       <Card>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <div className="flex items-center gap-3">
           <Avatar name={user.fullName} size={56} />
-          <View style={{ flex: 1 }}>
+          <div className="flex-1">
             <ListRow
               title={user.fullName}
               subtitle={`${ROLE_LABELS[user.role_code]} · ${user.phone}`}
             />
-          </View>
-        </View>
+          </div>
+        </div>
       </Card>
 
       <Section title="Bảo mật">
         <Card padded={false}>
-          <View style={{ paddingHorizontal: 16 }}>
+          <div className="px-md">
             <ListRow
               title="Đổi mật khẩu"
-              leading={
-                <MaterialCommunityIcons name="lock-outline" size={20} color={colors.muted} />
-              }
+              leading={<Icon name="lock-outline" size={20} color={colors.muted} />}
               showChevron
-              onPress={() => router.push('/account/password')}
+              onPress={() => navigate('/account/password')}
             />
             <Divider />
             <ListRow
               title="Phiên đăng nhập"
-              leading={<MaterialCommunityIcons name="devices" size={20} color={colors.muted} />}
+              leading={<Icon name="devices" size={20} color={colors.muted} />}
               showChevron
-              onPress={() => router.push('/account/sessions')}
+              onPress={() => navigate('/account/sessions')}
             />
             <Divider />
             <ListRow
               title="Thông báo"
-              leading={
-                <MaterialCommunityIcons name="bell-outline" size={20} color={colors.muted} />
-              }
+              leading={<Icon name="bell-outline" size={20} color={colors.muted} />}
               showChevron
-              onPress={() => router.push('/account/notifications')}
+              onPress={() => navigate('/account/notifications')}
             />
-          </View>
+          </div>
         </Card>
       </Section>
 
       {isDev ? (
         <Section title="Đổi vai trò (demo)">
           <Card padded={false}>
-            <View style={{ paddingHorizontal: 16 }}>
+            <div className="px-md">
               {DEMO_ROLES.map((role, i) => (
-                <View key={role}>
+                <div key={role}>
                   {i > 0 ? <Divider /> : null}
                   <ListRow
                     title={ROLE_LABELS[role]}
                     showChevron
                     onPress={() => {
                       switchRoleDemo(role);
-                      router.replace(ROLE_HOME_ROUTE[role] as never);
+                      navigate(ROLE_HOME_ROUTE[role], { replace: true });
                     }}
                   />
-                </View>
+                </div>
               ))}
-            </View>
+            </div>
           </Card>
         </Section>
       ) : null}

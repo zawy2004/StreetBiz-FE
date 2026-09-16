@@ -1,18 +1,16 @@
 import { useState } from 'react';
-import { Text } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { Button, Card } from '@/components/common';
 import { SegmentedControl, TextField } from '@/components/forms';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { EmptyState, showToast } from '@/components/feedback';
 import { env } from '@/core/config/env';
-import { colors, spacing, typography } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
 export function StoreScreen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const storefront = useMockDb((s) => s.storefronts.find((st) => st.vendorId === user?.vendorId));
   const registrations = useMockDb((s) => s.registrations).filter(
@@ -94,22 +92,14 @@ export function StoreScreen() {
         />
       </Section>
       <Card>
-        <Text style={[typography.bodyMd, { color: colors.muted }]}>{storefront.description}</Text>
-        <Text style={[typography.bodySm, { color: colors.muted, marginTop: spacing.sm }]}>
+        <span className="text-body-md text-muted">{storefront.description}</span>
+        <p className="mt-sm text-body-sm text-muted">
           Giờ mở cửa {storefront.openTime} – {storefront.closeTime}
-        </Text>
+        </p>
       </Card>
-      <Button label="Quản lý thực đơn" onPress={() => router.push('/vendor/store/menu')} />
-      <Button
-        label="Đơn hàng"
-        variant="outline"
-        onPress={() => router.push('/vendor/store/orders')}
-      />
-      <Button
-        label="Doanh thu"
-        variant="ghost"
-        onPress={() => router.push('/vendor/store/sales')}
-      />
+      <Button label="Quản lý thực đơn" onPress={() => navigate('/vendor/store/menu')} />
+      <Button label="Đơn hàng" variant="outline" onPress={() => navigate('/vendor/store/orders')} />
+      <Button label="Doanh thu" variant="ghost" onPress={() => navigate('/vendor/store/sales')} />
     </Screen>
   );
 }

@@ -1,8 +1,7 @@
 import { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { colors, spacing, typography } from '@/theme';
+import { Icon } from './Icon';
+import { colors } from '@/theme';
 
 type Props = {
   title: string;
@@ -23,42 +22,36 @@ export function ListRow({
   showChevron,
   testID,
 }: Props) {
-  return (
-    <Pressable
-      testID={testID}
-      onPress={onPress}
-      disabled={!onPress}
-      accessibilityRole={onPress ? 'button' : undefined}
-      style={({ pressed }) => [styles.row, pressed && onPress ? { opacity: 0.85 } : null]}
-    >
+  const content = (
+    <>
       {leading}
-      <View style={styles.body}>
-        <Text style={[typography.headlineSm, { color: colors.text }]} numberOfLines={1}>
-          {title}
-        </Text>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate text-headline-sm text-text">{title}</span>
         {subtitle ? (
-          <Text style={[typography.bodyMd, { color: colors.muted }]} numberOfLines={2}>
-            {subtitle}
-          </Text>
+          <span className="line-clamp-2 text-body-md text-muted">{subtitle}</span>
         ) : null}
-      </View>
+      </div>
       {trailing}
-      {showChevron ? (
-        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.muted} />
-      ) : null}
-    </Pressable>
+      {showChevron ? <Icon name="chevron-right" size={20} color={colors.muted} /> : null}
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <button
+        type="button"
+        data-testid={testID}
+        onClick={onPress}
+        className="flex w-full items-center gap-sm py-sm text-left transition-opacity active:opacity-85"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div data-testid={testID} className="flex w-full items-center gap-sm py-sm">
+      {content}
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  body: {
-    flex: 1,
-    gap: 2,
-  },
-});

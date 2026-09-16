@@ -1,7 +1,4 @@
 import { createRef, useMemo } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
-
-import { colors, radius, typography } from '@/theme';
 
 type Props = {
   length?: number;
@@ -10,7 +7,10 @@ type Props = {
 };
 
 export function OtpInput({ length = 6, value, onChangeText }: Props) {
-  const refs = useMemo(() => Array.from({ length }, () => createRef<TextInput>()), [length]);
+  const refs = useMemo(
+    () => Array.from({ length }, () => createRef<HTMLInputElement>()),
+    [length],
+  );
 
   const digits = Array.from({ length }, (_, i) => value[i] ?? '');
 
@@ -25,40 +25,23 @@ export function OtpInput({ length = 6, value, onChangeText }: Props) {
   };
 
   return (
-    <View style={styles.row}>
+    <div className="flex justify-center gap-2.5">
       {digits.map((digit, index) => (
-        <TextInput
+        <input
           key={index}
           ref={refs[index]}
           value={digit}
-          onChangeText={(t) => setDigit(index, t)}
-          onKeyPress={({ nativeEvent }) => {
-            if (nativeEvent.key === 'Backspace' && !digit && index > 0) {
+          onChange={(e) => setDigit(index, e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Backspace' && !digit && index > 0) {
               refs[index - 1]?.current?.focus();
             }
           }}
-          keyboardType="number-pad"
+          inputMode="numeric"
           maxLength={1}
-          style={[typography.headlineLg, styles.box, { color: colors.text }]}
+          className="h-14 w-12 rounded-sm border border-border bg-card text-center text-headline-lg text-text"
         />
       ))}
-    </View>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'center',
-  },
-  box: {
-    width: 48,
-    height: 56,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    textAlign: 'center',
-    backgroundColor: colors.card,
-  },
-});

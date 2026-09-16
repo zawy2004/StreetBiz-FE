@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/common';
 import { PhotoPicker, TextField } from '@/components/forms';
@@ -11,8 +11,8 @@ import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
 export function VendorReportFormScreen() {
-  const { vendorId } = useLocalSearchParams<{ vendorId: string }>();
-  const router = useRouter();
+  const { vendorId } = useParams<{ vendorId: string }>();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const vendor = useMockDb((s) => s.vendors.find((v) => v.id === vendorId));
   const addReport = useMockDb((s) => s.addReport);
@@ -30,7 +30,7 @@ export function VendorReportFormScreen() {
       photoUri,
     });
     showToast('Đã gửi phản ánh tới Phường');
-    router.back();
+    navigate(-1);
   };
 
   return (

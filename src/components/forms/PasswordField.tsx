@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { colors, radius, spacing, touchHeight, typography } from '@/theme';
+import { Icon } from '@/components/common';
+import { colors } from '@/theme';
 
 type Props = {
   value: string;
@@ -22,47 +21,28 @@ export function PasswordField({
   const [visible, setVisible] = useState(false);
 
   return (
-    <View style={{ gap: spacing['2xs'] }}>
-      <Text style={[typography.label, { color: colors.text }]}>{label}</Text>
-      <View style={[styles.row, { borderColor: error ? colors.error : colors.border }]}>
-        <TextInput
+    <div className="flex flex-col gap-2xs">
+      <span className="text-label text-text">{label}</span>
+      <div
+        className={`flex h-12 items-center gap-xs rounded-sm border bg-card px-sm ${error ? 'border-error' : 'border-border'}`}
+      >
+        <input
           value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={!visible}
+          onChange={(e) => onChangeText(e.target.value)}
+          type={visible ? 'text' : 'password'}
           placeholder={placeholder}
-          placeholderTextColor={colors.muted}
-          style={[typography.bodyLg, styles.input, { color: colors.text }]}
+          className="h-full flex-1 bg-transparent text-body-lg text-text placeholder:text-muted"
         />
-        <Pressable
-          onPress={() => setVisible((v) => !v)}
-          accessibilityLabel={visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-          hitSlop={8}
+        <button
+          type="button"
+          onClick={() => setVisible((v) => !v)}
+          aria-label={visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+          className="flex h-8 w-8 items-center justify-center"
         >
-          <MaterialCommunityIcons
-            name={visible ? 'eye-off-outline' : 'eye-outline'}
-            size={20}
-            color={colors.muted}
-          />
-        </Pressable>
-      </View>
-      {error ? <Text style={[typography.bodySm, { color: colors.error }]}>{error}</Text> : null}
-    </View>
+          <Icon name={visible ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.muted} />
+        </button>
+      </div>
+      {error ? <span className="text-body-sm text-error">{error}</span> : null}
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    height: touchHeight,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    backgroundColor: colors.card,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  input: {
-    flex: 1,
-    height: '100%',
-  },
-});

@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
 
 import { Button, Card, IconButton, Money } from '@/components/common';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { ConfirmDialog, showToast } from '@/components/feedback';
-import { colors, spacing, typography } from '@/theme';
+import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { WARD } from '@/mocks/seed';
 
@@ -42,51 +41,43 @@ export function SlotGridEditorScreen() {
       <AppHeader title="Cấu hình lưới ô" back subtitle={WARD.unit_type} />
       <Section title="Vẽ ô mới">
         <TextField label="Tuyến đường" value={street} onChangeText={setStreet} />
-        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          <View style={{ flex: 1 }}>
+        <div className="flex flex-row gap-sm">
+          <div className="flex-1">
             <TextField
               label="Diện tích (m²)"
               value={size}
               onChangeText={setSize}
               keyboardType="numeric"
             />
-          </View>
-          <View style={{ flex: 1 }}>
+          </div>
+          <div className="flex-1">
             <TextField
               label="Giá/tháng (đ)"
               value={price}
               onChangeText={setPrice}
               keyboardType="numeric"
             />
-          </View>
-        </View>
+          </div>
+        </div>
         <Button label="Thêm ô" onPress={submit} disabled={!size || !price} />
       </Section>
 
       <Section title={`Ô hiện có (${slots.length})`}>
         {slots.map((slot) => (
           <Card key={slot.id}>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <View>
-                <Text style={[typography.headlineSm, { color: colors.text }]}>
-                  {slot.slot_code}
-                </Text>
-                <Text style={[typography.bodySm, { color: colors.muted }]}>{slot.street}</Text>
+            <div className="flex flex-row items-center justify-between">
+              <div>
+                <p className="text-headline-sm text-text">{slot.slot_code}</p>
+                <p className="text-body-sm text-muted">{slot.street}</p>
                 <Money amountVnd={slot.price_monthly} />
-              </View>
+              </div>
               <IconButton
                 icon="trash-can-outline"
                 accessibilityLabel="Xoá ô"
                 color={colors.error}
                 onPress={() => setToRemove(slot.id)}
               />
-            </View>
+            </div>
           </Card>
         ))}
       </Section>

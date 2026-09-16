@@ -1,9 +1,7 @@
 import { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigate } from 'react-router-dom';
 
 import { IconButton } from '@/components/common';
-import { colors, spacing, typography } from '@/theme';
 
 type Props = {
   title: string;
@@ -13,33 +11,18 @@ type Props = {
 };
 
 export function AppHeader({ title, subtitle, back, right }: Props) {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   return (
-    <View style={styles.row}>
+    <div className="mb-xs flex items-center gap-sm">
       {back ? (
-        <IconButton icon="arrow-left" accessibilityLabel="Quay lại" onPress={() => router.back()} />
+        <IconButton icon="arrow-left" accessibilityLabel="Quay lại" onPress={() => navigate(-1)} />
       ) : null}
-      <View style={{ flex: 1 }}>
-        <Text style={[typography.headlineLg, { color: colors.text }]} numberOfLines={1}>
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text style={[typography.bodyMd, { color: colors.muted }]} numberOfLines={1}>
-            {subtitle}
-          </Text>
-        ) : null}
-      </View>
+      <div className="min-w-0 flex-1">
+        <h1 className="truncate text-headline-lg text-text">{title}</h1>
+        {subtitle ? <p className="truncate text-body-md text-muted">{subtitle}</p> : null}
+      </div>
       {right}
-    </View>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-});

@@ -1,16 +1,14 @@
-import { View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Card, Divider, ListRow } from '@/components/common';
 import { AppHeader, Screen, Section, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ErrorState, showToast } from '@/components/feedback';
-import { spacing } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 
 export function RentalApplicationReviewScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const application = useMockDb((s) => s.applications.find((a) => a.id === id));
   const slots = useMockDb((s) => s.slots);
   const vendors = useMockDb((s) => s.vendors);
@@ -24,28 +22,28 @@ export function RentalApplicationReviewScreen() {
     <Screen
       footer={
         <StickyActions>
-          <View style={{ flex: 1 }}>
+          <div className="flex-1">
             <Button
               label="Từ chối"
               variant="danger"
               onPress={() => {
                 reject(application.id, 'Không phù hợp quy hoạch');
                 showToast('Đã từ chối đơn');
-                router.back();
+                navigate(-1);
               }}
             />
-          </View>
-          <View style={{ flex: 1 }}>
+          </div>
+          <div className="flex-1">
             <Button
               label="Duyệt & cấp phép"
               variant="approve"
               onPress={() => {
                 approve(application.id);
                 showToast('Đã duyệt, hợp đồng và giấy phép QR đã được tạo');
-                router.back();
+                navigate(-1);
               }}
             />
-          </View>
+          </div>
         </StickyActions>
       }
     >
@@ -53,21 +51,21 @@ export function RentalApplicationReviewScreen() {
       <StatusChip code={application.application_status} />
       <Section title="Ô đề nghị thuê">
         <Card padded={false}>
-          <View style={{ paddingHorizontal: spacing.md }}>
+          <div className="px-md">
             {application.slotIds.map((slotId, i) => {
               const slot = slots.find((s) => s.id === slotId);
               if (!slot) return null;
               return (
-                <View key={slotId}>
+                <div key={slotId}>
                   {i > 0 ? <Divider /> : null}
                   <ListRow
                     title={slot.slot_code}
                     subtitle={`${slot.street} · ${slot.size_m2} m²`}
                   />
-                </View>
+                </div>
               );
             })}
-          </View>
+          </div>
         </Card>
       </Section>
     </Screen>
