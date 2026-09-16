@@ -1,8 +1,18 @@
 # Route plan
 
-This is a planning artifact derived from Report 3. None of these business routes
-or screens exists yet. Final paths may change when navigation design and backend
-contracts are approved.
+**Status (2026-09): implemented, with different paths.** Every business
+route below now has a real screen, but role-scoped routes were nested under
+each role's route subtree (e.g. `/vendor/slots/contracts/:id/permit`, not the
+flat `/vendor/contracts/:contractId/permit` sketched below) so each role
+could own a compact route tree without a long list of hidden tab entries —
+see README.md § Navigation shape. Treat this document as the historical
+use-case → screen inventory (still accurate for *what* each route does)
+rather than the literal URL structure; `src/router.tsx` is the source of
+truth for actual paths (declared with `react-router-dom`, not a file-based
+router).
+
+This is a planning artifact derived from Report 3, originally written before
+implementation. Final paths changed when navigation was implemented.
 
 ## Public and common authentication
 
@@ -125,7 +135,7 @@ Examples include OCR review, duplicate flags, slot-feasibility analysis,
 inspection-photo analysis, drift alerts, pricing suggestions, report summaries,
 the vendor chatbot, and community-report assistance.
 
-No AI route is created while EXPO_PUBLIC_ENABLE_AI_COMPLIANCE is false.
+No AI route is created while VITE_ENABLE_AI_COMPLIANCE is false.
 
 ## Deferred Phase 2 route families
 
