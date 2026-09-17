@@ -6,18 +6,28 @@ import { colors } from '@/theme';
 type Props = {
   label: string;
   uri?: string;
-  onChange: (uri: string) => void;
+  /** Receives a preview URL plus the picked File, for callers that upload it. */
+  onChange: (uri: string, file: File) => void;
   onRemove?: () => void;
+  /** Optional check run before `onChange`; return a message to reject the file. */
+  validate?: (file: File) => string | undefined;
+  onInvalid?: (message: string) => void;
+  error?: boolean;
 };
 
 const SIZE = 96;
 
-export function PhotoPicker({ label, uri, onChange, onRemove }: Props) {
+export function PhotoPicker({ label, uri, onChange, onRemove, validate, onInvalid, error }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File | undefined) => {
     if (!file) return;
-    onChange(URL.createObjectURL(file));
+    const problem = validate?.(file);
+    if (problem) {
+      onInvalid?.(problem);
+      return;
+    }
+    onChange(URL.createObjectURL(file), file);
   };
 
   const fileInput = (
@@ -26,7 +36,12 @@ export function PhotoPicker({ label, uri, onChange, onRemove }: Props) {
       type="file"
       accept="image/*"
       className="hidden"
-      onChange={(e) => handleFile(e.target.files?.[0])}
+      aria-label={label}
+      onChange={(e) => {
+        handleFile(e.target.files?.[0]);
+        // Allow picking the same file again after removing it.
+        e.target.value = '';
+      }}
     />
   );
 
@@ -47,7 +62,7 @@ export function PhotoPicker({ label, uri, onChange, onRemove }: Props) {
           <button
             type="button"
             onClick={onRemove}
-            aria-label="Xoá ảnh"
+            aria-label={`Xoá ảnh ${label}`}
             className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(26,34,56,0.7)]"
           >
             <Icon name="close" size={14} color={colors.white} />
@@ -63,9 +78,9 @@ export function PhotoPicker({ label, uri, onChange, onRemove }: Props) {
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="flex h-full w-full flex-col items-center justify-center rounded-sm border border-dashed border-border p-2xs text-center"
+        className={`flex h-full w-full flex-col items-center justify-center rounded-sm border border-dashed p-2xs text-center ${error ? 'border-error' : 'border-border'}`}
       >
-        <Icon name="camera-plus-outline" size={24} color={colors.muted} />
+        <Icon name="camera-plus-outline" size={24} color={error ? colors.error : colors.muted} />
         <span className="mt-1 line-clamp-2 text-body-sm text-muted">{label}</span>
       </button>
     </div>

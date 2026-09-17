@@ -1,4 +1,4 @@
-import { forwardRef, InputHTMLAttributes } from 'react';
+import { forwardRef, InputHTMLAttributes, useId } from 'react';
 
 type KeyboardType = 'default' | 'number-pad' | 'numeric' | 'phone-pad' | 'email-address';
 
@@ -43,43 +43,57 @@ export const TextField = forwardRef<HTMLInputElement | HTMLTextAreaElement, Prop
     },
     ref,
   ) => {
+    const id = useId();
+    const messageId = `${id}-message`;
+
     const inputClassName = [
       'h-12 w-full rounded-sm border bg-card px-sm text-body-lg text-text placeholder:text-muted',
       error ? 'border-error' : 'border-border',
     ].join(' ');
 
+    const sharedProps = {
+      id,
+      'data-testid': testID,
+      value,
+      placeholder,
+      autoFocus,
+      disabled,
+      'aria-invalid': error ? true : undefined,
+      'aria-describedby': error || helperText ? messageId : undefined,
+    };
+
     return (
       <div className="flex flex-col gap-2xs">
-        {label ? <span className="text-label text-text">{label}</span> : null}
+        {label ? (
+          <label htmlFor={id} className="text-label text-text">
+            {label}
+          </label>
+        ) : null}
         {multiline ? (
           <textarea
             ref={ref as never}
-            data-testid={testID}
-            value={value}
+            {...sharedProps}
             onChange={(e) => onChangeText(e.target.value)}
-            placeholder={placeholder}
-            autoFocus={autoFocus}
-            disabled={disabled}
             rows={4}
             className={`${inputClassName} h-auto min-h-[96px] py-sm`}
           />
         ) : (
           <input
             ref={ref as never}
-            data-testid={testID}
-            value={value}
+            {...sharedProps}
             onChange={(e) => onChangeText(e.target.value)}
-            placeholder={placeholder}
-            autoFocus={autoFocus}
-            disabled={disabled}
             {...inputModeByKeyboardType[keyboardType]}
             className={inputClassName}
           />
         )}
         {error ? (
-          <span className="text-body-sm text-error">{error}</span>
+          <span id={messageId} className="text-body-sm text-error">
+            {error}
+          </span>
         ) : helperText ? (
-          <span className="text-body-sm text-muted">{helperText}</span>
+          <span id={messageId} className="text-body-sm text-muted">
+            {helperText}
+          </span>
         ) : null}
       </div>
     );
