@@ -1,7 +1,9 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 
 import { GUEST_HOME_ROUTE, ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
 import { useAuthStore } from '@/store/auth-store';
+import { WardCasesScreen } from '@/features/ward-administration/screens/WardCasesScreen';
+import { WardCaseScreen } from '@/features/ward-administration/screens/WardCaseScreen';
 import { RoleShell } from '@/layouts/RoleShell';
 import { CUSTOMER_TABS, PLATFORM_TABS, VENDOR_TABS, WARD_TABS } from '@/layouts/role-tabs';
 
@@ -120,10 +122,18 @@ function NotFoundScreen() {
   );
 }
 
+function LegacyWardReviewRedirect() {
+  const { kind, id } = useParams();
+  const suffix = kind && id ? `/${kind}/${id}` : '';
+  return <Navigate to={`/ward/inbox/reviews${suffix}`} replace />;
+}
+
 export function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<IndexRedirect />} />
+      <Route path="/ward-reviews" element={<LegacyWardReviewRedirect />} />
+      <Route path="/ward-reviews/:kind/:id" element={<LegacyWardReviewRedirect />} />
 
       <Route path="/auth/sign-in" element={<SignInScreen />} />
       <Route path="/auth/register" element={<RegisterScreen />} />
@@ -148,10 +158,7 @@ export function AppRouter() {
         <Route path="explore/report-content" element={<ReportContentScreen />} />
         <Route path="explore/vendors/:vendorId" element={<VendorProfileScreen />} />
         <Route path="explore/vendors/:vendorId/comments/new" element={<CommentFormScreen />} />
-        <Route
-          path="explore/vendors/:vendorId/reports/new"
-          element={<VendorReportFormScreen />}
-        />
+        <Route path="explore/vendors/:vendorId/reports/new" element={<VendorReportFormScreen />} />
         <Route path="explore/items/:itemId" element={<ItemDetailScreen />} />
         <Route path="scan" element={<PublicScanScreen />} />
         <Route path="checkout" element={<CheckoutScreen />} />
@@ -179,10 +186,7 @@ export function AppRouter() {
         <Route path="slots" element={<SlotMapScreen />} />
         <Route path="slots/:slotId" element={<SlotDetailScreen />} />
         <Route path="slots/rental-applications" element={<RentalApplicationsScreen />} />
-        <Route
-          path="slots/rental-applications/:id"
-          element={<RentalApplicationDetailScreen />}
-        />
+        <Route path="slots/rental-applications/:id" element={<RentalApplicationDetailScreen />} />
         <Route path="slots/slot-proposals/new" element={<SlotProposalScreen />} />
         <Route path="slots/contracts" element={<ContractsListScreen />} />
         <Route path="slots/contracts/:id" element={<ContractDetailScreen />} />
@@ -212,11 +216,10 @@ export function AppRouter() {
         <Route path="dashboard" element={<WardDashboardScreen />} />
         <Route path="reports" element={<CollectionReportScreen />} />
         <Route path="inbox" element={<InboxScreen />} />
+        <Route path="inbox/reviews" element={<WardCasesScreen />} />
+        <Route path="inbox/reviews/:kind/:id" element={<WardCaseScreen />} />
         <Route path="inbox/registrations/:id" element={<RegistrationReviewScreen />} />
-        <Route
-          path="inbox/rental-applications/:id"
-          element={<RentalApplicationReviewScreen />}
-        />
+        <Route path="inbox/rental-applications/:id" element={<RentalApplicationReviewScreen />} />
         <Route path="inbox/renewals/:id" element={<RenewalReviewScreen />} />
         <Route path="inbox/slot-proposals/:id" element={<SlotProposalReviewScreen />} />
         <Route path="inbox/slot-transfers/:id" element={<SlotTransferReviewScreen />} />

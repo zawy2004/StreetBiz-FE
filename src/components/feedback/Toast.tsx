@@ -1,22 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { create } from 'zustand';
-
-type ToastState = {
-  message: string | null;
-  show: (message: string) => void;
-  hide: () => void;
-};
-
-export const useToastStore = create<ToastState>((set) => ({
-  message: null,
-  show: (message) => set({ message }),
-  hide: () => set({ message: null }),
-}));
-
-export function showToast(message: string) {
-  useToastStore.getState().show(message);
-}
+import { useToastStore } from './toast-store';
 
 export function ToastHost() {
   const message = useToastStore((s) => s.message);
