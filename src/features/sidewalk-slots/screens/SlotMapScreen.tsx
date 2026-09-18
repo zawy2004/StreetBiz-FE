@@ -1,7 +1,16 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { MapContainer, TileLayer, LayersControl, Marker, Popup, useMapEvents } from 'react-leaflet';
+import {
+  MapContainer,
+  TileLayer,
+  LayersControl,
+  Marker,
+  Popup,
+  ZoomControl,
+  useMap,
+  useMapEvents,
+} from 'react-leaflet';
 import type { Map as LeafletMap } from 'leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -30,6 +39,23 @@ function markerIcon(status: string) {
     iconSize: [16, 16],
     iconAnchor: [8, 8],
   });
+}
+
+/**
+ * Leaflet measures its container's size once, at mount. Inside a flex layout
+ * the container is still 0-height at that instant (the flex pass hasn't run
+ * yet), so tiles never load until something nudges Leaflet to remeasure --
+ * this watches the container and does that on every resize.
+ */
+function ResizeFix() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [map]);
+  return null;
 }
 
 function BoundsWatcher({ onChange }: { onChange: (bounds: Bounds) => void }) {
@@ -92,10 +118,13 @@ function SlotMapContent() {
         ref={mapRef}
         center={DEFAULT_CENTER}
         zoom={17}
+        zoomControl={false}
         style={{ height: '100%', width: '100%' }}
       >
+        <ResizeFix />
+        <ZoomControl position="bottomright" />
         <BoundsWatcher onChange={setBounds} />
-        <LayersControl position="topright">
+        <LayersControl position="bottomright">
           <LayersControl.BaseLayer checked name="Bản đồ đường phố">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
