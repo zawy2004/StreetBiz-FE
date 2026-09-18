@@ -1,6 +1,9 @@
 # API integration plan
 
-No API integration is implemented in this foundation.
+WARD-16–18 and SYS-01–02 are integrated through
+src/features/ward-administration/ward-api.ts. See
+[Ward slot workflows](ward-slot-workflows.md) for configuration and contracts.
+The following guidance applies to future module integrations.
 
 ## Contract source
 
@@ -26,8 +29,8 @@ When a backend contract is available:
 6. Test ownership, ward scope, expired session, offline, and provider-failure
    behavior.
 
-Axios, React Query, SignalR, Zustand, React Hook Form, and Zod are installed but
-unused until this work is explicitly requested.
+The ward module uses fetch, React Query and a session-scoped Zustand store.
+Other installed integration packages remain available for subsequent modules.
 
 ## Local addressing
 
