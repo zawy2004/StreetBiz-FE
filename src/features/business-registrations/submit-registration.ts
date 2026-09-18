@@ -1,0 +1,57 @@
+import { vendorRegistrationApi, type ApiRegistration, type RegistrationPayload } from '@/core/api';
+import { useNewRegistrationStore } from './new-registration-store';
+
+/**
+ * REG-01/02/04 submission against StreetBiz-BE, in three resumable steps:
+ *
+ * 1. upload every picked file (nothing is created if a file is rejected);
+ * 2. create the registration — or update it when editing (REG-04);
+ * 3. attach each uploaded file as evidence.
+ *
+ * Progress is written back to the wizard store as it happens, so if step 2 or 3
+ * fails, pressing submit again skips what already succeeded. Without that a
+ * retry would create a second application and hit BR-09.
+ */
+export async function submitRegistrationDraft(): Promise<ApiRegistration> {
+  const store = useNewRegistrationStore.getState;
+
+  for (const item of store().evidence) {
+    if (item.uploadedUrl || !item.file) continue;
+    const uploaded = await vendorRegistrationApi.uploadEvidenceFile(item.file);
+    store().patchEvidence(item.evidenceType, { uploadedUrl: uploaded.fileUrl });
+  }
+
+  const draft = store();
+  const payload: RegistrationPayload = {
+    vendorType: draft.vendorType,
+    displayName: draft.displayName.trim(),
+    declaredAddress: draft.declaredAddress.trim() || null,
+    addressLatitude: draft.addressLatitude,
+    addressLongitude: draft.addressLongitude,
+    wardUnitId: draft.wardUnitId!,
+  };
+
+  // Editing, or retrying after this wizard already created the application: update
+  // it, which also applies anything the user changed before retrying. Idempotent.
+  const existingId = draft.registrationId ?? draft.createdRegistrationId;
+
+  let registration: ApiRegistration;
+  if (existingId !== null) {
+    registration = await vendorRegistrationApi.update(existingId, payload);
+  } else {
+    registration = await vendorRegistrationApi.submit(payload);
+    store().setField('createdRegistrationId', registration.registrationId);
+  }
+
+  for (const item of store().evidence) {
+    if (item.attached || !item.uploadedUrl) continue;
+    await vendorRegistrationApi.submitEvidence(registration.registrationId, {
+      evidenceType: item.evidenceType,
+      fileUrl: item.uploadedUrl,
+      ocrExtractedData: null,
+    });
+    store().patchEvidence(item.evidenceType, { attached: true });
+  }
+
+  return registration;
+}
