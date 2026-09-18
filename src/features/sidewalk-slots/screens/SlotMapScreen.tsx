@@ -8,6 +8,7 @@ import {
   LayersControl,
   Marker,
   Popup,
+  Rectangle,
   ZoomControl,
   useMap,
   useMapEvents,
@@ -34,15 +35,34 @@ const DEFAULT_CENTER: [number, number] = [16.0607, 108.2155];
 const DEFAULT_SPAN = 0.004;
 const SEARCH_ZOOM = 18;
 
+function statusColor(status: string) {
+  return status === 'AVAILABLE' ? colors.tertiary : status === 'SUSPENDED' ? colors.primary : colors.muted;
+}
+
 function markerIcon(status: string) {
-  const color =
-    status === 'AVAILABLE' ? colors.tertiary : status === 'SUSPENDED' ? colors.primary : colors.muted;
+  const color = statusColor(status);
   return L.divIcon({
     className: '',
     html: `<span style="display:block;width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.4)"></span>`,
     iconSize: [16, 16],
     iconAnchor: [8, 8],
   });
+}
+
+// No orientation is stored in the DB, so the box is drawn axis-aligned
+// (north/south, east/west) around the slot's center point rather than
+// rotated to face the street -- an approximation, not a survey.
+const METERS_PER_DEGREE_LAT = 111_320;
+
+function slotBounds(slot: SidewalkSlot): L.LatLngBoundsExpression | null {
+  if (!slot.widthMeters || !slot.lengthMeters) return null;
+  const halfLat = slot.lengthMeters / 2 / METERS_PER_DEGREE_LAT;
+  const metersPerDegreeLng = METERS_PER_DEGREE_LAT * Math.cos((slot.latitude * Math.PI) / 180);
+  const halfLng = slot.widthMeters / 2 / metersPerDegreeLng;
+  return [
+    [slot.latitude - halfLat, slot.longitude - halfLng],
+    [slot.latitude + halfLat, slot.longitude + halfLng],
+  ];
 }
 
 /**
@@ -169,13 +189,9 @@ function SlotMapContent() {
             </LayerGroup>
           </LayersControl.BaseLayer>
         </LayersControl>
-        {filtered.map((slot) => (
-          <Marker
-            key={slot.slotId}
-            position={[slot.latitude, slot.longitude]}
-            icon={markerIcon(slot.slotStatus)}
-            eventHandlers={{ click: () => navigate(`/vendor/slots/${slot.slotId}`) }}
-          >
+        {filtered.map((slot) => {
+          const eventHandlers = { click: () => navigate(`/vendor/slots/${slot.slotId}`) };
+          const popup = (
             <Popup>
               <div className="flex flex-col gap-1">
                 <strong>{slot.slotCode}</strong>
@@ -183,8 +199,32 @@ function SlotMapContent() {
                 <StatusChip code={slot.slotStatus} />
               </div>
             </Popup>
-          </Marker>
-        ))}
+          );
+          const bounds = slotBounds(slot);
+          const color = statusColor(slot.slotStatus);
+
+          // Real footprint when the slot has a width/length; a dot otherwise
+          // (SIDE-11 vendor-proposed slots may not record a size yet).
+          return bounds ? (
+            <Rectangle
+              key={slot.slotId}
+              bounds={bounds}
+              pathOptions={{ color, weight: 2, fillColor: color, fillOpacity: 0.45 }}
+              eventHandlers={eventHandlers}
+            >
+              {popup}
+            </Rectangle>
+          ) : (
+            <Marker
+              key={slot.slotId}
+              position={[slot.latitude, slot.longitude]}
+              icon={markerIcon(slot.slotStatus)}
+              eventHandlers={eventHandlers}
+            >
+              {popup}
+            </Marker>
+          );
+        })}
       </MapContainer>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex items-start justify-between gap-sm p-sm">
