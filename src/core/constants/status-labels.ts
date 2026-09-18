@@ -25,6 +25,7 @@ export const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> 
   PAID: { label: 'Đã thanh toán', tone: 'ok' },
   RESOLVED: { label: 'Đã xử lý', tone: 'ok' },
   ACCEPTED: { label: 'Đã chấp nhận', tone: 'ok' },
+  ACCEPTED_BY_RECEIVER: { label: 'Bên nhận đã đồng ý', tone: 'pending' },
   COMPLETED: { label: 'Hoàn tất', tone: 'ok' },
   READY_FOR_PICKUP: { label: 'Sẵn sàng lấy', tone: 'ok' },
   PICKED_UP: { label: 'Đã lấy món', tone: 'ok' },
