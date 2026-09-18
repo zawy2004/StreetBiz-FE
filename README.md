@@ -11,6 +11,15 @@ mobile browsers (no native app).
 The app implements the full Core, Core Extension (AI), and Phase 2 use-case
 catalog from Report 3 (115 use cases across Guest/Customer, Vendor, Ward
 Authority, and Platform Administrator) as real, navigable screens backed by an
+in-memory mock data layer (`src/mocks/`).
+
+**Authentication** (AUTH-01…09) and **Vendor Onboarding** (REG-01…05) are wired
+to StreetBiz-BE through `src/core/api/`; every other module still reads and
+writes the client-side Zustand store seeded with demo data. Setting
+`VITE_USE_MOCK_API=true` puts the two live modules back on mocks, so the whole
+app can still be explored end to end without StreetBiz-BE running. Connecting a
+further module is meant to be a per-feature api module plus a hook, not a
+rewrite of any screen.
 in-memory mock data layer (`src/mocks/`), except the ward slot review workflows.
 The `/ward/inbox/reviews` workspace and the three ward review detail screens use
 real Backend APIs with separate verified JWT sessions. The legacy
@@ -52,6 +61,7 @@ Do not commit .env.
 ```dotenv
 VITE_APP_ENV=development
 VITE_API_BASE_URL=http://localhost:5000/api
+VITE_USE_MOCK_API=false
 VITE_ENABLE_AI_COMPLIANCE=true
 VITE_ENABLE_PHASE_2=true
 VITE_ENABLE_PUSH_NOTIFICATIONS=false
@@ -65,19 +75,48 @@ strings in them.
 `VITE_ENABLE_AI_COMPLIANCE` and `VITE_ENABLE_PHASE_2` are `true` by default in
 `.env.example` so the demo shows the AI-assist cards and the marketplace
 (storefront/menu/cart/checkout) screens; set either to `false` to preview the
-Core-only experience. `VITE_API_BASE_URL` is currently unused — no HTTP
-client is wired up (see Mock data layer below).
+Core-only experience.
+
+`VITE_USE_MOCK_API` selects where **Authentication** and **Vendor Onboarding**
+read and write:
+
+- `false` (default) — they call StreetBiz-BE at `VITE_API_BASE_URL`.
+- `true` — they use `src/mocks`, so the app runs with no backend at all. The
+  dev-only role switcher and the fixed `123456` OTP only appear in this mode.
+
+Every other module is still mock-only either way (see Mock data layer below).
 
 ## Run
 
+### With StreetBiz-BE (default)
+
+Start the API first — it must be listening on the origin in
+`VITE_API_BASE_URL`, and that SPA origin must be listed in the backend's
+`Cors:AllowedOrigins`:
+
+~~~powershell
+cd ..\StreetBiz-BE
+dotnet run --project src/StreetBiz.API      # http://localhost:5000
+~~~
+
+Then, in StreetBiz-FE:
+
+~~~powershell
 ```powershell
 npm install
 npm run dev
 ```
 
-Open the printed local URL (default `http://localhost:5173`). Sign in with a
-demo account (see Mock data layer), or use the dev-only role switcher on the
-sign-in screen / Account tab to jump straight into any role.
+Register a new account from the sign-in screen. The dev SMS sender writes the
+OTP to the **API console** as a `[DEV-SMS]` line — copy it into the verify
+screen. Note BR-59: the password needs 8+ characters with upper, lower, digit
+and a special character.
+
+### Without a backend
+
+Set `VITE_USE_MOCK_API=true` and run `npm run dev`. Open the printed local URL
+(default `http://localhost:5173`), sign in with a demo account (see Mock data
+layer), or use the dev-only role switcher to jump straight into any role.
 
 ## Quality checks
 
@@ -90,6 +129,10 @@ npm run build
 
 `npm run build` type-checks then produces a static bundle in `dist/` (ignored
 by Git); `npm run preview` serves that build locally.
+
+To test Authentication and Vendor Onboarding end to end against StreetBiz-BE
+(database setup, automated checks, a manual UI checklist, and simulating the ward
+review), follow `../StreetBiz-BE/docs/testing-auth-vendor-onboarding.md`.
 
 ## npm scripts
 

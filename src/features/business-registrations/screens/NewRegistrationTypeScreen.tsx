@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/common';
 import { SelectField } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
+import { VENDOR_TYPE } from '@/core/api';
 import { Stepper } from '../components/Stepper';
 import { useNewRegistrationStore } from '../new-registration-store';
 
+/** REG-01 step 1: choose the vendor type (BR-07 drives what step 2 asks for). */
 export function NewRegistrationTypeScreen() {
   const navigate = useNavigate();
   const vendorType = useNewRegistrationStore((s) => s.vendorType);
+  const registrationId = useNewRegistrationStore((s) => s.registrationId);
   const setField = useNewRegistrationStore((s) => s.setField);
 
   return (
@@ -22,19 +25,22 @@ export function NewRegistrationTypeScreen() {
         </StickyActions>
       }
     >
-      <AppHeader title="Đăng ký kinh doanh" back />
+      <AppHeader
+        title={registrationId ? 'Cập nhật hồ sơ' : 'Đăng ký kinh doanh'}
+        back
+      />
       <Stepper step={1} total={3} label="Loại hình kinh doanh" />
       <SelectField
         value={vendorType}
         onChange={(v) => setField('vendorType', v)}
         options={[
           {
-            value: 'ITINERANT',
+            value: VENDOR_TYPE.itinerant,
             label: 'Bán hàng lưu động',
             description: 'Không có địa điểm cố định, chọn ô trống trên bản đồ vỉa hè',
           },
           {
-            value: 'FIXED_STOREFRONT',
+            value: VENDOR_TYPE.fixedStorefront,
             label: 'Cửa hàng cố định',
             description: 'Có địa chỉ kinh doanh cố định, thuê ô liền kề mặt tiền',
           },
