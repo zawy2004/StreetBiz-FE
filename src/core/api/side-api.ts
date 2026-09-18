@@ -1,13 +1,13 @@
-import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
 import { env } from '@/core/config/env';
+import { getAccessToken, clearTokens } from '@/core/api/token-storage';
+import { useAuthStore } from '@/store/auth-store';
 
-// Sidewalk Slot & Rental (SIDE-01..13) client, mirroring the shape of
-// src/features/ward-administration/ward-api.ts: a typed fetch wrapper plus a
-// standalone token session, separate from the mock useAuthStore. The vendor
-// sign-in flow is still mock (src/mocks/db.ts), so there is no real JWT to
-// attach automatically yet -- VendorConnection lets a real access token
-// (from POST /api/auth/login) be pasted in per browser session instead.
+// Sidewalk Slot & Rental (SIDE-01..13) client: a typed fetch wrapper reading
+// the same bearer token as the rest of the app (core/api/token-storage,
+// filled in by the real sign-in flow) rather than its own session -- a
+// leftover VendorConnection paste-token workaround was removed once
+// Authentication & Vendor Onboarding landed a real JWT for RoleGuard to sit
+// behind on every /vendor/* route.
 
 export type SidewalkSlot = {
   slotId: number;
@@ -126,29 +126,6 @@ export type SearchSlotsParams =
   | ({ minLat: number; maxLat: number; minLng: number; maxLng: number } & SlotSearchFilters)
   | ({ zoneId: number } & SlotSearchFilters);
 
-type ApiSession = {
-  token: string;
-  generation: number;
-  connect: (token: string) => void;
-  disconnect: () => void;
-};
-
-export const useVendorApiSession = create<ApiSession>()(
-  persist(
-    (set) => ({
-      token: '',
-      generation: 0,
-      connect: (token) => set((state) => ({ token, generation: state.generation + 1 })),
-      disconnect: () => set((state) => ({ token: '', generation: state.generation + 1 })),
-    }),
-    {
-      name: 'streetbiz-vendor-api',
-      storage: createJSONStorage(() => sessionStorage),
-      partialize: ({ token, generation }) => ({ token, generation }),
-    },
-  ),
-);
-
 export class SideApiError extends Error {
   constructor(
     public status: number,
@@ -161,7 +138,7 @@ export class SideApiError extends Error {
 export async function sideRequest<T>(
   path: string,
   init: RequestInit = {},
-  token = useVendorApiSession.getState().token,
+  token = getAccessToken() ?? '',
 ): Promise<T> {
   const base = env.apiBaseUrl.replace(/\/$/, '');
   if (!base) throw new SideApiError(0, 'Chưa cấu hình VITE_API_BASE_URL cho Backend.');
@@ -188,8 +165,14 @@ export async function sideRequest<T>(
       detail?: string;
       errors?: Record<string, string[]>;
     };
-    if (response.status === 401 && token === useVendorApiSession.getState().token)
-      useVendorApiSession.getState().disconnect();
+    // A 401 here is the JWT middleware rejecting the token outright (as
+    // opposed to a handler's own 401), the same signal core/api/client.ts
+    // treats as a dead session -- drop it the same way, so RoleGuard sends
+    // the vendor back to sign-in instead of every subsequent call failing.
+    if (response.status === 401 && token === (getAccessToken() ?? '')) {
+      clearTokens();
+      useAuthStore.setState({ user: null, sessionExpired: true });
+    }
     throw new SideApiError(
       response.status,
       Object.values(problem.errors ?? {})[0]?.[0] ??
@@ -216,26 +199,6 @@ function query(params: Record<string, string | number | boolean | undefined>): s
     string | number | boolean,
   ][];
   return entries.length ? '?' + entries.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&') : '';
-}
-
-/**
- * There is no GET /api/auth/me on the backend, so VendorConnection reads the
- * phone number and role straight out of the JWT payload instead of an extra
- * round trip. A bad/expired token is caught the normal way: the first real
- * call 401s and sideRequest above disconnects the session.
- */
-export function decodeVendorToken(token: string): { phone: string; role: string } | null {
-  try {
-    const segment = token.split('.')[1];
-    if (!segment) return null;
-    const payload = JSON.parse(atob(segment.replace(/-/g, '+').replace(/_/g, '/')));
-    const role = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ?? payload.role;
-    return typeof payload.phone === 'string' && typeof role === 'string'
-      ? { phone: payload.phone, role }
-      : null;
-  } catch {
-    return null;
-  }
 }
 
 export const sideApi = {
