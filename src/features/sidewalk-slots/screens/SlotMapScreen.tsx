@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   MapContainer,
   TileLayer,
+  LayerGroup,
   LayersControl,
   Marker,
   Popup,
@@ -102,9 +103,13 @@ function SlotMapContent() {
   );
 
   const searchMatches = useMemo(() => {
+    const list = slots.data ?? [];
     const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return (slots.data ?? []).filter((s) => s.slotCode.toLowerCase().includes(q)).slice(0, 6);
+    // No query yet: suggest the first few slots in view instead of an empty box.
+    if (!q) return list.slice(0, 5);
+    return list
+      .filter((s) => s.slotCode.toLowerCase().includes(q) || s.zoneName.toLowerCase().includes(q))
+      .slice(0, 8);
   }, [slots.data, query]);
 
   const goToSlot = (slot: SidewalkSlot) => {
@@ -125,17 +130,30 @@ function SlotMapContent() {
         <ZoomControl position="bottomright" />
         <BoundsWatcher onChange={setBounds} />
         <LayersControl position="bottomright">
+          {/* tile.openstreetmap.org is unreliable from some networks; CARTO's
+              CDN serves the same OSM data and is far more consistently reachable. */}
           <LayersControl.BaseLayer checked name="Bản đồ đường phố">
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              subdomains="abcd"
+              maxZoom={20}
             />
           </LayersControl.BaseLayer>
+          {/* Esri's World Imagery is unlabelled raw imagery -- stack its own
+              boundaries/places/roads reference layer on top so street names
+              still show up over the satellite photo. */}
           <LayersControl.BaseLayer name="Ảnh vệ tinh">
-            <TileLayer
-              attribution="Tiles &copy; Esri"
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            />
+            <LayerGroup>
+              <TileLayer
+                attribution="Tiles &copy; Esri"
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              />
+              <TileLayer
+                attribution="Labels &copy; Esri"
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+              />
+            </LayerGroup>
           </LayersControl.BaseLayer>
         </LayersControl>
         {filtered.map((slot) => (
@@ -162,7 +180,7 @@ function SlotMapContent() {
             <Icon name="magnify" size={18} color={colors.muted} />
             <input
               className="w-full bg-transparent text-body-sm text-text outline-none"
-              placeholder="Tìm theo mã ô (VD: HQ-DH-01)"
+              placeholder="Tìm theo mã ô hoặc khu vực"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -176,7 +194,10 @@ function SlotMapContent() {
                   className="flex w-full items-center justify-between gap-sm px-sm py-xs text-left hover:bg-bg"
                   onClick={() => goToSlot(slot)}
                 >
-                  <span className="truncate text-body-sm text-text">{slot.slotCode}</span>
+                  <span className="min-w-0 flex-1 truncate text-body-sm text-text">
+                    {slot.slotCode}
+                    <span className="ml-1 text-muted">· {slot.zoneName}</span>
+                  </span>
                   <StatusChip code={slot.slotStatus} />
                 </button>
               ))}
