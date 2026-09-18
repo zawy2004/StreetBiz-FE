@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
-import { Icon, IconButton, ListRow } from '@/components/common';
+import { Icon } from '@/components/common';
 import { SegmentedControl } from '@/components/forms';
-import { BottomSheet } from '@/components/layout';
 import { colors } from '@/theme';
 import { sideApi } from '@/core/api/side-api';
 import { useAuthStore } from '@/store/auth-store';
@@ -17,19 +16,19 @@ type View = 'MAP' | 'DIAGRAM';
 // The bottom tab bar only links here ("Ô thuê"); nothing links onward to the
 // applications/contracts/transfers lists (SlotDetailScreen's apply flow does
 // navigate to rental-applications once, but that's a one-way redirect, not a
-// way back). This sheet is that missing way in.
+// way back). A row of visible buttons in a fixed header reads more reliably
+// than an icon tucked into a corner of the map.
 const MENU_ITEMS = [
-  { icon: 'format-list-bulleted', title: 'Đơn thuê ô', to: '/vendor/slots/rental-applications' },
-  { icon: 'file-document-outline', title: 'Hợp đồng thuê ô', to: '/vendor/slots/contracts' },
-  { icon: 'swap-horizontal', title: 'Chuyển nhượng ô', to: '/vendor/slots/transfers' },
-  { icon: 'map-marker-outline', title: 'Đề xuất ô mới', to: '/vendor/slots/slot-proposals/new' },
+  { icon: 'format-list-bulleted', label: 'Đơn thuê ô', to: '/vendor/slots/rental-applications' },
+  { icon: 'file-document-outline', label: 'Hợp đồng thuê ô', to: '/vendor/slots/contracts' },
+  { icon: 'swap-horizontal', label: 'Chuyển nhượng ô', to: '/vendor/slots/transfers' },
+  { icon: 'map-marker-outline', label: 'Đề xuất ô mới', to: '/vendor/slots/slot-proposals/new' },
 ] as const;
 
 export function SlotMapScreen() {
   const navigate = useNavigate();
   const userId = useAuthStore((s) => s.user?.id);
   const [view, setView] = useState<View>('MAP');
-  const [menuOpen, setMenuOpen] = useState(false);
   const [bounds, setBounds] = useState<Bounds>({
     minLat: DEFAULT_CENTER[0] - DEFAULT_SPAN,
     maxLat: DEFAULT_CENTER[0] + DEFAULT_SPAN,
@@ -48,20 +47,9 @@ export function SlotMapScreen() {
   });
 
   return (
-    <div className="relative h-full min-h-0 w-full">
-      {view === 'MAP' ? (
-        <SlotMapView
-          slots={slots.data ?? []}
-          onBoundsChange={setBounds}
-          error={slots.error}
-          onRetry={() => void slots.refetch()}
-        />
-      ) : (
-        <StreetStripView slots={slots.data ?? []} />
-      )}
-
-      <div className="pointer-events-auto absolute bottom-3 left-3 z-[1000] flex items-center gap-xs">
-        <div className="w-44 rounded-md border border-border bg-card p-1 shadow-md">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex flex-col gap-xs border-b border-border bg-card p-sm">
+        <div className="w-44">
           <SegmentedControl
             value={view}
             onChange={setView}
@@ -71,29 +59,33 @@ export function SlotMapScreen() {
             ]}
           />
         </div>
-        <div className="rounded-full bg-card shadow-md">
-          <IconButton
-            icon="format-list-bulleted"
-            accessibilityLabel="Đơn thuê, hợp đồng và chuyển nhượng của tôi"
-            onPress={() => setMenuOpen(true)}
-          />
+        <div className="flex gap-xs overflow-x-auto">
+          {MENU_ITEMS.map((item) => (
+            <button
+              key={item.to}
+              type="button"
+              onClick={() => navigate(item.to)}
+              className="flex h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-border bg-bg px-sm text-label text-text transition-opacity active:opacity-80"
+            >
+              <Icon name={item.icon} size={16} color={colors.muted} />
+              {item.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      <BottomSheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
-        {MENU_ITEMS.map((item) => (
-          <ListRow
-            key={item.to}
-            title={item.title}
-            leading={<Icon name={item.icon} size={22} color={colors.muted} />}
-            showChevron
-            onPress={() => {
-              setMenuOpen(false);
-              navigate(item.to);
-            }}
+      <div className="relative min-h-0 flex-1">
+        {view === 'MAP' ? (
+          <SlotMapView
+            slots={slots.data ?? []}
+            onBoundsChange={setBounds}
+            error={slots.error}
+            onRetry={() => void slots.refetch()}
           />
-        ))}
-      </BottomSheet>
+        ) : (
+          <StreetStripView slots={slots.data ?? []} />
+        )}
+      </div>
     </div>
   );
 }
