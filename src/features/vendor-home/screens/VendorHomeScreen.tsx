@@ -5,15 +5,16 @@ import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { EmptyState } from '@/components/feedback';
 import { colors } from '@/theme';
+import { useRegistrations } from '@/features/business-registrations/useRegistrations';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
 export function VendorHomeScreen() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const registrations = useMockDb((s) => s.registrations).filter(
-    (r) => r.vendorId === user?.vendorId,
-  );
+  // Shared with the registrations list/detail screens, so this stays correct
+  // against StreetBiz-BE instead of always reporting "no registration yet".
+  const { registrations, isLoading: registrationsLoading } = useRegistrations();
   const contracts = useMockDb((s) => s.contracts).filter(
     (c) => c.vendorId === user?.vendorId && c.contract_status === 'ACTIVE',
   );
@@ -29,11 +30,11 @@ export function VendorHomeScreen() {
 
   const todos = [
     ...registrations
-      .filter((r) => r.registration_status === 'NEEDS_INFO')
+      .filter((r) => r.registrationStatus === 'MORE_INFORMATION_REQUIRED')
       .map((r) => ({
-        key: r.id,
-        title: `Bổ sung hồ sơ: ${r.business_name}`,
-        onPress: () => navigate(`/vendor/registrations/${r.id}`),
+        key: r.registrationId,
+        title: `Bổ sung hồ sơ: ${r.displayName}`,
+        onPress: () => navigate(`/vendor/registrations/${r.registrationId}`),
       })),
     ...feeItems.map((f) => ({
       key: f.id,
@@ -99,7 +100,7 @@ export function VendorHomeScreen() {
         </div>
       </Section>
 
-      {registrations.length === 0 ? (
+      {!registrationsLoading && registrations.length === 0 ? (
         <EmptyState
           icon="file-document-outline"
           title="Chưa có hồ sơ đăng ký"

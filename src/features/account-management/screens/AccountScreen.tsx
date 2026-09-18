@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Avatar, Button, Card, Divider, Icon, ListRow } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { ConfirmDialog } from '@/components/feedback';
-import { isDev } from '@/core/config/env';
+import { isDev, isLiveApi } from '@/core/config/env';
 import { ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
 import { ROLE_LABELS, type RoleCode } from '@/core/types/role';
 import { colors } from '@/theme';
@@ -21,8 +21,9 @@ export function AccountScreen() {
 
   if (!user) return null;
 
-  const doSignOut = () => {
-    signOut();
+  const doSignOut = async () => {
+    // signOut revokes the session on the backend, then clears the local tokens.
+    await signOut();
     setConfirmSignOut(false);
     navigate('/auth/sign-in', { replace: true });
   };
@@ -69,7 +70,7 @@ export function AccountScreen() {
         </Card>
       </Section>
 
-      {isDev ? (
+      {isDev && !isLiveApi ? (
         <Section title="Đổi vai trò (demo)">
           <Card padded={false}>
             <div className="px-md">
