@@ -20,6 +20,7 @@ import { Icon, Money } from '@/components/common';
 import { StatusChip } from '@/components/status';
 import { FilterChips } from '@/components/forms';
 import { colors } from '@/theme';
+import { env } from '@/core/config/env';
 import { VendorConnection } from '@/core/auth/VendorConnection';
 import { sideApi, useVendorApiSession, SideApiError, type SidewalkSlot } from '@/core/api/side-api';
 
@@ -131,16 +132,24 @@ function SlotMapContent() {
         <BoundsWatcher onChange={setBounds} />
         <LayersControl position="bottomright">
           {/* tile.openstreetmap.org is unreachable on this network, and CARTO's
-              anonymous basemap tiles now require an API key (the "API KEY
-              REQUIRED" watermark). Esri's World Street Map is the same free,
-              keyless service as the satellite layer below, already proven
-              reachable here. */}
+              anonymous basemap tiles now require a (free) API key -- see
+              VITE_CARTO_API_KEY in .env.example. Without a key, fall back to
+              Esri's World Street Map, which needs no key at all. */}
           <LayersControl.BaseLayer checked name="Bản đồ đường phố">
-            <TileLayer
-              attribution="Tiles &copy; Esri"
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
-              maxZoom={19}
-            />
+            {env.cartoApiKey ? (
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                url={`https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${env.cartoApiKey}`}
+                subdomains="abcd"
+                maxZoom={20}
+              />
+            ) : (
+              <TileLayer
+                attribution="Tiles &copy; Esri"
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+                maxZoom={19}
+              />
+            )}
           </LayersControl.BaseLayer>
           {/* Esri's World Imagery is unlabelled raw imagery -- stack its own
               boundaries/places/roads reference layer on top so street names
