@@ -16,6 +16,8 @@ type Props = {
   autoFocus?: boolean;
   disabled?: boolean;
   testID?: string;
+  /** Hard cap matching a backend FluentValidation MaximumLength rule. */
+  maxLength?: number;
 };
 
 const inputModeByKeyboardType: Record<KeyboardType, { inputMode?: InputMode; type: string }> = {
@@ -40,6 +42,7 @@ export const TextField = forwardRef<HTMLInputElement | HTMLTextAreaElement, Prop
       autoFocus,
       disabled,
       testID,
+      maxLength,
     },
     ref,
   ) => {
@@ -58,6 +61,7 @@ export const TextField = forwardRef<HTMLInputElement | HTMLTextAreaElement, Prop
       placeholder,
       autoFocus,
       disabled,
+      maxLength,
       'aria-invalid': error ? true : undefined,
       'aria-describedby': error || helperText ? messageId : undefined,
     };

@@ -43,6 +43,14 @@ export function ChangePasswordScreen() {
       setError(undefined);
       return;
     }
+    if (next === current) {
+      // Both fields are already in hand, so this is worth checking client-side
+      // rather than making the user wait for the same answer from the server.
+      setCurrentMessage(undefined);
+      setNextMessage('Mật khẩu mới phải khác mật khẩu hiện tại.');
+      setError(undefined);
+      return;
+    }
     if (next !== confirm) {
       setCurrentMessage(undefined);
       setNextMessage(undefined);

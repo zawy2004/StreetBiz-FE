@@ -116,6 +116,7 @@ export function RegisterScreen() {
           value={fullName}
           onChangeText={setFullName}
           error={fieldErrors.fullName}
+          maxLength={150}
         />
         <PhoneField value={phone} onChangeText={setPhone} error={fieldErrors.phone} />
         {phoneRegistered ? (

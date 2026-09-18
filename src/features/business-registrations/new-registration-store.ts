@@ -81,6 +81,20 @@ export const EVIDENCE_LABELS: Record<ApiEvidenceType, string> = {
   OTHER: 'Giấy tờ khác',
 };
 
+/**
+ * Parses an optional decimal coordinate as the user types.
+ *
+ * `Number('16.06.78')` or `Number('abc')` is `NaN`, and `JSON.stringify` turns a
+ * `NaN` into `null` silently — so a typo would submit as "no coordinate" with no
+ * feedback at all. Returning `undefined` for anything unparseable lets the caller
+ * discard the keystroke instead, so the field only ever holds a valid number.
+ */
+export function parseOptionalCoordinate(text: string): number | null | undefined {
+  if (text.trim() === '') return null;
+  const parsed = Number(text);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 /** Client-side mirror of the backend's upload rules, checked when a file is picked. */
 export function evidenceFileProblem(file: File): string | undefined {
   if (!EVIDENCE_ACCEPTED_TYPES.includes(file.type)) {

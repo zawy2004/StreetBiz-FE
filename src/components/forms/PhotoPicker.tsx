@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 import { Icon } from '@/components/common';
 import { colors } from '@/theme';
@@ -13,12 +13,30 @@ type Props = {
   validate?: (file: File) => string | undefined;
   onInvalid?: (message: string) => void;
   error?: boolean;
+  /**
+   * Widens the OS file picker beyond photos, e.g. `"image/*,application/pdf"`
+   * for evidence documents that may be a scanned PDF. Defaults to photos only.
+   */
+  accept?: string;
 };
 
 const SIZE = 96;
 
-export function PhotoPicker({ label, uri, onChange, onRemove, validate, onInvalid, error }: Props) {
+export function PhotoPicker({
+  label,
+  uri,
+  onChange,
+  onRemove,
+  validate,
+  onInvalid,
+  error,
+  accept = 'image/*',
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  // <img> cannot render a PDF; track the picked file's type so a non-image
+  // selection (allowed when `accept` includes application/pdf) gets a readable
+  // placeholder instead of a broken image icon.
+  const [isNonImage, setIsNonImage] = useState(false);
 
   const handleFile = (file: File | undefined) => {
     if (!file) return;
@@ -27,6 +45,7 @@ export function PhotoPicker({ label, uri, onChange, onRemove, validate, onInvali
       onInvalid?.(problem);
       return;
     }
+    setIsNonImage(!file.type.startsWith('image/'));
     onChange(URL.createObjectURL(file), file);
   };
 
@@ -34,7 +53,7 @@ export function PhotoPicker({ label, uri, onChange, onRemove, validate, onInvali
     <input
       ref={inputRef}
       type="file"
-      accept="image/*"
+      accept={accept}
       className="hidden"
       aria-label={label}
       onChange={(e) => {
@@ -53,7 +72,14 @@ export function PhotoPicker({ label, uri, onChange, onRemove, validate, onInvali
       >
         {fileInput}
         <button type="button" onClick={() => inputRef.current?.click()} className="h-full w-full">
-          <img src={uri} alt={label} className="h-full w-full object-cover" />
+          {isNonImage ? (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-bg">
+              <Icon name="file-document-outline" size={28} color={colors.muted} />
+              <span className="text-body-sm text-muted">Đã chọn file</span>
+            </div>
+          ) : (
+            <img src={uri} alt={label} className="h-full w-full object-cover" />
+          )}
         </button>
         <div className="absolute inset-x-0 bottom-0 truncate bg-[rgba(26,34,56,0.7)] px-1.5 py-0.5 text-body-sm text-white">
           {label}
