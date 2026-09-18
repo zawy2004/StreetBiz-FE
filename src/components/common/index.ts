@@ -2,6 +2,7 @@ export * from './BrandLogo';
 export * from './Button';
 export * from './Card';
 export * from './Money';
+export * from './formatVnd';
 export * from './ListRow';
 export * from './IconButton';
 export * from './Avatar';
