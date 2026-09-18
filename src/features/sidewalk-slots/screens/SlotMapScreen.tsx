@@ -1,139 +1,136 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { MapContainer, TileLayer, LayersControl, Marker, Popup, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-import { Button, Card, Icon, Money } from '@/components/common';
-import { AppHeader, Screen, StickyActions } from '@/components/layout';
+import { Money } from '@/components/common';
+import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { FilterChips } from '@/components/forms';
-import { EmptyState, showToast } from '@/components/feedback';
-import { colors, statusTones } from '@/theme';
-import { useMockDb } from '@/mocks/db';
-import { useAuthStore } from '@/store/auth-store';
+import { EmptyState, ErrorState } from '@/components/feedback';
+import { colors } from '@/theme';
+import { VendorConnection } from '@/core/auth/VendorConnection';
+import { sideApi, useVendorApiSession, SideApiError, type SidewalkSlot } from '@/core/api/side-api';
 
-type Filter = 'ALL' | 'AVAILABLE' | 'RENTED';
+type Filter = 'ALL' | 'AVAILABLE';
+type Bounds = { minLat: number; maxLat: number; minLng: number; maxLng: number };
+
+// Hoà Quý, Ngũ Hành Sơn, Đà Nẵng -- where the seed data's zones and slots are.
+const DEFAULT_CENTER: [number, number] = [16.012, 108.24];
+const DEFAULT_SPAN = 0.01;
+
+function markerIcon(status: string) {
+  const color =
+    status === 'AVAILABLE' ? colors.tertiary : status === 'SUSPENDED' ? colors.primary : colors.muted;
+  return L.divIcon({
+    className: '',
+    html: `<span style="display:block;width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.4)"></span>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  });
+}
+
+function BoundsWatcher({ onChange }: { onChange: (bounds: Bounds) => void }) {
+  const map = useMapEvents({
+    moveend: () => {
+      const b = map.getBounds();
+      onChange({ minLat: b.getSouth(), maxLat: b.getNorth(), minLng: b.getWest(), maxLng: b.getEast() });
+    },
+  });
+  return null;
+}
 
 export function SlotMapScreen() {
+  return (
+    <VendorConnection>
+      <SlotMapContent />
+    </VendorConnection>
+  );
+}
+
+function SlotMapContent() {
   const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
-  const slots = useMockDb((s) => s.slots).filter((s) => s.proposal_review_status !== 'PENDING');
-  const submitRentalApplication = useMockDb((s) => s.submitRentalApplication);
+  const generation = useVendorApiSession((s) => s.generation);
   const [filter, setFilter] = useState<Filter>('ALL');
-  const [selectMode, setSelectMode] = useState(false);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [bounds, setBounds] = useState<Bounds>({
+    minLat: DEFAULT_CENTER[0] - DEFAULT_SPAN,
+    maxLat: DEFAULT_CENTER[0] + DEFAULT_SPAN,
+    minLng: DEFAULT_CENTER[1] - DEFAULT_SPAN,
+    maxLng: DEFAULT_CENTER[1] + DEFAULT_SPAN,
+  });
 
-  const filtered = slots.filter((s) => (filter === 'ALL' ? true : s.slot_status === filter));
+  const slots = useQuery({
+    queryKey: ['side', generation, 'slots', bounds],
+    queryFn: () => sideApi.searchSlots({ ...bounds, take: 200 }),
+    placeholderData: (previous) => previous,
+  });
 
-  const toggle = (id: string) =>
-    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-
-  const submit = () => {
-    if (!user?.vendorId || selected.length === 0) return;
-    submitRentalApplication({
-      vendorId: user.vendorId,
-      slotIds: selected,
-      application_type: 'OPEN_SLOT',
-    });
-    showToast(`Đã gửi đơn thuê ${selected.length} ô`);
-    setSelected([]);
-    setSelectMode(false);
-    navigate('/vendor/slots/rental-applications');
-  };
+  const filtered = useMemo(
+    () =>
+      (slots.data ?? []).filter((s: SidewalkSlot) => (filter === 'ALL' ? true : s.slotStatus === 'AVAILABLE')),
+    [slots.data, filter],
+  );
 
   return (
-    <Screen
-      footer={
-        selectMode && selected.length > 0 ? (
-          <StickyActions>
-            <Button label={`Nộp đơn thuê (${selected.length} ô)`} onPress={submit} />
-          </StickyActions>
-        ) : undefined
-      }
-    >
-      <AppHeader
-        title="Ô vỉa hè"
-        subtitle="Phường Hải Châu 1 · Nguyễn Văn Linh"
-        right={
-          <Button
-            label={selectMode ? 'Xong' : 'Chọn nhiều ô'}
-            variant={selectMode ? 'primary' : 'outline'}
-            fullWidth={false}
-            onPress={() => {
-              setSelectMode((v) => !v);
-              setSelected([]);
-            }}
-          />
-        }
-      />
+    <Screen>
+      <AppHeader title="Ô vỉa hè" subtitle="Kéo hoặc thu phóng bản đồ để tìm ô quanh khu vực" />
       <FilterChips
         value={filter}
         onChange={setFilter}
         options={[
-          { value: 'ALL', label: 'Tất cả', count: slots.length },
+          { value: 'ALL', label: 'Tất cả', count: slots.data?.length ?? 0 },
           {
             value: 'AVAILABLE',
             label: 'Còn trống',
-            count: slots.filter((s) => s.slot_status === 'AVAILABLE').length,
-          },
-          {
-            value: 'RENTED',
-            label: 'Đã thuê',
-            count: slots.filter((s) => s.slot_status === 'RENTED').length,
+            count: (slots.data ?? []).filter((s) => s.slotStatus === 'AVAILABLE').length,
           },
         ]}
       />
-      {filtered.length === 0 ? (
-        <EmptyState icon="map-marker-outline" title="Không có ô phù hợp" />
-      ) : (
-        filtered.map((slot) => {
-          const tone =
-            statusTones[
-              slot.slot_status === 'AVAILABLE'
-                ? 'ok'
-                : slot.slot_status === 'RENTED'
-                  ? 'neutral'
-                  : 'pending'
-            ];
-          const isSelectable = selectMode && slot.slot_status === 'AVAILABLE';
-          const isSelected = selected.includes(slot.id);
-          return (
-            <Card
-              key={slot.id}
-              onPress={() =>
-                isSelectable
-                  ? toggle(slot.id)
-                  : !selectMode
-                    ? navigate(`/vendor/slots/${slot.id}`)
-                    : undefined
-              }
-              padded={false}
-              style={{ overflow: 'hidden' }}
+      <div className="h-[60vh] min-h-[320px] overflow-hidden rounded-md border border-border">
+        <MapContainer center={DEFAULT_CENTER} zoom={17} style={{ height: '100%', width: '100%' }}>
+          <BoundsWatcher onChange={setBounds} />
+          <LayersControl position="topright">
+            <LayersControl.BaseLayer checked name="Bản đồ đường phố">
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="Ảnh vệ tinh">
+              <TileLayer
+                attribution="Tiles &copy; Esri"
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              />
+            </LayersControl.BaseLayer>
+          </LayersControl>
+          {filtered.map((slot) => (
+            <Marker
+              key={slot.slotId}
+              position={[slot.latitude, slot.longitude]}
+              icon={markerIcon(slot.slotStatus)}
+              eventHandlers={{ click: () => navigate(`/vendor/slots/${slot.slotId}`) }}
             >
-              <div className="flex">
-                <div className="w-1.5" style={{ backgroundColor: tone.fg }} />
-                <div className="flex-1 p-md">
-                  <div className="flex justify-between">
-                    <span className="text-headline-sm text-text">{slot.slot_code}</span>
-                    {isSelectable ? (
-                      <Icon
-                        name={isSelected ? 'check-circle' : 'check-circle-outline'}
-                        size={22}
-                        color={isSelected ? colors.primary : colors.muted}
-                      />
-                    ) : (
-                      <StatusChip code={slot.slot_status} />
-                    )}
-                  </div>
-                  <p className="mt-0.5 text-body-md text-muted">
-                    {slot.street} · {slot.size_m2} m² · {slot.time_window}
-                  </p>
-                  <div className="mt-1.5">
-                    <Money amountVnd={slot.price_monthly} />
-                  </div>
+              <Popup>
+                <div className="flex flex-col gap-1">
+                  <strong>{slot.slotCode}</strong>
+                  <Money amountVnd={slot.pricePerDay} />
+                  <StatusChip code={slot.slotStatus} />
                 </div>
-              </div>
-            </Card>
-          );
-        })
+              </Popup>
+            </Marker>
+          ))}
+        </MapContainer>
+      </div>
+      {slots.error && (
+        <ErrorState
+          message={slots.error instanceof SideApiError ? slots.error.message : slots.error.message}
+          onRetry={() => void slots.refetch()}
+        />
+      )}
+      {!slots.isPending && !slots.error && filtered.length === 0 && (
+        <EmptyState icon="map-marker-outline" title="Không có ô phù hợp trong khu vực đang xem" />
       )}
     </Screen>
   );
