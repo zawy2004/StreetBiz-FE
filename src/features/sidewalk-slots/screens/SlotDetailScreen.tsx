@@ -1,57 +1,139 @@
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button, Card, Divider, ListRow, Money } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { ErrorState, showToast } from '@/components/feedback';
-import { useMockDb } from '@/mocks/db';
-import { useAuthStore } from '@/store/auth-store';
+import { ErrorState, LoadingState, showToast } from '@/components/feedback';
+import { VendorConnection } from '@/core/auth/VendorConnection';
+import { sideApi, useVendorApiSession, SideApiError } from '@/core/api/side-api';
 
 export function SlotDetailScreen() {
+  return (
+    <VendorConnection>
+      <SlotDetailContent />
+    </VendorConnection>
+  );
+}
+
+function SlotDetailContent() {
   const { slotId } = useParams<{ slotId: string }>();
   const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
-  const slot = useMockDb((s) => s.slots.find((sl) => sl.id === slotId));
-  const submitRentalApplication = useMockDb((s) => s.submitRentalApplication);
+  const queryClient = useQueryClient();
+  const generation = useVendorApiSession((s) => s.generation);
+  const [applying, setApplying] = useState(false);
+  const [registrationId, setRegistrationId] = useState('');
+  const [requestedTermDays, setRequestedTermDays] = useState('90');
 
-  if (!slot) return <ErrorState message="Không tìm thấy ô." />;
+  const id = Number(slotId);
+  const slot = useQuery({
+    queryKey: ['side', generation, 'slot', id],
+    queryFn: () => sideApi.getSlot(id),
+    enabled: Number.isFinite(id),
+  });
 
-  const apply = () => {
-    if (!user?.vendorId) return;
-    submitRentalApplication({
-      vendorId: user.vendorId,
-      slotIds: [slot.id],
-      application_type: 'OPEN_SLOT',
-    });
-    showToast('Đã gửi đơn thuê ô');
-    navigate('/vendor/slots/rental-applications');
-  };
+  const apply = useMutation({
+    mutationFn: () =>
+      sideApi.submitOpenSlotApplication({
+        registrationId: Number(registrationId),
+        slotId: id,
+        requestedTermDays: Number(requestedTermDays),
+      }),
+    onSuccess: (result) => {
+      showToast(result.message);
+      void queryClient.invalidateQueries({ queryKey: ['side', generation, 'applications'] });
+      navigate('/vendor/slots/rental-applications');
+    },
+    onError: (error) => {
+      showToast(error instanceof SideApiError ? error.message : 'Không gửi được đơn thuê.');
+    },
+  });
+
+  if (slot.isPending) return <LoadingState />;
+  if (slot.error)
+    return (
+      <ErrorState
+        message={slot.error instanceof SideApiError ? slot.error.message : slot.error.message}
+        onRetry={() => void slot.refetch()}
+      />
+    );
+  const data = slot.data;
 
   return (
     <Screen
       footer={
-        slot.slot_status === 'AVAILABLE' ? (
+        data.slotStatus === 'AVAILABLE' ? (
           <StickyActions>
-            <Button label="Nộp đơn thuê ô này" onPress={apply} />
+            {applying ? (
+              <div className="flex flex-col gap-sm">
+                <label>
+                  Mã hồ sơ đăng ký (registrationId)
+                  <input
+                    className="mt-xs w-full rounded-sm border border-border p-sm"
+                    value={registrationId}
+                    onChange={(e) => setRegistrationId(e.target.value)}
+                    inputMode="numeric"
+                  />
+                </label>
+                <label>
+                  Số ngày thuê
+                  <input
+                    className="mt-xs w-full rounded-sm border border-border p-sm"
+                    value={requestedTermDays}
+                    onChange={(e) => setRequestedTermDays(e.target.value)}
+                    inputMode="numeric"
+                  />
+                </label>
+                <Button
+                  label="Gửi đơn thuê ô này"
+                  loading={apply.isPending}
+                  disabled={!registrationId.trim() || !requestedTermDays.trim()}
+                  onPress={() => apply.mutate()}
+                />
+              </div>
+            ) : (
+              <Button label="Nộp đơn thuê ô này" onPress={() => setApplying(true)} />
+            )}
           </StickyActions>
         ) : undefined
       }
     >
-      <AppHeader title={slot.slot_code} back subtitle={slot.street} />
+      <AppHeader title={data.slotCode} back subtitle={data.zoneName} />
       <Card>
         <div className="flex justify-between">
-          <Money amountVnd={slot.price_monthly} size="lg" />
-          <StatusChip code={slot.slot_status} />
+          <Money amountVnd={data.pricePerDay} size="lg" />
+          <StatusChip code={data.slotStatus} />
         </div>
-        <p className="text-body-sm text-muted">mỗi tháng</p>
+        <p className="text-body-sm text-muted">mỗi ngày</p>
       </Card>
       <Card padded={false}>
         <div className="px-md">
-          <ListRow title="Diện tích" subtitle={`${slot.size_m2} m²`} />
+          <ListRow
+            title="Kích thước"
+            subtitle={
+              data.widthMeters && data.lengthMeters
+                ? `${data.widthMeters} × ${data.lengthMeters} m`
+                : 'Chưa có dữ liệu'
+            }
+          />
           <Divider />
-          <ListRow title="Khung giờ hoạt động" subtitle={slot.time_window} />
+          <ListRow
+            title="Khung giờ hoạt động"
+            subtitle={
+              data.availableFrom && data.availableTo
+                ? `${data.availableFrom} – ${data.availableTo}`
+                : 'Cả ngày'
+            }
+          />
           <Divider />
-          <ListRow title="Tuyến đường" subtitle={slot.street} />
+          <ListRow title="Toạ độ" subtitle={`${data.latitude}, ${data.longitude}`} />
+          {data.distanceMeters != null && (
+            <>
+              <Divider />
+              <ListRow title="Khoảng cách" subtitle={`${Math.round(data.distanceMeters)} m`} />
+            </>
+          )}
         </div>
       </Card>
     </Screen>
