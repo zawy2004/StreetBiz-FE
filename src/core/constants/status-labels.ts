@@ -16,6 +16,7 @@ export const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> 
   ACTIVE: { label: 'Đang hoạt động', tone: 'ok' },
   VALID: { label: 'Hợp lệ', tone: 'ok' },
   AVAILABLE: { label: 'Còn trống', tone: 'ok' },
+  PENDING_APPLICATION: { label: 'Đang có đơn', tone: 'pending' },
   OPEN: { label: 'Đang mở', tone: 'ok' },
   PAID: { label: 'Đã thanh toán', tone: 'ok' },
   RESOLVED: { label: 'Đã xử lý', tone: 'ok' },
