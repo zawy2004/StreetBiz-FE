@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, LoadingState, showToast } from '@/components/fe
 import { colors } from '@/theme';
 import { authApi, errorMessage, type ApiSession } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
+import { describeDevice } from '@/core/utils/user-agent';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -40,7 +41,9 @@ export function SessionsScreen() {
   });
 
   const sessions: ApiSession[] = isLiveApi
-    ? (query.data ?? [])
+    ? // The backend stores the raw browser User-Agent as deviceInfo; turn it into
+      // something readable rather than showing "Mozilla/5.0 (Windows NT ...)".
+      (query.data ?? []).map((s) => ({ ...s, deviceInfo: describeDevice(s.deviceInfo) }))
     : mockSessions.map((sess, index) => ({
         sessionId: index,
         deviceInfo: sess.device,

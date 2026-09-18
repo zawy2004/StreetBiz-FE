@@ -7,7 +7,7 @@ import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { WardSelect } from '@/features/authentication/components/WardSelect';
 import { VENDOR_TYPE } from '@/core/api';
 import { Stepper } from '../components/Stepper';
-import { useNewRegistrationStore } from '../new-registration-store';
+import { parseOptionalCoordinate, useNewRegistrationStore } from '../new-registration-store';
 
 /**
  * REG-01 step 2: business details.
@@ -56,6 +56,7 @@ export function NewRegistrationDetailsScreen() {
         onChangeText={(v) => draft.setField('displayName', v)}
         placeholder="VD: Xôi gà Bà Năm"
         error={errors.displayName}
+        maxLength={180}
       />
       <WardSelect
         value={draft.wardUnitId ?? undefined}
@@ -83,9 +84,10 @@ export function NewRegistrationDetailsScreen() {
             <TextField
               label="Vĩ độ (không bắt buộc)"
               value={draft.addressLatitude?.toString() ?? ''}
-              onChangeText={(v) =>
-                draft.setField('addressLatitude', v.trim() === '' ? null : Number(v))
-              }
+              onChangeText={(v) => {
+                const parsed = parseOptionalCoordinate(v);
+                if (parsed !== undefined) draft.setField('addressLatitude', parsed);
+              }}
               keyboardType="numeric"
               placeholder="16.0678"
             />
@@ -94,9 +96,10 @@ export function NewRegistrationDetailsScreen() {
             <TextField
               label="Kinh độ (không bắt buộc)"
               value={draft.addressLongitude?.toString() ?? ''}
-              onChangeText={(v) =>
-                draft.setField('addressLongitude', v.trim() === '' ? null : Number(v))
-              }
+              onChangeText={(v) => {
+                const parsed = parseOptionalCoordinate(v);
+                if (parsed !== undefined) draft.setField('addressLongitude', parsed);
+              }}
               keyboardType="numeric"
               placeholder="108.2208"
             />

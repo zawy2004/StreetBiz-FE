@@ -136,7 +136,7 @@ export function NewRegistrationEvidenceScreen() {
       <p className="text-body-sm text-muted">
         {isEditing
           ? 'Giấy tờ đã nộp trước đó vẫn được giữ. Chỉ tải thêm giấy tờ nếu Phường yêu cầu. Cập nhật sẽ gửi hồ sơ đi duyệt lại.'
-          : 'Ảnh JPG, PNG hoặc WEBP, tối đa 5 MB mỗi ảnh.'}
+          : 'Ảnh JPG, PNG, WEBP hoặc file PDF, tối đa 5 MB mỗi tệp.'}
       </p>
 
       <div className="flex flex-wrap gap-sm">
@@ -146,6 +146,7 @@ export function NewRegistrationEvidenceScreen() {
             label={EVIDENCE_LABELS[type]}
             uri={uriFor(type)}
             error={missing.includes(type)}
+            accept="image/*,application/pdf"
             validate={evidenceFileProblem}
             onInvalid={setError}
             onChange={(uri, file) => {
