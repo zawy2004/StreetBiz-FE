@@ -69,6 +69,12 @@ export function WardDashboardScreen() {
       ) : null}
 
       <Section title="Lối tắt">
+        <Card onPress={() => navigate('/ward/inbox/reviews')}>
+          <h3 className="text-headline-sm text-text">Duyệt hồ sơ vị trí · Backend</h3>
+          <p className="text-body-sm text-muted">
+            Đề xuất ô, xung đột địa chỉ và chuyển nhượng theo dữ liệu thật
+          </p>
+        </Card>
         <Card onPress={() => navigate('/ward/inbox')}>
           <h3 className="text-headline-sm text-text">Hộp duyệt</h3>
           <p className="text-body-sm text-muted">{pendingCount} việc cần xử lý</p>

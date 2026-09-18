@@ -1,5 +1,9 @@
 # StreetBiz Frontend
 
+WARD-16–18 and SYS-01–02 now connect to StreetBiz-BE at
+`/ward/inbox/reviews`.
+See [Ward slot workflows](docs/ward-slot-workflows.md) for connection and setup.
+
 StreetBiz-FE is the React web client for the StreetBiz sidewalk
 vendor-management platform — a Vite single-page app targeting desktop and
 mobile browsers (no native app).
@@ -16,6 +20,11 @@ writes the client-side Zustand store seeded with demo data. Setting
 app can still be explored end to end without StreetBiz-BE running. Connecting a
 further module is meant to be a per-feature api module plus a hook, not a
 rewrite of any screen.
+in-memory mock data layer (`src/mocks/`), except the ward slot review workflows.
+The `/ward/inbox/reviews` workspace and the three ward review detail screens use
+real Backend APIs with separate verified JWT sessions. The legacy
+`/ward-reviews` URL redirects there. Other existing screens still use the
+client-side Zustand store seeded with demo data.
 
 ## Technology baseline
 
@@ -38,9 +47,9 @@ rewrite of any screen.
 
 Run all commands from StreetBiz-FE:
 
-~~~powershell
+```powershell
 npm install
-~~~
+```
 
 No force or legacy-peer-deps option is used.
 
@@ -49,7 +58,7 @@ No force or legacy-peer-deps option is used.
 Copy .env.example to .env and adjust public values for the current environment.
 Do not commit .env.
 
-~~~dotenv
+```dotenv
 VITE_APP_ENV=development
 VITE_API_BASE_URL=http://localhost:5000/api
 VITE_USE_MOCK_API=false
@@ -57,7 +66,7 @@ VITE_ENABLE_AI_COMPLIANCE=true
 VITE_ENABLE_PHASE_2=true
 VITE_ENABLE_PUSH_NOTIFICATIONS=false
 VITE_ENABLE_PAYMENT_SANDBOX=true
-~~~
+```
 
 `VITE_*` values are included in the client bundle. Never store passwords,
 JWTs, OTP secrets, payment secrets, provider keys, or database connection
@@ -93,9 +102,10 @@ dotnet run --project src/StreetBiz.API      # http://localhost:5000
 Then, in StreetBiz-FE:
 
 ~~~powershell
+```powershell
 npm install
 npm run dev
-~~~
+```
 
 Register a new account from the sign-in screen. The dev SMS sender writes the
 OTP to the **API console** as a `[DEV-SMS]` line — copy it into the verify
@@ -110,12 +120,12 @@ layer), or use the dev-only role switcher to jump straight into any role.
 
 ## Quality checks
 
-~~~powershell
+```powershell
 npm run lint
 npm run typecheck
 npm test
 npm run build
-~~~
+```
 
 `npm run build` type-checks then produces a static bundle in `dist/` (ignored
 by Git); `npm run preview` serves that build locally.
@@ -126,15 +136,15 @@ review), follow `../StreetBiz-BE/docs/testing-auth-vendor-onboarding.md`.
 
 ## npm scripts
 
-| Script | Purpose |
-| --- | --- |
-| dev | Start the Vite dev server |
-| build | Type-check and build the production bundle to `dist/` |
-| preview | Serve the production build locally |
-| lint | Run ESLint |
-| typecheck | Run TypeScript without emitting files |
-| test | Run the Vitest suite once |
-| test:watch | Run Vitest in watch mode |
+| Script     | Purpose                                               |
+| ---------- | ----------------------------------------------------- |
+| dev        | Start the Vite dev server                             |
+| build      | Type-check and build the production bundle to `dist/` |
+| preview    | Serve the production build locally                    |
+| lint       | Run ESLint                                            |
+| typecheck  | Run TypeScript without emitting files                 |
+| test       | Run the Vitest suite once                             |
+| test:watch | Run Vitest in watch mode                              |
 
 ## Mock data layer and demo accounts
 
@@ -150,13 +160,13 @@ holds the signed-in session and persists it via the browser's `localStorage`.
 
 Demo accounts (phone / password `123456` for all):
 
-| Role | Phone | Notes |
-| --- | --- | --- |
-| Customer | 0905000001 | Trần Hồng Anh |
-| Vendor (itinerant) | 0905000002 | Nguyễn Thị Hoa — has an active rental contract + permit |
-| Vendor (fixed storefront) | 0905000003 | Lê Văn Minh — registration pending review |
-| Ward Authority | 0905000004 | Phạm Văn Sơn, Phường Hải Châu 1 |
-| Platform Administrator | 0905000005 | Đỗ Quốc Anh |
+| Role                      | Phone      | Notes                                                   |
+| ------------------------- | ---------- | ------------------------------------------------------- |
+| Customer                  | 0905000001 | Trần Hồng Anh                                           |
+| Vendor (itinerant)        | 0905000002 | Nguyễn Thị Hoa — has an active rental contract + permit |
+| Vendor (fixed storefront) | 0905000003 | Lê Văn Minh — registration pending review               |
+| Ward Authority            | 0905000004 | Phạm Văn Sơn, Phường Hải Châu 1                         |
+| Platform Administrator    | 0905000005 | Đỗ Quốc Anh                                             |
 
 The "switch role" shortcut on the sign-in screen and the Account tab only
 renders when `VITE_APP_ENV=development` — it is not part of AUTH-03 and must
@@ -164,7 +174,7 @@ not ship to a real build.
 
 ## Source layout
 
-~~~text
+```text
 src/
 |-- App.tsx        Top-level BrowserRouter + AppProviders + AppRouter
 |-- main.tsx        Vite entry point (mounts <App/> into #root)
@@ -189,7 +199,7 @@ tests/
 |-- components/    Button, StatusChip
 |-- features/      mock-db action behaviour
 +-- navigation/    role -> route mapping
-~~~
+```
 
 ## Navigation shape
 
