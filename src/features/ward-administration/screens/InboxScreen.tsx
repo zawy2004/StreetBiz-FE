@@ -8,8 +8,7 @@ import { FilterChips } from '@/components/forms';
 import { EmptyState } from '@/components/feedback';
 import { useMockDb } from '@/mocks/db';
 
-type Category =
-  'ALL' | 'REG' | 'RENTAL' | 'RENEWAL' | 'PROPOSAL' | 'TRANSFER' | 'ADDRESS' | 'REPORT';
+type Category = 'ALL' | 'REG' | 'RENTAL' | 'RENEWAL' | 'REPORT';
 
 export function InboxScreen() {
   const navigate = useNavigate();
@@ -17,8 +16,6 @@ export function InboxScreen() {
   const applications = useMockDb((s) => s.applications);
   const renewals = useMockDb((s) => s.renewals);
   const slots = useMockDb((s) => s.slots);
-  const transfers = useMockDb((s) => s.transfers);
-  const addressChanges = useMockDb((s) => s.addressChanges);
   const reports = useMockDb((s) => s.reports);
   const [category, setCategory] = useState<Category>('ALL');
 
@@ -54,36 +51,6 @@ export function InboxScreen() {
           status: r.renewal_status,
           onPress: () => navigate(`/ward/inbox/renewals/${r.id}`),
         })),
-      ...slots
-        .filter((s) => s.proposal_review_status === 'PENDING')
-        .map((s) => ({
-          key: `PROP-${s.id}`,
-          category: 'PROPOSAL' as const,
-          title: s.street,
-          subtitle: 'Đề xuất ô mới',
-          status: 'PENDING',
-          onPress: () => navigate(`/ward/inbox/slot-proposals/${s.id}`),
-        })),
-      ...transfers
-        .filter((t) => t.transfer_status === 'UNDER_REVIEW')
-        .map((t) => ({
-          key: `TRF-${t.id}`,
-          category: 'TRANSFER' as const,
-          title: 'Chuyển nhượng ô',
-          subtitle: t.contractId,
-          status: t.transfer_status,
-          onPress: () => navigate(`/ward/inbox/slot-transfers/${t.id}`),
-        })),
-      ...addressChanges
-        .filter((a) => a.change_status === 'PENDING')
-        .map((a) => ({
-          key: `ADDR-${a.id}`,
-          category: 'ADDRESS' as const,
-          title: 'Đổi địa chỉ kinh doanh',
-          subtitle: a.new_address,
-          status: a.change_status,
-          onPress: () => navigate(`/ward/inbox/address-conflicts/${a.id}`),
-        })),
       ...reports
         .filter((r) => r.report_status === 'PENDING')
         .map((r) => ({
@@ -96,7 +63,7 @@ export function InboxScreen() {
         })),
     ];
     return list;
-  }, [registrations, applications, renewals, slots, transfers, addressChanges, reports, navigate]);
+  }, [registrations, applications, renewals, slots, reports, navigate]);
 
   const visible = category === 'ALL' ? items : items.filter((i) => i.category === category);
   const count = (c: Exclude<Category, 'ALL'>) => items.filter((i) => i.category === c).length;
@@ -104,6 +71,10 @@ export function InboxScreen() {
   return (
     <Screen>
       <AppHeader title="Hộp duyệt" subtitle="Tất cả việc cần xử lý" />
+      <Card onPress={() => navigate('/ward/inbox/reviews')}>
+        <h2 className="text-headline-sm">Hồ sơ vị trí · Dữ liệu Backend</h2>
+        <p>Đề xuất ô, xung đột địa chỉ, chuyển nhượng và kiểm tra ranh giới</p>
+      </Card>
       <FilterChips
         value={category}
         onChange={setCategory}
@@ -112,9 +83,6 @@ export function InboxScreen() {
           { value: 'REG', label: 'Đăng ký', count: count('REG') },
           { value: 'RENTAL', label: 'Thuê ô', count: count('RENTAL') },
           { value: 'RENEWAL', label: 'Gia hạn', count: count('RENEWAL') },
-          { value: 'PROPOSAL', label: 'Đề xuất ô', count: count('PROPOSAL') },
-          { value: 'TRANSFER', label: 'Chuyển nhượng', count: count('TRANSFER') },
-          { value: 'ADDRESS', label: 'Đổi địa chỉ', count: count('ADDRESS') },
           { value: 'REPORT', label: 'Phản ánh', count: count('REPORT') },
         ]}
       />

@@ -1,6 +1,7 @@
 import { CSSProperties } from 'react';
 
 import { colors } from '@/theme';
+import { formatVnd } from './formatVnd';
 
 type Props = {
   amountVnd: number;
@@ -9,10 +10,6 @@ type Props = {
   style?: CSSProperties;
   className?: string;
 };
-
-export function formatVnd(amount: number): string {
-  return `${amount.toLocaleString('vi-VN')} đ`;
-}
 
 export function Money({ amountVnd, size = 'md', color = colors.text, style, className }: Props) {
   return (
