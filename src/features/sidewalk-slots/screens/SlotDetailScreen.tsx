@@ -8,6 +8,7 @@ import { StatusChip } from '@/components/status';
 import { ErrorState, LoadingState, showToast } from '@/components/feedback';
 import { VendorConnection } from '@/core/auth/VendorConnection';
 import { sideApi, useVendorApiSession, SideApiError } from '@/core/api/side-api';
+import { reverseGeocode } from '@/services/map/reverse-geocode';
 
 export function SlotDetailScreen() {
   return (
@@ -49,6 +50,13 @@ function SlotDetailContent() {
     onError: (error) => {
       showToast(error instanceof SideApiError ? error.message : 'Không gửi được đơn thuê.');
     },
+  });
+
+  const address = useQuery({
+    queryKey: ['side', 'reverse-geocode', slot.data?.latitude, slot.data?.longitude],
+    queryFn: ({ signal }) => reverseGeocode(slot.data!.latitude, slot.data!.longitude, signal),
+    enabled: !!slot.data,
+    staleTime: Infinity,
   });
 
   if (!validId) return <ErrorState message="Mã ô không hợp lệ." />;
@@ -129,7 +137,14 @@ function SlotDetailContent() {
             }
           />
           <Divider />
-          <ListRow title="Toạ độ" subtitle={`${data.latitude}, ${data.longitude}`} />
+          <ListRow
+            title="Vị trí"
+            subtitle={
+              address.isPending
+                ? 'Đang tìm địa chỉ…'
+                : (address.data ?? `${data.latitude}, ${data.longitude}`)
+            }
+          />
           {data.distanceMeters != null && (
             <>
               <Divider />
