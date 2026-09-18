@@ -1,62 +1,79 @@
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Avatar, Button, Card, Icon, Money } from '@/components/common';
+import { Avatar, Button, Card, Divider, Icon, ListRow } from '@/components/common';
+import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
 import { AppHeader, Screen, Section } from '@/components/layout';
-import { AiHint, StatusChip } from '@/components/status';
-import { EmptyState, ErrorState } from '@/components/feedback';
-import { env } from '@/core/config/env';
+import { StatusChip } from '@/components/status';
 import { colors } from '@/theme';
-import { useMockDb } from '@/mocks/db';
-import { useAuthStore } from '@/store/auth-store';
-import { useCartStore } from '@/features/cart/cart-store';
+import { communityApi, CommunityApiError } from '../community-api';
 
 export function VendorProfileScreen() {
   const { vendorId } = useParams<{ vendorId: string }>();
   const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
-  const vendor = useMockDb((s) => s.vendors.find((v) => v.id === vendorId));
-  const contracts = useMockDb((s) => s.contracts).filter(
-    (c) => c.vendorId === vendorId && c.contract_status === 'ACTIVE',
-  );
-  const permits = useMockDb((s) => s.permits);
-  const slots = useMockDb((s) => s.slots);
-  const comments = useMockDb((s) => s.comments).filter((c) => c.vendorId === vendorId);
-  const storefront = useMockDb((s) => s.storefronts.find((st) => st.vendorId === vendorId));
-  const menuItems = useMockDb((s) => s.menuItems).filter((m) => m.storefrontId === storefront?.id);
-  const cartItems = useCartStore((s) => s.items).filter((i) => i.storefrontId === storefront?.id);
+  const profile = useQuery({
+    queryKey: ['community', 'vendor', vendorId],
+    queryFn: () => communityApi.profile(vendorId!),
+    enabled: Boolean(vendorId),
+  });
 
-  if (!vendor) return <ErrorState message="Không tìm thấy hộ kinh doanh." />;
+  if (profile.isPending) return <LoadingState />;
+  if (profile.isError || !profile.data) {
+    return (
+      <ErrorState
+        message={
+          profile.error instanceof CommunityApiError
+            ? profile.error.message
+            : 'Không tìm thấy hộ kinh doanh.'
+        }
+        onRetry={() => profile.refetch()}
+      />
+    );
+  }
 
-  const contract = contracts[0];
-  const permit = permits.find((p) => p.contractId === contract?.id);
-  const slot = slots.find((s) => s.id === contract?.slotId);
-  const ratingAvg = comments.length
-    ? comments.reduce((sum, c) => sum + c.rating, 0) / comments.length
-    : 0;
-
+  const vendor = profile.data;
   return (
     <Screen>
-      <AppHeader title={vendor.business_name} back />
+      <AppHeader title={vendor.displayName} back />
       <Card>
         <div className="flex gap-sm">
-          <Avatar name={vendor.business_name} size={56} />
+          <Avatar name={vendor.displayName} size={56} />
           <div className="flex flex-1 flex-col gap-1">
-            {permit ? <StatusChip code={permit.permit_status} /> : null}
-            {comments.length ? (
-              <div className="flex items-center gap-1">
-                <Icon name="star" size={16} color={colors.secondary} />
-                <span className="text-body-md text-text">
-                  {ratingAvg.toFixed(1)} ({comments.length} đánh giá)
-                </span>
-              </div>
-            ) : null}
+            <StatusChip code={vendor.permitStatus} />
+            <span className="text-body-md text-muted">{vendor.vendorType}</span>
+            <div className="flex items-center gap-1">
+              <Icon name="star" size={16} color={colors.secondary} />
+              <span className="text-body-md text-text">
+                {vendor.communityRating?.toFixed(1) ?? 'Chưa có điểm'} ({vendor.communityCount} đánh
+                giá)
+              </span>
+            </div>
           </div>
         </div>
-        {slot ? (
-          <p className="mt-sm text-body-md text-muted">
-            {slot.street} · Ô {slot.slot_code} · {slot.time_window}
-          </p>
-        ) : null}
+      </Card>
+
+      <Card padded={false}>
+        <div className="px-md">
+          <ListRow title="Vị trí" subtitle={`${vendor.zoneName} · Ô ${vendor.slotCode}`} />
+          <Divider />
+          <ListRow title="Phường" subtitle={vendor.wardName ?? `#${vendor.wardId}`} />
+          <Divider />
+          <ListRow title="Địa chỉ đăng ký" subtitle={vendor.address ?? 'Chưa cập nhật'} />
+          <Divider />
+          <ListRow
+            title="Giấy phép có hiệu lực đến"
+            subtitle={new Date(vendor.permitEndDate).toLocaleDateString('vi-VN')}
+          />
+          {vendor.verifiedCount > 0 ? (
+            <>
+              <Divider />
+              <ListRow
+                title="Đánh giá từ giao dịch xác thực"
+                subtitle={`${vendor.verifiedRating?.toFixed(1) ?? '—'} ★ (${vendor.verifiedCount})`}
+              />
+            </>
+          ) : null}
+        </div>
       </Card>
 
       <div className="flex gap-sm">
@@ -64,68 +81,39 @@ export function VendorProfileScreen() {
           <Button
             label="Viết đánh giá"
             variant="outline"
-            onPress={() =>
-              user
-                ? navigate(`/customer/explore/vendors/${vendor.id}/comments/new`)
-                : navigate('/auth/sign-in')
-            }
+            onPress={() => navigate(`/customer/explore/vendors/${vendor.vendorId}/comments/new`)}
           />
         </div>
         <div className="flex-1">
           <Button
             label="Báo cáo vi phạm"
             variant="ghost"
-            onPress={() => navigate(`/customer/explore/vendors/${vendor.id}/reports/new`)}
+            onPress={() => navigate(`/customer/explore/vendors/${vendor.vendorId}/reports/new`)}
           />
         </div>
       </div>
 
-      {env.enableAiCompliance && comments.length > 2 ? (
-        <AiHint title="Tóm tắt đánh giá">
-          Khách hàng khen ngợi hương vị và vệ sinh an toàn thực phẩm, một số phản hồi về thời gian
-          chờ vào giờ cao điểm.
-        </AiHint>
-      ) : null}
-
-      {storefront && menuItems.length > 0 ? (
-        <Section
-          title="Thực đơn"
-          action={
-            cartItems.length > 0 ? (
-              <Button
-                label={`Giỏ hàng (${cartItems.length})`}
-                fullWidth={false}
-                variant="outline"
-                onPress={() => navigate('/customer/explore/cart')}
-              />
-            ) : undefined
-          }
-        >
-          {menuItems.map((item) => (
-            <Card key={item.id} onPress={() => navigate(`/customer/explore/items/${item.id}`)}>
-              <div className="flex items-center justify-between">
-                <span className="text-headline-sm text-text">{item.name}</span>
-                <Money amountVnd={item.price} />
-              </div>
-            </Card>
-          ))}
-        </Section>
-      ) : null}
-
-      <Section title={`Đánh giá (${comments.length})`}>
-        {comments.length === 0 ? (
+      <Section title={`Đánh giá cộng đồng (${vendor.comments.length})`}>
+        {vendor.comments.length === 0 ? (
           <EmptyState icon="comment-outline" title="Chưa có đánh giá nào" />
         ) : (
-          comments.map((c) => (
-            <Card key={c.id}>
-              <div className="flex items-center justify-between">
-                <span className="text-headline-sm text-text">{c.authorName}</span>
-                <div className="flex items-center gap-0.5">
-                  <Icon name="star" size={14} color={colors.secondary} />
-                  <span className="text-body-sm text-muted">{c.rating}</span>
-                </div>
+          vendor.comments.map((comment) => (
+            <Card key={comment.commentId}>
+              <div className="flex items-center justify-between gap-sm">
+                <span className="text-headline-sm text-text">{comment.authorName}</span>
+                {comment.rating ? (
+                  <div className="flex items-center gap-0.5">
+                    <Icon name="star" size={14} color={colors.secondary} />
+                    <span className="text-body-sm text-muted">{comment.rating}</span>
+                  </div>
+                ) : null}
               </div>
-              <p className="mt-1 text-body-md text-muted">{c.text}</p>
+              {comment.commentText ? (
+                <p className="mt-1 text-body-md text-muted">{comment.commentText}</p>
+              ) : null}
+              <p className="mt-1 text-body-sm text-muted">
+                {new Date(comment.createdAt).toLocaleDateString('vi-VN')}
+              </p>
             </Card>
           ))
         )}

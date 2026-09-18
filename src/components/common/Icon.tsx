@@ -46,6 +46,7 @@ const ICON_MAP: Record<string, IconType> = {
   'account-circle-outline': Md.MdOutlineAccountCircle,
   'account-group-outline': Md.MdOutlineGroup,
   'trash-can-outline': Md.MdOutlineDeleteOutline,
+  'pencil-outline': Md.MdOutlineEdit,
   'storefront-outline': Md.MdOutlineStorefront,
   'silverware-fork-knife': Md.MdOutlineRestaurant,
   'flag-outline': Md.MdOutlineFlag,

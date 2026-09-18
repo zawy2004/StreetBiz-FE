@@ -1,8 +1,12 @@
 # StreetBiz Frontend
 
-WARD-16–18 and SYS-01–02 now connect to StreetBiz-BE at
-`/ward/inbox/reviews`.
-See [Ward slot workflows](docs/ward-slot-workflows.md) for connection and setup.
+WARD-16–18 and SYS-01–02 connect to StreetBiz-BE at `/ward/inbox/reviews`.
+BUY-01–05 use live Backend APIs for the customer vendor map, permit check,
+public profile, rating and report screens. ADM-01 and ADM-03–05 now provide live
+food-category, content-moderation and order-complaint pages. See
+[Community vendor workflows](docs/community-vendor-workflows.md) and
+[Platform administration workflows](docs/platform-administration-workflows.md)
+for setup and route details.
 
 StreetBiz-FE is the React web client for the StreetBiz sidewalk
 vendor-management platform — a Vite single-page app targeting desktop and
@@ -11,9 +15,10 @@ mobile browsers (no native app).
 The app implements the full Core, Core Extension (AI), and Phase 2 use-case
 catalog from Report 3 (115 use cases across Guest/Customer, Vendor, Ward
 Authority, and Platform Administrator) as real, navigable screens backed by an
-in-memory mock data layer (`src/mocks/`), except the ward slot review workflows.
-The `/ward/inbox/reviews` workspace and the three ward review detail screens use
-real Backend APIs with separate verified JWT sessions. The legacy
+in-memory mock data layer (`src/mocks/`), except the workflows explicitly connected below.
+The `/ward/inbox/reviews` workspace, its review detail screens, BUY-01–05
+customer screens and ADM-01/03/04/05 platform screens use real Backend APIs
+with separate verified JWT sessions. The legacy
 `/ward-reviews` URL redirects there. Other existing screens still use the
 client-side Zustand store seeded with demo data.
 
@@ -65,8 +70,9 @@ strings in them.
 `VITE_ENABLE_AI_COMPLIANCE` and `VITE_ENABLE_PHASE_2` are `true` by default in
 `.env.example` so the demo shows the AI-assist cards and the marketplace
 (storefront/menu/cart/checkout) screens; set either to `false` to preview the
-Core-only experience. `VITE_API_BASE_URL` is currently unused — no HTTP
-client is wired up (see Mock data layer below).
+Core-only experience. `VITE_API_BASE_URL` must include the Backend `/api`
+prefix for the Ward and Community workflows, for example
+`http://localhost:5023/api` when the Backend uses its `http` launch profile.
 
 ## Run
 
@@ -189,8 +195,8 @@ rationale.
 
 ## Prepared but not yet wired
 
-- `VITE_API_BASE_URL` / an HTTP client — screens call `src/mocks/db.ts`
-  directly instead of a network layer.
+- Most workflows outside Ward slot review, BUY-01–05 and ADM-01/03/04/05 still call
+  `src/mocks/db.ts` directly instead of the Backend.
 - Push notifications, camera access beyond a plain `<input type="file">`.
 - SignalR/real-time updates.
 
@@ -202,3 +208,5 @@ rationale.
 - docs/route-plan.md
 - docs/phase-boundary.md
 - docs/api-integration-plan.md
+- docs/community-vendor-workflows.md
+- docs/platform-administration-workflows.md
