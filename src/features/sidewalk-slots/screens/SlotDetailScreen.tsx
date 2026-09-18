@@ -6,23 +6,15 @@ import { Button, Card, Divider, ListRow, Money } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ErrorState, LoadingState, showToast } from '@/components/feedback';
-import { VendorConnection } from '@/core/auth/VendorConnection';
-import { sideApi, useVendorApiSession, SideApiError } from '@/core/api/side-api';
+import { sideApi, SideApiError } from '@/core/api/side-api';
 import { reverseGeocode } from '@/services/map/reverse-geocode';
+import { useAuthStore } from '@/store/auth-store';
 
 export function SlotDetailScreen() {
-  return (
-    <VendorConnection>
-      <SlotDetailContent />
-    </VendorConnection>
-  );
-}
-
-function SlotDetailContent() {
   const { slotId } = useParams<{ slotId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const generation = useVendorApiSession((s) => s.generation);
+  const userId = useAuthStore((s) => s.user?.id);
   const [applying, setApplying] = useState(false);
   const [registrationId, setRegistrationId] = useState('');
   const [requestedTermDays, setRequestedTermDays] = useState('90');
@@ -30,7 +22,7 @@ function SlotDetailContent() {
   const id = Number(slotId);
   const validId = Number.isFinite(id);
   const slot = useQuery({
-    queryKey: ['side', generation, 'slot', id],
+    queryKey: ['side', userId, 'slot', id],
     queryFn: () => sideApi.getSlot(id),
     enabled: validId,
   });
@@ -44,7 +36,7 @@ function SlotDetailContent() {
       }),
     onSuccess: (result) => {
       showToast(result.message);
-      void queryClient.invalidateQueries({ queryKey: ['side', generation, 'applications'] });
+      void queryClient.invalidateQueries({ queryKey: ['side', userId, 'applications'] });
       navigate('/vendor/slots/rental-applications');
     },
     onError: (error) => {
