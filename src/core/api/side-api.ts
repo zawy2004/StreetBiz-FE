@@ -113,16 +113,18 @@ export type SlotTransferRequest = {
   reviewedAt: string | null;
 };
 
+type SlotSearchFilters = {
+  wardUnitId?: number;
+  zoneId?: number;
+  /** Also return RENTED/SUSPENDED/etc slots, not just AVAILABLE ones. */
+  includeUnavailable?: boolean;
+  take?: number;
+};
+
 export type SearchSlotsParams =
-  | { lat: number; lng: number; radiusMeters: number; wardUnitId?: number; take?: number }
-  | {
-      minLat: number;
-      maxLat: number;
-      minLng: number;
-      maxLng: number;
-      wardUnitId?: number;
-      take?: number;
-    };
+  | ({ lat: number; lng: number; radiusMeters: number } & SlotSearchFilters)
+  | ({ minLat: number; maxLat: number; minLng: number; maxLng: number } & SlotSearchFilters)
+  | ({ zoneId: number } & SlotSearchFilters);
 
 type ApiSession = {
   token: string;
@@ -208,10 +210,10 @@ export async function sideRequest<T>(
   return response.json() as Promise<T>;
 }
 
-function query(params: Record<string, string | number | undefined>): string {
+function query(params: Record<string, string | number | boolean | undefined>): string {
   const entries = Object.entries(params).filter(([, v]) => v !== undefined) as [
     string,
-    string | number,
+    string | number | boolean,
   ][];
   return entries.length ? '?' + entries.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&') : '';
 }
@@ -239,7 +241,7 @@ export function decodeVendorToken(token: string): { phone: string; role: string 
 export const sideApi = {
   // SIDE-01/02
   searchSlots: (params: SearchSlotsParams) =>
-    sideRequest<SidewalkSlot[]>(`/sidewalk-slots${query(params as Record<string, number>)}`),
+    sideRequest<SidewalkSlot[]>(`/sidewalk-slots${query(params)}`),
   getSlot: (slotId: number) => sideRequest<SidewalkSlot>(`/sidewalk-slots/${slotId}`),
 
   // SIDE-03A/03B/04
