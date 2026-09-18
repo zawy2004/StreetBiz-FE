@@ -27,10 +27,11 @@ function SlotDetailContent() {
   const [requestedTermDays, setRequestedTermDays] = useState('90');
 
   const id = Number(slotId);
+  const validId = Number.isFinite(id);
   const slot = useQuery({
     queryKey: ['side', generation, 'slot', id],
     queryFn: () => sideApi.getSlot(id),
-    enabled: Number.isFinite(id),
+    enabled: validId,
   });
 
   const apply = useMutation({
@@ -50,6 +51,7 @@ function SlotDetailContent() {
     },
   });
 
+  if (!validId) return <ErrorState message="Mã ô không hợp lệ." />;
   if (slot.isPending) return <LoadingState />;
   if (slot.error)
     return (
