@@ -4,22 +4,35 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/common';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
+import { WardSelect } from '@/features/authentication/components/WardSelect';
+import { VENDOR_TYPE } from '@/core/api';
 import { Stepper } from '../components/Stepper';
-import { useNewRegistrationStore } from '../new-registration-store';
+import { parseOptionalCoordinate, useNewRegistrationStore } from '../new-registration-store';
 
+/**
+ * REG-01 step 2: business details.
+ *
+ * BR-07: a fixed storefront must declare an address; an itinerant vendor may
+ * leave it blank. The ward is always required because the backend routes the
+ * application to that ward's reviewer.
+ */
 export function NewRegistrationDetailsScreen() {
   const navigate = useNavigate();
   const draft = useNewRegistrationStore();
-  const [error, setError] = useState<string>();
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+
+  const needsAddress = draft.vendorType === VENDOR_TYPE.fixedStorefront;
 
   const submit = () => {
-    if (!draft.businessName.trim()) return setError('Vui lòng nhập tên hộ kinh doanh.');
-    if (!draft.ownerName.trim()) return setError('Vui lòng nhập tên chủ hộ.');
-    if (!draft.idNumber.trim()) return setError('Vui lòng nhập số CCCD.');
-    if (draft.vendorType === 'FIXED_STOREFRONT' && !draft.address.trim()) {
-      return setError('Cửa hàng cố định cần nhập địa chỉ kinh doanh.');
+    const next: Record<string, string | undefined> = {};
+    if (!draft.displayName.trim()) next.displayName = 'Vui lòng nhập tên hộ kinh doanh.';
+    if (draft.wardUnitId === null) next.ward = 'Vui lòng chọn phường/xã.';
+    if (needsAddress && !draft.declaredAddress.trim()) {
+      next.address = 'Cửa hàng cố định cần nhập địa chỉ kinh doanh.';
     }
-    setError(undefined);
+
+    setErrors(next);
+    if (Object.values(next).some(Boolean)) return;
     navigate('/vendor/registrations/new/evidence');
   };
 
@@ -31,34 +44,68 @@ export function NewRegistrationDetailsScreen() {
         </StickyActions>
       }
     >
-      <AppHeader title="Đăng ký kinh doanh" back />
+      <AppHeader
+        title={draft.registrationId ? 'Cập nhật hồ sơ' : 'Đăng ký kinh doanh'}
+        back
+      />
       <Stepper step={2} total={3} label="Thông tin hộ kinh doanh" />
+
       <TextField
         label="Tên hộ kinh doanh"
-        value={draft.businessName}
-        onChangeText={(v) => draft.setField('businessName', v)}
+        value={draft.displayName}
+        onChangeText={(v) => draft.setField('displayName', v)}
         placeholder="VD: Xôi gà Bà Năm"
+        error={errors.displayName}
+        maxLength={180}
+      />
+      <WardSelect
+        value={draft.wardUnitId ?? undefined}
+        onChange={(v) => draft.setField('wardUnitId', v ?? null)}
+        label="Phường/xã quản lý"
+        error={errors.ward}
+        helperText="Hồ sơ sẽ được chuyển tới cán bộ của phường này."
       />
       <TextField
-        label="Tên chủ hộ"
-        value={draft.ownerName}
-        onChangeText={(v) => draft.setField('ownerName', v)}
+        label={needsAddress ? 'Địa chỉ kinh doanh' : 'Địa chỉ kinh doanh (không bắt buộc)'}
+        value={draft.declaredAddress}
+        onChangeText={(v) => draft.setField('declaredAddress', v)}
+        placeholder="Số nhà, đường, phường"
+        error={errors.address}
+        helperText={
+          needsAddress
+            ? undefined
+            : 'Bán hàng lưu động có thể bỏ trống và chọn ô vỉa hè sau khi được duyệt.'
+        }
       />
-      <TextField
-        label="Số CCCD"
-        value={draft.idNumber}
-        onChangeText={(v) => draft.setField('idNumber', v)}
-        keyboardType="number-pad"
-      />
-      {draft.vendorType === 'FIXED_STOREFRONT' ? (
-        <TextField
-          label="Địa chỉ kinh doanh"
-          value={draft.address}
-          onChangeText={(v) => draft.setField('address', v)}
-          placeholder="Số nhà, đường, phường"
-        />
+
+      {needsAddress ? (
+        <div className="flex gap-sm">
+          <div className="flex-1">
+            <TextField
+              label="Vĩ độ (không bắt buộc)"
+              value={draft.addressLatitude?.toString() ?? ''}
+              onChangeText={(v) => {
+                const parsed = parseOptionalCoordinate(v);
+                if (parsed !== undefined) draft.setField('addressLatitude', parsed);
+              }}
+              keyboardType="numeric"
+              placeholder="16.0678"
+            />
+          </div>
+          <div className="flex-1">
+            <TextField
+              label="Kinh độ (không bắt buộc)"
+              value={draft.addressLongitude?.toString() ?? ''}
+              onChangeText={(v) => {
+                const parsed = parseOptionalCoordinate(v);
+                if (parsed !== undefined) draft.setField('addressLongitude', parsed);
+              }}
+              keyboardType="numeric"
+              placeholder="108.2208"
+            />
+          </div>
+        </div>
       ) : null}
-      {error ? <span className="text-body-sm text-error">{error}</span> : null}
     </Screen>
   );
 }

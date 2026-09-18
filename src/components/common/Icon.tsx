@@ -38,6 +38,7 @@ const ICON_MAP: Record<string, IconType> = {
   'wallet-outline': Md.MdOutlineAccountBalanceWallet,
   'check-circle': Md.MdCheckCircle,
   'check-circle-outline': Md.MdOutlineCheckCircle,
+  'circle-outline': Md.MdOutlineCircle,
   'cart-outline': Md.MdOutlineShoppingCart,
   minus: Md.MdRemove,
   plus: Md.MdAdd,

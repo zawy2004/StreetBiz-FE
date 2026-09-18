@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 import { Icon } from '@/components/common';
 import { colors } from '@/theme';
@@ -6,29 +6,61 @@ import { colors } from '@/theme';
 type Props = {
   label: string;
   uri?: string;
-  onChange: (uri: string) => void;
-  onFile?: (file: File) => void;
+  /** Receives a preview URL plus the picked File, for callers that upload it. */
+  onChange: (uri: string, file: File) => void;
   onRemove?: () => void;
+  /** Optional check run before `onChange`; return a message to reject the file. */
+  validate?: (file: File) => string | undefined;
+  onInvalid?: (message: string) => void;
+  error?: boolean;
+  /**
+   * Widens the OS file picker beyond photos, e.g. `"image/*,application/pdf"`
+   * for evidence documents that may be a scanned PDF. Defaults to photos only.
+   */
+  accept?: string;
 };
 
 const SIZE = 96;
 
-export function PhotoPicker({ label, uri, onChange, onFile, onRemove }: Props) {
+export function PhotoPicker({
+  label,
+  uri,
+  onChange,
+  onRemove,
+  validate,
+  onInvalid,
+  error,
+  accept = 'image/*',
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  // <img> cannot render a PDF; track the picked file's type so a non-image
+  // selection (allowed when `accept` includes application/pdf) gets a readable
+  // placeholder instead of a broken image icon.
+  const [isNonImage, setIsNonImage] = useState(false);
 
   const handleFile = (file: File | undefined) => {
     if (!file) return;
-    onFile?.(file);
-    onChange(URL.createObjectURL(file));
+    const problem = validate?.(file);
+    if (problem) {
+      onInvalid?.(problem);
+      return;
+    }
+    setIsNonImage(!file.type.startsWith('image/'));
+    onChange(URL.createObjectURL(file), file);
   };
 
   const fileInput = (
     <input
       ref={inputRef}
       type="file"
-      accept="image/*"
+      accept={accept}
       className="hidden"
-      onChange={(e) => handleFile(e.target.files?.[0])}
+      aria-label={label}
+      onChange={(e) => {
+        handleFile(e.target.files?.[0]);
+        // Allow picking the same file again after removing it.
+        e.target.value = '';
+      }}
     />
   );
 
@@ -37,7 +69,14 @@ export function PhotoPicker({ label, uri, onChange, onFile, onRemove }: Props) {
       <div style={{ width: SIZE, height: SIZE }} className="relative overflow-hidden rounded-sm">
         {fileInput}
         <button type="button" onClick={() => inputRef.current?.click()} className="h-full w-full">
-          <img src={uri} alt={label} className="h-full w-full object-cover" />
+          {isNonImage ? (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-bg">
+              <Icon name="file-document-outline" size={28} color={colors.muted} />
+              <span className="text-body-sm text-muted">Đã chọn file</span>
+            </div>
+          ) : (
+            <img src={uri} alt={label} className="h-full w-full object-cover" />
+          )}
         </button>
         <div className="absolute inset-x-0 bottom-0 truncate bg-[rgba(26,34,56,0.7)] px-1.5 py-0.5 text-body-sm text-white">
           {label}
@@ -46,7 +85,7 @@ export function PhotoPicker({ label, uri, onChange, onFile, onRemove }: Props) {
           <button
             type="button"
             onClick={onRemove}
-            aria-label="Xoá ảnh"
+            aria-label={`Xoá ảnh ${label}`}
             className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(26,34,56,0.7)]"
           >
             <Icon name="close" size={14} color={colors.white} />
@@ -62,9 +101,9 @@ export function PhotoPicker({ label, uri, onChange, onFile, onRemove }: Props) {
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="flex h-full w-full flex-col items-center justify-center rounded-sm border border-dashed border-border p-2xs text-center"
+        className={`flex h-full w-full flex-col items-center justify-center rounded-sm border border-dashed p-2xs text-center ${error ? 'border-error' : 'border-border'}`}
       >
-        <Icon name="camera-plus-outline" size={24} color={colors.muted} />
+        <Icon name="camera-plus-outline" size={24} color={error ? colors.error : colors.muted} />
         <span className="mt-1 line-clamp-2 text-body-sm text-muted">{label}</span>
       </button>
     </div>
