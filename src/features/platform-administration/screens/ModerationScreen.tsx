@@ -1,12 +1,14 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
-import { Button, Card } from '@/components/common';
+import { Card } from '@/components/common';
+import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
 import { SegmentedControl } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { EmptyState, showToast } from '@/components/feedback';
-import { env } from '@/core/config/env';
-import { useMockDb } from '@/mocks/db';
+import { PlatformConnection } from '../components/PlatformConnection';
+import { platformApi, PlatformApiError } from '../platform-api';
 
 type Tab = 'CONTENT' | 'COMPLAINTS';
 
@@ -16,25 +18,37 @@ const CONTENT_LABEL: Record<string, string> = {
   REVIEW: 'Đánh giá',
 };
 
-export function ModerationScreen() {
-  const [tab, setTab] = useState<Tab>('CONTENT');
-  const reportedContent = useMockDb((s) => s.reportedContent);
-  const moderateContent = useMockDb((s) => s.moderateContent);
-  const complaints = useMockDb((s) => s.complaints);
-  const resolveComplaint = useMockDb((s) => s.resolveComplaint);
+const COMPLAINT_LABEL: Record<string, string> = {
+  COMPLAINT: 'Khiếu nại',
+  REFUND_REQUEST: 'Yêu cầu hoàn tiền',
+};
 
-  if (!env.enablePhase2) {
-    return (
-      <Screen>
-        <AppHeader title="Kiểm duyệt" />
-        <EmptyState icon="shield-check-outline" title="Tính năng thuộc Phase 2" />
-      </Screen>
-    );
-  }
+export function ModerationScreen() {
+  return (
+    <PlatformConnection>
+      <ModerationContent />
+    </PlatformConnection>
+  );
+}
+
+function ModerationContent() {
+  const navigate = useNavigate();
+  const [tab, setTab] = useState<Tab>('CONTENT');
+  const reports = useQuery({
+    queryKey: ['platform', 'reported-content'],
+    queryFn: () => platformApi.reportedContent(),
+    enabled: tab === 'CONTENT',
+  });
+  const complaints = useQuery({
+    queryKey: ['platform', 'order-complaints'],
+    queryFn: () => platformApi.complaints(),
+    enabled: tab === 'COMPLAINTS',
+  });
+  const active = tab === 'CONTENT' ? reports : complaints;
 
   return (
     <Screen>
-      <AppHeader title="Kiểm duyệt" />
+      <AppHeader title="Kiểm duyệt" subtitle="ADM-03 · ADM-04 · ADM-05" />
       <SegmentedControl
         value={tab}
         onChange={setTab}
@@ -44,61 +58,67 @@ export function ModerationScreen() {
         ]}
       />
 
-      {tab === 'CONTENT' ? (
-        reportedContent.length === 0 ? (
+      {active.isPending ? <LoadingState /> : null}
+      {active.isError ? (
+        <ErrorState
+          message={
+            active.error instanceof PlatformApiError
+              ? active.error.message
+              : 'Không tải được hàng đợi kiểm duyệt.'
+          }
+          onRetry={() => active.refetch()}
+        />
+      ) : null}
+
+      {tab === 'CONTENT' && reports.data ? (
+        reports.data.items.length === 0 ? (
           <EmptyState icon="flag-outline" title="Không có nội dung bị báo cáo" />
         ) : (
-          reportedContent.map((r) => (
-            <Card key={r.id}>
-              <div className="flex justify-between">
-                <span className="text-headline-sm text-text">{CONTENT_LABEL[r.content_type]}</span>
-                <StatusChip code={r.status} />
-              </div>
-              <p className="mt-1 text-body-md text-muted">{r.reason}</p>
-              {r.status === 'PENDING' ? (
-                <div className="mt-sm flex gap-sm">
-                  <div className="flex-1">
-                    <Button
-                      label="Bỏ qua"
-                      variant="outline"
-                      onPress={() => moderateContent(r.id, false)}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <Button
-                      label="Ẩn nội dung"
-                      variant="danger"
-                      onPress={() => moderateContent(r.id, true)}
-                    />
-                  </div>
+          reports.data.items.map((report) => (
+            <Card
+              key={report.reportId}
+              onPress={() => navigate(`/platform/moderation/content/${report.reportId}`)}
+            >
+              <div className="flex items-start justify-between gap-sm">
+                <div className="min-w-0 flex-1">
+                  <span className="text-body-sm text-muted">
+                    {CONTENT_LABEL[report.contentType] ?? report.contentType}
+                  </span>
+                  <span className="block truncate text-headline-sm text-text">
+                    {report.contentTitle}
+                  </span>
                 </div>
-              ) : null}
+                <StatusChip code={report.status} />
+              </div>
+              <p className="mt-1 line-clamp-2 text-body-md text-muted">{report.reason}</p>
             </Card>
           ))
         )
-      ) : complaints.length === 0 ? (
-        <EmptyState icon="chat-alert-outline" title="Không có khiếu nại nào" />
-      ) : (
-        complaints.map((c) => (
-          <Card key={c.id}>
-            <div className="flex justify-between">
-              <span className="text-headline-sm text-text">{c.complaint_type}</span>
-              <StatusChip code={c.status} />
-            </div>
-            <p className="mt-1 text-body-md text-muted">{c.description}</p>
-            {c.status === 'PENDING' ? (
-              <Button
-                label="Đánh dấu đã xử lý"
-                variant="approve"
-                onPress={() => {
-                  resolveComplaint(c.id);
-                  showToast('Đã xử lý khiếu nại');
-                }}
-              />
-            ) : null}
-          </Card>
-        ))
-      )}
+      ) : null}
+
+      {tab === 'COMPLAINTS' && complaints.data ? (
+        complaints.data.items.length === 0 ? (
+          <EmptyState icon="chat-alert-outline" title="Không có khiếu nại nào" />
+        ) : (
+          complaints.data.items.map((complaint) => (
+            <Card
+              key={complaint.complaintId}
+              onPress={() => navigate(`/platform/moderation/complaints/${complaint.complaintId}`)}
+            >
+              <div className="flex items-start justify-between gap-sm">
+                <div className="min-w-0 flex-1">
+                  <span className="text-body-sm text-muted">{complaint.orderCode}</span>
+                  <span className="block truncate text-headline-sm text-text">
+                    {COMPLAINT_LABEL[complaint.complaintType] ?? complaint.complaintType}
+                  </span>
+                </div>
+                <StatusChip code={complaint.status} />
+              </div>
+              <p className="mt-1 line-clamp-2 text-body-md text-muted">{complaint.description}</p>
+            </Card>
+          ))
+        )
+      ) : null}
     </Screen>
   );
 }

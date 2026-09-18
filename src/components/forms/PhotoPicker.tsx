@@ -7,16 +7,18 @@ type Props = {
   label: string;
   uri?: string;
   onChange: (uri: string) => void;
+  onFile?: (file: File) => void;
   onRemove?: () => void;
 };
 
 const SIZE = 96;
 
-export function PhotoPicker({ label, uri, onChange, onRemove }: Props) {
+export function PhotoPicker({ label, uri, onChange, onFile, onRemove }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File | undefined) => {
     if (!file) return;
+    onFile?.(file);
     onChange(URL.createObjectURL(file));
   };
 
@@ -32,10 +34,7 @@ export function PhotoPicker({ label, uri, onChange, onRemove }: Props) {
 
   if (uri) {
     return (
-      <div
-        style={{ width: SIZE, height: SIZE }}
-        className="relative overflow-hidden rounded-sm"
-      >
+      <div style={{ width: SIZE, height: SIZE }} className="relative overflow-hidden rounded-sm">
         {fileInput}
         <button type="button" onClick={() => inputRef.current?.click()} className="h-full w-full">
           <img src={uri} alt={label} className="h-full w-full object-cover" />
