@@ -27,9 +27,11 @@ import { sideApi, useVendorApiSession, SideApiError, type SidewalkSlot } from '@
 type Filter = 'ALL' | 'AVAILABLE';
 type Bounds = { minLat: number; maxLat: number; minLng: number; maxLng: number };
 
-// Hoà Quý, Ngũ Hành Sơn, Đà Nẵng -- where the seed data's zones and slots are.
-const DEFAULT_CENTER: [number, number] = [16.012, 108.24];
-const DEFAULT_SPAN = 0.01;
+// Đường Nguyễn Văn Linh, phường Nam Dương, Hải Châu -- the one pilot area
+// seeded with slots placed on the real street centerline (geocoded), rather
+// than the older Hoà Quý seed data's approximate in-block points.
+const DEFAULT_CENTER: [number, number] = [16.0607, 108.2155];
+const DEFAULT_SPAN = 0.004;
 const SEARCH_ZOOM = 18;
 
 function markerIcon(status: string) {
