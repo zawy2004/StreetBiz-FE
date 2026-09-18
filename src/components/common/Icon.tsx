@@ -63,6 +63,7 @@ const ICON_MAP: Record<string, IconType> = {
   'swap-horizontal': Md.MdOutlineSwapHoriz,
   'shape-outline': Md.MdOutlineCategory,
   'chevron-right': Md.MdChevronRight,
+  'format-list-bulleted': Md.MdOutlineFormatListBulleted,
   'eye-off-outline': Md.MdOutlineVisibilityOff,
   'eye-outline': Md.MdOutlineVisibility,
 };
