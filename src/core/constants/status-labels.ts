@@ -10,11 +10,15 @@ import type { StatusTone } from '@/theme';
 export const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> = {
   DRAFT: { label: 'Nháp', tone: 'neutral' },
   PENDING: { label: 'Chờ duyệt', tone: 'pending' },
+  SUBMITTED: { label: 'Đã nộp', tone: 'pending' },
   UNDER_REVIEW: { label: 'Đang xét', tone: 'pending' },
   NEEDS_INFO: { label: 'Cần bổ sung', tone: 'pending' },
+  MORE_INFORMATION_REQUIRED: { label: 'Cần bổ sung', tone: 'pending' },
   APPROVED: { label: 'Đã duyệt', tone: 'ok' },
   ACTIVE: { label: 'Đang hoạt động', tone: 'ok' },
   VALID: { label: 'Hợp lệ', tone: 'ok' },
+  NOT_YET_VALID: { label: 'Chưa có hiệu lực', tone: 'pending' },
+  NOT_FOUND: { label: 'Không tìm thấy', tone: 'danger' },
   AVAILABLE: { label: 'Còn trống', tone: 'ok' },
   PENDING_APPLICATION: { label: 'Đang có đơn', tone: 'pending' },
   OPEN: { label: 'Đang mở', tone: 'ok' },
@@ -38,6 +42,10 @@ export const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> 
   SOLD_OUT: { label: 'Hết món', tone: 'danger' },
   PREPARING: { label: 'Đang chuẩn bị', tone: 'pending' },
   HIDDEN: { label: 'Đã ẩn', tone: 'neutral' },
+  DISMISSED: { label: 'Đã bỏ qua', tone: 'neutral' },
+  VISIBLE: { label: 'Đang hiển thị', tone: 'ok' },
+  MISSING: { label: 'Không còn tồn tại', tone: 'danger' },
+  ARCHIVED: { label: 'Đã lưu trữ', tone: 'neutral' },
 };
 
 export function statusLabel(code: string) {
