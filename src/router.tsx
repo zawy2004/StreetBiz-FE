@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 
 import { GUEST_HOME_ROUTE, ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
+import { AuthGuard } from '@/core/auth/RoleGuard';
 import { useAuthStore } from '@/store/auth-store';
 import { WardCasesScreen } from '@/features/ward-administration/screens/WardCasesScreen';
 import { WardCaseScreen } from '@/features/ward-administration/screens/WardCaseScreen';
@@ -143,10 +144,38 @@ export function AppRouter() {
       <Route path="/auth/password/reset-request" element={<ResetPasswordRequestScreen />} />
       <Route path="/auth/password/reset" element={<ResetPasswordScreen />} />
 
-      <Route path="/account" element={<AccountScreen />} />
-      <Route path="/account/password" element={<ChangePasswordScreen />} />
-      <Route path="/account/sessions" element={<SessionsScreen />} />
-      <Route path="/account/notifications" element={<NotificationsScreen />} />
+      <Route
+        path="/account"
+        element={
+          <AuthGuard>
+            <AccountScreen />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/account/password"
+        element={
+          <AuthGuard>
+            <ChangePasswordScreen />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/account/sessions"
+        element={
+          <AuthGuard>
+            <SessionsScreen />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/account/notifications"
+        element={
+          <AuthGuard>
+            <NotificationsScreen />
+          </AuthGuard>
+        }
+      />
 
       <Route
         path="/customer"

@@ -10,8 +10,10 @@ import type { StatusTone } from '@/theme';
 export const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> = {
   DRAFT: { label: 'Nháp', tone: 'neutral' },
   PENDING: { label: 'Chờ duyệt', tone: 'pending' },
+  SUBMITTED: { label: 'Đã nộp', tone: 'pending' },
   UNDER_REVIEW: { label: 'Đang xét', tone: 'pending' },
   NEEDS_INFO: { label: 'Cần bổ sung', tone: 'pending' },
+  MORE_INFORMATION_REQUIRED: { label: 'Cần bổ sung', tone: 'pending' },
   APPROVED: { label: 'Đã duyệt', tone: 'ok' },
   ACTIVE: { label: 'Đang hoạt động', tone: 'ok' },
   VALID: { label: 'Hợp lệ', tone: 'ok' },

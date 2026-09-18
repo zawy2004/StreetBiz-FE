@@ -27,3 +27,15 @@ export function RoleGuard({ role, allowGuest, children }: Props) {
 
   return <>{children}</>;
 }
+
+/**
+ * Requires a signed-in account of any role, for shared account-management
+ * screens (change password, sessions, notifications) that aren't role-scoped.
+ * Without this, an unauthenticated visitor hitting e.g. /account/sessions
+ * either sees a blank screen or a confusing "session expired" error instead of
+ * being sent to sign in.
+ */
+export function AuthGuard({ children }: { children: ReactNode }) {
+  const user = useAuthStore((s) => s.user);
+  return user ? <>{children}</> : <Navigate to="/auth/sign-in" replace />;
+}
