@@ -6,7 +6,8 @@ import { Button, Card, IconButton, Money } from '@/components/common';
 import { StatusChip } from '@/components/status';
 import { FilterChips } from '@/components/forms';
 import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
-import { sideApi, useVendorApiSession, SideApiError, type SidewalkSlot } from '@/core/api/side-api';
+import { sideApi, SideApiError, type SidewalkSlot } from '@/core/api/side-api';
+import { useAuthStore } from '@/store/auth-store';
 import { buildStreetLayout, type PlacedSlot } from '../street-geometry';
 import { slotStatusColor } from '../slot-visuals';
 import { StreetStripDiagram } from './StreetStripDiagram';
@@ -32,7 +33,7 @@ type Props = { slots: SidewalkSlot[] };
  */
 export function StreetStripView({ slots }: Props) {
   const navigate = useNavigate();
-  const generation = useVendorApiSession((s) => s.generation);
+  const userId = useAuthStore((s) => s.user?.id);
 
   const zones = useMemo(() => {
     const byZone = new Map<number, { zoneName: string; count: number }>();
@@ -56,7 +57,7 @@ export function StreetStripView({ slots }: Props) {
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
 
   const street = useQuery({
-    queryKey: ['side', generation, 'slots', { zoneId: activeZoneId, includeUnavailable: true }],
+    queryKey: ['side', userId, 'slots', { zoneId: activeZoneId, includeUnavailable: true }],
     queryFn: () => sideApi.searchSlots({ zoneId: activeZoneId!, includeUnavailable: true, take: 500 }),
     enabled: activeZoneId != null,
   });
