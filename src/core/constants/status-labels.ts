@@ -17,6 +17,8 @@ export const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> 
   APPROVED: { label: 'Đã duyệt', tone: 'ok' },
   ACTIVE: { label: 'Đang hoạt động', tone: 'ok' },
   VALID: { label: 'Hợp lệ', tone: 'ok' },
+  NOT_YET_VALID: { label: 'Chưa có hiệu lực', tone: 'pending' },
+  NOT_FOUND: { label: 'Không tìm thấy', tone: 'danger' },
   AVAILABLE: { label: 'Còn trống', tone: 'ok' },
   OPEN: { label: 'Đang mở', tone: 'ok' },
   PAID: { label: 'Đã thanh toán', tone: 'ok' },
@@ -39,6 +41,10 @@ export const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> 
   SOLD_OUT: { label: 'Hết món', tone: 'danger' },
   PREPARING: { label: 'Đang chuẩn bị', tone: 'pending' },
   HIDDEN: { label: 'Đã ẩn', tone: 'neutral' },
+  DISMISSED: { label: 'Đã bỏ qua', tone: 'neutral' },
+  VISIBLE: { label: 'Đang hiển thị', tone: 'ok' },
+  MISSING: { label: 'Không còn tồn tại', tone: 'danger' },
+  ARCHIVED: { label: 'Đã lưu trữ', tone: 'neutral' },
 };
 
 export function statusLabel(code: string) {

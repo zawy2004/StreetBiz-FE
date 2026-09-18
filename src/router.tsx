@@ -106,6 +106,8 @@ import {
   AccountsScreen,
   CategoriesScreen,
   ModerationScreen,
+  ReportedContentReviewScreen,
+  OrderComplaintReviewScreen,
   PlatformDashboardScreen,
 } from '@/features/platform-administration/screens';
 
@@ -273,6 +275,8 @@ export function AppRouter() {
         <Route path="accounts" element={<AccountsScreen />} />
         <Route path="categories" element={<CategoriesScreen />} />
         <Route path="moderation" element={<ModerationScreen />} />
+        <Route path="moderation/content/:reportId" element={<ReportedContentReviewScreen />} />
+        <Route path="moderation/complaints/:complaintId" element={<OrderComplaintReviewScreen />} />
       </Route>
 
       <Route path="*" element={<NotFoundScreen />} />

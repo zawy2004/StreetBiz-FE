@@ -1,8 +1,12 @@
 # StreetBiz Frontend
 
-WARD-16–18 and SYS-01–02 now connect to StreetBiz-BE at
-`/ward/inbox/reviews`.
-See [Ward slot workflows](docs/ward-slot-workflows.md) for connection and setup.
+WARD-16–18 and SYS-01–02 connect to StreetBiz-BE at `/ward/inbox/reviews`.
+BUY-01–05 use live Backend APIs for the customer vendor map, permit check,
+public profile, rating and report screens. ADM-01 and ADM-03–05 now provide live
+food-category, content-moderation and order-complaint pages. See
+[Community vendor workflows](docs/community-vendor-workflows.md) and
+[Platform administration workflows](docs/platform-administration-workflows.md)
+for setup and route details.
 
 StreetBiz-FE is the React web client for the StreetBiz sidewalk
 vendor-management platform — a Vite single-page app targeting desktop and
@@ -232,8 +236,8 @@ rationale.
 
 ## Prepared but not yet wired
 
-- `VITE_API_BASE_URL` / an HTTP client — screens call `src/mocks/db.ts`
-  directly instead of a network layer.
+- Most workflows outside Ward slot review, BUY-01–05 and ADM-01/03/04/05 still call
+  `src/mocks/db.ts` directly instead of the Backend.
 - Push notifications, camera access beyond a plain `<input type="file">`.
 - SignalR/real-time updates.
 
@@ -245,3 +249,5 @@ rationale.
 - docs/route-plan.md
 - docs/phase-boundary.md
 - docs/api-integration-plan.md
+- docs/community-vendor-workflows.md
+- docs/platform-administration-workflows.md

@@ -66,10 +66,7 @@ export function PhotoPicker({
 
   if (uri) {
     return (
-      <div
-        style={{ width: SIZE, height: SIZE }}
-        className="relative overflow-hidden rounded-sm"
-      >
+      <div style={{ width: SIZE, height: SIZE }} className="relative overflow-hidden rounded-sm">
         {fileInput}
         <button type="button" onClick={() => inputRef.current?.click()} className="h-full w-full">
           {isNonImage ? (
