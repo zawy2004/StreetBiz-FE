@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { SegmentedControl } from '@/components/forms';
-import { VendorConnection } from '@/core/auth/VendorConnection';
-import { sideApi, useVendorApiSession } from '@/core/api/side-api';
+import { sideApi } from '@/core/api/side-api';
+import { useAuthStore } from '@/store/auth-store';
 import { SlotMapView, type Bounds } from '../components/SlotMapView';
 import { StreetStripView } from '../components/StreetStripView';
 import { DEFAULT_CENTER, DEFAULT_SPAN } from '../map-constants';
@@ -11,15 +11,7 @@ import { DEFAULT_CENTER, DEFAULT_SPAN } from '../map-constants';
 type View = 'MAP' | 'DIAGRAM';
 
 export function SlotMapScreen() {
-  return (
-    <VendorConnection>
-      <SlotMapContent />
-    </VendorConnection>
-  );
-}
-
-function SlotMapContent() {
-  const generation = useVendorApiSession((s) => s.generation);
+  const userId = useAuthStore((s) => s.user?.id);
   const [view, setView] = useState<View>('MAP');
   const [bounds, setBounds] = useState<Bounds>({
     minLat: DEFAULT_CENTER[0] - DEFAULT_SPAN,
@@ -33,7 +25,7 @@ function SlotMapContent() {
   // AVAILABLE ones -- previously the two map chips always returned the same
   // set because the server only ever sent AVAILABLE slots either way.
   const slots = useQuery({
-    queryKey: ['side', generation, 'slots', { ...bounds, includeUnavailable: true }],
+    queryKey: ['side', userId, 'slots', { ...bounds, includeUnavailable: true }],
     queryFn: () => sideApi.searchSlots({ ...bounds, includeUnavailable: true, take: 200 }),
     placeholderData: (previous) => previous,
   });
