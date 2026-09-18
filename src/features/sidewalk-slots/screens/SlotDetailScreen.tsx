@@ -9,14 +9,20 @@ import { ErrorState, LoadingState, showToast } from '@/components/feedback';
 import { sideApi, SideApiError } from '@/core/api/side-api';
 import { reverseGeocode } from '@/services/map/reverse-geocode';
 import { useAuthStore } from '@/store/auth-store';
+import { useRegistrations } from '@/features/business-registrations/useRegistrations';
 
 export function SlotDetailScreen() {
   const { slotId } = useParams<{ slotId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.user?.id);
+  const { registrations } = useRegistrations();
+  // BR-16: the backend only accepts an application against an APPROVED
+  // registration -- there's no picker for a vendor to name one by hand, so
+  // this picks the caller's own for them instead of asking for a raw
+  // registrationId they have no way of knowing.
+  const approvedRegistration = registrations.find((r) => r.registrationStatus === 'APPROVED');
   const [applying, setApplying] = useState(false);
-  const [registrationId, setRegistrationId] = useState('');
   const [requestedTermDays, setRequestedTermDays] = useState('90');
 
   const id = Number(slotId);
@@ -30,7 +36,7 @@ export function SlotDetailScreen() {
   const apply = useMutation({
     mutationFn: () =>
       sideApi.submitOpenSlotApplication({
-        registrationId: Number(registrationId),
+        registrationId: approvedRegistration!.registrationId,
         slotId: id,
         requestedTermDays: Number(requestedTermDays),
       }),
@@ -67,17 +73,12 @@ export function SlotDetailScreen() {
       footer={
         data.slotStatus === 'AVAILABLE' ? (
           <StickyActions>
-            {applying ? (
+            {!approvedRegistration ? (
+              <p className="text-body-sm text-muted">
+                Cần có hồ sơ đăng ký kinh doanh đã được duyệt trước khi nộp đơn thuê ô.
+              </p>
+            ) : applying ? (
               <div className="flex flex-col gap-sm">
-                <label>
-                  Mã hồ sơ đăng ký (registrationId)
-                  <input
-                    className="mt-xs w-full rounded-sm border border-border p-sm"
-                    value={registrationId}
-                    onChange={(e) => setRegistrationId(e.target.value)}
-                    inputMode="numeric"
-                  />
-                </label>
                 <label>
                   Số ngày thuê
                   <input
@@ -90,7 +91,7 @@ export function SlotDetailScreen() {
                 <Button
                   label="Gửi đơn thuê ô này"
                   loading={apply.isPending}
-                  disabled={!registrationId.trim() || !requestedTermDays.trim()}
+                  disabled={!requestedTermDays.trim()}
                   onPress={() => apply.mutate()}
                 />
               </div>
