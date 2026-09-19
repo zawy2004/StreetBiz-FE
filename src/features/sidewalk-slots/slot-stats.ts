@@ -99,14 +99,6 @@ export function overlapsShift(slot: Pick<SidewalkSlot, 'availableFrom' | 'availa
   return from < shiftTo && to > shiftFrom;
 }
 
-/** "Ca sáng", "Ca chiều - tối" or "Cả ngày", from the opening hours alone. */
-export function shiftLabel(slot: Pick<SidewalkSlot, 'availableFrom' | 'availableTo'>): string {
-  const morning = overlapsShift(slot, 'MORNING');
-  const evening = overlapsShift(slot, 'AFTERNOON_EVENING');
-  if (morning && evening) return 'Cả ngày';
-  return morning ? SHIFT_LABELS.MORNING : SHIFT_LABELS.AFTERNOON_EVENING;
-}
-
 export type SlotFilters = {
   /** 'ALL' or one display state. */
   state: SlotDisplayState | 'ALL';

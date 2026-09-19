@@ -70,12 +70,12 @@ describe('deadlineText', () => {
   const now = Date.parse('2026-09-19T08:00:00');
 
   it('counts the days left, with the deadline day itself still open', () => {
-    expect(deadlineText('2026-09-25', now)).toBe('Hạn nộp hồ sơ: còn 6 ngày');
-    expect(deadlineText('2026-09-19', now)).toBe('Hạn nộp hồ sơ: hôm nay');
+    expect(deadlineText('2026-09-25', now)).toBe('Hạn nộp: còn 6 ngày');
+    expect(deadlineText('2026-09-19', now)).toBe('Hạn nộp: hôm nay');
   });
 
   it('says so once the deadline has passed', () => {
-    expect(deadlineText('2026-09-18', now)).toBe('Đã hết hạn nộp hồ sơ');
+    expect(deadlineText('2026-09-18', now)).toBe('Đã hết hạn nộp');
   });
 });
 

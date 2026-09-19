@@ -49,7 +49,7 @@ export function VendorTopBar() {
               <div className="text-right">
                 <p className="max-w-[180px] truncate text-label text-text">{user?.fullName ?? 'Hộ kinh doanh'}</p>
                 {registration && (
-                  <p className="text-body-sm text-muted">Mã định danh: {hkdCode(registration.registrationId)}</p>
+                  <p className="text-body-sm text-muted">{hkdCode(registration.registrationId)}</p>
                 )}
               </div>
             )}

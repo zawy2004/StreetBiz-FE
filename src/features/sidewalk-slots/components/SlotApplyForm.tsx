@@ -18,8 +18,8 @@ const MAX_TERM_DAYS = 365;
 // Fixed wording: the backend only stores *that* the vendor ticked both, at what
 // time, so these two sentences are the whole contract the checkbox stands for.
 export const COMMITMENTS = [
-  'Tôi cam kết kinh doanh đúng vị trí, diện tích và khung giờ được cấp, không lấn chiếm lối đi chung.',
-  'Tôi cam kết giữ vệ sinh khu vực, tuân thủ quy định phòng cháy chữa cháy và các quy định hiện hành của Phường.',
+  'Tôi kinh doanh đúng vị trí, diện tích, khung giờ được cấp và không lấn lối đi chung.',
+  'Tôi giữ vệ sinh, tuân thủ phòng cháy chữa cháy và quy định của Phường.',
 ] as const;
 
 type Props = { slot: SidewalkSlot };
@@ -91,10 +91,10 @@ export function SlotApplyForm({ slot }: Props) {
     return (
       <p className="rounded-md bg-bg p-sm text-body-sm text-muted">
         {state === 'ACTIVE'
-          ? 'Ô này đã có hộ kinh doanh thuê.'
+          ? 'Ô này đã có người thuê.'
           : state === 'PENDING'
-            ? 'Ô này đang có đơn thuê được xét duyệt.'
-            : 'Ô này đang tạm ngưng, chưa nhận đơn thuê.'}
+            ? 'Ô này đang có đơn chờ duyệt.'
+            : 'Ô này đang tạm ngưng.'}
       </p>
     );
   }
@@ -102,7 +102,7 @@ export function SlotApplyForm({ slot }: Props) {
   if (!registration) {
     return (
       <p className="rounded-md bg-bg p-sm text-body-sm text-muted">
-        Cần có hồ sơ đăng ký kinh doanh đã được duyệt trước khi giữ chỗ hoặc nộp đơn thuê ô.
+        Cần hồ sơ kinh doanh đã được duyệt để giữ chỗ hoặc nộp đơn.
       </p>
     );
   }
@@ -112,7 +112,7 @@ export function SlotApplyForm({ slot }: Props) {
   return (
     <div className="flex flex-col gap-md">
       <label className="flex flex-col gap-xs text-label text-text">
-        Số ngày thuê (1 – {MAX_TERM_DAYS})
+        Số ngày thuê
         <input
           className="h-10 w-full rounded-sm border border-border bg-card px-sm text-body-md"
           value={termDays}
@@ -123,12 +123,8 @@ export function SlotApplyForm({ slot }: Props) {
       </label>
 
       <div className="overflow-hidden rounded-md border border-border">
-        <div className="flex justify-between bg-bg px-sm py-xs text-badge text-muted">
-          <span>KHOẢN MỤC PHÍ (THEO SỐ NGÀY THUÊ)</span>
-          <span>ĐỊNH MỨC</span>
-        </div>
         {!validDays ? (
-          <p className="p-sm text-body-sm text-muted">Nhập số ngày từ 1 đến {MAX_TERM_DAYS} để xem báo giá.</p>
+          <p className="p-sm text-body-sm text-muted">Nhập 1 – {MAX_TERM_DAYS} ngày.</p>
         ) : quote.error ? (
           <p className="p-sm text-body-sm text-error">
             {quote.error instanceof SideApiError ? quote.error.message : 'Không tính được báo giá.'}
@@ -150,12 +146,10 @@ export function SlotApplyForm({ slot }: Props) {
       {quote.data && validDays && (
         <div className="flex flex-col gap-1">
           <div className="flex items-baseline justify-between gap-sm">
-            <p className="text-headline-sm text-text">Tổng chi phí dự kiến</p>
+            <p className="text-headline-sm text-text">Tạm tính</p>
             <Money amountVnd={quote.data.total} size="lg" color={colors.tertiary} className="whitespace-nowrap" />
           </div>
-          <p className="text-body-sm text-muted">
-            Chỉ mang tính tham khảo — lịch phí chính thức do Phường lập sau khi duyệt.
-          </p>
+          <p className="text-body-sm text-muted">Ước tính, chưa phải phí chính thức.</p>
         </div>
       )}
 
@@ -175,8 +169,7 @@ export function SlotApplyForm({ slot }: Props) {
 
       {heldByOther && slot.holdExpiresAt && (
         <p className="rounded-md bg-tint-secondary p-sm text-body-sm text-on-secondary">
-          Ô đang được hộ khác giữ chỗ (còn {formatCountdown(secondsUntil(slot.holdExpiresAt, nowMs))}). Bạn có thể
-          thử lại sau.
+          Ô đang được hộ khác giữ chỗ (còn {formatCountdown(secondsUntil(slot.holdExpiresAt, nowMs))}).
         </p>
       )}
 

@@ -5,8 +5,8 @@ import type { IconName } from '@/components/common/Icon';
 import type { SidewalkSlot, SidewalkZone } from '@/core/api/side-api';
 import { reverseGeocode } from '@/services/map/reverse-geocode';
 import { colors } from '@/theme';
-import { formatAreaSqm, formatHours, formatSize, toDms } from '../slot-format';
-import { BUSINESS_CATEGORY_LABELS, shiftLabel, slotDisplayState } from '../slot-stats';
+import { formatAreaSqm, formatHours, formatSize } from '../slot-format';
+import { BUSINESS_CATEGORY_LABELS, slotDisplayState } from '../slot-stats';
 import { DISPLAY_STATE_LABELS, slotDisplayColor } from '../slot-visuals';
 import { useNow } from '../useNow';
 import { SlotApplyForm } from './SlotApplyForm';
@@ -37,13 +37,12 @@ export function SlotDetailPanel({ slot, zone }: Props) {
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-1 text-white/70">
             <Icon name="storefront-outline" size={40} color="rgba(255,255,255,0.7)" />
-            <span className="text-body-sm">Chưa có ảnh hiện trạng</span>
+            <span className="text-body-sm">Chưa có ảnh</span>
           </div>
         )}
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-sm bg-gradient-to-t from-black/70 to-transparent p-sm">
           <div className="min-w-0">
-            <p className="text-badge text-white/80">MÃ SỐ: {slot.slotCode}</p>
-            <h2 className="truncate text-headline-md text-white">{slot.zoneName}</h2>
+            <h2 className="truncate text-headline-md text-white">Ô {slot.slotCode}</h2>
           </div>
           <span
             className="shrink-0 rounded-full px-sm text-badge text-white"
@@ -59,10 +58,6 @@ export function SlotDetailPanel({ slot, zone }: Props) {
           <Icon name="map-marker-outline" size={16} color={colors.muted} />
           {address.isPending ? 'Đang tìm địa chỉ…' : (address.data ?? `${slot.latitude}, ${slot.longitude}`)}
         </span>
-        <span className="flex items-center gap-1">
-          <Icon name="crosshairs-gps" size={16} color={colors.muted} />
-          {toDms(slot.latitude, slot.longitude)} (WGS84)
-        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-xs">
@@ -71,17 +66,17 @@ export function SlotDetailPanel({ slot, zone }: Props) {
           label="Kích thước"
           value={size ? `${size}${area ? ` (${area})` : ''}` : 'Chưa đo kích thước'}
         />
-        <Fact icon="clock-outline" label="Khung giờ hoạt động" value={`${shiftLabel(slot)} (${formatHours(slot.availableFrom, slot.availableTo)})`} />
+        <Fact icon="clock-outline" label="Giờ hoạt động" value={formatHours(slot.availableFrom, slot.availableTo)} />
         <Fact
           icon="tag-outline"
-          label="Nhóm ngành hàng"
+          label="Ngành hàng"
           value={slot.businessCategory ? BUSINESS_CATEGORY_LABELS[slot.businessCategory] : 'Chưa phân ngành'}
         />
         {slot.tenantName && <Fact icon="storefront-outline" label="Hộ đang thuê" value={slot.tenantName} />}
       </div>
 
       <div className="flex flex-col gap-xs">
-        <p className="text-badge text-muted">HẠ TẦNG KỸ THUẬT TẠI VỊ TRÍ</p>
+        <p className="text-badge text-muted">HẠ TẦNG</p>
         <div className="grid grid-cols-3 gap-xs">
           <Amenity icon="flash-outline" label="Điện" on={slot.hasPower} />
           <Amenity icon="water-outline" label="Nước" on={slot.hasWater} />

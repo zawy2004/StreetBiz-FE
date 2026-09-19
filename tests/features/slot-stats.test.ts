@@ -4,7 +4,6 @@ import {
   hasActiveFilters,
   isHeld,
   overlapsShift,
-  shiftLabel,
   slotDisplayState,
   slotMatchesFilters,
   slotMatchesSearch,
@@ -72,13 +71,6 @@ describe('shifts', () => {
 
   it('treats a missing window as the whole day', () => {
     expect(overlapsShift(window(null, null), 'MORNING')).toBe(true);
-    expect(shiftLabel(window(null, null))).toBe('Cả ngày');
-  });
-
-  it('labels a slot by the shifts its hours cover', () => {
-    expect(shiftLabel(window('05:00:00', '11:00:00'))).toBe('Ca sáng');
-    expect(shiftLabel(window('16:30:00', '23:00:00'))).toBe('Ca chiều - tối');
-    expect(shiftLabel(window('05:00:00', '22:00:00'))).toBe('Cả ngày');
   });
 });
 
