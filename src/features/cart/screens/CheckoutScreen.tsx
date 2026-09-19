@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,18 +7,13 @@ import { EmptyState, ErrorState, LoadingState, showToast } from '@/components/fe
 import { SegmentedControl } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { commerceApi, errorMessage } from '@/core/api';
-import { env, isDev, isLiveApi } from '@/core/config/env';
+import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme';
 import { useCartStore } from '../cart-store';
 
 type Provider = 'MOMO' | 'ZALOPAY';
-
-function newIdempotencyKey() {
-  const suffix = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
-  return `WEB-ORDER-${suffix}`.slice(0, 100);
-}
 
 export function CheckoutScreen() {
   return isLiveApi ? <LiveCheckoutScreen /> : <MockCheckoutScreen />;
@@ -29,8 +24,12 @@ function LiveCheckoutScreen() {
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
   const [provider, setProvider] = useState<Provider>('MOMO');
-  const idempotencyKey = useRef(newIdempotencyKey());
-  const sandboxEnabled = isDev && env.enablePaymentSandbox;
+  const paymentOptions = useQuery({
+    queryKey: ['commerce', 'payment-options'],
+    queryFn: commerceApi.paymentOptions,
+    enabled: user?.role_code === 'CUSTOMER',
+  });
+  const sandboxEnabled = paymentOptions.data?.mode === 'SANDBOX';
   const cart = useQuery({
     queryKey: ['commerce', 'cart'],
     queryFn: commerceApi.cart,
@@ -38,20 +37,15 @@ function LiveCheckoutScreen() {
   });
   const place = useMutation({
     mutationFn: async () => {
-      const pending = await commerceApi.placeOrder(provider, idempotencyKey.current);
-      return sandboxEnabled ? commerceApi.confirmSandboxPayment(pending.orderId) : pending;
+      return commerceApi.placeOrder(provider, `WEB-CART-${user!.id}-${cart.data!.cartId}`);
     },
     onSuccess: async (order) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['commerce', 'cart'] }),
         queryClient.invalidateQueries({ queryKey: ['commerce', 'customer-orders'] }),
       ]);
-      showToast(
-        order.orderStatus === 'PLACED'
-          ? 'Thanh toán sandbox thành công, đơn đã gửi người bán'
-          : 'Đã tạo đơn, đang chờ cổng thanh toán xác nhận',
-      );
-      navigate(`/customer/orders/${order.orderId}`, { replace: true });
+      showToast('Đã tạo đơn. Hoàn tất thanh toán để gửi đơn cho người bán.');
+      navigate(`/customer/orders/${order.orderId}/payment`, { replace: true });
     },
   });
 
@@ -87,10 +81,15 @@ function LiveCheckoutScreen() {
         <StickyActions>
           <Button
             label={
-              sandboxEnabled ? `Thanh toán thử qua ${provider}` : 'Chưa cấu hình thanh toán thật'
+              sandboxEnabled ? `Tiếp tục thanh toán qua ${provider}` : 'Thanh toán chưa sẵn sàng'
             }
             loading={place.isPending}
-            disabled={place.isPending || !sandboxEnabled}
+            disabled={
+              place.isPending ||
+              !sandboxEnabled ||
+              data.storefrontStatus !== 'OPEN' ||
+              data.items.some((item) => item.availabilityStatus !== 'AVAILABLE')
+            }
             onPress={() => place.mutate()}
           />
         </StickyActions>
@@ -131,10 +130,22 @@ function LiveCheckoutScreen() {
       {!sandboxEnabled ? (
         <Card style={{ backgroundColor: '#E09F3E14', borderColor: '#E09F3E33' }}>
           <p className="text-body-md text-muted">
-            MOMO/ZaloPay production chưa được nối URL thanh toán và callback có chữ ký. Không thể
-            tạo đơn thanh toán thật cho đến khi adapter nhà cung cấp được cấu hình.
+            {paymentOptions.data?.message ??
+              'Không lấy được phương thức thanh toán. Vui lòng thử lại.'}
           </p>
         </Card>
+      ) : null}
+      {sandboxEnabled ? (
+        <p className="text-body-sm text-muted">Chế độ thử nghiệm · Không trừ tiền thật.</p>
+      ) : null}
+      {paymentOptions.isError ? (
+        <Button
+          label="Tải lại phương thức thanh toán"
+          variant="outline"
+          onPress={() => {
+            void paymentOptions.refetch();
+          }}
+        />
       ) : null}
       {place.isError ? (
         <p className="text-body-md text-error">{errorMessage(place.error)}</p>

@@ -9,6 +9,7 @@ describe('Button', () => {
     render(<Button label="Đăng nhập" onPress={onPress} />);
 
     expect(screen.getByText('Đăng nhập')).toBeTruthy();
+    expect(screen.getByRole('button')).toHaveClass('min-h-12');
     fireEvent.click(screen.getByRole('button'));
     expect(onPress).toHaveBeenCalledTimes(1);
   });

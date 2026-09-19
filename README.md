@@ -231,6 +231,13 @@ rationale.
 - Push notifications, camera access beyond a plain `<input type="file">`.
 - SignalR/real-time updates.
 
+Storefront/menu management and order review/complaint screens now use live APIs
+when live mode is enabled. Payment availability comes from the backend; the old
+`VITE_ENABLE_PAYMENT_SANDBOX` flag does not enable live checkout. Sandbox
+success/failure/retry and approved refund simulation require a Development
+backend. Real MoMo/ZaloPay gateway integration remains pending; see
+[commerce workflow notes](docs/commerce-order-workflows.md).
+
 ## Documentation
 
 - docs/architecture.md

@@ -86,7 +86,40 @@ export type SalesSummary = {
   orders: CommerceOrder[];
 };
 
+export type PaymentOptions = {
+  mode: 'SANDBOX' | 'UNAVAILABLE';
+  providers: ('MOMO' | 'ZALOPAY')[];
+  message: string;
+};
+export type CustomerComplaint = {
+  complaintId: number;
+  orderId: number;
+  complaintType: string;
+  description: string;
+  requestedRefundAmount: number | null;
+  status: string;
+  resolutionNotes: string | null;
+  createdAt: string;
+};
+
 export const commerceApi = {
+  review: (orderId: string | number) =>
+    apiGet<{ reviewId: number; rating: number; text: string | null } | null>(
+      `/orders/${orderId}/review`,
+    ),
+  saveReview: (orderId: number, rating: number, text: string) =>
+    apiPut<{ reviewId: number }>(`/orders/${orderId}/review`, { rating, text }),
+  paymentOptions: () => apiGet<PaymentOptions>('/orders/payment-options'),
+  failSandboxPayment: (orderId: number) =>
+    apiPost<CommerceOrder>(`/orders/${orderId}/payment/sandbox-fail`),
+  confirmSandboxRefund: (orderId: number) =>
+    apiPost<CommerceOrder>(`/orders/${orderId}/refund/sandbox-confirm`),
+  complaints: (orderId: string | number) =>
+    apiGet<CustomerComplaint[]>(`/orders/${orderId}/complaints`),
+  complain: (
+    orderId: number,
+    input: { complaintType: string; description: string; requestedRefundAmount: number | null },
+  ) => apiPost<CustomerComplaint>(`/orders/${orderId}/complaints`, input),
   menuItems: (query?: string) =>
     apiGet<MarketplaceMenuItem[]>(
       `/marketplace/menu-items${query ? `?query=${encodeURIComponent(query)}` : ''}`,

@@ -77,6 +77,7 @@ import {
 import { ReportContentScreen, VendorReportFormScreen } from '@/features/vendor-reports/screens';
 import { ItemDetailScreen, SearchScreen } from '@/features/buyer-discovery/screens';
 import { CartScreen, CheckoutScreen } from '@/features/cart/screens';
+import { OrderPaymentScreen } from '@/features/orders/screens/OrderPaymentScreen';
 import {
   CustomerOrdersScreen,
   OrderComplaintScreen,
@@ -198,6 +199,7 @@ export function AppRouter() {
         <Route path="account" element={<AccountScreen />} />
         <Route path="orders" element={<CustomerOrdersScreen />} />
         <Route path="orders/:orderId" element={<OrderDetailScreen />} />
+        <Route path="orders/:orderId/payment" element={<OrderPaymentScreen />} />
         <Route path="orders/:orderId/review" element={<OrderReviewScreen />} />
         <Route path="orders/:orderId/complaint" element={<OrderComplaintScreen />} />
       </Route>
