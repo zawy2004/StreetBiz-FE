@@ -28,6 +28,12 @@ const MIN_POINTS_FOR_OUTLIER_FILTER = 3;
 const MIN_STREET_LENGTH_METERS = 15;
 const MAX_CROSS_RATIO = 0.35;
 
+// A street only counts as having two built-up sides once each side reaches at
+// least this far from the fitted axis. Under it, the group is one row (or
+// geocoding jitter around one row) and the diagram draws a single side rather
+// than inventing a facing terrace that isn't in the data.
+const TWO_SIDED_MIN_OFFSET_METERS = 5;
+
 // Drawing-only fallback size for a slot with no recorded width/length --
 // never treated as a real measurement (see `measured` on SlotFootprint).
 const PLACEHOLDER_ALONG_METERS = 2;
@@ -50,6 +56,10 @@ export type PlacedSlot = {
   startMeters: number;
   endMeters: number;
   centerMeters: number;
+  /** Signed distance from the fitted street axis, in metres. */
+  crossMeters: number;
+  /** 'A' when crossMeters >= 0 (drawn on one side of the roadway), 'B' otherwise. */
+  side: 'A' | 'B';
 };
 
 export type StreetLayout =
@@ -66,6 +76,8 @@ export type StreetLayout =
        */
       bearingDegrees: number;
       offStreet: SidewalkSlot[];
+      /** True once slots sit on both sides of the axis, not just one row. */
+      hasTwoSides: boolean;
     };
 
 /**
@@ -146,11 +158,17 @@ export function buildStreetLayout(slots: readonly SidewalkSlot[]): StreetLayout 
     uy = -uy;
   }
 
-  const projected = inliers.map(({ slot, point }) => ({
-    slot,
-    along: point.x * ux + point.y * uy,
-    cross: -point.x * uy + point.y * ux,
-  }));
+  // Project from the fitted axis's own centroid (meanX/meanY), not from
+  // `origin` (the mean of every slot pre-outlier-rejection). This is only a
+  // translation -- `along` gets re-zeroed via minStart below regardless, so
+  // it changes nothing about order/spacing/length/bearing. It does make
+  // mean(cross) exactly 0, so "which side of the road" (sign of cross) is
+  // decided by the axis itself, not nudged by whichever outliers got dropped.
+  const projected = inliers.map(({ slot, point }) => {
+    const dx = point.x - meanX;
+    const dy = point.y - meanY;
+    return { slot, along: dx * ux + dy * uy, cross: -dx * uy + dy * ux };
+  });
 
   // With <=2 points the axis is exact (or undefined for 1 point) -- the
   // linearity check is meaningless and is skipped rather than divide-by-zero
@@ -167,7 +185,7 @@ export function buildStreetLayout(slots: readonly SidewalkSlot[]): StreetLayout 
     return { kind: 'not-a-street', alongSpreadMeters, crossSpreadMeters };
   }
 
-  const rawPlaced = projected.map(({ slot, along: centerMeters }) => {
+  const rawPlaced = projected.map(({ slot, along: centerMeters, cross }) => {
     const footprint = slotFootprint(slot);
     return {
       slot,
@@ -175,6 +193,8 @@ export function buildStreetLayout(slots: readonly SidewalkSlot[]): StreetLayout 
       startMeters: centerMeters - footprint.alongMeters / 2,
       endMeters: centerMeters + footprint.alongMeters / 2,
       centerMeters,
+      crossMeters: cross,
+      side: (cross >= 0 ? 'A' : 'B') as 'A' | 'B',
     };
   });
 
@@ -188,12 +208,19 @@ export function buildStreetLayout(slots: readonly SidewalkSlot[]): StreetLayout 
     }))
     .sort((a, b) => a.centerMeters - b.centerMeters);
 
+  // Two real sides means real slots sit at least TWO_SIDED_MIN_OFFSET_METERS
+  // on *both* sides of the axis -- not just a wide spread, which a single row
+  // sitting off-axis would also produce.
+  const hasTwoSides =
+    Math.min(...crossValues) <= -TWO_SIDED_MIN_OFFSET_METERS && Math.max(...crossValues) >= TWO_SIDED_MIN_OFFSET_METERS;
+
   return {
     kind: 'strip',
     placed,
     lengthMeters: Math.max(...placed.map((p) => p.endMeters)),
     bearingDegrees: (theta * 180) / Math.PI,
     offStreet,
+    hasTwoSides,
   };
 }
 
