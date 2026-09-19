@@ -29,6 +29,7 @@ export function SlotMapScreen() {
   const navigate = useNavigate();
   const userId = useAuthStore((s) => s.user?.id);
   const [view, setView] = useState<View>('MAP');
+  const [focusZoneId, setFocusZoneId] = useState<number | null>(null);
   const [bounds, setBounds] = useState<Bounds>({
     minLat: DEFAULT_CENTER[0] - DEFAULT_SPAN,
     maxLat: DEFAULT_CENTER[0] + DEFAULT_SPAN,
@@ -81,9 +82,13 @@ export function SlotMapScreen() {
             onBoundsChange={setBounds}
             error={slots.error}
             onRetry={() => void slots.refetch()}
+            onViewZoneDiagram={(zoneId) => {
+              setFocusZoneId(zoneId);
+              setView('DIAGRAM');
+            }}
           />
         ) : (
-          <StreetStripView slots={slots.data ?? []} />
+          <StreetStripView slots={slots.data ?? []} focusZoneId={focusZoneId} />
         )}
       </div>
     </div>
