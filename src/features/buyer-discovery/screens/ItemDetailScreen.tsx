@@ -83,6 +83,12 @@ function LiveItemDetailScreen() {
         </div>
         <p className="mt-sm text-body-md text-muted">{item.data.description}</p>
       </Card>
+      <Button
+        label="Xem quán"
+        variant="outline"
+        fullWidth={false}
+        onPress={() => navigate(`/customer/explore/stores/${item.data.storefrontId}`)}
+      />
       {!soldOut ? (
         <>
           <div className="mx-auto flex items-center gap-md">
