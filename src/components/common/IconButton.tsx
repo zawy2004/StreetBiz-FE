@@ -9,6 +9,7 @@ type Props = {
   background?: string;
   accessibilityLabel: string;
   testID?: string;
+  disabled?: boolean;
 };
 
 export function IconButton({
@@ -19,15 +20,17 @@ export function IconButton({
   background = colors.bg,
   accessibilityLabel,
   testID,
+  disabled,
 }: Props) {
   return (
     <button
       type="button"
       data-testid={testID}
       onClick={onPress}
+      disabled={disabled}
       aria-label={accessibilityLabel}
       style={{ backgroundColor: background }}
-      className="flex h-10 w-10 items-center justify-center rounded-full transition-opacity active:opacity-85"
+      className="flex h-10 w-10 items-center justify-center rounded-full transition-opacity active:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
     >
       <Icon name={icon} size={size} color={color} />
     </button>
