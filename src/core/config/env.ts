@@ -17,8 +17,6 @@ export const env = {
   enablePhase2: bool(import.meta.env.VITE_ENABLE_PHASE_2),
   enablePushNotifications: bool(import.meta.env.VITE_ENABLE_PUSH_NOTIFICATIONS),
   enablePaymentSandbox: bool(import.meta.env.VITE_ENABLE_PAYMENT_SANDBOX),
-  /** Free key from https://carto.com/basemaps/apikey/ -- without it the slot map falls back to Esri's street tiles. */
-  cartoApiKey: import.meta.env.VITE_CARTO_API_KEY ?? '',
 } as const;
 
 export const isDev = env.appEnv === 'development';
