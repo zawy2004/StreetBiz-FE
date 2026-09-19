@@ -27,6 +27,8 @@ const record: WardCase = {
   queuePosition: null,
   contractTerm: '01/09 – 30/09',
   outstanding: 0,
+  documents: null,
+  fastTrack: false,
 };
 function mount() {
   useWardSession.getState().connect('test-only');
