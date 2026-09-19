@@ -36,6 +36,7 @@ import {
 } from '@/features/business-registrations/screens';
 import {
   RentalApplicationDetailScreen,
+  MySlotsScreen,
   RentalApplicationsScreen,
   SlotDetailScreen,
   SlotMapScreen,
@@ -224,6 +225,7 @@ export function AppRouter() {
         <Route path="registrations/:id/adjacent-slot" element={<AdjacentSlotScreen />} />
         <Route path="slots" element={<SlotMapScreen />} />
         <Route path="slots/:slotId" element={<SlotDetailScreen />} />
+        <Route path="slots/mine" element={<MySlotsScreen />} />
         <Route path="slots/rental-applications" element={<RentalApplicationsScreen />} />
         <Route path="slots/rental-applications/:id" element={<RentalApplicationDetailScreen />} />
         <Route path="slots/slot-proposals/new" element={<SlotProposalScreen />} />
