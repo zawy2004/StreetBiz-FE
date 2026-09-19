@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   MapContainer,
   TileLayer,
@@ -10,24 +10,18 @@ import {
   useMap,
   useMapEvents,
 } from 'react-leaflet';
-import type { Map as LeafletMap } from 'leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-import { Button, Icon } from '@/components/common';
-import { StatusChip } from '@/components/status';
-import { FilterChips } from '@/components/forms';
+import { Button } from '@/components/common';
 import { colors } from '@/theme';
 import { env } from '@/core/config/env';
 import { SideApiError, type SidewalkSlot } from '@/core/api/side-api';
 import { DEFAULT_CENTER } from '../map-constants';
 
 export type Bounds = { minLat: number; maxLat: number; minLng: number; maxLng: number };
-type Filter = 'ALL' | 'AVAILABLE';
 
-const SEARCH_ZOOM = 18;
-
-// The street-strip diagram (SIDE-01) already shows every slot in a zone at
+// The corridor plan (SIDE-01) already shows every slot in a zone at
 // full detail -- one pin per slot on the map itself was redundant and, at
 // city zoom, an unreadable cluster. One badge per zone (total count, green
 // once any slot in it is AVAILABLE) says "there's rentable kerb here";
@@ -86,18 +80,9 @@ type Props = {
 };
 
 export function SlotMapView({ slots, onBoundsChange, error, onRetry, onViewZoneDiagram }: Props) {
-  const mapRef = useRef<LeafletMap | null>(null);
-  const [filter, setFilter] = useState<Filter>('ALL');
-  const [query, setQuery] = useState('');
-
-  const filtered = useMemo(
-    () => slots.filter((s) => (filter === 'ALL' ? true : s.slotStatus === 'AVAILABLE')),
-    [slots, filter],
-  );
-
   const zoneGroups = useMemo<ZoneGroup[]>(() => {
     const byZone = new Map<number, { zoneName: string; slots: SidewalkSlot[] }>();
-    for (const s of filtered) {
+    for (const s of slots) {
       const entry = byZone.get(s.zoneId);
       if (entry) entry.slots.push(s);
       else byZone.set(s.zoneId, { zoneName: s.zoneName, slots: [s] });
@@ -112,26 +97,11 @@ export function SlotMapView({ slots, onBoundsChange, error, onRetry, onViewZoneD
       totalCount: zoneSlots.length,
       availableCount: zoneSlots.filter((s) => s.slotStatus === 'AVAILABLE').length,
     }));
-  }, [filtered]);
-
-  const searchMatches = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    // No query yet: suggest the first few slots in view instead of an empty box.
-    if (!q) return slots.slice(0, 5);
-    return slots
-      .filter((s) => s.slotCode.toLowerCase().includes(q) || s.zoneName.toLowerCase().includes(q))
-      .slice(0, 8);
-  }, [slots, query]);
-
-  const goToSlot = (slot: SidewalkSlot) => {
-    mapRef.current?.flyTo([slot.latitude, slot.longitude], SEARCH_ZOOM);
-    setQuery('');
-  };
+  }, [slots]);
 
   return (
     <div className="relative h-full min-h-0 w-full">
       <MapContainer
-        ref={mapRef}
         center={DEFAULT_CENTER}
         zoom={17}
         zoomControl={false}
@@ -195,53 +165,6 @@ export function SlotMapView({ slots, onBoundsChange, error, onRetry, onViewZoneD
           </Marker>
         ))}
       </MapContainer>
-
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex items-start justify-between gap-sm p-sm">
-        <div className="pointer-events-auto w-72 max-w-[70vw] overflow-hidden rounded-md border border-border bg-card shadow-md">
-          <div className="flex items-center gap-xs px-sm py-xs">
-            <Icon name="magnify" size={18} color={colors.muted} />
-            <input
-              className="w-full bg-transparent text-body-sm text-text outline-none"
-              placeholder="Tìm theo mã ô hoặc khu vực"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          {searchMatches.length > 0 && (
-            <div className="max-h-64 overflow-y-auto border-t border-border">
-              {searchMatches.map((slot) => (
-                <button
-                  key={slot.slotId}
-                  type="button"
-                  className="flex w-full items-center justify-between gap-sm px-sm py-xs text-left hover:bg-bg"
-                  onClick={() => goToSlot(slot)}
-                >
-                  <span className="min-w-0 flex-1 truncate text-body-sm text-text">
-                    {slot.slotCode}
-                    <span className="ml-1 text-muted">· {slot.zoneName}</span>
-                  </span>
-                  <StatusChip code={slot.slotStatus} />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="pointer-events-auto rounded-md border border-border bg-card p-1 shadow-md">
-          <FilterChips
-            value={filter}
-            onChange={setFilter}
-            options={[
-              { value: 'ALL', label: 'Tất cả', count: slots.length },
-              {
-                value: 'AVAILABLE',
-                label: 'Còn trống',
-                count: slots.filter((s) => s.slotStatus === 'AVAILABLE').length,
-              },
-            ]}
-          />
-        </div>
-      </div>
 
       {error !== null && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 z-[1000] flex justify-center">
