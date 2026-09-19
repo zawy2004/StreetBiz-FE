@@ -1,29 +1,16 @@
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 
-import { Button, Card, Divider, ListRow, Money } from '@/components/common';
-import { AppHeader, Screen, StickyActions } from '@/components/layout';
-import { StatusChip } from '@/components/status';
-import { ErrorState, LoadingState, showToast } from '@/components/feedback';
-import { sideApi, SideApiError } from '@/core/api/side-api';
-import { reverseGeocode } from '@/services/map/reverse-geocode';
+import { AppHeader, Screen } from '@/components/layout';
+import { ErrorState, LoadingState } from '@/components/feedback';
+import { sideApi } from '@/core/api/side-api';
 import { useAuthStore } from '@/store/auth-store';
-import { useRegistrations } from '@/features/business-registrations/useRegistrations';
+import { SlotDetailPanel } from '../components/SlotDetailPanel';
 
+/** The same panel the workspace shows beside the plan, as a page of its own (deep link / back-navigable). */
 export function SlotDetailScreen() {
   const { slotId } = useParams<{ slotId: string }>();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.user?.id);
-  const { registrations } = useRegistrations();
-  // BR-16: the backend only accepts an application against an APPROVED
-  // registration -- there's no picker for a vendor to name one by hand, so
-  // this picks the caller's own for them instead of asking for a raw
-  // registrationId they have no way of knowing.
-  const approvedRegistration = registrations.find((r) => r.registrationStatus === 'APPROVED');
-  const [applying, setApplying] = useState(false);
-  const [requestedTermDays, setRequestedTermDays] = useState('90');
 
   const id = Number(slotId);
   const validId = Number.isFinite(id);
@@ -32,120 +19,22 @@ export function SlotDetailScreen() {
     queryFn: () => sideApi.getSlot(id),
     enabled: validId,
   });
-
-  const apply = useMutation({
-    mutationFn: () =>
-      sideApi.submitOpenSlotApplication({
-        registrationId: approvedRegistration!.registrationId,
-        slotId: id,
-        requestedTermDays: Number(requestedTermDays),
-      }),
-    onSuccess: (result) => {
-      showToast(result.message);
-      void queryClient.invalidateQueries({ queryKey: ['side', userId, 'applications'] });
-      navigate('/vendor/slots/rental-applications');
-    },
-    onError: (error) => {
-      showToast(error instanceof SideApiError ? error.message : 'Không gửi được đơn thuê.');
-    },
-  });
-
-  const address = useQuery({
-    queryKey: ['side', 'reverse-geocode', slot.data?.latitude, slot.data?.longitude],
-    queryFn: ({ signal }) => reverseGeocode(slot.data!.latitude, slot.data!.longitude, signal),
+  const zone = useQuery({
+    queryKey: ['side', userId, 'zone', slot.data?.zoneId],
+    queryFn: () => sideApi.getZone(slot.data!.zoneId),
     enabled: !!slot.data,
-    staleTime: Infinity,
   });
 
   if (!validId) return <ErrorState message="Mã ô không hợp lệ." />;
   if (slot.isPending) return <LoadingState />;
-  if (slot.error)
-    return (
-      <ErrorState
-        message={slot.error instanceof SideApiError ? slot.error.message : slot.error.message}
-        onRetry={() => void slot.refetch()}
-      />
-    );
-  const data = slot.data;
+  if (slot.error) return <ErrorState message={slot.error.message} onRetry={() => void slot.refetch()} />;
 
   return (
-    <Screen
-      footer={
-        data.slotStatus === 'AVAILABLE' ? (
-          <StickyActions>
-            {!approvedRegistration ? (
-              <p className="text-body-sm text-muted">
-                Cần có hồ sơ đăng ký kinh doanh đã được duyệt trước khi nộp đơn thuê ô.
-              </p>
-            ) : applying ? (
-              <div className="flex flex-col gap-sm">
-                <label>
-                  Số ngày thuê
-                  <input
-                    className="mt-xs w-full rounded-sm border border-border p-sm"
-                    value={requestedTermDays}
-                    onChange={(e) => setRequestedTermDays(e.target.value)}
-                    inputMode="numeric"
-                  />
-                </label>
-                <Button
-                  label="Gửi đơn thuê ô này"
-                  loading={apply.isPending}
-                  disabled={!requestedTermDays.trim()}
-                  onPress={() => apply.mutate()}
-                />
-              </div>
-            ) : (
-              <Button label="Nộp đơn thuê ô này" onPress={() => setApplying(true)} />
-            )}
-          </StickyActions>
-        ) : undefined
-      }
-    >
-      <AppHeader title={data.slotCode} back subtitle={data.zoneName} />
-      <Card>
-        <div className="flex justify-between">
-          <Money amountVnd={data.pricePerDay} size="lg" />
-          <StatusChip code={data.slotStatus} />
-        </div>
-        <p className="text-body-sm text-muted">mỗi ngày</p>
-      </Card>
-      <Card padded={false}>
-        <div className="px-md">
-          <ListRow
-            title="Kích thước"
-            subtitle={
-              data.widthMeters && data.lengthMeters
-                ? `${data.widthMeters} × ${data.lengthMeters} m`
-                : 'Chưa có dữ liệu'
-            }
-          />
-          <Divider />
-          <ListRow
-            title="Khung giờ hoạt động"
-            subtitle={
-              data.availableFrom && data.availableTo
-                ? `${data.availableFrom} – ${data.availableTo}`
-                : 'Cả ngày'
-            }
-          />
-          <Divider />
-          <ListRow
-            title="Vị trí"
-            subtitle={
-              address.isPending
-                ? 'Đang tìm địa chỉ…'
-                : (address.data ?? `${data.latitude}, ${data.longitude}`)
-            }
-          />
-          {data.distanceMeters != null && (
-            <>
-              <Divider />
-              <ListRow title="Khoảng cách" subtitle={`${Math.round(data.distanceMeters)} m`} />
-            </>
-          )}
-        </div>
-      </Card>
+    <Screen>
+      <AppHeader title={slot.data.slotCode} back subtitle={slot.data.zoneName} />
+      <div className="mx-auto w-full max-w-xl">
+        <SlotDetailPanel slot={slot.data} zone={zone.data} />
+      </div>
     </Screen>
   );
 }
