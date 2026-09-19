@@ -1,55 +1,24 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button, Card } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
-import { ErrorState, LoadingState, showToast } from '@/components/feedback';
-import { sideApi, SideApiError } from '@/core/api/side-api';
+import { ErrorState, showToast } from '@/components/feedback';
+import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
-import { useRegistrations } from '@/features/business-registrations/useRegistrations';
 
 export function AcceptTransferScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const userId = useAuthStore((s) => s.user?.id);
-  const transferId = Number(id);
-  const validId = Number.isFinite(transferId);
+  const user = useAuthStore((s) => s.user);
+  const transfer = useMockDb((s) => s.transfers.find((t) => t.id === id));
+  const registrations = useMockDb((s) => s.registrations).filter(
+    (r) => r.vendorId === user?.vendorId,
+  );
+  const acceptTransfer = useMockDb((s) => s.acceptTransfer);
 
-  // SIDE-13 has no GET-by-id -- the incoming list is the only place a
-  // transfer's own data can be read from.
-  const incoming = useQuery({
-    queryKey: ['side', userId, 'transfers', 'incoming'],
-    queryFn: () => sideApi.listTransfers('incoming'),
-    enabled: validId,
-  });
-  const { registrations } = useRegistrations();
-
-  const accept = useMutation({
-    mutationFn: () => sideApi.acceptTransfer(transferId),
-    onSuccess: (result) => {
-      showToast(result.message);
-      void queryClient.invalidateQueries({ queryKey: ['side', userId, 'transfers'] });
-      navigate(-1);
-    },
-    onError: (error) => {
-      showToast(error instanceof SideApiError ? error.message : 'Không chấp nhận được yêu cầu.');
-    },
-  });
-
-  if (!validId) return <ErrorState message="Mã yêu cầu không hợp lệ." />;
-  if (incoming.isPending) return <LoadingState />;
-  if (incoming.error)
-    return (
-      <ErrorState
-        message={incoming.error instanceof SideApiError ? incoming.error.message : incoming.error.message}
-        onRetry={() => void incoming.refetch()}
-      />
-    );
-  const transfer = incoming.data.find((t) => t.transferId === transferId);
   if (!transfer) return <ErrorState message="Không tìm thấy yêu cầu." />;
 
-  const hasApprovedRegistration = registrations.some((r) => r.registrationStatus === 'APPROVED');
+  const hasApprovedRegistration = registrations.some((r) => r.registration_status === 'APPROVED');
 
   return (
     <Screen
@@ -57,9 +26,13 @@ export function AcceptTransferScreen() {
         <StickyActions>
           <Button
             label="Chấp nhận chuyển nhượng"
-            disabled={!hasApprovedRegistration}
-            loading={accept.isPending}
-            onPress={() => accept.mutate()}
+            disabled={!hasApprovedRegistration || !user?.vendorId}
+            onPress={() => {
+              if (!user?.vendorId) return;
+              acceptTransfer(transfer.id, user.vendorId);
+              showToast('Đã gửi yêu cầu, chờ Phường duyệt');
+              navigate(-1);
+            }}
           />
         </StickyActions>
       }
