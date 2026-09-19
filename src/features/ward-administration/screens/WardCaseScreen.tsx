@@ -9,13 +9,14 @@ import { WardConnection } from '../components/WardConnection';
 import {
   actionLabels,
   caseLabels,
-  statusLabels,
+  statusLabel,
   useWardSession,
   wardApi,
   wardReviewRoot,
   type CaseKind,
   type WardCase,
 } from '../ward-api';
+import { CaseDocuments } from '../components/CaseDocuments';
 
 export function WardCaseScreen({ kind: givenKind }: { kind?: CaseKind }) {
   const { kind: routeKind, id = '' } = useParams();
@@ -88,7 +89,10 @@ function CaseContent({ kind, id }: { kind: CaseKind; id: string }) {
       <Card>
         <p className="text-headline-sm">{data.applicant}</p>
         <p className="mt-xs">{data.summary}</p>
-        <p className="mt-sm">Trạng thái: {statusLabels[data.status] ?? data.status}</p>
+        <p className="mt-sm">
+          Trạng thái: {statusLabel(kind, data.status)}
+          {data.fastTrack && ' · Ưu tiên xử lý nhanh'}
+        </p>
         <p>
           Ngày gửi:{' '}
           {new Date(
@@ -121,6 +125,9 @@ function CaseContent({ kind, id }: { kind: CaseKind; id: string }) {
             ))}
           </ul>
         </Card>
+      )}
+      {data.documents && data.documents.length > 0 && (
+        <CaseDocuments documents={data.documents} />
       )}
       {kind === 'proposals' && <LocationReview record={data} onSaved={refresh} />}
       {kind === 'conflicts' && (

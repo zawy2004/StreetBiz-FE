@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { env } from '@/core/config/env';
 
-export type CaseKind = 'proposals' | 'conflicts' | 'transfers';
+export type CaseKind = 'registrations' | 'proposals' | 'conflicts' | 'transfers';
 export const wardReviewRoot = '/ward/inbox/reviews';
 export type GeoPoint = { latitude: number; longitude: number };
 export type GeoResult = { inside: boolean; wardId: number; boundaryVersion: string };
@@ -23,6 +23,15 @@ export type WardCase = {
   queuePosition: number | null;
   contractTerm: string | null;
   outstanding: number | null;
+  /** REG-02 documents attached to a registration case; empty for slot cases. */
+  documents: WardDocument[] | null;
+  /** REG-06: flagged for expedited handling. */
+  fastTrack: boolean;
+};
+export type WardDocument = {
+  evidenceType: string;
+  fileUrl: string;
+  uploadedAt: string;
 };
 export type WardProfile = { userId: string; wardId: number; name: string };
 export type CasePage = { items: WardCase[]; page: number; hasMore: boolean };
@@ -128,6 +137,28 @@ export const wardApi = {
       method: 'PUT',
       body: JSON.stringify(point),
     }),
+
+  /**
+   * Evidence files require the bearer token (PRI-02), so they are fetched as a blob
+   * rather than linked. `fileUrl` is origin-relative and already starts with /api.
+   */
+  document: async (fileUrl: string): Promise<string> => {
+    const base = env.apiBaseUrl.replace(/\/api\/?$/, '');
+    const token = useWardSession.getState().token;
+    const response = await fetch(base + fileUrl, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) {
+      throw new WardApiError(
+        response.status,
+        response.status === 403
+          ? 'Giấy tờ này không thuộc phường của bạn.'
+          : 'Không tải được giấy tờ.',
+      );
+    }
+    return URL.createObjectURL(await response.blob());
+  },
 };
 
 export function parsePoint(latitude: string, longitude: string): GeoPoint | null {
@@ -142,6 +173,7 @@ export function parsePoint(latitude: string, longitude: string): GeoPoint | null
 }
 
 export const caseLabels: Record<CaseKind, string> = {
+  registrations: 'Hồ sơ đăng ký',
   proposals: 'Đề xuất vị trí',
   conflicts: 'Xung đột địa chỉ',
   transfers: 'Chuyển nhượng ô',
@@ -150,12 +182,32 @@ export const actionLabels: Record<string, string> = {
   APPROVE: 'Phê duyệt',
   REJECT: 'Từ chối',
   QUEUE: 'Đưa vào hàng chờ',
+  REVIEW: 'Nhận xét duyệt',
+  REQUEST_INFO: 'Yêu cầu bổ sung',
 };
 export const statusLabels: Record<string, string> = {
   PENDING: 'Chờ xử lý',
-  UNDER_REVIEW: 'Đang xếp hàng',
+  SUBMITTED: 'Chờ xét duyệt',
+  UNDER_REVIEW: 'Đang xét duyệt',
+  MORE_INFORMATION_REQUIRED: 'Chờ bổ sung giấy tờ',
   ACCEPTED_BY_RECEIVER: 'Bên nhận đã đồng ý',
   APPROVED: 'Đã duyệt',
   REJECTED: 'Đã từ chối',
   WITHDRAWN: 'Đã rút',
+};
+
+/**
+ * UNDER_REVIEW means "under review" for a registration but "queued for the slot"
+ * for an address conflict, so the label depends on the case kind.
+ */
+export function statusLabel(kind: CaseKind, status: string): string {
+  if (kind === 'conflicts' && status === 'UNDER_REVIEW') return 'Đang xếp hàng';
+  return statusLabels[status] ?? status;
+}
+
+export const evidenceLabels: Record<string, string> = {
+  IDENTITY_DOCUMENT: 'CCCD gắn chip',
+  BUSINESS_LICENSE: 'Giấy phép kinh doanh',
+  ADDRESS_PROOF: 'Giấy tờ địa chỉ',
+  OTHER: 'Giấy tờ khác',
 };

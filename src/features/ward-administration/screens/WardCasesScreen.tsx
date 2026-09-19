@@ -5,7 +5,7 @@ import { AppHeader, Screen } from '@/components/layout';
 import { WardConnection } from '../components/WardConnection';
 import {
   caseLabels,
-  statusLabels,
+  statusLabel,
   useWardSession,
   wardApi,
   wardReviewRoot,
@@ -73,9 +73,12 @@ function CasesContent() {
           <Card>
             <div className="flex justify-between gap-sm">
               <h2 className="text-headline-sm">{record.slotCode || record.title}</h2>
-              <span className="text-body-sm">{statusLabels[record.status] ?? record.status}</span>
+              <span className="text-body-sm">{statusLabel(kind, record.status)}</span>
             </div>
-            <p>{record.applicant}</p>
+            <p>
+              {record.applicant}
+              {record.fastTrack && ' · Ưu tiên'}
+            </p>
             <p className="text-body-sm text-muted">{record.summary}</p>
             {record.queuePosition != null && <p>Hàng chờ #{record.queuePosition}</p>}
           </Card>
