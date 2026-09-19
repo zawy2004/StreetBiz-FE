@@ -2,7 +2,7 @@ import type { SidewalkSlot } from '@/core/api/side-api';
 
 /**
  * Fits a street axis through a zone's slots and lays them out along it, in
- * true metres, for the street-strip diagram (StreetStripDiagram). Pure math,
+ * true metres, for the corridor plan (corridor-model.ts, CorridorPlan). Pure math,
  * no React -- SidewalkSlots stores only a centre point per slot (no bearing,
  * no polygon, no sequence, no street centreline), and slot_code order does
  * not match physical order, so the axis and the along-street order both have
@@ -78,6 +78,12 @@ export type StreetLayout =
       offStreet: SidewalkSlot[];
       /** True once slots sit on both sides of the axis, not just one row. */
       hasTwoSides: boolean;
+      /**
+       * Projects any coordinate into this layout's frame: distance along the
+       * street from its start (same zero as `placed`) and signed distance from
+       * the axis (same sign convention as `PlacedSlot.crossMeters`).
+       */
+      locate: (latitude: number, longitude: number) => { alongMeters: number; crossMeters: number };
     };
 
 /**
@@ -214,6 +220,13 @@ export function buildStreetLayout(slots: readonly SidewalkSlot[]): StreetLayout 
   const hasTwoSides =
     Math.min(...crossValues) <= -TWO_SIDED_MIN_OFFSET_METERS && Math.max(...crossValues) >= TWO_SIDED_MIN_OFFSET_METERS;
 
+  const locate = (latitude: number, longitude: number) => {
+    const point = toLocalMeters(latitude, longitude, origin);
+    const dx = point.x - meanX;
+    const dy = point.y - meanY;
+    return { alongMeters: dx * ux + dy * uy - minStart, crossMeters: -dx * uy + dy * ux };
+  };
+
   return {
     kind: 'strip',
     placed,
@@ -221,6 +234,7 @@ export function buildStreetLayout(slots: readonly SidewalkSlot[]): StreetLayout 
     bearingDegrees: (theta * 180) / Math.PI,
     offStreet,
     hasTwoSides,
+    locate,
   };
 }
 

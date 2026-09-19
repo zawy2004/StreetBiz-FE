@@ -15,6 +15,13 @@ function makeSlot(overrides: Partial<SidewalkSlot> & Pick<SidewalkSlot, 'slotCod
     availableFrom: null,
     availableTo: null,
     distanceMeters: null,
+    imageUrl: null,
+    hasPower: false,
+    hasWater: false,
+    hasTrashBin: false,
+    businessCategory: null,
+    tenantName: null,
+    holdExpiresAt: null,
     ...overrides,
   };
 }
