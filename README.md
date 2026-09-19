@@ -3,32 +3,24 @@
 WARD-16–18 and SYS-01–02 connect to StreetBiz-BE at `/ward/inbox/reviews`.
 BUY-01–05 use live Backend APIs for the customer vendor map, permit check,
 public profile, rating and report screens. ADM-01 and ADM-03–05 now provide live
-food-category, content-moderation and order-complaint pages. See
+food-category, content-moderation and order-complaint pages. CART-01, ORD-01–04
+and SORD-01–04 use live marketplace, cart, customer-order and seller-order APIs.
+See
 [Community vendor workflows](docs/community-vendor-workflows.md) and
 [Platform administration workflows](docs/platform-administration-workflows.md)
-for setup and route details.
+and [Commerce order workflows](docs/commerce-order-workflows.md) for setup and
+route details.
 
 StreetBiz-FE is the React web client for the StreetBiz sidewalk
 vendor-management platform — a Vite single-page app targeting desktop and
 mobile browsers (no native app).
 
-The app implements the full Core, Core Extension (AI), and Phase 2 use-case
-catalog from Report 3 (115 use cases across Guest/Customer, Vendor, Ward
-Authority, and Platform Administrator) as real, navigable screens backed by an
-in-memory mock data layer (`src/mocks/`).
-
-**Authentication** (AUTH-01…09) and **Vendor Onboarding** (REG-01…05) are wired
-to StreetBiz-BE through `src/core/api/`; every other module still reads and
-writes the client-side Zustand store seeded with demo data. Setting
-`VITE_USE_MOCK_API=true` puts the two live modules back on mocks, so the whole
-app can still be explored end to end without StreetBiz-BE running. Connecting a
-further module is meant to be a per-feature api module plus a hook, not a
-rewrite of any screen.
-in-memory mock data layer (`src/mocks/`), except the ward slot review workflows.
-The `/ward/inbox/reviews` workspace and the three ward review detail screens use
-real Backend APIs with separate verified JWT sessions. The legacy
-`/ward-reviews` URL redirects there. Other existing screens still use the
-client-side Zustand store seeded with demo data.
+The application keeps an in-memory demo layer (`src/mocks/`) while implemented
+modules can call StreetBiz-BE. Live modules currently include Authentication,
+Vendor Onboarding, Ward slot review/geolocation, Community vendor discovery,
+Platform Administration and the cart/order workflows. Setting
+`VITE_USE_MOCK_API=true` keeps the navigable demo available without a Backend;
+remaining workflows outside that list are still mock-backed.
 
 ## Technology baseline
 
@@ -81,14 +73,13 @@ strings in them.
 (storefront/menu/cart/checkout) screens; set either to `false` to preview the
 Core-only experience.
 
-`VITE_USE_MOCK_API` selects where **Authentication** and **Vendor Onboarding**
-read and write:
+`VITE_USE_MOCK_API` selects where implemented live modules read and write:
 
 - `false` (default) — they call StreetBiz-BE at `VITE_API_BASE_URL`.
 - `true` — they use `src/mocks`, so the app runs with no backend at all. The
   dev-only role switcher and the fixed `123456` OTP only appear in this mode.
 
-Every other module is still mock-only either way (see Mock data layer below).
+See each workflow document for its live routes and role requirements.
 
 ## Run
 
@@ -98,14 +89,13 @@ Start the API first — it must be listening on the origin in
 `VITE_API_BASE_URL`, and that SPA origin must be listed in the backend's
 `Cors:AllowedOrigins`:
 
-~~~powershell
+```powershell
 cd ..\StreetBiz-BE
 dotnet run --project src/StreetBiz.API      # http://localhost:5000
-~~~
+```
 
 Then, in StreetBiz-FE:
 
-~~~powershell
 ```powershell
 npm install
 npm run dev
@@ -236,8 +226,8 @@ rationale.
 
 ## Prepared but not yet wired
 
-- Most workflows outside Ward slot review, BUY-01–05 and ADM-01/03/04/05 still call
-  `src/mocks/db.ts` directly instead of the Backend.
+- Workflows outside Authentication, Vendor Onboarding, Ward slot review,
+  BUY-01–05, ADM-01/03/04/05 and CART/ORD/SORD still call `src/mocks/db.ts`.
 - Push notifications, camera access beyond a plain `<input type="file">`.
 - SignalR/real-time updates.
 
@@ -251,3 +241,4 @@ rationale.
 - docs/api-integration-plan.md
 - docs/community-vendor-workflows.md
 - docs/platform-administration-workflows.md
+- docs/commerce-order-workflows.md
