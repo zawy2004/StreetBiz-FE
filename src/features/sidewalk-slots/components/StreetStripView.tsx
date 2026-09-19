@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
@@ -23,7 +23,11 @@ const LEGEND_STATUSES = [
   { status: 'SUSPENDED', label: 'Tạm ngưng' },
 ] as const;
 
-type Props = { slots: SidewalkSlot[] };
+type Props = {
+  slots: SidewalkSlot[];
+  /** Set by the map view's "Xem sơ đồ" popup button to jump straight to that zone. */
+  focusZoneId?: number | null;
+};
 
 /**
  * SIDE-01 as a to-scale street diagram instead of map pins: picks a zone from
@@ -31,7 +35,7 @@ type Props = { slots: SidewalkSlot[] };
  * zone-scoped query -- the map's bounds/take-200/AVAILABLE-only query would
  * silently clip the street), and lays it out with street-geometry.
  */
-export function StreetStripView({ slots }: Props) {
+export function StreetStripView({ slots, focusZoneId }: Props) {
   const navigate = useNavigate();
   const userId = useAuthStore((s) => s.user?.id);
 
@@ -48,6 +52,11 @@ export function StreetStripView({ slots }: Props) {
   }, [slots]);
 
   const [pickedZoneId, setPickedZoneId] = useState<number | null>(null);
+  // A change to focusZoneId (map popup's "Xem sơ đồ" button) always wins over
+  // whatever zone was previously picked by hand.
+  useEffect(() => {
+    if (focusZoneId != null) setPickedZoneId(focusZoneId);
+  }, [focusZoneId]);
   const activeZoneId = pickedZoneId ?? zones[0]?.zoneId ?? null;
   const activeZoneName = zones.find((z) => z.zoneId === activeZoneId)?.zoneName ?? '';
 

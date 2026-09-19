@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   MapContainer,
   TileLayer,
@@ -15,13 +14,12 @@ import type { Map as LeafletMap } from 'leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-import { Icon, Money } from '@/components/common';
+import { Button, Icon } from '@/components/common';
 import { StatusChip } from '@/components/status';
 import { FilterChips } from '@/components/forms';
 import { colors } from '@/theme';
 import { env } from '@/core/config/env';
 import { SideApiError, type SidewalkSlot } from '@/core/api/side-api';
-import { slotStatusColor } from '../slot-visuals';
 import { DEFAULT_CENTER } from '../map-constants';
 
 export type Bounds = { minLat: number; maxLat: number; minLng: number; maxLng: number };
@@ -29,13 +27,18 @@ type Filter = 'ALL' | 'AVAILABLE';
 
 const SEARCH_ZOOM = 18;
 
-function markerIcon(status: string) {
-  const color = slotStatusColor(status);
+// The street-strip diagram (SIDE-01) already shows every slot in a zone at
+// full detail -- one pin per slot on the map itself was redundant and, at
+// city zoom, an unreadable cluster. One badge per zone (total count, green
+// once any slot in it is AVAILABLE) says "there's rentable kerb here";
+// the popup's "Xem sơ đồ" button is where a vendor actually picks a slot.
+function zoneMarkerIcon(count: number, hasAvailable: boolean) {
+  const color = hasAvailable ? colors.tertiary : colors.muted;
   return L.divIcon({
     className: '',
-    html: `<span style="display:block;width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.4)"></span>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
+    html: `<div style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9999px;background:${color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.35);color:white;font-weight:700;font-size:13px;font-family:sans-serif;">${count}</div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
   });
 }
 
@@ -66,15 +69,23 @@ function BoundsWatcher({ onChange }: { onChange: (bounds: Bounds) => void }) {
   return null;
 }
 
+type ZoneGroup = {
+  zoneId: number;
+  zoneName: string;
+  center: [number, number];
+  totalCount: number;
+  availableCount: number;
+};
+
 type Props = {
   slots: SidewalkSlot[];
   onBoundsChange: (bounds: Bounds) => void;
   error: unknown;
   onRetry: () => void;
+  onViewZoneDiagram: (zoneId: number) => void;
 };
 
-export function SlotMapView({ slots, onBoundsChange, error, onRetry }: Props) {
-  const navigate = useNavigate();
+export function SlotMapView({ slots, onBoundsChange, error, onRetry, onViewZoneDiagram }: Props) {
   const mapRef = useRef<LeafletMap | null>(null);
   const [filter, setFilter] = useState<Filter>('ALL');
   const [query, setQuery] = useState('');
@@ -83,6 +94,25 @@ export function SlotMapView({ slots, onBoundsChange, error, onRetry }: Props) {
     () => slots.filter((s) => (filter === 'ALL' ? true : s.slotStatus === 'AVAILABLE')),
     [slots, filter],
   );
+
+  const zoneGroups = useMemo<ZoneGroup[]>(() => {
+    const byZone = new Map<number, { zoneName: string; slots: SidewalkSlot[] }>();
+    for (const s of filtered) {
+      const entry = byZone.get(s.zoneId);
+      if (entry) entry.slots.push(s);
+      else byZone.set(s.zoneId, { zoneName: s.zoneName, slots: [s] });
+    }
+    return [...byZone.entries()].map(([zoneId, { zoneName, slots: zoneSlots }]) => ({
+      zoneId,
+      zoneName,
+      center: [
+        zoneSlots.reduce((sum, s) => sum + s.latitude, 0) / zoneSlots.length,
+        zoneSlots.reduce((sum, s) => sum + s.longitude, 0) / zoneSlots.length,
+      ],
+      totalCount: zoneSlots.length,
+      availableCount: zoneSlots.filter((s) => s.slotStatus === 'AVAILABLE').length,
+    }));
+  }, [filtered]);
 
   const searchMatches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -147,18 +177,19 @@ export function SlotMapView({ slots, onBoundsChange, error, onRetry }: Props) {
             </LayerGroup>
           </LayersControl.BaseLayer>
         </LayersControl>
-        {filtered.map((slot) => (
+        {zoneGroups.map((zone) => (
           <Marker
-            key={slot.slotId}
-            position={[slot.latitude, slot.longitude]}
-            icon={markerIcon(slot.slotStatus)}
-            eventHandlers={{ click: () => navigate(`/vendor/slots/${slot.slotId}`) }}
+            key={zone.zoneId}
+            position={zone.center}
+            icon={zoneMarkerIcon(zone.totalCount, zone.availableCount > 0)}
           >
             <Popup>
               <div className="flex flex-col gap-1">
-                <strong>{slot.slotCode}</strong>
-                <Money amountVnd={slot.pricePerDay} />
-                <StatusChip code={slot.slotStatus} />
+                <strong>{zone.zoneName}</strong>
+                <span>
+                  {zone.totalCount} ô · {zone.availableCount} còn trống
+                </span>
+                <Button label="Xem sơ đồ" onPress={() => onViewZoneDiagram(zone.zoneId)} />
               </div>
             </Popup>
           </Marker>
