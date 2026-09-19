@@ -32,7 +32,9 @@ const HISTORICAL_SIX = [
   ['NVL-06', 16.060523, 108.214228],
 ] as const;
 
-// The current pilot: 20 slots on a 4 m-pitch lattice (docs/dev-seed-side.sql).
+// One side of the current pilot: 10 slots on a 4 m-pitch lattice
+// (docs/dev-seed-side.sql). Used below to exercise outlier rejection and the
+// single-row/no-facing-terrace fallback.
 const CURRENT_LATTICE: [string, number, number][] = Array.from({ length: 20 }, (_, i) => [
   `NVL-${String(i + 1).padStart(2, '0')}`,
   16.060523 + i * 0.0000069,
@@ -100,6 +102,59 @@ describe('buildStreetLayout', () => {
     expect(layout.offStreet).toHaveLength(1);
     expect(layout.offStreet[0]!.slotCode).toBe('DEV-SEED-01');
     expect(layout.placed.some((p) => p.slot.slotCode === 'DEV-SEED-01')).toBe(false);
+  });
+
+  it('reports a single row of slots as one side, not two', () => {
+    const slots = CURRENT_LATTICE.map(([code, lat, lng]) => makeSlot({ slotCode: code, latitude: lat, longitude: lng }));
+    const layout = buildStreetLayout(slots);
+    expect(layout.kind).toBe('strip');
+    if (layout.kind !== 'strip') return;
+    expect(layout.hasTwoSides).toBe(false);
+  });
+
+  it('does not mistake ~0.5 m real-world jitter around one row for two facing rows', () => {
+    // Alternating +/-0.0000045 deg latitude ~= +/-0.5 m -- comfortably under
+    // TWO_SIDED_MIN_OFFSET_METERS (5 m), unlike the ~38 m real pilot offset.
+    const jittered = CURRENT_LATTICE.map(([code, lat, lng], i) =>
+      makeSlot({ slotCode: code, latitude: lat + (i % 2 === 0 ? 0.0000045 : -0.0000045), longitude: lng }),
+    );
+    const layout = buildStreetLayout(jittered);
+    expect(layout.kind).toBe('strip');
+    if (layout.kind !== 'strip') return;
+    expect(layout.hasTwoSides).toBe(false);
+  });
+
+  it('splits two facing rows into side A / side B by which side of the axis they sit on', () => {
+    // Two rows ~20 m apart (10 m either side of the axis), 5 slots each at a
+    // 20 m pitch (80 m along, comfortably over the 0.35 cross/along ratio),
+    // facing each other across the roadway -- the shape street-geometry now
+    // has to recognise as a real two-sided street, not just a wide single row.
+    const rowNorth = Array.from({ length: 5 }, (_, i) =>
+      makeSlot({ slotCode: `N-${i}`, latitude: 16.060090, longitude: 108.21 + i * 0.000187 }),
+    );
+    const rowSouth = Array.from({ length: 5 }, (_, i) =>
+      makeSlot({ slotCode: `S-${i}`, latitude: 16.059910, longitude: 108.21 + i * 0.000187 }),
+    );
+
+    const layout = buildStreetLayout([...rowNorth, ...rowSouth]);
+    expect(layout.kind).toBe('strip');
+    if (layout.kind !== 'strip') return;
+
+    expect(layout.hasTwoSides).toBe(true);
+    const bySide = { A: layout.placed.filter((p) => p.side === 'A'), B: layout.placed.filter((p) => p.side === 'B') };
+    expect(bySide.A).toHaveLength(5);
+    expect(bySide.B).toHaveLength(5);
+    for (const p of layout.placed) {
+      expect(p.side).toBe(p.crossMeters >= 0 ? 'A' : 'B');
+      expect(Math.abs(p.crossMeters)).toBeGreaterThan(8);
+      expect(Math.abs(p.crossMeters)).toBeLessThan(12);
+    }
+    // Every N-* slot lands on the same side as every other N-* slot (and
+    // likewise for S-*) -- the two rows don't get mixed together.
+    const sideOf = (code: string) => layout.placed.find((p) => p.slot.slotCode === code)!.side;
+    expect(new Set(rowNorth.map((s) => sideOf(s.slotCode))).size).toBe(1);
+    expect(new Set(rowSouth.map((s) => sideOf(s.slotCode))).size).toBe(1);
+    expect(sideOf('N-0')).not.toBe(sideOf('S-0'));
   });
 
   it('handles empty, single-slot, coincident, and 2D-cluster inputs', () => {
