@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { WardCasesScreen } from '@/features/ward-administration/screens/WardCasesScreen';
 import { WardCaseScreen } from '@/features/ward-administration/screens/WardCaseScreen';
 import { RoleShell } from '@/layouts/RoleShell';
+import { VendorTopBar } from '@/layouts/VendorTopBar';
 import { CUSTOMER_TABS, PLATFORM_TABS, VENDOR_TABS, WARD_TABS } from '@/layouts/role-tabs';
 
 import {
@@ -35,6 +36,7 @@ import {
 } from '@/features/business-registrations/screens';
 import {
   RentalApplicationDetailScreen,
+  MySlotsScreen,
   RentalApplicationsScreen,
   SlotDetailScreen,
   SlotMapScreen,
@@ -202,7 +204,14 @@ export function AppRouter() {
 
       <Route
         path="/vendor"
-        element={<RoleShell role="VENDOR" roleLabel="Hộ kinh doanh" items={VENDOR_TABS} />}
+        element={
+          <RoleShell
+            role="VENDOR"
+            roleLabel="Hộ kinh doanh"
+            items={VENDOR_TABS}
+            header={<VendorTopBar />}
+          />
+        }
       >
         <Route path="home" element={<VendorHomeScreen />} />
         <Route path="account" element={<AccountScreen />} />
@@ -216,6 +225,7 @@ export function AppRouter() {
         <Route path="registrations/:id/adjacent-slot" element={<AdjacentSlotScreen />} />
         <Route path="slots" element={<SlotMapScreen />} />
         <Route path="slots/:slotId" element={<SlotDetailScreen />} />
+        <Route path="slots/mine" element={<MySlotsScreen />} />
         <Route path="slots/rental-applications" element={<RentalApplicationsScreen />} />
         <Route path="slots/rental-applications/:id" element={<RentalApplicationDetailScreen />} />
         <Route path="slots/slot-proposals/new" element={<SlotProposalScreen />} />
