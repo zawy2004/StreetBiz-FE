@@ -80,8 +80,10 @@ export function VendorReportFormScreen() {
       <PhotoPicker
         label="Ảnh minh chứng"
         uri={photoUri}
-        onChange={setPhotoUri}
-        onFile={setPhoto}
+        onChange={(uri, file) => {
+          setPhotoUri(uri);
+          setPhoto(file);
+        }}
         onRemove={() => {
           setPhotoUri(undefined);
           setPhoto(undefined);
