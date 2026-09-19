@@ -9,7 +9,8 @@ export const env = {
   /**
    * When true, Authentication and Vendor Onboarding run against `src/mocks`
    * instead of StreetBiz-BE, so the app is demoable with no server running.
-   * Every other module is still mock-only regardless of this flag.
+   * Commerce, Authentication and Vendor Onboarding use this switch; remaining
+   * modules may still use their feature-local mock fallback.
    */
   useMockApi: bool(import.meta.env.VITE_USE_MOCK_API),
   enableAiCompliance: bool(import.meta.env.VITE_ENABLE_AI_COMPLIANCE),
