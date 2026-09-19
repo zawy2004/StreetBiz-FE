@@ -26,8 +26,8 @@ const SHIFTS = Object.keys(SHIFT_LABELS) as Shift[];
 const LEGEND: { label: string; color: string }[] = [
   { label: 'Đang chọn', color: SLOT_SELECTED_COLOR },
   { label: 'Còn trống', color: slotDisplayColor('AVAILABLE') },
-  { label: 'Đang có đơn / giữ chỗ', color: slotDisplayColor('PENDING') },
-  { label: 'Đã cho thuê', color: slotDisplayColor('ACTIVE') },
+  { label: 'Có đơn / giữ chỗ', color: slotDisplayColor('PENDING') },
+  { label: 'Đã thuê', color: slotDisplayColor('ACTIVE') },
   { label: 'Tạm ngưng', color: slotDisplayColor('SUSPENDED') },
 ];
 
@@ -36,10 +36,7 @@ export function SlotFilterBar({ filters, onChange, matchCount }: Props) {
   return (
     <div className="flex flex-col gap-xs">
       <div className="flex flex-wrap items-center gap-xs">
-        <span className="flex items-center gap-1 text-label text-muted">
-          <Icon name="filter-variant" size={16} color={colors.muted} />
-          Lọc nhanh:
-        </span>
+        <Icon name="filter-variant" size={18} color={colors.muted} />
 
         <ChipSelect
           label="Trạng thái"
@@ -123,7 +120,7 @@ function ChipSelect<T extends string>({
         className="cursor-pointer appearance-none bg-transparent pr-4 outline-none"
       >
         <option value="ALL" className="text-text">
-          {label}: tất cả
+          {label}
         </option>
         {options.map((o) => (
           <option key={o.value} value={o.value} className="text-text">

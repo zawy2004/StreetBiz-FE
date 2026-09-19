@@ -2,7 +2,7 @@ import { Icon } from '@/components/common';
 import type { SidewalkSlot } from '@/core/api/side-api';
 import { colors } from '@/theme';
 import { formatShortVnd, formatSize, secondsUntil, formatCountdown } from '../slot-format';
-import { BUSINESS_CATEGORY_LABELS, shiftLabel, type SlotDisplayState } from '../slot-stats';
+import { BUSINESS_CATEGORY_LABELS, type SlotDisplayState } from '../slot-stats';
 import {
   CATEGORY_ICONS,
   SLOT_SELECTED_COLOR,
@@ -90,10 +90,7 @@ export function SlotCard({ slot, state, selected, mine, matchesFilters, widthPx,
           {title}
         </span>
         <span className="truncate text-body-sm" style={{ color: mutedColor }}>
-          {formatSize(slot.widthMeters, slot.lengthMeters) ?? 'Chưa đo kích thước'}
-        </span>
-        <span className="truncate text-body-sm" style={{ color: mutedColor }}>
-          {shiftLabel(slot)}
+          {formatSize(slot.widthMeters, slot.lengthMeters) ?? 'Chưa đo'}
         </span>
       </div>
 

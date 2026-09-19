@@ -73,9 +73,9 @@ function fmt(value: number): string {
 export function deadlineText(deadline: string, nowMs: number): string {
   const end = Date.parse(`${deadline}T23:59:59`);
   if (Number.isNaN(end)) return '';
-  if (end < nowMs) return 'Đã hết hạn nộp hồ sơ';
+  if (end < nowMs) return 'Đã hết hạn nộp';
   const days = Math.ceil((end - nowMs) / 86_400_000) - 1;
-  return days <= 0 ? 'Hạn nộp hồ sơ: hôm nay' : `Hạn nộp hồ sơ: còn ${days} ngày`;
+  return days <= 0 ? 'Hạn nộp: hôm nay' : `Hạn nộp: còn ${days} ngày`;
 }
 
 /** 30000 -> "30k". Whole thousands only; the exact figure is on the detail panel. */

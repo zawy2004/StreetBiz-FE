@@ -65,7 +65,7 @@ describe('VendorTopBar', () => {
 
     expect(await screen.findByLabelText('Giỏ giữ chỗ (2)')).toBeInTheDocument();
     expect(screen.getByLabelText('Thông báo')).toHaveAttribute('href', '/account/notifications');
-    expect(screen.getByText('Mã định danh: HKD-0007')).toBeInTheDocument();
+    expect(screen.getByText('HKD-0007')).toBeInTheDocument();
     expect(screen.getByText('Nguyen Van A')).toBeInTheDocument();
     // No workspace mounted, so there is nothing to select a route from or search in.
     expect(screen.queryByLabelText('Tuyến')).not.toBeInTheDocument();

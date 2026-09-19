@@ -224,7 +224,6 @@ export function SlotMapScreen() {
           <div className="rounded-md border border-dashed border-border p-lg 2xl:border-0">
             <EmptyState
               title="Chọn một ô để xem chi tiết"
-              description="Bấm vào một thẻ ô trên sơ đồ để xem ảnh, thông số, báo giá và nộp hồ sơ."
               icon="crosshairs-gps"
             />
           </div>

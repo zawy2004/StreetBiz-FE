@@ -71,16 +71,12 @@ export function CorridorPlan({
         {renderRow(corridor.rowA)}
 
         <Footpath />
-        <Roadway
-          roadName={roadName}
-          lengthMeters={corridor.lengthMeters}
-          coordinates={selectedCoordinates}
-        />
+        <Roadway roadName={roadName} coordinates={selectedCoordinates} />
 
         {corridor.hasTwoSides && (
           <>
             <Footpath />
-            <RowLabel text="DÃY B (ĐỐI DIỆN)" count={slotCount(corridor.rowB)} />
+            <RowLabel text="DÃY B" count={slotCount(corridor.rowB)} />
             {renderRow(corridor.rowB)}
           </>
         )}
@@ -106,26 +102,14 @@ function Footpath() {
   );
 }
 
-function Roadway({
-  roadName,
-  lengthMeters,
-  coordinates,
-}: {
-  roadName: string;
-  lengthMeters: number;
-  coordinates: string | null;
-}) {
+function Roadway({ roadName, coordinates }: { roadName: string; coordinates: string | null }) {
   return (
     <div className="relative flex h-24 flex-col justify-between overflow-hidden rounded-sm bg-indigo p-sm text-white">
-      {/* Both labels sit at the left edge: the plan scrolls sideways, and a label
-          pushed to the far right would be off-screen most of the time. */}
-      <div className="flex items-center gap-sm">
-        <span className="rounded-sm bg-white/15 px-xs text-badge">{roadName.toUpperCase()}</span>
-        <span className="text-body-sm text-white/70">Tuyến dài khoảng {Math.round(lengthMeters)} m</span>
-      </div>
+      {/* At the left edge: the plan scrolls sideways, so a label at the far right is mostly off-screen. */}
+      <span className="w-fit rounded-sm bg-white/15 px-xs text-badge">{roadName.toUpperCase()}</span>
       <div className="pointer-events-none absolute inset-x-0 top-1/2 border-t-2 border-dashed border-secondary" />
       {coordinates && (
-        <span className="relative w-fit rounded-sm bg-white/15 px-xs text-body-sm">● TỌA ĐỘ: {coordinates} (WGS84)</span>
+        <span className="relative w-fit rounded-sm bg-white/15 px-xs text-body-sm">● {coordinates}</span>
       )}
     </div>
   );

@@ -121,7 +121,7 @@ describe('SlotCard', () => {
     render(<SlotCard {...base} slot={unmeasured} state="AVAILABLE" selected />);
 
     expect(screen.getByText('ĐANG CHỌN')).toBeInTheDocument();
-    expect(screen.getByText('Chưa đo kích thước')).toBeInTheDocument();
+    expect(screen.getByText('Chưa đo')).toBeInTheDocument();
     expect(screen.getByTestId('slot-card-NVL-18')).toHaveAttribute('aria-pressed', 'true');
   });
 });
@@ -202,7 +202,7 @@ describe('SlotApplyForm', () => {
     registrations.list = [{ registrationId: 8, registrationStatus: 'SUBMITTED', displayName: 'x' }];
     renderWithProviders(<SlotApplyForm slot={slot} />);
 
-    expect(await screen.findByText(/hồ sơ đăng ký kinh doanh đã được duyệt/)).toBeInTheDocument();
+    expect(await screen.findByText(/hồ sơ kinh doanh đã được duyệt/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Đăng ký & nộp hồ sơ/ })).not.toBeInTheDocument();
   });
 
