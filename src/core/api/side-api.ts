@@ -25,6 +25,89 @@ export type SidewalkSlot = {
   availableFrom: string | null;
   availableTo: string | null;
   distanceMeters: number | null;
+  imageUrl: string | null;
+  hasPower: boolean;
+  hasWater: boolean;
+  hasTrashBin: boolean;
+  /** Advisory only; the ward assigns it, nothing enforces it on an application. */
+  businessCategory: BusinessCategory | null;
+  /** Only present for a slot with an ACTIVE contract. */
+  tenantName: string | null;
+  /** UTC ISO time a live hold on this slot lapses; null when nobody holds it. */
+  holdExpiresAt: string | null;
+};
+
+export type BusinessCategory = 'FOOD_BEVERAGE' | 'RETAIL' | 'SERVICES' | 'CRAFTS' | 'GENERAL';
+
+export type FeeComponent = {
+  componentId: number;
+  componentName: string;
+  calcBasis: 'PER_DAY' | 'PER_TERM';
+  unitAmount: number;
+};
+
+export type StreetFeatureType =
+  | 'TRANSFORMER'
+  | 'HYDRANT'
+  | 'TREE'
+  | 'LIGHT_POLE'
+  | 'BUS_STOP'
+  | 'PARKING';
+
+export type StreetFeature = {
+  featureId: number;
+  featureType: StreetFeatureType;
+  label: string;
+  latitude: number;
+  longitude: number;
+  /** True means no slot can operate here (e.g. a transformer corridor). */
+  blocksBusiness: boolean;
+  note: string | null;
+};
+
+export type SidewalkZone = {
+  zoneId: number;
+  zoneName: string;
+  zoneCode: string | null;
+  regulationRef: string | null;
+  segmentFrom: string | null;
+  segmentTo: string | null;
+  /** yyyy-mm-dd */
+  applicationDeadline: string | null;
+  wardUnitId: number;
+  wardName: string;
+  contactName: string | null;
+  contactPhone: string | null;
+  pricePerDay: number;
+  availableFrom: string | null;
+  availableTo: string | null;
+  feeComponents: FeeComponent[];
+  features: StreetFeature[];
+};
+
+export type FeeQuoteLine = {
+  /** RENT is price_per_day x days; FEE is one of the zone's fee components. */
+  kind: 'RENT' | 'FEE';
+  label: string | null;
+  calcBasis: 'PER_DAY' | 'PER_TERM';
+  unitAmount: number;
+  quantity: number;
+  amount: number;
+};
+
+export type FeeQuote = {
+  slotId: number;
+  termDays: number;
+  lines: FeeQuoteLine[];
+  total: number;
+};
+
+export type SlotHold = {
+  slotId: number;
+  registrationId: number;
+  heldAt: string;
+  /** UTC ISO time the hold lapses. */
+  expiresAt: string;
 };
 
 export type SlotProposal = {
@@ -206,12 +289,31 @@ export const sideApi = {
   searchSlots: (params: SearchSlotsParams) =>
     sideRequest<SidewalkSlot[]>(`/sidewalk-slots${query(params)}`),
   getSlot: (slotId: number) => sideRequest<SidewalkSlot>(`/sidewalk-slots/${slotId}`),
+  getZone: (zoneId: number) => sideRequest<SidewalkZone>(`/sidewalk-zones/${zoneId}`),
+  /** Informational price estimate; never stored. */
+  getSlotQuote: (slotId: number, termDays: number) =>
+    sideRequest<FeeQuote>(`/sidewalk-slots/${slotId}/quote${query({ termDays })}`),
+
+  // 15-minute slot holds
+  listHolds: (registrationId: number) =>
+    sideRequest<SlotHold[]>(`/vendor/slot-holds${query({ registrationId })}`),
+  createHold: (body: { registrationId: number; slotId: number }) =>
+    sideRequest<{ message: string; data: SlotHold }>('/vendor/slot-holds', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  releaseHold: (slotId: number, registrationId: number) =>
+    sideRequest<{ message: string }>(`/vendor/slot-holds/${slotId}${query({ registrationId })}`, {
+      method: 'DELETE',
+    }),
 
   // SIDE-03A/03B/04
   submitOpenSlotApplication: (body: {
     registrationId: number;
     slotId: number;
     requestedTermDays: number;
+    /** The backend rejects the application unless this is true. */
+    commitmentsAccepted: boolean;
   }) =>
     sideRequest<{ message: string; data: RentalApplication }>(
       '/vendor/rental-applications/open-slot',
