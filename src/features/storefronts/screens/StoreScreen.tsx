@@ -5,11 +5,16 @@ import { Button, Card } from '@/components/common';
 import { SegmentedControl, TextField } from '@/components/forms';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { EmptyState, showToast } from '@/components/feedback';
-import { env } from '@/core/config/env';
+import { env, isLiveApi } from '@/core/config/env';
+import { LiveStoreScreen } from './LiveStoreScreen';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
 export function StoreScreen() {
+  return isLiveApi ? <LiveStoreScreen /> : <MockStoreScreen />;
+}
+
+function MockStoreScreen() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const storefront = useMockDb((s) => s.storefronts.find((st) => st.vendorId === user?.vendorId));

@@ -16,7 +16,7 @@ function refundPresentation(status: string) {
     return {
       label: 'Đã hoàn tiền',
       tone: 'ok' as const,
-      message: 'Cổng thanh toán đã xác nhận hoàn tiền thành công.',
+      message: 'Hệ thống đã ghi nhận hoàn tiền thành công.',
     };
   }
   if (status === 'FAILED') {
@@ -38,9 +38,22 @@ export function OrderDetailScreen() {
 }
 
 function LiveOrderDetailScreen() {
+  const navigate = useNavigate();
   const { orderId } = useParams<{ orderId: string }>();
   const queryClient = useQueryClient();
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const paymentOptions = useQuery({
+    queryKey: ['commerce', 'payment-options'],
+    queryFn: commerceApi.paymentOptions,
+  });
+  const sandboxRefund = useMutation({
+    mutationFn: () => commerceApi.confirmSandboxRefund(order.data!.orderId),
+    onSuccess: async (next) => {
+      queryClient.setQueryData(['commerce', 'customer-order', orderId], next);
+      await queryClient.invalidateQueries({ queryKey: ['commerce', 'customer-orders'] });
+      showToast('Đã mô phỏng hoàn tiền thành công');
+    },
+  });
   const order = useQuery({
     queryKey: ['commerce', 'customer-order', orderId],
     queryFn: () => commerceApi.customerOrder(orderId!),
@@ -77,6 +90,13 @@ function LiveOrderDetailScreen() {
       footer={
         canCancel || canConfirmPickup ? (
           <StickyActions>
+            {data.orderStatus === 'PENDING_PAYMENT' ? (
+              <Button
+                label="Tiếp tục thanh toán"
+                disabled={transition.isPending}
+                onPress={() => navigate(`/customer/orders/${data.orderId}/payment`)}
+              />
+            ) : null}
             {canCancel ? (
               <Button
                 label="Huỷ đơn"
@@ -152,12 +172,40 @@ function LiveOrderDetailScreen() {
           </div>
           {data.refundAmount !== null ? <Money amountVnd={data.refundAmount} /> : null}
           <p className="mt-xs text-body-md text-muted">{refund.message}</p>
+          {data.refundStatus === 'PENDING' && paymentOptions.data?.mode === 'SANDBOX' ? (
+            <Button
+              label="Mô phỏng hoàn tiền sandbox"
+              variant="outline"
+              loading={sandboxRefund.isPending}
+              onPress={() => sandboxRefund.mutate()}
+            />
+          ) : null}
           {data.refundRequestedAt ? (
             <p className="mt-2xs text-body-sm text-muted">
               Yêu cầu lúc {new Date(data.refundRequestedAt).toLocaleString('vi-VN')}
             </p>
           ) : null}
         </Card>
+      ) : null}
+      {data.paymentStatus === 'SUCCESS' &&
+      !['PENDING_PAYMENT', 'PLACED'].includes(data.orderStatus) ? (
+        <Button
+          label="Khiếu nại / Yêu cầu hoàn tiền"
+          variant="outline"
+          onPress={() => navigate(`/customer/orders/${data.orderId}/complaint`)}
+        />
+      ) : null}
+      {data.orderStatus === 'COMPLETED' ? (
+        <Button
+          label="Đánh giá đơn hàng"
+          variant="outline"
+          onPress={() => navigate(`/customer/orders/${data.orderId}/review`)}
+        />
+      ) : null}
+      {sandboxRefund.isError ? (
+        <p role="alert" className="text-error">
+          {errorMessage(sandboxRefund.error)}
+        </p>
       ) : null}
       {transition.isError ? (
         <p className="text-body-md text-error">{errorMessage(transition.error)}</p>
