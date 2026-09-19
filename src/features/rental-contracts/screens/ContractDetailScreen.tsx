@@ -1,59 +1,34 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 
-import { Button, Card, Money } from '@/components/common';
-import { AppHeader, Screen } from '@/components/layout';
+import { Button, Card, Divider, ListRow, Money } from '@/components/common';
+import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { ErrorState, LoadingState } from '@/components/feedback';
-import { sideApi, SideApiError } from '@/core/api/side-api';
-import { useAuthStore } from '@/store/auth-store';
+import { ErrorState } from '@/components/feedback';
+import { useMockDb } from '@/mocks/db';
 
 export function ContractDetailScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const userId = useAuthStore((s) => s.user?.id);
-  const contractId = Number(id);
-  const validId = Number.isFinite(contractId);
+  const contract = useMockDb((s) => s.contracts.find((c) => c.id === id));
+  const slot = useMockDb((s) => s.slots.find((sl) => sl.id === contract?.slotId));
+  const feeItems = useMockDb((s) => s.feeItems).filter((f) => f.contractId === id);
 
-  const contract = useQuery({
-    queryKey: ['side', userId, 'contract', contractId],
-    queryFn: () => sideApi.getContract(contractId),
-    enabled: validId,
-  });
+  if (!contract) return <ErrorState message="Không tìm thấy hợp đồng." />;
 
-  const slot = useQuery({
-    queryKey: ['side', 'slot', contract.data?.slotId],
-    queryFn: () => sideApi.getSlot(contract.data!.slotId),
-    enabled: !!contract.data,
-  });
-
-  if (!validId) return <ErrorState message="Mã hợp đồng không hợp lệ." />;
-  if (contract.isPending) return <LoadingState />;
-  if (contract.error)
-    return (
-      <ErrorState
-        message={contract.error instanceof SideApiError ? contract.error.message : contract.error.message}
-        onRetry={() => void contract.refetch()}
-      />
-    );
-  const data = contract.data;
-  const isActive = data.contractStatus === 'ACTIVE';
+  const isActive = contract.contract_status === 'ACTIVE';
 
   return (
     <Screen>
-      <AppHeader title={data.slotCode} back subtitle={data.zoneName} />
+      <AppHeader title={slot?.slot_code ?? 'Hợp đồng'} back subtitle={slot?.street} />
       <Card>
         <div className="flex justify-between">
-          {slot.data ? <Money amountVnd={slot.data.pricePerDay} size="lg" /> : <span />}
-          <StatusChip code={data.contractStatus} />
+          <Money amountVnd={contract.fee_monthly} size="lg" />
+          <StatusChip code={contract.contract_status} />
         </div>
         <p className="text-body-sm text-muted">
-          {new Date(data.startDate).toLocaleDateString('vi-VN')} —{' '}
-          {new Date(data.endDate).toLocaleDateString('vi-VN')}
+          {new Date(contract.start_date).toLocaleDateString('vi-VN')} —{' '}
+          {new Date(contract.end_date).toLocaleDateString('vi-VN')}
         </p>
-        {data.cancellationReason ? (
-          <p className="mt-1 text-body-sm text-muted">Lý do huỷ: {data.cancellationReason}</p>
-        ) : null}
       </Card>
 
       {isActive ? (
@@ -61,31 +36,50 @@ export function ContractDetailScreen() {
           <div className="min-w-[150px] flex-grow">
             <Button
               label="Xem giấy phép QR"
-              onPress={() => navigate(`/vendor/slots/contracts/${data.contractId}/permit`)}
+              onPress={() => navigate(`/vendor/slots/contracts/${contract.id}/permit`)}
             />
           </div>
           <div className="min-w-[150px] flex-grow">
             <Button
               label="Gia hạn"
               variant="outline"
-              onPress={() => navigate(`/vendor/slots/contracts/${data.contractId}/renewal`)}
+              onPress={() => navigate(`/vendor/slots/contracts/${contract.id}/renewal`)}
             />
           </div>
           <div className="min-w-[150px] flex-grow">
             <Button
               label="Chuyển nhượng"
               variant="outline"
-              onPress={() => navigate(`/vendor/slots/contracts/${data.contractId}/transfer`)}
+              onPress={() => navigate(`/vendor/slots/contracts/${contract.id}/transfer`)}
             />
           </div>
           <div className="min-w-[150px] flex-grow">
             <Button
               label="Trả ô"
               variant="ghost"
-              onPress={() => navigate(`/vendor/slots/contracts/${data.contractId}/return`)}
+              onPress={() => navigate(`/vendor/slots/contracts/${contract.id}/return`)}
             />
           </div>
         </div>
+      ) : null}
+
+      {feeItems.length > 0 ? (
+        <Section title="Lịch phí">
+          <Card padded={false}>
+            <div className="px-md">
+              {feeItems.map((fee, i) => (
+                <div key={fee.id}>
+                  {i > 0 ? <Divider /> : null}
+                  <ListRow
+                    title={fee.period_label}
+                    subtitle={`Hạn ${new Date(fee.due_date).toLocaleDateString('vi-VN')}`}
+                    trailing={<StatusChip code={fee.item_status} />}
+                  />
+                </div>
+              ))}
+            </div>
+          </Card>
+        </Section>
       ) : null}
     </Screen>
   );

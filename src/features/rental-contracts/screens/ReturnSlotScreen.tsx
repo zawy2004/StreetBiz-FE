@@ -1,54 +1,20 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button, Card } from '@/components/common';
-import { TextField } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
-import { ConfirmDialog, ErrorState, LoadingState, showToast } from '@/components/feedback';
-import { sideApi, SideApiError } from '@/core/api/side-api';
-import { useAuthStore } from '@/store/auth-store';
+import { ConfirmDialog, ErrorState, showToast } from '@/components/feedback';
+import { useMockDb } from '@/mocks/db';
 
 export function ReturnSlotScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const userId = useAuthStore((s) => s.user?.id);
-  const contractId = Number(id);
-  const validId = Number.isFinite(contractId);
-  const [reason, setReason] = useState('');
+  const contract = useMockDb((s) => s.contracts.find((c) => c.id === id));
+  const slot = useMockDb((s) => s.slots.find((sl) => sl.id === contract?.slotId));
+  const returnSlot = useMockDb((s) => s.returnSlot);
   const [confirm, setConfirm] = useState(false);
 
-  const contract = useQuery({
-    queryKey: ['side', userId, 'contract', contractId],
-    queryFn: () => sideApi.getContract(contractId),
-    enabled: validId,
-  });
-
-  const cancel = useMutation({
-    mutationFn: () => sideApi.cancelContract(contractId, reason.trim() || null),
-    onSuccess: (result) => {
-      setConfirm(false);
-      showToast(result.message);
-      void queryClient.invalidateQueries({ queryKey: ['side', userId, 'contracts'] });
-      void queryClient.invalidateQueries({ queryKey: ['side', userId, 'contract', contractId] });
-      navigate('/vendor/slots/contracts', { replace: true });
-    },
-    onError: (error) => {
-      setConfirm(false);
-      showToast(error instanceof SideApiError ? error.message : 'Không trả được ô.');
-    },
-  });
-
-  if (!validId) return <ErrorState message="Mã hợp đồng không hợp lệ." />;
-  if (contract.isPending) return <LoadingState />;
-  if (contract.error)
-    return (
-      <ErrorState
-        message={contract.error instanceof SideApiError ? contract.error.message : contract.error.message}
-        onRetry={() => void contract.refetch()}
-      />
-    );
+  if (!contract) return <ErrorState message="Không tìm thấy hợp đồng." />;
 
   return (
     <Screen
@@ -58,21 +24,25 @@ export function ReturnSlotScreen() {
         </StickyActions>
       }
     >
-      <AppHeader title="Trả ô vỉa hè" back subtitle={contract.data.slotCode} />
+      <AppHeader title="Trả ô vỉa hè" back subtitle={slot?.slot_code} />
       <Card>
         <p className="text-body-md text-muted">
           Sau khi trả ô, giấy phép số sẽ hết hiệu lực và ô sẽ được mở lại cho các hộ kinh doanh
           khác. Vui lòng thanh toán mọi khoản phí còn nợ trước khi trả ô.
         </p>
       </Card>
-      <TextField label="Lý do trả ô (không bắt buộc)" value={reason} onChangeText={setReason} multiline />
       <ConfirmDialog
         visible={confirm}
         title="Xác nhận trả ô?"
         description="Hành động này không thể hoàn tác."
         confirmLabel="Trả ô"
         confirmVariant="danger"
-        onConfirm={() => cancel.mutate()}
+        onConfirm={() => {
+          returnSlot(contract.id);
+          setConfirm(false);
+          showToast('Đã trả ô');
+          navigate('/vendor/slots/contracts', { replace: true });
+        }}
         onCancel={() => setConfirm(false)}
       />
     </Screen>
