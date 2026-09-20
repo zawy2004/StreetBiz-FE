@@ -84,6 +84,16 @@ export const useAuthStore = create<AuthState>()(
         set({ user: applyAuthResult(result), sessionExpired: false });
       },
 
+      /**
+       * Creates the account but deliberately does NOT start a session: the app
+       * sends the new user to the sign-in screen to enter the password they just
+       * chose.
+       *
+       * `POST /auth/register` (AUTH-01) signs the account in and hands back a
+       * live access/refresh pair regardless, so that session is revoked here
+       * rather than dropped on the floor - otherwise a usable refresh token
+       * would sit on the server for its full 30-day life with nobody holding it.
+       */
       register: async (payload) => {
         if (!isLiveApi) {
           const created = useMockDb.getState().registerUser({
@@ -93,14 +103,21 @@ export const useAuthStore = create<AuthState>()(
             role_code: payload.roleCode,
             account_status: 'ACTIVE',
           });
-          set({ user: created, sessionExpired: false });
+          set({ user: null, sessionExpired: false });
           return created;
         }
-        // The backend signs the new account in as part of AUTH-01.
+
         const result = await authApi.register(payload);
-        const user = applyAuthResult(result);
-        set({ user, sessionExpired: false });
-        return user;
+        // Hold the tokens just long enough to authenticate the logout call.
+        applyAuthResult(result);
+        try {
+          await authApi.logout();
+        } catch {
+          /* best effort: the account exists either way, and the token expires */
+        }
+        clearTokens();
+        set({ user: null, sessionExpired: false });
+        return toAppUser(result.user);
       },
 
       signOut: async () => {
