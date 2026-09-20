@@ -1,149 +1,57 @@
-import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button, Card, Divider, ListRow, Money } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { ErrorState, LoadingState, showToast } from '@/components/feedback';
-import { sideApi, SideApiError } from '@/core/api/side-api';
-import { reverseGeocode } from '@/services/map/reverse-geocode';
+import { ErrorState, showToast } from '@/components/feedback';
+import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
-import { useRegistrations } from '@/features/business-registrations/useRegistrations';
 
 export function SlotDetailScreen() {
   const { slotId } = useParams<{ slotId: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const userId = useAuthStore((s) => s.user?.id);
-  const { registrations } = useRegistrations();
-  // BR-16: the backend only accepts an application against an APPROVED
-  // registration -- there's no picker for a vendor to name one by hand, so
-  // this picks the caller's own for them instead of asking for a raw
-  // registrationId they have no way of knowing.
-  const approvedRegistration = registrations.find((r) => r.registrationStatus === 'APPROVED');
-  const [applying, setApplying] = useState(false);
-  const [requestedTermDays, setRequestedTermDays] = useState('90');
+  const user = useAuthStore((s) => s.user);
+  const slot = useMockDb((s) => s.slots.find((sl) => sl.id === slotId));
+  const submitRentalApplication = useMockDb((s) => s.submitRentalApplication);
 
-  const id = Number(slotId);
-  const validId = Number.isFinite(id);
-  const slot = useQuery({
-    queryKey: ['side', userId, 'slot', id],
-    queryFn: () => sideApi.getSlot(id),
-    enabled: validId,
-  });
+  if (!slot) return <ErrorState message="Không tìm thấy ô." />;
 
-  const apply = useMutation({
-    mutationFn: () =>
-      sideApi.submitOpenSlotApplication({
-        registrationId: approvedRegistration!.registrationId,
-        slotId: id,
-        requestedTermDays: Number(requestedTermDays),
-      }),
-    onSuccess: (result) => {
-      showToast(result.message);
-      void queryClient.invalidateQueries({ queryKey: ['side', userId, 'applications'] });
-      navigate('/vendor/slots/rental-applications');
-    },
-    onError: (error) => {
-      showToast(error instanceof SideApiError ? error.message : 'Không gửi được đơn thuê.');
-    },
-  });
-
-  const address = useQuery({
-    queryKey: ['side', 'reverse-geocode', slot.data?.latitude, slot.data?.longitude],
-    queryFn: ({ signal }) => reverseGeocode(slot.data!.latitude, slot.data!.longitude, signal),
-    enabled: !!slot.data,
-    staleTime: Infinity,
-  });
-
-  if (!validId) return <ErrorState message="Mã ô không hợp lệ." />;
-  if (slot.isPending) return <LoadingState />;
-  if (slot.error)
-    return (
-      <ErrorState
-        message={slot.error instanceof SideApiError ? slot.error.message : slot.error.message}
-        onRetry={() => void slot.refetch()}
-      />
-    );
-  const data = slot.data;
+  const apply = () => {
+    if (!user?.vendorId) return;
+    submitRentalApplication({
+      vendorId: user.vendorId,
+      slotIds: [slot.id],
+      application_type: 'OPEN_SLOT',
+    });
+    showToast('Đã gửi đơn thuê ô');
+    navigate('/vendor/slots/rental-applications');
+  };
 
   return (
     <Screen
       footer={
-        data.slotStatus === 'AVAILABLE' ? (
+        slot.slot_status === 'AVAILABLE' ? (
           <StickyActions>
-            {!approvedRegistration ? (
-              <p className="text-body-sm text-muted">
-                Cần có hồ sơ đăng ký kinh doanh đã được duyệt trước khi nộp đơn thuê ô.
-              </p>
-            ) : applying ? (
-              <div className="flex flex-col gap-sm">
-                <label>
-                  Số ngày thuê
-                  <input
-                    className="mt-xs w-full rounded-sm border border-border p-sm"
-                    value={requestedTermDays}
-                    onChange={(e) => setRequestedTermDays(e.target.value)}
-                    inputMode="numeric"
-                  />
-                </label>
-                <Button
-                  label="Gửi đơn thuê ô này"
-                  loading={apply.isPending}
-                  disabled={!requestedTermDays.trim()}
-                  onPress={() => apply.mutate()}
-                />
-              </div>
-            ) : (
-              <Button label="Nộp đơn thuê ô này" onPress={() => setApplying(true)} />
-            )}
+            <Button label="Nộp đơn thuê ô này" onPress={apply} />
           </StickyActions>
         ) : undefined
       }
     >
-      <AppHeader title={data.slotCode} back subtitle={data.zoneName} />
+      <AppHeader title={slot.slot_code} back subtitle={slot.street} />
       <Card>
         <div className="flex justify-between">
-          <Money amountVnd={data.pricePerDay} size="lg" />
-          <StatusChip code={data.slotStatus} />
+          <Money amountVnd={slot.price_monthly} size="lg" />
+          <StatusChip code={slot.slot_status} />
         </div>
-        <p className="text-body-sm text-muted">mỗi ngày</p>
+        <p className="text-body-sm text-muted">mỗi tháng</p>
       </Card>
       <Card padded={false}>
         <div className="px-md">
-          <ListRow
-            title="Kích thước"
-            subtitle={
-              data.widthMeters && data.lengthMeters
-                ? `${data.widthMeters} × ${data.lengthMeters} m`
-                : 'Chưa có dữ liệu'
-            }
-          />
+          <ListRow title="Diện tích" subtitle={`${slot.size_m2} m²`} />
           <Divider />
-          <ListRow
-            title="Khung giờ hoạt động"
-            subtitle={
-              data.availableFrom && data.availableTo
-                ? `${data.availableFrom} – ${data.availableTo}`
-                : 'Cả ngày'
-            }
-          />
+          <ListRow title="Khung giờ hoạt động" subtitle={slot.time_window} />
           <Divider />
-          <ListRow
-            title="Vị trí"
-            subtitle={
-              address.isPending
-                ? 'Đang tìm địa chỉ…'
-                : (address.data ?? `${data.latitude}, ${data.longitude}`)
-            }
-          />
-          {data.distanceMeters != null && (
-            <>
-              <Divider />
-              <ListRow title="Khoảng cách" subtitle={`${Math.round(data.distanceMeters)} m`} />
-            </>
-          )}
+          <ListRow title="Tuyến đường" subtitle={slot.street} />
         </div>
       </Card>
     </Screen>

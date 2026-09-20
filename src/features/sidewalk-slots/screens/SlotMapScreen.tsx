@@ -1,91 +1,140 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 
-import { Icon } from '@/components/common';
-import { SegmentedControl } from '@/components/forms';
-import { colors } from '@/theme';
-import { sideApi } from '@/core/api/side-api';
+import { Button, Card, Icon, Money } from '@/components/common';
+import { AppHeader, Screen, StickyActions } from '@/components/layout';
+import { StatusChip } from '@/components/status';
+import { FilterChips } from '@/components/forms';
+import { EmptyState, showToast } from '@/components/feedback';
+import { colors, statusTones } from '@/theme';
+import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
-import { SlotMapView, type Bounds } from '../components/SlotMapView';
-import { StreetStripView } from '../components/StreetStripView';
-import { DEFAULT_CENTER, DEFAULT_SPAN } from '../map-constants';
 
-type View = 'MAP' | 'DIAGRAM';
-
-// The bottom tab bar only links here ("Ô thuê"); nothing links onward to the
-// applications/contracts/transfers lists (SlotDetailScreen's apply flow does
-// navigate to rental-applications once, but that's a one-way redirect, not a
-// way back). A row of visible buttons in a fixed header reads more reliably
-// than an icon tucked into a corner of the map.
-const MENU_ITEMS = [
-  { icon: 'format-list-bulleted', label: 'Đơn thuê ô', to: '/vendor/slots/rental-applications' },
-  { icon: 'file-document-outline', label: 'Hợp đồng thuê ô', to: '/vendor/slots/contracts' },
-  { icon: 'swap-horizontal', label: 'Chuyển nhượng ô', to: '/vendor/slots/transfers' },
-  { icon: 'map-marker-outline', label: 'Đề xuất ô mới', to: '/vendor/slots/slot-proposals/new' },
-] as const;
+type Filter = 'ALL' | 'AVAILABLE' | 'RENTED';
 
 export function SlotMapScreen() {
   const navigate = useNavigate();
-  const userId = useAuthStore((s) => s.user?.id);
-  const [view, setView] = useState<View>('MAP');
-  const [bounds, setBounds] = useState<Bounds>({
-    minLat: DEFAULT_CENTER[0] - DEFAULT_SPAN,
-    maxLat: DEFAULT_CENTER[0] + DEFAULT_SPAN,
-    minLng: DEFAULT_CENTER[1] - DEFAULT_SPAN,
-    maxLng: DEFAULT_CENTER[1] + DEFAULT_SPAN,
-  });
+  const user = useAuthStore((s) => s.user);
+  const slots = useMockDb((s) => s.slots).filter((s) => s.proposal_review_status !== 'PENDING');
+  const submitRentalApplication = useMockDb((s) => s.submitRentalApplication);
+  const [filter, setFilter] = useState<Filter>('ALL');
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
 
-  // includeUnavailable: true so the "Tất cả" filter chip and the street-strip
-  // diagram's zone picker both see rented/suspended slots too, not just
-  // AVAILABLE ones -- previously the two map chips always returned the same
-  // set because the server only ever sent AVAILABLE slots either way.
-  const slots = useQuery({
-    queryKey: ['side', userId, 'slots', { ...bounds, includeUnavailable: true }],
-    queryFn: () => sideApi.searchSlots({ ...bounds, includeUnavailable: true, take: 200 }),
-    placeholderData: (previous) => previous,
-  });
+  const filtered = slots.filter((s) => (filter === 'ALL' ? true : s.slot_status === filter));
+
+  const toggle = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const submit = () => {
+    if (!user?.vendorId || selected.length === 0) return;
+    submitRentalApplication({
+      vendorId: user.vendorId,
+      slotIds: selected,
+      application_type: 'OPEN_SLOT',
+    });
+    showToast(`Đã gửi đơn thuê ${selected.length} ô`);
+    setSelected([]);
+    setSelectMode(false);
+    navigate('/vendor/slots/rental-applications');
+  };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-col gap-xs border-b border-border bg-card p-sm">
-        <div className="w-44">
-          <SegmentedControl
-            value={view}
-            onChange={setView}
-            options={[
-              { value: 'MAP', label: 'Bản đồ' },
-              { value: 'DIAGRAM', label: 'Sơ đồ tuyến' },
-            ]}
+    <Screen
+      footer={
+        selectMode && selected.length > 0 ? (
+          <StickyActions>
+            <Button label={`Nộp đơn thuê (${selected.length} ô)`} onPress={submit} />
+          </StickyActions>
+        ) : undefined
+      }
+    >
+      <AppHeader
+        title="Ô vỉa hè"
+        subtitle="Phường Hải Châu 1 · Nguyễn Văn Linh"
+        right={
+          <Button
+            label={selectMode ? 'Xong' : 'Chọn nhiều ô'}
+            variant={selectMode ? 'primary' : 'outline'}
+            fullWidth={false}
+            onPress={() => {
+              setSelectMode((v) => !v);
+              setSelected([]);
+            }}
           />
-        </div>
-        <div className="flex gap-xs overflow-x-auto">
-          {MENU_ITEMS.map((item) => (
-            <button
-              key={item.to}
-              type="button"
-              onClick={() => navigate(item.to)}
-              className="flex h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-border bg-bg px-sm text-label text-text transition-opacity active:opacity-80"
+        }
+      />
+      <FilterChips
+        value={filter}
+        onChange={setFilter}
+        options={[
+          { value: 'ALL', label: 'Tất cả', count: slots.length },
+          {
+            value: 'AVAILABLE',
+            label: 'Còn trống',
+            count: slots.filter((s) => s.slot_status === 'AVAILABLE').length,
+          },
+          {
+            value: 'RENTED',
+            label: 'Đã thuê',
+            count: slots.filter((s) => s.slot_status === 'RENTED').length,
+          },
+        ]}
+      />
+      {filtered.length === 0 ? (
+        <EmptyState icon="map-marker-outline" title="Không có ô phù hợp" />
+      ) : (
+        filtered.map((slot) => {
+          const tone =
+            statusTones[
+              slot.slot_status === 'AVAILABLE'
+                ? 'ok'
+                : slot.slot_status === 'RENTED'
+                  ? 'neutral'
+                  : 'pending'
+            ];
+          const isSelectable = selectMode && slot.slot_status === 'AVAILABLE';
+          const isSelected = selected.includes(slot.id);
+          return (
+            <Card
+              key={slot.id}
+              onPress={() =>
+                isSelectable
+                  ? toggle(slot.id)
+                  : !selectMode
+                    ? navigate(`/vendor/slots/${slot.id}`)
+                    : undefined
+              }
+              padded={false}
+              style={{ overflow: 'hidden' }}
             >
-              <Icon name={item.icon} size={16} color={colors.muted} />
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="relative min-h-0 flex-1">
-        {view === 'MAP' ? (
-          <SlotMapView
-            slots={slots.data ?? []}
-            onBoundsChange={setBounds}
-            error={slots.error}
-            onRetry={() => void slots.refetch()}
-          />
-        ) : (
-          <StreetStripView slots={slots.data ?? []} />
-        )}
-      </div>
-    </div>
+              <div className="flex">
+                <div className="w-1.5" style={{ backgroundColor: tone.fg }} />
+                <div className="flex-1 p-md">
+                  <div className="flex justify-between">
+                    <span className="text-headline-sm text-text">{slot.slot_code}</span>
+                    {isSelectable ? (
+                      <Icon
+                        name={isSelected ? 'check-circle' : 'check-circle-outline'}
+                        size={22}
+                        color={isSelected ? colors.primary : colors.muted}
+                      />
+                    ) : (
+                      <StatusChip code={slot.slot_status} />
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-body-md text-muted">
+                    {slot.street} · {slot.size_m2} m² · {slot.time_window}
+                  </p>
+                  <div className="mt-1.5">
+                    <Money amountVnd={slot.price_monthly} />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          );
+        })
+      )}
+    </Screen>
   );
 }

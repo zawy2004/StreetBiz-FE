@@ -1,56 +1,42 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { Button, Card } from '@/components/common';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
-import { ErrorState, LoadingState, showToast } from '@/components/feedback';
-import { sideApi, SideApiError } from '@/core/api/side-api';
-import { useAuthStore } from '@/store/auth-store';
-import { useRegistrationDetail } from '../useRegistrations';
+import { ErrorState, showToast } from '@/components/feedback';
+import { useMockDb } from '@/mocks/db';
 
 export function AddressUpdateScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const userId = useAuthStore((s) => s.user?.id);
-  const registrationId = Number(id);
-  const validId = Number.isFinite(registrationId);
-  const { registration, isLoading, isError, error, refetch } = useRegistrationDetail(registrationId);
+  const registration = useMockDb((s) => s.registrations.find((r) => r.id === id));
+  const requestAddressChange = useMockDb((s) => s.requestAddressChange);
   const [address, setAddress] = useState('');
-  const [formError, setFormError] = useState<string>();
+  const [error, setError] = useState<string>();
 
-  const submit = useMutation({
-    mutationFn: () => sideApi.requestAddressChange({ registrationId, newAddress: address.trim() }),
-    onSuccess: (result) => {
-      showToast(result.message);
-      void queryClient.invalidateQueries({ queryKey: ['side', userId, 'address-changes'] });
-      navigate(-1);
-    },
-    onError: (err) => setFormError(err instanceof SideApiError ? err.message : 'Không gửi được yêu cầu.'),
-  });
+  if (!registration) return <ErrorState message="Không tìm thấy hồ sơ." />;
 
-  if (!validId) return <ErrorState message="Mã hồ sơ không hợp lệ." />;
-  if (isLoading) return <LoadingState />;
-  if (isError || !registration)
-    return <ErrorState message={error instanceof Error ? error.message : undefined} onRetry={refetch} />;
-
-  const handleSubmit = () => {
-    if (!address.trim()) return setFormError('Vui lòng nhập địa chỉ mới.');
-    setFormError(undefined);
-    submit.mutate();
+  const submit = () => {
+    if (!address.trim()) return setError('Vui lòng nhập địa chỉ mới.');
+    requestAddressChange({
+      vendorId: registration.vendorId,
+      registrationId: registration.id,
+      new_address: address,
+    });
+    showToast('Đã gửi yêu cầu đổi địa chỉ');
+    navigate(-1);
   };
 
   return (
     <Screen
       footer={
         <StickyActions>
-          <Button label="Gửi yêu cầu" loading={submit.isPending} onPress={handleSubmit} />
+          <Button label="Gửi yêu cầu" onPress={submit} />
         </StickyActions>
       }
     >
-      <AppHeader title="Đổi địa chỉ kinh doanh" back subtitle={registration.displayName} />
+      <AppHeader title="Đổi địa chỉ kinh doanh" back subtitle={registration.business_name} />
       <Card>
         <p className="text-body-md text-muted">
           Phường sẽ kiểm tra ô liền kề tại địa chỉ mới. Ô hiện tại được giữ trong thời gian ân hạn
@@ -62,7 +48,7 @@ export function AddressUpdateScreen() {
         value={address}
         onChangeText={setAddress}
         placeholder="Số nhà, đường, phường"
-        error={formError}
+        error={error}
       />
     </Screen>
   );

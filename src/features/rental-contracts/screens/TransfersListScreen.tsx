@@ -1,85 +1,65 @@
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 
 import { Card } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
-import { sideApi, SideApiError, type SlotTransferRequest } from '@/core/api/side-api';
+import { EmptyState } from '@/components/feedback';
+import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
 export function TransfersListScreen() {
   const navigate = useNavigate();
-  const userId = useAuthStore((s) => s.user?.id);
+  const user = useAuthStore((s) => s.user);
+  const transfers = useMockDb((s) => s.transfers);
+  const slots = useMockDb((s) => s.slots);
+  const contracts = useMockDb((s) => s.contracts);
 
-  const incoming = useQuery({
-    queryKey: ['side', userId, 'transfers', 'incoming'],
-    queryFn: () => sideApi.listTransfers('incoming'),
-  });
-  const outgoing = useQuery({
-    queryKey: ['side', userId, 'transfers', 'outgoing'],
-    queryFn: () => sideApi.listTransfers('outgoing'),
-  });
+  const outgoing = transfers.filter((t) => t.fromVendorId === user?.vendorId);
+  const incoming = transfers.filter(
+    (t) =>
+      t.toVendorPhone.replace(/\D/g, '') === user?.phone.replace(/\D/g, '') &&
+      t.transfer_status === 'PENDING',
+  );
 
-  const actionableIncoming = incoming.data?.filter((t) => t.transferStatus === 'PENDING') ?? [];
+  const slotLabel = (contractId: string) => {
+    const contract = contracts.find((c) => c.id === contractId);
+    return slots.find((s) => s.id === contract?.slotId)?.slot_code ?? contractId;
+  };
 
   return (
     <Screen>
       <AppHeader title="Chuyển nhượng ô" back />
 
       <Section title="Yêu cầu gửi đến bạn">
-        {incoming.isPending && <LoadingState />}
-        {incoming.error && (
-          <ErrorState
-            message={incoming.error instanceof SideApiError ? incoming.error.message : incoming.error.message}
-            onRetry={() => void incoming.refetch()}
-          />
-        )}
-        {incoming.data && actionableIncoming.length === 0 && (
+        {incoming.length === 0 ? (
           <EmptyState icon="swap-horizontal" title="Không có yêu cầu nào" />
+        ) : (
+          incoming.map((t) => (
+            <Card key={t.id} onPress={() => navigate(`/vendor/slots/transfers/${t.id}/accept`)}>
+              <span className="text-headline-sm text-text">{slotLabel(t.contractId)}</span>
+              <p className="text-body-sm text-muted">Nhấn để xem &amp; chấp nhận</p>
+            </Card>
+          ))
         )}
-        {actionableIncoming.map((t) => (
-          <Card key={t.transferId} onPress={() => navigate(`/vendor/slots/transfers/${t.transferId}/accept`)}>
-            <TransferLabel transfer={t} />
-            <p className="text-body-sm text-muted">Nhấn để xem &amp; chấp nhận</p>
-          </Card>
-        ))}
       </Section>
 
       <Section title="Yêu cầu đã gửi">
-        {outgoing.isPending && <LoadingState />}
-        {outgoing.error && (
-          <ErrorState
-            message={outgoing.error instanceof SideApiError ? outgoing.error.message : outgoing.error.message}
-            onRetry={() => void outgoing.refetch()}
-          />
-        )}
-        {outgoing.data && outgoing.data.length === 0 && (
+        {outgoing.length === 0 ? (
           <EmptyState icon="swap-horizontal" title="Chưa gửi yêu cầu nào" />
+        ) : (
+          outgoing.map((t) => (
+            <Card key={t.id}>
+              <div className="flex justify-between">
+                <div className="flex flex-col gap-2xs">
+                  <span className="text-headline-sm text-text">{slotLabel(t.contractId)}</span>
+                  <span className="text-body-sm text-muted">Tới {t.toVendorPhone}</span>
+                </div>
+                <StatusChip code={t.transfer_status} />
+              </div>
+            </Card>
+          ))
         )}
-        {outgoing.data?.map((t) => (
-          <Card key={t.transferId}>
-            <div className="flex justify-between">
-              <TransferLabel transfer={t} />
-              <StatusChip code={t.transferStatus} />
-            </div>
-          </Card>
-        ))}
       </Section>
     </Screen>
-  );
-}
-
-function TransferLabel({ transfer }: { transfer: SlotTransferRequest }) {
-  const contract = useQuery({
-    queryKey: ['side', 'contract', transfer.contractId],
-    queryFn: () => sideApi.getContract(transfer.contractId),
-    staleTime: 5 * 60_000,
-  });
-
-  return (
-    <span className="text-headline-sm text-text">
-      {contract.data?.slotCode ?? `Hợp đồng #${transfer.contractId}`}
-    </span>
   );
 }
