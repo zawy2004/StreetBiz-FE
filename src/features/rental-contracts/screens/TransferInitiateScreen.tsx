@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { Button } from '@/components/common';
+import { Button, Card } from '@/components/common';
 import { PhoneField } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { ErrorState, LoadingState, showToast } from '@/components/feedback';
 import { sideApi, SideApiError } from '@/core/api/side-api';
+import { Callout } from '@/features/sidewalk-slots/components/Callout';
+import { ContractSummary } from '@/features/sidewalk-slots/components/ContractSummary';
+import { isLiveContract } from '@/features/sidewalk-slots/my-slots-view';
 import { useAuthStore } from '@/store/auth-store';
 
 export function TransferInitiateScreen() {
@@ -17,6 +20,7 @@ export function TransferInitiateScreen() {
   const contractId = Number(id);
   const validId = Number.isFinite(contractId);
   const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState<string>();
   const [error, setError] = useState<string>();
 
   const contract = useQuery({
@@ -37,17 +41,12 @@ export function TransferInitiateScreen() {
 
   if (!validId) return <ErrorState message="Mã hợp đồng không hợp lệ." />;
   if (contract.isPending) return <LoadingState />;
-  if (contract.error)
-    return (
-      <ErrorState
-        message={contract.error instanceof SideApiError ? contract.error.message : contract.error.message}
-        onRetry={() => void contract.refetch()}
-      />
-    );
+  if (contract.error) return <ErrorState message={contract.error.message} onRetry={() => void contract.refetch()} />;
 
   const handleSubmit = () => {
-    if (phone.replace(/\D/g, '').length < 9) return setError('Số điện thoại chưa hợp lệ.');
     setError(undefined);
+    if (phone.replace(/\D/g, '').length < 9) return setPhoneError('Số điện thoại chưa hợp lệ.');
+    setPhoneError(undefined);
     submit.mutate();
   };
 
@@ -55,16 +54,38 @@ export function TransferInitiateScreen() {
     <Screen
       footer={
         <StickyActions>
-          <Button label="Gửi yêu cầu" loading={submit.isPending} onPress={handleSubmit} />
+          <div className="mx-auto w-full max-w-xl">
+            <Button label="Gửi yêu cầu" loading={submit.isPending} onPress={handleSubmit} />
+          </div>
         </StickyActions>
       }
     >
-      <AppHeader
-        title="Chuyển nhượng ô"
-        back
-        subtitle={`${contract.data.slotCode} · Nhập số điện thoại hộ kinh doanh nhận chuyển nhượng`}
-      />
-      <PhoneField value={phone} onChangeText={setPhone} error={error} />
+      <div className="mx-auto flex w-full max-w-xl flex-col gap-md">
+        <AppHeader title="Chuyển nhượng ô" back subtitle="Chuyển ô đang thuê cho hộ kinh doanh khác" />
+
+        <Card>
+          <div className="flex flex-col gap-sm">
+            <p className="text-headline-sm text-text">Ô chuyển nhượng</p>
+            <ContractSummary contract={contract.data} live={isLiveContract(contract.data.contractStatus)} />
+          </div>
+        </Card>
+
+        <Card>
+          <div className="flex flex-col gap-sm">
+            <p className="text-headline-sm text-text">Hộ kinh doanh nhận ô</p>
+            <PhoneField label="Số điện thoại người nhận" value={phone} onChangeText={setPhone} error={phoneError} />
+            <p className="text-body-sm text-muted">
+              Người nhận cần có tài khoản Hộ kinh doanh và hồ sơ đăng ký đã được duyệt.
+            </p>
+          </div>
+        </Card>
+
+        <Callout tone="neutral">
+          Người nhận phải đồng ý, sau đó Phường duyệt thì việc chuyển nhượng mới có hiệu lực. Trong lúc chờ, ô vẫn thuộc
+          về bạn.
+        </Callout>
+        {error && <Callout tone="danger">{error}</Callout>}
+      </div>
     </Screen>
   );
 }

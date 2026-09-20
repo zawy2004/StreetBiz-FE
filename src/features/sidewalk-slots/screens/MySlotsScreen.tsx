@@ -1,13 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
-import { Card, Icon } from '@/components/common';
-import type { IconName } from '@/components/common/Icon';
 import { AppHeader, Screen } from '@/components/layout';
 import { sideApi } from '@/core/api/side-api';
 import { useAuthStore } from '@/store/auth-store';
-import { colors } from '@/theme';
-import { summarizeMySlots, type SectionSummary } from '../my-slots-summary';
+import { ActionRow } from '../components/ActionRow';
+import { summarizeMySlots } from '../my-slots-summary';
 
 /**
  * Everything a vendor does *after* picking a slot -- applications, contracts,
@@ -40,62 +38,36 @@ export function MySlotsScreen() {
 
   return (
     <Screen>
-      <AppHeader title="Thuê ô của tôi" back />
-      <div className="flex w-full max-w-2xl flex-col gap-sm">
-        <Section
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-sm">
+        <AppHeader title="Thuê ô của tôi" back />
+        <ActionRow
           icon="format-list-bulleted"
           title="Đơn thuê ô"
-          summary={summary.applications}
+          subtitle={summary.applications.text}
+          attention={summary.applications.attention}
           onPress={() => navigate('/vendor/slots/rental-applications')}
         />
-        <Section
+        <ActionRow
           icon="file-document-outline"
           title="Hợp đồng thuê ô"
-          summary={summary.contracts}
+          subtitle={summary.contracts.text}
+          attention={summary.contracts.attention}
           onPress={() => navigate('/vendor/slots/contracts')}
         />
-        <Section
+        <ActionRow
           icon="swap-horizontal"
           title="Chuyển nhượng ô"
-          summary={summary.transfers}
+          subtitle={summary.transfers.text}
+          attention={summary.transfers.attention}
           onPress={() => navigate('/vendor/slots/transfers')}
         />
-        <Section
+        <ActionRow
           icon="map-marker-outline"
           title="Đề xuất ô mới"
-          summary={{ text: 'Gửi vị trí chưa có trong danh sách', attention: false }}
+          subtitle="Gửi vị trí chưa có trong danh sách"
           onPress={() => navigate('/vendor/slots/slot-proposals/new')}
         />
       </div>
     </Screen>
-  );
-}
-
-function Section({
-  icon,
-  title,
-  summary,
-  onPress,
-}: {
-  icon: IconName;
-  title: string;
-  summary: SectionSummary;
-  onPress: () => void;
-}) {
-  return (
-    <Card onPress={onPress}>
-      <div className="flex items-center gap-sm">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-bg">
-          <Icon name={icon} size={22} color={colors.indigo} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-headline-sm text-text">{title}</p>
-          <p className={`truncate text-body-sm ${summary.attention ? 'font-semibold text-primary' : 'text-muted'}`}>
-            {summary.text}
-          </p>
-        </div>
-        <Icon name="chevron-right" size={22} color={colors.muted} />
-      </div>
-    </Card>
   );
 }
