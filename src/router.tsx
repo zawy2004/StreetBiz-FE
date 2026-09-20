@@ -95,7 +95,6 @@ import {
   PermitScanScreen,
   PricingScheduleScreen,
   RecordViolationScreen,
-  RegistrationReviewScreen,
   RentalApplicationReviewScreen,
   RenewalReviewScreen,
   SlotGridEditorScreen,
@@ -133,6 +132,19 @@ function LegacyWardReviewRedirect() {
   const { kind, id } = useParams();
   const suffix = kind && id ? `/${kind}/${id}` : '';
   return <Navigate to={`/ward/inbox/reviews${suffix}`} replace />;
+}
+
+/**
+ * The registration review used to be a mock-only screen at this path: it decided
+ * on rows in src/mocks while vendors were submitting to the real backend. It is
+ * now the live ward case screen, which handles the same three decisions plus the
+ * evidence documents and the stale-status conflict the mock screen had no answer
+ * for. The old path stays as a redirect so bookmarks and notification deep links
+ * keep working.
+ */
+function LegacyRegistrationReviewRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/ward/inbox/reviews/registrations/${id}`} replace />;
 }
 
 export function AppRouter() {
@@ -283,7 +295,7 @@ export function AppRouter() {
         <Route path="inbox" element={<InboxScreen />} />
         <Route path="inbox/reviews" element={<WardCasesScreen />} />
         <Route path="inbox/reviews/:kind/:id" element={<WardCaseScreen />} />
-        <Route path="inbox/registrations/:id" element={<RegistrationReviewScreen />} />
+        <Route path="inbox/registrations/:id" element={<LegacyRegistrationReviewRedirect />} />
         <Route path="inbox/rental-applications/:id" element={<RentalApplicationReviewScreen />} />
         <Route path="inbox/renewals/:id" element={<RenewalReviewScreen />} />
         <Route path="inbox/slot-proposals/:id" element={<SlotProposalReviewScreen />} />

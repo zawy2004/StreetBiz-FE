@@ -2,11 +2,11 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Card } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
-import { WardConnection } from '../components/WardConnection';
+import { useAuthStore } from '@/store/auth-store';
+import { WardGate } from '../components/WardGate';
 import {
   caseLabels,
   statusLabel,
-  useWardSession,
   wardApi,
   wardReviewRoot,
   type CaseKind,
@@ -14,9 +14,9 @@ import {
 
 export function WardCasesScreen() {
   return (
-    <WardConnection>
+    <WardGate>
       <CasesContent />
-    </WardConnection>
+    </WardGate>
   );
 }
 function CasesContent() {
@@ -28,9 +28,11 @@ function CasesContent() {
     Number.isInteger(requestedPage) && requestedPage > 0 && requestedPage <= 10000
       ? requestedPage
       : 1;
-  const generation = useWardSession((state) => state.generation);
+  // Scope the cache to the signed-in officer so one account never sees another's
+  // ward cases after a sign-out/sign-in on the same tab.
+  const userId = useAuthStore((state) => state.user?.id);
   const records = useQuery({
-    queryKey: ['ward', generation, kind, page],
+    queryKey: ['ward', userId, kind, page],
     queryFn: () => wardApi.list(kind, page),
   });
   return (

@@ -4,13 +4,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Card } from '@/components/common';
 import { ConfirmDialog } from '@/components/feedback';
 import { AppHeader, Screen } from '@/components/layout';
+import { useAuthStore } from '@/store/auth-store';
 import { LocationReview } from '../components/LocationReview';
-import { WardConnection } from '../components/WardConnection';
+import { WardGate } from '../components/WardGate';
 import {
   actionLabels,
   caseLabels,
   statusLabel,
-  useWardSession,
   wardApi,
   wardReviewRoot,
   type CaseKind,
@@ -29,21 +29,23 @@ export function WardCaseScreen({ kind: givenKind }: { kind?: CaseKind }) {
       </Screen>
     );
   return (
-    <WardConnection>
+    <WardGate>
       <CaseContent key={`${kind}-${id}`} kind={kind as CaseKind} id={id} />
-    </WardConnection>
+    </WardGate>
   );
 }
 
 function CaseContent({ kind, id }: { kind: CaseKind; id: string }) {
-  const generation = useWardSession((state) => state.generation);
+  // Scope the cache to the signed-in officer so one account never sees another's
+  // ward cases after a sign-out/sign-in on the same tab.
+  const userId = useAuthStore((state) => state.user?.id);
   const client = useQueryClient();
   const [reason, setReason] = useState('');
   const [pendingDecision, setPendingDecision] = useState('');
-  const queryKey = ['ward', generation, kind, id];
+  const queryKey = ['ward', userId, kind, id];
   const record = useQuery({ queryKey, queryFn: () => wardApi.get(kind, id) });
   const refresh = () => {
-    void client.invalidateQueries({ queryKey: ['ward', generation] });
+    void client.invalidateQueries({ queryKey: ['ward', userId] });
   };
   const decide = useMutation({
     mutationFn: ({ data, action }: { data: WardCase; action: string }) =>

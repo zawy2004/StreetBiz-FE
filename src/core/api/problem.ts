@@ -31,7 +31,11 @@ const FALLBACK_MESSAGES: Record<ApiErrorCode, string> = {
   forbidden: 'Bạn không có quyền thực hiện thao tác này.',
   not_found: 'Không tìm thấy dữ liệu.',
   domain_rule: 'Thao tác không hợp lệ theo quy định.',
-  otp_cooldown: 'Vui lòng chờ trước khi yêu cầu mã xác thực mới.',
+  // Named for the OTP cooldown, but 429 also covers the ward geocode limiter,
+  // which answers with an empty body and so always lands on this fallback.
+  // Call sites that need OTP-specific wording branch on `code` and
+  // `retryAfterSeconds`, not on this string.
+  otp_cooldown: 'Bạn thao tác quá nhanh. Vui lòng thử lại sau.',
   bad_request: 'Yêu cầu không hợp lệ.',
   server_error: 'Hệ thống đang bận. Vui lòng thử lại sau.',
   network_error: 'Không kết nối được máy chủ. Kiểm tra kết nối mạng và thử lại.',

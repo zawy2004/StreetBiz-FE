@@ -2,13 +2,18 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
+import { ApiError } from '@/core/api';
 import { WardCaseScreen } from '@/features/ward-administration/screens/WardCaseScreen';
-import {
-  useWardSession,
-  wardApi,
-  type WardCase,
-  WardApiError,
-} from '@/features/ward-administration/ward-api';
+import { wardApi, type WardCase } from '@/features/ward-administration/ward-api';
+import { useAuthStore } from '@/store/auth-store';
+
+// WardGate shows a "needs a backend" notice unless the app is in live mode, so
+// these screens can only be exercised with isLiveApi forced on.
+vi.mock('@/core/config/env', () => ({
+  env: { apiBaseUrl: 'https://api.example.test/api', useMockApi: false, appEnv: 'test' },
+  isDev: true,
+  isLiveApi: true,
+}));
 
 const record: WardCase = {
   id: '1',
@@ -31,7 +36,18 @@ const record: WardCase = {
   fastTrack: false,
 };
 function mount() {
-  useWardSession.getState().connect('test-only');
+  useAuthStore.setState({
+    user: {
+      id: '1',
+      fullName: 'Ward',
+      phone: '0983000001',
+      password: '',
+      role_code: 'WARD_AUTHORITY',
+      wardUnitId: 10,
+      account_status: 'ACTIVE',
+    },
+    sessionExpired: false,
+  });
   vi.spyOn(wardApi, 'me').mockResolvedValue({ userId: '1', wardId: 1, name: 'Ward' });
   render(
     <QueryClientProvider
@@ -49,7 +65,7 @@ describe('ward review decisions', () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
-    useWardSession.getState().disconnect();
+    useAuthStore.setState({ user: null, sessionExpired: false });
   });
   it('requires a reason and explicit confirmation before sending the decision', async () => {
     vi.spyOn(wardApi, 'get').mockResolvedValue(record);
@@ -78,7 +94,7 @@ describe('ward review decisions', () => {
   });
   it('shows stale-state errors and reloads instead of claiming success', async () => {
     const get = vi.spyOn(wardApi, 'get').mockResolvedValue(record);
-    vi.spyOn(wardApi, 'decide').mockRejectedValue(new WardApiError(409, 'Hồ sơ đã thay đổi'));
+    vi.spyOn(wardApi, 'decide').mockRejectedValue(new ApiError('conflict', 409, 'Hồ sơ đã thay đổi'));
     mount();
     await screen.findByRole('button', { name: 'Phê duyệt' });
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Đủ điều kiện' } });
