@@ -29,6 +29,42 @@ describe('commerce API contracts', () => {
     expect(client.apiGet).toHaveBeenNthCalledWith(2, '/marketplace/menu-items/12');
   });
 
+  it('sends the menu filters that are set and leaves the rest out', async () => {
+    client.apiGet.mockResolvedValue([]);
+
+    await commerceApi.menuItems({ query: 'xôi', wardId: 3, maxPrice: 30000, openNow: true, sort: 'price_asc' });
+    await commerceApi.menuItems({});
+
+    expect(client.apiGet).toHaveBeenNthCalledWith(
+      1,
+      '/marketplace/menu-items?query=x%C3%B4i&wardId=3&maxPrice=30000&openNow=true&sort=price_asc',
+    );
+    expect(client.apiGet).toHaveBeenNthCalledWith(2, '/marketplace/menu-items');
+  });
+
+  it('reads service areas, categories and storefronts, sending the position only when known', async () => {
+    client.apiGet.mockResolvedValue([]);
+    const here = { latitude: 16.0605, longitude: 108.2145 };
+
+    await commerceApi.serviceAreas();
+    await commerceApi.serviceAreas(here);
+    await commerceApi.marketplaceCategories();
+    await commerceApi.storefronts({ query: 'bún', wardId: 1003, categoryId: 1, openNow: true, position: here, radiusMeters: 2000, sort: 'distance' });
+    await commerceApi.storefronts();
+    await commerceApi.storefront(7, here);
+    await commerceApi.storefront('7');
+
+    expect(client.apiGet.mock.calls.map(([path]) => path)).toEqual([
+      '/marketplace/service-areas',
+      '/marketplace/service-areas?latitude=16.0605&longitude=108.2145',
+      '/marketplace/categories',
+      '/marketplace/storefronts?query=b%C3%BAn&wardId=1003&categoryId=1&openNow=true&radiusMeters=2000&sort=distance&latitude=16.0605&longitude=108.2145',
+      '/marketplace/storefronts',
+      '/marketplace/storefronts/7?latitude=16.0605&longitude=108.2145',
+      '/marketplace/storefronts/7',
+    ]);
+  });
+
   it('sends the cart item quantity and customer note', async () => {
     client.apiPost.mockResolvedValue({});
     client.apiPut.mockResolvedValue({});

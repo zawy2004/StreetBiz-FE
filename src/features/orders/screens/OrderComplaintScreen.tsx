@@ -7,6 +7,8 @@ import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { ErrorState, showToast } from '@/components/feedback';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
+import { isLiveApi } from '@/core/config/env';
+import { LiveOrderComplaintScreen } from './LiveOrderComplaintScreen';
 
 const TYPES = [
   { value: 'WRONG_ITEM', label: 'Sai món' },
@@ -15,6 +17,10 @@ const TYPES = [
 ];
 
 export function OrderComplaintScreen() {
+  return isLiveApi ? <LiveOrderComplaintScreen /> : <MockOrderComplaintScreen />;
+}
+
+function MockOrderComplaintScreen() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);

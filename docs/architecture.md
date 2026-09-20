@@ -41,10 +41,11 @@ Shared behavior should be promoted only after a concrete reuse case exists.
 ## Backend and communication
 
 The backend is StreetBiz-BE, implemented with ASP.NET Core .NET 8 and SQL Server.
-Future communication will use the versioned REST/OpenAPI contract. SignalR may
-support real-time status changes later, with refresh or polling fallbacks.
+Future communication will use the versioned REST/OpenAPI contract. Order detail
+uses the authenticated `/hubs/orders` SignalR hub, with polling as a connection
+fallback; other workflows may add their own realtime contracts later.
 
-No endpoint, request type, response type, authentication flow, or SignalR hub is
+No endpoint, request type, response type, authentication flow, or additional SignalR hub is
 implemented or inferred in this foundation.
 
 ## External services

@@ -20,6 +20,7 @@ export const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> 
   NOT_YET_VALID: { label: 'Chưa có hiệu lực', tone: 'pending' },
   NOT_FOUND: { label: 'Không tìm thấy', tone: 'danger' },
   AVAILABLE: { label: 'Còn trống', tone: 'ok' },
+  PENDING_APPLICATION: { label: 'Đang có đơn', tone: 'pending' },
   OPEN: { label: 'Đang mở', tone: 'ok' },
   PAID: { label: 'Đã thanh toán', tone: 'ok' },
   RESOLVED: { label: 'Đã xử lý', tone: 'ok' },

@@ -13,6 +13,95 @@ export type MarketplaceMenuItem = {
   categoryName: string;
 };
 
+export type GeoPoint = { latitude: number; longitude: number };
+
+/** ISO weekday (1 = Monday ... 7 = Sunday) with local "HH:mm" times. */
+export type StorefrontHour = { dayOfWeek: number; opensAt: string; closesAt: string };
+
+export type StorefrontSummary = {
+  storefrontId: number;
+  storefrontName: string;
+  description: string | null;
+  imageUrl: string | null;
+  vendorId: number;
+  address: string | null;
+  wardId: number;
+  wardName: string;
+  zoneName: string;
+  slotCode: string;
+  latitude: number;
+  longitude: number;
+  distanceMeters: number | null;
+  isOpenNow: boolean;
+  todayHours: StorefrontHour[];
+  communityRating: number | null;
+  communityCount: number;
+  menuItemCount: number;
+  minPrice: number | null;
+  categories: string[];
+};
+
+export type StorefrontMenuCategory = {
+  categoryId: number;
+  categoryName: string;
+  items: MarketplaceMenuItem[];
+};
+
+export type StorefrontDetail = {
+  storefront: StorefrontSummary;
+  weeklyHours: StorefrontHour[];
+  menu: StorefrontMenuCategory[];
+};
+
+/** A ward with at least one listed storefront; `distanceMeters` is to its nearest one. */
+export type ServiceArea = {
+  wardId: number;
+  wardName: string;
+  districtName: string | null;
+  storefrontCount: number;
+  distanceMeters: number | null;
+};
+
+export type MarketplaceCategory = { categoryId: number; categoryName: string; itemCount: number };
+
+export type StorefrontSort = 'distance' | 'rating' | 'name';
+export type MenuItemSort = 'name' | 'price_asc' | 'price_desc';
+
+export type StorefrontQuery = {
+  query?: string;
+  wardId?: number;
+  categoryId?: number;
+  openNow?: boolean;
+  position?: GeoPoint;
+  radiusMeters?: number;
+  sort?: StorefrontSort;
+  take?: number;
+};
+
+export type MenuItemQuery = {
+  query?: string;
+  wardId?: number;
+  categoryId?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  openNow?: boolean;
+  sort?: MenuItemSort;
+  take?: number;
+};
+
+/** Builds "?a=1&b=x" from the params that are set, encoding with %20 like the rest of the client. */
+function queryString(params: Record<string, string | number | boolean | undefined>): string {
+  const pairs = Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== '')
+    .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`);
+  return pairs.length ? `?${pairs.join('&')}` : '';
+}
+
+const positionParams = (position?: GeoPoint) => ({
+  latitude: position?.latitude,
+  longitude: position?.longitude,
+});
+
 export type CommerceCartItem = {
   cartItemId: number;
   menuItemId: number;
@@ -28,6 +117,7 @@ export type CommerceCart = {
   cartId: number;
   storefrontId: number;
   storefrontName: string;
+  storefrontAddress: string | null;
   storefrontStatus: string;
   items: CommerceCartItem[];
   subtotal: number;
@@ -57,6 +147,7 @@ export type CommerceOrder = {
   customerName: string;
   storefrontId: number;
   storefrontName: string;
+  storefrontAddress?: string | null;
   orderStatus: string;
   subtotalAmount: number;
   totalAmount: number;
@@ -86,13 +177,43 @@ export type SalesSummary = {
   orders: CommerceOrder[];
 };
 
+export type PaymentOptions = {
+  mode: 'SANDBOX' | 'UNAVAILABLE';
+  providers: ('MOMO' | 'ZALOPAY')[];
+  message: string;
+};
+export type CustomerComplaint = {
+  complaintId: number;
+  orderId: number;
+  complaintType: string;
+  description: string;
+  requestedRefundAmount: number | null;
+  status: string;
+  resolutionNotes: string | null;
+  createdAt: string;
+};
+
 export const commerceApi = {
-  menuItems: (query?: string) =>
-    apiGet<MarketplaceMenuItem[]>(
-      `/marketplace/menu-items${query ? `?query=${encodeURIComponent(query)}` : ''}`,
-    ),
+  menuItems: (query?: string | MenuItemQuery) => {
+    const filters = typeof query === 'string' ? { query } : (query ?? {});
+    return apiGet<MarketplaceMenuItem[]>(
+      `/marketplace/menu-items${queryString({ ...filters })}`,
+    );
+  },
   menuItem: (menuItemId: string | number) =>
     apiGet<MarketplaceMenuItem>(`/marketplace/menu-items/${menuItemId}`),
+
+  serviceAreas: (position?: GeoPoint) =>
+    apiGet<ServiceArea[]>(`/marketplace/service-areas${queryString(positionParams(position))}`),
+  marketplaceCategories: () => apiGet<MarketplaceCategory[]>('/marketplace/categories'),
+  storefronts: ({ position, ...filters }: StorefrontQuery = {}) =>
+    apiGet<StorefrontSummary[]>(
+      `/marketplace/storefronts${queryString({ ...filters, ...positionParams(position) })}`,
+    ),
+  storefront: (storefrontId: string | number, position?: GeoPoint) =>
+    apiGet<StorefrontDetail>(
+      `/marketplace/storefronts/${storefrontId}${queryString(positionParams(position))}`,
+    ),
 
   cart: () => apiGet<CommerceCart | null>('/cart'),
   addCartItem: (menuItemId: number, quantity: number, note?: string) =>

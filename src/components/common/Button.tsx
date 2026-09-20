@@ -43,7 +43,7 @@ export function Button({
       onClick={onPress}
       disabled={disabled || loading}
       className={[
-        'inline-flex h-12 items-center justify-center rounded-sm text-headline-sm transition-opacity active:opacity-90 disabled:cursor-not-allowed disabled:opacity-50',
+        'inline-flex h-12 min-h-12 items-center justify-center rounded-sm text-headline-sm transition-opacity active:opacity-90 disabled:cursor-not-allowed disabled:opacity-50',
         fullWidth ? 'w-full px-md' : 'w-auto px-lg',
         variantClass[variant],
       ].join(' ')}

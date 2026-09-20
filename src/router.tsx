@@ -1,11 +1,12 @@
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 
 import { GUEST_HOME_ROUTE, ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
-import { AuthGuard } from '@/core/auth/RoleGuard';
+import { AuthGuard, RoleGuard } from '@/core/auth/RoleGuard';
 import { useAuthStore } from '@/store/auth-store';
 import { WardCasesScreen } from '@/features/ward-administration/screens/WardCasesScreen';
 import { WardCaseScreen } from '@/features/ward-administration/screens/WardCaseScreen';
 import { RoleShell } from '@/layouts/RoleShell';
+import { VendorTopBar } from '@/layouts/VendorTopBar';
 import { CUSTOMER_TABS, PLATFORM_TABS, VENDOR_TABS, WARD_TABS } from '@/layouts/role-tabs';
 
 import {
@@ -35,6 +36,7 @@ import {
 } from '@/features/business-registrations/screens';
 import {
   RentalApplicationDetailScreen,
+  MySlotsScreen,
   RentalApplicationsScreen,
   SlotDetailScreen,
   SlotMapScreen,
@@ -73,13 +75,15 @@ import {
   VendorProfileScreen,
 } from '@/features/vendor-map/screens';
 import { ReportContentScreen, VendorReportFormScreen } from '@/features/vendor-reports/screens';
-import { ItemDetailScreen, SearchScreen } from '@/features/buyer-discovery/screens';
+import { ItemDetailScreen, SearchScreen, StorefrontDetailScreen } from '@/features/buyer-discovery/screens';
 import { CartScreen, CheckoutScreen } from '@/features/cart/screens';
+import { OrderPaymentScreen } from '@/features/orders/screens/OrderPaymentScreen';
 import {
   CustomerOrdersScreen,
   OrderComplaintScreen,
   OrderDetailScreen,
   OrderReviewScreen,
+  VendorOrderDetailScreen,
 } from '@/features/orders/screens';
 
 import {
@@ -178,6 +182,23 @@ export function AppRouter() {
       />
 
       <Route
+        path="/orders"
+        element={
+          <RoleGuard role="CUSTOMER">
+            <CustomerOrdersScreen />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/orders/:orderId"
+        element={
+          <RoleGuard role="CUSTOMER">
+            <OrderDetailScreen />
+          </RoleGuard>
+        }
+      />
+
+      <Route
         path="/customer"
         element={
           <RoleShell role="CUSTOMER" allowGuest roleLabel="Người mua" items={CUSTOMER_TABS} />
@@ -191,18 +212,27 @@ export function AppRouter() {
         <Route path="explore/vendors/:vendorId/comments/new" element={<CommentFormScreen />} />
         <Route path="explore/vendors/:vendorId/reports/new" element={<VendorReportFormScreen />} />
         <Route path="explore/items/:itemId" element={<ItemDetailScreen />} />
+        <Route path="explore/stores/:storefrontId" element={<StorefrontDetailScreen />} />
         <Route path="scan" element={<PublicScanScreen />} />
         <Route path="checkout" element={<CheckoutScreen />} />
         <Route path="account" element={<AccountScreen />} />
         <Route path="orders" element={<CustomerOrdersScreen />} />
         <Route path="orders/:orderId" element={<OrderDetailScreen />} />
+        <Route path="orders/:orderId/payment" element={<OrderPaymentScreen />} />
         <Route path="orders/:orderId/review" element={<OrderReviewScreen />} />
         <Route path="orders/:orderId/complaint" element={<OrderComplaintScreen />} />
       </Route>
 
       <Route
         path="/vendor"
-        element={<RoleShell role="VENDOR" roleLabel="Hộ kinh doanh" items={VENDOR_TABS} />}
+        element={
+          <RoleShell
+            role="VENDOR"
+            roleLabel="Hộ kinh doanh"
+            items={VENDOR_TABS}
+            header={<VendorTopBar />}
+          />
+        }
       >
         <Route path="home" element={<VendorHomeScreen />} />
         <Route path="account" element={<AccountScreen />} />
@@ -216,6 +246,7 @@ export function AppRouter() {
         <Route path="registrations/:id/adjacent-slot" element={<AdjacentSlotScreen />} />
         <Route path="slots" element={<SlotMapScreen />} />
         <Route path="slots/:slotId" element={<SlotDetailScreen />} />
+        <Route path="slots/mine" element={<MySlotsScreen />} />
         <Route path="slots/rental-applications" element={<RentalApplicationsScreen />} />
         <Route path="slots/rental-applications/:id" element={<RentalApplicationDetailScreen />} />
         <Route path="slots/slot-proposals/new" element={<SlotProposalScreen />} />
@@ -238,6 +269,9 @@ export function AppRouter() {
         <Route path="store/menu" element={<MenuScreen />} />
         <Route path="store/orders" element={<VendorOrdersScreen />} />
         <Route path="store/sales" element={<SalesSummaryScreen />} />
+        <Route path="orders" element={<VendorOrdersScreen />} />
+        <Route path="orders/sales-summary" element={<SalesSummaryScreen />} />
+        <Route path="orders/:orderId" element={<VendorOrderDetailScreen />} />
       </Route>
 
       <Route
