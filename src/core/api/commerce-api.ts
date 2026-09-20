@@ -28,6 +28,7 @@ export type CommerceCart = {
   cartId: number;
   storefrontId: number;
   storefrontName: string;
+  storefrontAddress: string | null;
   storefrontStatus: string;
   items: CommerceCartItem[];
   subtotal: number;
@@ -57,6 +58,7 @@ export type CommerceOrder = {
   customerName: string;
   storefrontId: number;
   storefrontName: string;
+  storefrontAddress?: string | null;
   orderStatus: string;
   subtotalAmount: number;
   totalAmount: number;

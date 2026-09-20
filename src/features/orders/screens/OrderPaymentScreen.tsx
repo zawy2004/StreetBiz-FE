@@ -1,110 +1,80 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
+
 import { Button, Card, Money } from '@/components/common';
-import { ErrorState, LoadingState, showToast } from '@/components/feedback';
+import { ErrorState, LoadingState } from '@/components/feedback';
 import { AppHeader, Screen } from '@/components/layout';
-import { commerceApi, errorMessage } from '@/core/api';
+import { OrderStatusBadge } from '../components';
+import { useCustomerOrder } from '../hooks/useOrders';
 
 export function OrderPaymentScreen() {
   const { orderId } = useParams();
   const navigate = useNavigate();
-  const cache = useQueryClient();
-  const order = useQuery({
-    queryKey: ['commerce', 'customer-order', orderId],
-    queryFn: () => commerceApi.customerOrder(orderId!),
-    enabled: Boolean(orderId),
-    refetchInterval: 5000,
-  });
-  const options = useQuery({
-    queryKey: ['commerce', 'payment-options'],
-    queryFn: commerceApi.paymentOptions,
-  });
-  const pay = useMutation({
-    mutationFn: (success: boolean) =>
-      success
-        ? commerceApi.confirmSandboxPayment(order.data!.orderId)
-        : commerceApi.failSandboxPayment(order.data!.orderId),
-    onSuccess: async (next) => {
-      cache.setQueryData(['commerce', 'customer-order', orderId], next);
-      await cache.invalidateQueries({ queryKey: ['commerce', 'customer-orders'] });
-      if (next.paymentStatus === 'SUCCESS') {
-        showToast('Thanh toán thử nghiệm thành công');
-        navigate(`/customer/orders/${next.orderId}`, { replace: true });
-      }
-    },
-    onError: () => {
-      void order.refetch();
-    },
-  });
-  if (order.isPending || options.isPending) return <LoadingState />;
-  if (order.isError || options.isError || !order.data)
+  const order = useCustomerOrder(orderId);
+
+  if (order.isPending) return <LoadingState />;
+  if (order.isError || !order.data) {
     return (
       <ErrorState
-        message={errorMessage(order.error ?? options.error)}
-        onRetry={() => {
-          void order.refetch();
-          void options.refetch();
-        }}
+        message="Không tải được trạng thái thanh toán."
+        onRetry={() => order.refetch()}
       />
     );
+  }
+
   const data = order.data;
   const pending = data.orderStatus === 'PENDING_PAYMENT';
+  const placed = data.orderStatus === 'PLACED';
+  const cancelled = data.orderStatus === 'CANCELLED';
+
   return (
     <Screen>
-      <AppHeader title="Thanh toán đơn hàng" back subtitle={`#${data.orderCode}`} />
+      <AppHeader title="Trạng thái thanh toán" back subtitle={`#${data.orderCode}`} />
       <Card>
-        <p className="text-headline-sm">{data.storefrontName}</p>
-        <Money amountVnd={data.totalAmount} size="lg" />
-        <p className="mt-sm text-muted">{data.paymentProvider}</p>
+        <div className="flex items-center justify-between gap-sm">
+          <div>
+            <p className="text-headline-sm text-text">{data.storefront.storefrontName}</p>
+            <p className="mt-2xs text-body-sm text-muted">{data.paymentProvider}</p>
+          </div>
+          <OrderStatusBadge status={data.orderStatus} />
+        </div>
+        <div className="mt-sm">
+          <Money amountVnd={data.totalAmount} size="lg" />
+        </div>
       </Card>
-      {pending ? (
-        <>
-          <Card>
-            <p>
-              {data.paymentStatus === 'FAILED'
-                ? 'Lần thanh toán trước thất bại. Bạn có thể thử lại cho đơn này.'
-                : 'Đơn đang chờ thanh toán. Người bán sẽ nhận đơn khi thanh toán thành công.'}
+
+      <Card>
+        {pending ? (
+          <>
+            <p className="text-headline-sm text-text">Đang chờ cổng thanh toán xác nhận</p>
+            <p className="mt-xs text-body-md text-muted">
+              Trang này tự kiểm tra trạng thái từ backend. Tham số trên URL quay lại không được dùng
+              làm bằng chứng thanh toán thành công.
             </p>
-          </Card>
-          <p className="text-body-sm text-muted">{options.data?.message}</p>
-          {options.data?.mode === 'SANDBOX' ? (
-            <>
-              <Button
-                label={
-                  data.paymentStatus === 'FAILED'
-                    ? 'Thử lại thanh toán sandbox'
-                    : 'Xác nhận thanh toán sandbox'
-                }
-                loading={pay.isPending}
-                disabled={pay.isPending}
-                onPress={() => pay.mutate(true)}
-              />
-              <Button
-                label="Mô phỏng thanh toán thất bại"
-                variant="outline"
-                disabled={pay.isPending}
-                onPress={() => pay.mutate(false)}
-              />
-            </>
-          ) : null}
-        </>
-      ) : (
-        <Card>
-          <p>
-            {data.paymentStatus === 'SUCCESS'
-              ? 'Thanh toán đã được xác nhận.'
-              : 'Đơn đã kết thúc, không thể tiếp tục thanh toán.'}
-          </p>
-        </Card>
-      )}
-      {pay.isError ? (
-        <p role="alert" className="text-error">
-          {errorMessage(pay.error)}
-        </p>
+          </>
+        ) : placed ? (
+          <>
+            <p className="text-headline-sm text-tertiary">Đặt món thành công</p>
+            <p className="mt-xs text-body-md text-muted">
+              Backend đã xác nhận callback thanh toán và chuyển đơn cho người bán.
+            </p>
+          </>
+        ) : cancelled ? (
+          <>
+            <p className="text-headline-sm text-error">Thanh toán thất bại hoặc đơn đã bị huỷ</p>
+            <p className="mt-xs text-body-md text-muted">
+              Giỏ hàng vẫn được giữ để bạn kiểm tra và thực hiện một lượt checkout mới.
+            </p>
+          </>
+        ) : (
+          <p className="text-body-md text-muted">Thanh toán đã được backend xác nhận.</p>
+        )}
+      </Card>
+
+      {pending ? (
+        <Button label="Kiểm tra lại" variant="outline" onPress={() => void order.refetch()} />
       ) : null}
       <Button
-        label="Xem đơn hàng"
-        variant="outline"
+        label="Xem chi tiết đơn hàng"
         onPress={() => navigate(`/customer/orders/${data.orderId}`, { replace: true })}
       />
     </Screen>

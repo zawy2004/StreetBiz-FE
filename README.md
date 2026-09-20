@@ -56,12 +56,11 @@ Do not commit .env.
 
 ```dotenv
 VITE_APP_ENV=development
-VITE_API_BASE_URL=http://localhost:5000/api
+VITE_API_BASE_URL=https://localhost:7147/api
 VITE_USE_MOCK_API=false
 VITE_ENABLE_AI_COMPLIANCE=true
 VITE_ENABLE_PHASE_2=true
 VITE_ENABLE_PUSH_NOTIFICATIONS=false
-VITE_ENABLE_PAYMENT_SANDBOX=true
 ```
 
 `VITE_*` values are included in the client bundle. Never store passwords,
@@ -91,7 +90,7 @@ Start the API first — it must be listening on the origin in
 
 ```powershell
 cd ..\StreetBiz-BE
-dotnet run --project src/StreetBiz.API      # http://localhost:5000
+dotnet run --project src/StreetBiz.API --launch-profile https
 ```
 
 Then, in StreetBiz-FE:
@@ -229,13 +228,12 @@ rationale.
 - Workflows outside Authentication, Vendor Onboarding, Ward slot review,
   BUY-01–05, ADM-01/03/04/05 and CART/ORD/SORD still call `src/mocks/db.ts`.
 - Push notifications, camera access beyond a plain `<input type="file">`.
-- SignalR/real-time updates.
+- Real-time modules ngoài Orders; Order detail đã dùng SignalR và tự chuyển sang polling khi mất kết nối.
 
 Storefront/menu management and order review/complaint screens now use live APIs
-when live mode is enabled. Payment availability comes from the backend; the old
-`VITE_ENABLE_PAYMENT_SANDBOX` flag does not enable live checkout. Sandbox
-success/failure/retry and approved refund simulation require a Development
-backend. Real MoMo/ZaloPay gateway integration remains pending; see
+when live mode is enabled. Checkout redirects only to the `paymentUrl` returned
+by StreetBiz-BE, and the UI trusts only backend order state after the payment
+callback. Real MoMo/ZaloPay gateway integration remains pending; see
 [commerce workflow notes](docs/commerce-order-workflows.md).
 
 ## Documentation

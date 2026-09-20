@@ -1,15 +1,24 @@
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Card, Divider, ListRow, Money } from '@/components/common';
 import { ConfirmDialog, ErrorState, LoadingState, showToast } from '@/components/feedback';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { commerceApi, errorMessage } from '@/core/api';
+import { errorMessage } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
 import { colors } from '@/theme';
+import { orderApi } from '../api/orderApi';
+import {
+  OrderItemsList,
+  OrderStatusBadge,
+  OrderSummary,
+  OrderTimeline,
+  formatOrderDate,
+} from '../components';
+import { useCustomerOrder, useRefreshAfterOrderMutation } from '../hooks/useOrders';
 
 function refundPresentation(status: string) {
   if (status === 'SUCCESS') {
@@ -40,41 +49,26 @@ export function OrderDetailScreen() {
 function LiveOrderDetailScreen() {
   const navigate = useNavigate();
   const { orderId } = useParams<{ orderId: string }>();
-  const queryClient = useQueryClient();
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const paymentOptions = useQuery({
-    queryKey: ['commerce', 'payment-options'],
-    queryFn: commerceApi.paymentOptions,
-  });
-  const sandboxRefund = useMutation({
-    mutationFn: () => commerceApi.confirmSandboxRefund(order.data!.orderId),
-    onSuccess: async (next) => {
-      queryClient.setQueryData(['commerce', 'customer-order', orderId], next);
-      await queryClient.invalidateQueries({ queryKey: ['commerce', 'customer-orders'] });
-      showToast('Đã mô phỏng hoàn tiền thành công');
-    },
-  });
-  const order = useQuery({
-    queryKey: ['commerce', 'customer-order', orderId],
-    queryFn: () => commerceApi.customerOrder(orderId!),
-    enabled: Boolean(orderId),
-    refetchInterval: 5_000,
-  });
+  const [confirmPickup, setConfirmPickup] = useState(false);
+  const order = useCustomerOrder(orderId);
+  const refresh = useRefreshAfterOrderMutation('customer', Number(orderId));
   const transition = useMutation({
     mutationFn: (action: 'cancel' | 'pickup') =>
       action === 'cancel'
-        ? commerceApi.cancelOrder(order.data!.orderId, order.data!.orderStatus)
-        : commerceApi.confirmPickup(order.data!.orderId, order.data!.orderStatus),
+        ? orderApi.cancel(order.data!.orderId)
+        : orderApi.confirmPickup(order.data!.orderId),
     onSuccess: async (next, action) => {
       setConfirmCancel(false);
-      queryClient.setQueryData(['commerce', 'customer-order', orderId], next);
-      await queryClient.invalidateQueries({ queryKey: ['commerce', 'customer-orders'] });
+      setConfirmPickup(false);
+      await refresh.update(next);
       showToast(
         action === 'cancel'
           ? 'Đã huỷ đơn; yêu cầu hoàn tiền đang được xử lý nếu đã thanh toán'
           : 'Đã xác nhận nhận món',
       );
     },
+    onError: refresh.handleError,
   });
   if (order.isPending) return <LoadingState />;
   if (order.isError || !order.data) {
@@ -82,7 +76,7 @@ function LiveOrderDetailScreen() {
   }
 
   const data = order.data;
-  const canCancel = data.orderStatus === 'PENDING_PAYMENT' || data.orderStatus === 'PLACED';
+  const canCancel = data.orderStatus === 'PLACED';
   const canConfirmPickup = data.orderStatus === 'READY_FOR_PICKUP';
   const refund = data.refundStatus ? refundPresentation(data.refundStatus) : null;
   return (
@@ -90,13 +84,6 @@ function LiveOrderDetailScreen() {
       footer={
         canCancel || canConfirmPickup ? (
           <StickyActions>
-            {data.orderStatus === 'PENDING_PAYMENT' ? (
-              <Button
-                label="Tiếp tục thanh toán"
-                disabled={transition.isPending}
-                onPress={() => navigate(`/customer/orders/${data.orderId}/payment`)}
-              />
-            ) : null}
             {canCancel ? (
               <Button
                 label="Huỷ đơn"
@@ -109,53 +96,72 @@ function LiveOrderDetailScreen() {
               <Button
                 label="Đã nhận món"
                 loading={transition.isPending}
-                onPress={() => transition.mutate('pickup')}
+                onPress={() => setConfirmPickup(true)}
               />
             ) : null}
           </StickyActions>
         ) : undefined
       }
     >
-      <AppHeader title={`#${data.orderCode}`} back subtitle={data.storefrontName} />
+      <AppHeader title={`#${data.orderCode}`} back subtitle={data.storefront.storefrontName} />
       <div className="flex items-center gap-sm">
-        <StatusChip code={data.orderStatus} />
+        <OrderStatusBadge status={data.orderStatus} />
         {data.paymentStatus ? <StatusChip code={data.paymentStatus} /> : null}
       </div>
-      <Card padded={false}>
-        <div className="px-md">
-          {data.items.map((item, index) => (
-            <div key={item.orderItemId}>
-              {index ? <Divider /> : null}
-              <ListRow
-                title={`${item.quantity}× ${item.itemName}`}
-                subtitle={item.note ?? undefined}
-                trailing={<Money amountVnd={item.unitPrice * item.quantity} />}
-              />
-            </div>
-          ))}
+      {data.orderStatus === 'PENDING_PAYMENT' ? (
+        <Card style={{ backgroundColor: '#E09F3E14', borderColor: '#E09F3E33' }}>
+          <p className="text-headline-sm text-text">Đang chờ xác nhận thanh toán</p>
+          <p className="mt-2xs text-body-md text-muted">
+            Trạng thái chỉ thay đổi sau khi backend nhận callback hợp lệ từ cổng thanh toán.
+          </p>
+        </Card>
+      ) : null}
+      {data.orderStatus === 'READY_FOR_PICKUP' ? (
+        <Card style={{ borderColor: colors.tertiary }}>
+          <p className="text-center text-body-sm text-muted">Mã nhận món</p>
+          <p className="mt-xs break-all text-center text-display-sm text-text">{data.orderCode}</p>
+          <p className="mt-xs text-center text-body-sm text-muted">
+            Đưa mã này cho người bán tại điểm bán.
+          </p>
+        </Card>
+      ) : null}
+      <Card>
+        <div className="flex items-center gap-sm">
+          {data.storefront.imageUrl ? (
+            <img
+              src={data.storefront.imageUrl}
+              alt=""
+              className="h-16 w-16 rounded-sm object-cover"
+            />
+          ) : null}
+          <div>
+            <p className="text-headline-sm text-text">{data.storefront.storefrontName}</p>
+            {data.storefront.address ? (
+              <p className="text-body-sm text-muted">{data.storefront.address}</p>
+            ) : null}
+            <p className="text-body-sm text-muted">Nhận trực tiếp tại điểm bán</p>
+          </div>
         </div>
+      </Card>
+      <Card padded={false}>
+        <OrderItemsList items={data.items} />
       </Card>
       <Card>
-        <div className="flex items-center justify-between">
-          <span className="text-headline-sm text-text">Tổng thanh toán</span>
-          <Money amountVnd={data.totalAmount} size="lg" />
-        </div>
-        <p className="mt-1 text-body-sm text-muted">
-          {data.paymentProvider ?? 'Chưa chọn cổng'} ·{' '}
-          {new Date(data.createdAt).toLocaleString('vi-VN')}
+        <OrderSummary subtotal={data.subtotalAmount} total={data.totalAmount} />
+        <p className="mt-xs text-body-sm text-muted">
+          {data.paymentProvider ?? 'Chưa chọn cổng'} · Tạo lúc {formatOrderDate(data.createdAt)}
         </p>
+        {data.placedAt ? (
+          <p className="text-body-sm text-muted">Đặt lúc {formatOrderDate(data.placedAt)}</p>
+        ) : null}
+        {data.completedAt ? (
+          <p className="text-body-sm text-muted">Hoàn tất lúc {formatOrderDate(data.completedAt)}</p>
+        ) : null}
       </Card>
-      {data.history.length ? (
+      {data.statusHistory.length ? (
         <Card>
           <p className="mb-xs text-label text-text">Tiến trình đơn hàng</p>
-          {data.history.map((history) => (
-            <div key={history.historyId} className="mb-xs flex items-center justify-between gap-sm">
-              <StatusChip code={history.toStatus} />
-              <span className="text-body-sm text-muted">
-                {new Date(history.changedAt).toLocaleString('vi-VN')}
-              </span>
-            </div>
-          ))}
+          <OrderTimeline history={data.statusHistory} />
         </Card>
       ) : null}
       {data.rejectionReason ? (
@@ -170,16 +176,8 @@ function LiveOrderDetailScreen() {
             <p className="text-label text-text">Hoàn tiền</p>
             <StatusChip label={refund.label} tone={refund.tone} />
           </div>
-          {data.refundAmount !== null ? <Money amountVnd={data.refundAmount} /> : null}
+          {data.refundAmount != null ? <Money amountVnd={data.refundAmount} /> : null}
           <p className="mt-xs text-body-md text-muted">{refund.message}</p>
-          {data.refundStatus === 'PENDING' && paymentOptions.data?.mode === 'SANDBOX' ? (
-            <Button
-              label="Mô phỏng hoàn tiền sandbox"
-              variant="outline"
-              loading={sandboxRefund.isPending}
-              onPress={() => sandboxRefund.mutate()}
-            />
-          ) : null}
           {data.refundRequestedAt ? (
             <p className="mt-2xs text-body-sm text-muted">
               Yêu cầu lúc {new Date(data.refundRequestedAt).toLocaleString('vi-VN')}
@@ -202,11 +200,6 @@ function LiveOrderDetailScreen() {
           onPress={() => navigate(`/customer/orders/${data.orderId}/review`)}
         />
       ) : null}
-      {sandboxRefund.isError ? (
-        <p role="alert" className="text-error">
-          {errorMessage(sandboxRefund.error)}
-        </p>
-      ) : null}
       {transition.isError ? (
         <p className="text-body-md text-error">{errorMessage(transition.error)}</p>
       ) : null}
@@ -218,6 +211,14 @@ function LiveOrderDetailScreen() {
         confirmVariant="danger"
         onConfirm={() => transition.mutate('cancel')}
         onCancel={() => setConfirmCancel(false)}
+      />
+      <ConfirmDialog
+        visible={confirmPickup}
+        title="Xác nhận đã nhận món?"
+        description="Bạn xác nhận đã nhận đủ món tại điểm bán?"
+        confirmLabel="Đã nhận đủ món"
+        onConfirm={() => transition.mutate('pickup')}
+        onCancel={() => setConfirmPickup(false)}
       />
     </Screen>
   );

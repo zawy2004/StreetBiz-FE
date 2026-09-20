@@ -1,10 +1,9 @@
-import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import { Button, Card, Divider, ListRow, Money } from '@/components/common';
 import { EmptyState, ErrorState, LoadingState, showToast } from '@/components/feedback';
-import { SegmentedControl } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { commerceApi, errorMessage } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
@@ -12,6 +11,9 @@ import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme';
 import { useCartStore } from '../cart-store';
+import { useCheckoutOrder } from '@/features/orders/hooks/useOrders';
+import { PaymentProviderSelector } from '@/features/orders/components';
+import { redirectToPayment } from '@/features/orders/payment-redirect';
 
 type Provider = 'MOMO' | 'ZALOPAY';
 
@@ -24,31 +26,44 @@ function LiveCheckoutScreen() {
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
   const [provider, setProvider] = useState<Provider>('MOMO');
-  const paymentOptions = useQuery({
-    queryKey: ['commerce', 'payment-options'],
-    queryFn: commerceApi.paymentOptions,
-    enabled: user?.role_code === 'CUSTOMER',
-  });
-  const sandboxEnabled = paymentOptions.data?.mode === 'SANDBOX';
+  const idempotencyKey = useRef<string | null>(null);
+  const submitting = useRef(false);
   const cart = useQuery({
     queryKey: ['commerce', 'cart'],
     queryFn: commerceApi.cart,
     enabled: user?.role_code === 'CUSTOMER',
   });
-  const place = useMutation({
-    mutationFn: async () => {
-      return commerceApi.placeOrder(provider, `WEB-CART-${user!.id}-${cart.data!.cartId}`);
-    },
-    onSuccess: async (order) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['commerce', 'cart'] }),
-        queryClient.invalidateQueries({ queryKey: ['commerce', 'customer-orders'] }),
-      ]);
-      showToast('Đã tạo đơn. Hoàn tất thanh toán để gửi đơn cho người bán.');
-      navigate(`/customer/orders/${order.orderId}/payment`, { replace: true });
-    },
-  });
-
+  const place = useCheckoutOrder();
+  useEffect(() => {
+    idempotencyKey.current = null;
+    submitting.current = false;
+  }, [cart.data?.cartId]);
+  const startCheckout = () => {
+    if (!cart.data || submitting.current || place.isPending) return;
+    submitting.current = true;
+    idempotencyKey.current ??= crypto.randomUUID();
+    place.mutate(
+      {
+        cartId: cart.data.cartId,
+        provider,
+        idempotencyKey: idempotencyKey.current,
+      },
+      {
+        onSuccess: async (checkout) => {
+          sessionStorage.setItem('streetbiz.pendingOrderId', String(checkout.orderId));
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['commerce', 'cart'] }),
+            queryClient.invalidateQueries({ queryKey: ['orders', 'customer', 'list'] }),
+          ]);
+          showToast('Đang chuyển đến cổng thanh toán.');
+          redirectToPayment(checkout.paymentUrl);
+        },
+        onError: () => {
+          submitting.current = false;
+        },
+      },
+    );
+  };
   if (user?.role_code !== 'CUSTOMER') {
     return (
       <Screen>
@@ -81,21 +96,27 @@ function LiveCheckoutScreen() {
         <StickyActions>
           <Button
             label={
-              sandboxEnabled ? `Tiếp tục thanh toán qua ${provider}` : 'Thanh toán chưa sẵn sàng'
+              place.isPending ? 'Đang khởi tạo thanh toán…' : 'Thanh toán và đặt món'
             }
             loading={place.isPending}
             disabled={
               place.isPending ||
-              !sandboxEnabled ||
               data.storefrontStatus !== 'OPEN' ||
               data.items.some((item) => item.availabilityStatus !== 'AVAILABLE')
             }
-            onPress={() => place.mutate()}
+            onPress={startCheckout}
           />
         </StickyActions>
       }
     >
       <AppHeader title="Thanh toán" back subtitle={data.storefrontName} />
+      <Card>
+        <p className="text-label text-text">Điểm nhận món</p>
+        <p className="mt-2xs text-body-md text-muted">
+          {data.storefrontAddress || 'Địa chỉ điểm bán chưa được cập nhật'}
+        </p>
+        <p className="mt-xs text-body-sm text-primary">Nhận món trực tiếp tại điểm bán</p>
+      </Card>
       <Card padded={false}>
         <div className="px-md">
           {data.items.map((item, index) => (
@@ -110,14 +131,7 @@ function LiveCheckoutScreen() {
           ))}
         </div>
       </Card>
-      <SegmentedControl
-        value={provider}
-        onChange={setProvider}
-        options={[
-          { value: 'MOMO', label: 'MoMo' },
-          { value: 'ZALOPAY', label: 'ZaloPay' },
-        ]}
-      />
+      <PaymentProviderSelector value={provider} onChange={setProvider} disabled={place.isPending} />
       <Card>
         <div className="flex items-center justify-between">
           <span className="text-headline-sm text-text">Tổng thanh toán</span>
@@ -127,26 +141,6 @@ function LiveCheckoutScreen() {
       <p className="text-center text-body-sm text-muted">
         Giá và tên món được lưu tại thời điểm đặt · Nhận trực tiếp tại quầy
       </p>
-      {!sandboxEnabled ? (
-        <Card style={{ backgroundColor: '#E09F3E14', borderColor: '#E09F3E33' }}>
-          <p className="text-body-md text-muted">
-            {paymentOptions.data?.message ??
-              'Không lấy được phương thức thanh toán. Vui lòng thử lại.'}
-          </p>
-        </Card>
-      ) : null}
-      {sandboxEnabled ? (
-        <p className="text-body-sm text-muted">Chế độ thử nghiệm · Không trừ tiền thật.</p>
-      ) : null}
-      {paymentOptions.isError ? (
-        <Button
-          label="Tải lại phương thức thanh toán"
-          variant="outline"
-          onPress={() => {
-            void paymentOptions.refetch();
-          }}
-        />
-      ) : null}
       {place.isError ? (
         <p className="text-body-md text-error">{errorMessage(place.error)}</p>
       ) : null}

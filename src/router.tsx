@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 
 import { GUEST_HOME_ROUTE, ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
-import { AuthGuard } from '@/core/auth/RoleGuard';
+import { AuthGuard, RoleGuard } from '@/core/auth/RoleGuard';
 import { useAuthStore } from '@/store/auth-store';
 import { WardCasesScreen } from '@/features/ward-administration/screens/WardCasesScreen';
 import { WardCaseScreen } from '@/features/ward-administration/screens/WardCaseScreen';
@@ -83,6 +83,7 @@ import {
   OrderComplaintScreen,
   OrderDetailScreen,
   OrderReviewScreen,
+  VendorOrderDetailScreen,
 } from '@/features/orders/screens';
 
 import {
@@ -181,6 +182,23 @@ export function AppRouter() {
       />
 
       <Route
+        path="/orders"
+        element={
+          <RoleGuard role="CUSTOMER">
+            <CustomerOrdersScreen />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/orders/:orderId"
+        element={
+          <RoleGuard role="CUSTOMER">
+            <OrderDetailScreen />
+          </RoleGuard>
+        }
+      />
+
+      <Route
         path="/customer"
         element={
           <RoleShell role="CUSTOMER" allowGuest roleLabel="Người mua" items={CUSTOMER_TABS} />
@@ -250,6 +268,9 @@ export function AppRouter() {
         <Route path="store/menu" element={<MenuScreen />} />
         <Route path="store/orders" element={<VendorOrdersScreen />} />
         <Route path="store/sales" element={<SalesSummaryScreen />} />
+        <Route path="orders" element={<VendorOrdersScreen />} />
+        <Route path="orders/sales-summary" element={<SalesSummaryScreen />} />
+        <Route path="orders/:orderId" element={<VendorOrderDetailScreen />} />
       </Route>
 
       <Route

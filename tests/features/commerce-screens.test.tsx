@@ -4,72 +4,76 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { vi } from 'vitest';
 
-import type { CommerceCart, CommerceOrder } from '@/core/api';
+import { ApiError } from '@/core/api/problem';
+import type { CommerceCart } from '@/core/api';
+import type { Order } from '@/features/orders/types/order.types';
 
-const api = vi.hoisted(() => ({
-  menuItem: vi.fn(),
+const legacyApi = vi.hoisted(() => ({
   cart: vi.fn(),
-  paymentOptions: vi.fn(),
-  failSandboxPayment: vi.fn(),
-  confirmSandboxRefund: vi.fn(),
-  addCartItem: vi.fn(),
-  clearCart: vi.fn(),
-  placeOrder: vi.fn(),
-  confirmSandboxPayment: vi.fn(),
+}));
+const ordersApi = vi.hoisted(() => ({
+  checkout: vi.fn(),
+  customerOrders: vi.fn(),
   customerOrder: vi.fn(),
-  cancelOrder: vi.fn(),
+  cancel: vi.fn(),
   confirmPickup: vi.fn(),
-  sellerOrders: vi.fn(),
-  decideSellerOrder: vi.fn(),
-  updateSellerOrderStatus: vi.fn(),
+  vendorOrders: vi.fn(),
+  vendorOrder: vi.fn(),
+  accept: vi.fn(),
+  reject: vi.fn(),
+  preparing: vi.fn(),
+  readyForPickup: vi.fn(),
   confirmHandover: vi.fn(),
   salesSummary: vi.fn(),
 }));
+const redirect = vi.hoisted(() => vi.fn());
 
 vi.mock('@/core/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/core/api')>();
-  return { ...actual, commerceApi: { ...actual.commerceApi, ...api } };
+  return { ...actual, commerceApi: { ...actual.commerceApi, ...legacyApi } };
 });
-
+vi.mock('@/features/orders/api/orderApi', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/orders/api/orderApi')>();
+  return { ...actual, orderApi: ordersApi };
+});
+vi.mock('@/features/orders/payment-redirect', () => ({ redirectToPayment: redirect }));
 vi.mock('@/core/config/env', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/core/config/env')>();
-  return {
-    ...actual,
-    isLiveApi: true,
-    isDev: false,
-    env: { ...actual.env, enablePaymentSandbox: false },
-  };
+  return { ...actual, isLiveApi: true };
 });
 
-const { ItemDetailScreen } = await import('@/features/buyer-discovery/screens/ItemDetailScreen');
-const { CartScreen } = await import('@/features/cart/screens/CartScreen');
 const { CheckoutScreen } = await import('@/features/cart/screens/CheckoutScreen');
-const { OrderPaymentScreen } = await import('@/features/orders/screens/OrderPaymentScreen');
 const { OrderDetailScreen } = await import('@/features/orders/screens/OrderDetailScreen');
-const { VendorOrdersScreen } = await import('@/features/storefronts/screens/VendorOrdersScreen');
-const { SalesSummaryScreen } = await import('@/features/storefronts/screens/SalesSummaryScreen');
+const { OrderPaymentScreen } = await import('@/features/orders/screens/OrderPaymentScreen');
+const { VendorOrderDetailScreen } = await import(
+  '@/features/orders/screens/VendorOrderDetailScreen'
+);
+const {
+  OrderStatusBadge,
+  OrderSummary,
+  RejectOrderDialog,
+  vendorActionsFor,
+} = await import('@/features/orders/components');
+const { orderPollingInterval } = await import('@/features/orders/hooks/useOrders');
 const { useAuthStore } = await import('@/store/auth-store');
 
-const order: CommerceOrder = {
+const order = (status: Order['orderStatus'] = 'PLACED'): Order => ({
   orderId: 19,
   orderCode: 'SB-000019',
   customerUserId: 7,
   customerName: 'Khách hàng',
-  storefrontId: 2,
-  storefrontName: 'Bếp Việt',
-  orderStatus: 'CANCELLED',
+  orderStatus: status,
+  storefront: { storefrontId: 2, storefrontName: 'Bếp Việt', imageUrl: null },
   subtotalAmount: 50_000,
   totalAmount: 50_000,
-  rejectionReason: null,
   paymentProvider: 'MOMO',
-  paymentStatus: 'SUCCESS',
-  refundAmount: 50_000,
-  refundReason: 'ORDER_CANCELLED',
-  refundStatus: 'SUCCESS',
-  refundRequestedAt: '2026-09-18T01:00:00Z',
-  refundCompletedAt: '2026-09-18T01:05:00Z',
-  placedAt: '2026-09-18T00:30:00Z',
-  completedAt: '2026-09-18T01:00:00Z',
+  paymentStatus: status === 'PENDING_PAYMENT' ? 'PENDING' : 'SUCCESS',
+  rejectionReason: null,
+  refundAmount: null,
+  refundReason: null,
+  refundStatus: null,
+  placedAt: status === 'PENDING_PAYMENT' ? null : '2026-09-18T00:30:00Z',
+  completedAt: status === 'COMPLETED' ? '2026-09-18T01:30:00Z' : null,
   createdAt: '2026-09-18T00:25:00Z',
   items: [
     {
@@ -78,16 +82,18 @@ const order: CommerceOrder = {
       itemName: 'Bánh mì',
       unitPrice: 25_000,
       quantity: 2,
+      lineTotal: 50_000,
       note: 'Ít cay',
     },
   ],
-  history: [],
-};
+  statusHistory: [],
+});
 
 const cart: CommerceCart = {
   cartId: 3,
   storefrontId: 2,
   storefrontName: 'Bếp Việt',
+  storefrontAddress: '12 Nguyễn Văn Linh, Hải Châu, Đà Nẵng',
   storefrontStatus: 'OPEN',
   subtotal: 50_000,
   items: [
@@ -113,26 +119,17 @@ function renderAt(path: string, route: string, element: React.ReactNode) {
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path={route} element={element} />
-          <Route path="/customer/explore/cart" element={<div>cart destination</div>} />
-          <Route
-            path="/customer/orders/:orderId/payment"
-            element={<div>payment destination</div>}
-          />
-          <Route path="/customer/orders/:orderId" element={<div>order destination</div>} />
+          <Route path="/customer/orders/:orderId" element={<div>order detail destination</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 
-describe('commerce live screens', () => {
+describe('order UI contracts', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    api.paymentOptions.mockResolvedValue({
-      mode: 'UNAVAILABLE',
-      providers: [],
-      message: 'Thanh toán trực tuyến chưa sẵn sàng. Vui lòng thử lại sau.',
-    });
+    vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'uuid-checkout-1') });
     useAuthStore.setState({
       user: {
         id: '7',
@@ -146,172 +143,114 @@ describe('commerce live screens', () => {
     });
   });
 
-  it('shows a completed refund instead of a permanently pending message', async () => {
-    api.customerOrder.mockResolvedValue(order);
+  it('renders the backend order status as text, not color alone', () => {
+    render(<OrderStatusBadge status="READY_FOR_PICKUP" />);
+    expect(screen.getByText(/SẴN SÀNG/)).toBeInTheDocument();
+  });
 
+  it('does not show vendor actions on the customer detail screen', async () => {
+    ordersApi.customerOrder.mockResolvedValue(order('PLACED'));
     renderAt('/customer/orders/19', '/customer/orders/:orderId', <OrderDetailScreen />);
-
-    expect(await screen.findByText('ĐÃ HOÀN TIỀN')).toBeInTheDocument();
-    expect(screen.getByText('Hệ thống đã ghi nhận hoàn tiền thành công.')).toBeInTheDocument();
-    expect(screen.queryByText(/đang chờ cổng thanh toán/i)).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Huỷ đơn' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nhận đơn' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Bắt đầu chuẩn bị' })).not.toBeInTheDocument();
   });
 
-  it('asks before replacing a cart from another storefront', async () => {
-    api.menuItem.mockResolvedValue({
-      menuItemId: 12,
-      storefrontId: 9,
-      storefrontName: 'Quán Mới',
-      itemName: 'Cơm gà',
-      description: null,
-      imageUrl: null,
-      unitPrice: 40_000,
-      availabilityStatus: 'AVAILABLE',
-      categoryId: 1,
-      categoryName: 'Món chính',
-    });
-    api.cart.mockResolvedValue(cart);
-    api.addCartItem.mockResolvedValue({ ...cart, storefrontId: 9, storefrontName: 'Quán Mới' });
+  it('exposes vendor actions only for the current state', () => {
+    expect(vendorActionsFor('PLACED')).toEqual(['accept', 'reject']);
+    expect(vendorActionsFor('ACCEPTED')).toEqual(['preparing']);
+    expect(vendorActionsFor('PREPARING')).toEqual(['ready']);
+    expect(vendorActionsFor('READY_FOR_PICKUP')).toEqual(['handover']);
+    expect(vendorActionsFor('COMPLETED')).toEqual([]);
+  });
+
+  it('requires a rejection reason before submission', async () => {
+    const onConfirm = vi.fn();
     const user = userEvent.setup();
-
-    renderAt('/customer/explore/items/12', '/customer/explore/items/:itemId', <ItemDetailScreen />);
-    await user.click(await screen.findByRole('button', { name: /thêm vào giỏ/i }));
-
-    expect(screen.getByText('Thay giỏ hàng hiện tại?')).toBeInTheDocument();
-    expect(api.addCartItem).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Thay giỏ hàng' }));
-    await waitFor(() => expect(api.addCartItem).toHaveBeenCalledWith(12, 1, ''));
+    render(
+      <RejectOrderDialog
+        visible
+        reason=""
+        pending={false}
+        onReasonChange={() => undefined}
+        onConfirm={onConfirm}
+        onClose={() => undefined}
+      />,
+    );
+    const submit = screen.getByRole('button', { name: 'Xác nhận từ chối' });
+    expect(submit).toBeDisabled();
+    await user.click(submit);
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 
-  it('asks before clearing every cart item', async () => {
-    api.cart.mockResolvedValue(cart);
-    api.clearCart.mockResolvedValue(undefined);
+  it('prevents a double-click checkout from sending a second request', async () => {
+    legacyApi.cart.mockResolvedValue(cart);
+    ordersApi.checkout.mockImplementation(() => new Promise(() => undefined));
     const user = userEvent.setup();
-
-    renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
-    await user.click(await screen.findByRole('button', { name: 'Xoá toàn bộ giỏ hàng' }));
-
-    expect(screen.getByText('Xoá toàn bộ giỏ hàng?')).toBeInTheDocument();
-    expect(api.clearCart).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Xoá giỏ hàng' }));
-    await waitFor(() => expect(api.clearCart).toHaveBeenCalledOnce());
-  });
-
-  it('does not create an unpayable order when the payment sandbox is disabled', async () => {
-    api.cart.mockResolvedValue(cart);
-
     renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
-
-    const button = await screen.findByRole('button', { name: 'Thanh toán chưa sẵn sàng' });
-    expect(button).toBeDisabled();
-    expect(screen.getByText(/Thanh toán trực tuyến chưa sẵn sàng/i)).toBeInTheDocument();
-    expect(api.placeOrder).not.toHaveBeenCalled();
+    const button = await screen.findByRole('button', { name: 'Thanh toán và đặt món' });
+    await user.dblClick(button);
+    expect(ordersApi.checkout).toHaveBeenCalledOnce();
+    expect(ordersApi.checkout).toHaveBeenCalledWith(
+      { cartId: 3, provider: 'MOMO' },
+      'uuid-checkout-1',
+    );
   });
 
-  it('asks before the seller completes an irreversible handover', async () => {
+  it('does not treat a successful payment return query as proof of payment', async () => {
+    ordersApi.customerOrder.mockResolvedValue(order('PENDING_PAYMENT'));
+    renderAt(
+      '/customer/orders/19/payment?status=success',
+      '/customer/orders/:orderId/payment',
+      <OrderPaymentScreen />,
+    );
+    expect(await screen.findByText('Đang chờ cổng thanh toán xác nhận')).toBeInTheDocument();
+    expect(screen.queryByText('Đặt món thành công')).not.toBeInTheDocument();
+  });
+
+  it('refetches vendor detail after a 409 conflict', async () => {
     useAuthStore.setState((state) => ({
       ...state,
       user: state.user ? { ...state.user, role_code: 'VENDOR' } : null,
     }));
-    const ready = { ...order, orderStatus: 'READY_FOR_PICKUP', refundStatus: null };
-    api.sellerOrders.mockResolvedValue([ready]);
-    api.confirmHandover.mockResolvedValue({ ...ready, orderStatus: 'COMPLETED' });
+    ordersApi.vendorOrder.mockResolvedValue(order('PLACED'));
+    ordersApi.accept.mockRejectedValue(
+      new ApiError('conflict', 409, 'Trạng thái đơn đã thay đổi.'),
+    );
     const user = userEvent.setup();
-
-    renderAt('/vendor/store/orders', '/vendor/store/orders', <VendorOrdersScreen />);
-    await user.click(await screen.findByRole('button', { name: 'Xác nhận đã giao khách' }));
-
-    expect(screen.getByText('Xác nhận đã bàn giao?')).toBeInTheDocument();
-    expect(api.confirmHandover).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Đã giao khách' }));
-    await waitFor(() => expect(api.confirmHandover).toHaveBeenCalledWith(19, 'READY_FOR_PICKUP'));
+    renderAt('/vendor/orders/19', '/vendor/orders/:orderId', <VendorOrderDetailScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Nhận đơn' }));
+    await waitFor(() => expect(ordersApi.vendorOrder.mock.calls.length).toBeGreaterThan(1));
   });
 
-  it('creates a recoverable pending order without automatically marking it paid', async () => {
-    api.cart.mockResolvedValue(cart);
-    api.paymentOptions.mockResolvedValue({
-      mode: 'SANDBOX',
-      providers: ['MOMO', 'ZALOPAY'],
-      message: 'Không trừ tiền thật.',
-    });
-    api.placeOrder.mockResolvedValue({
-      ...order,
+  it('formats order money in Vietnamese đồng', () => {
+    render(<OrderSummary subtotal={50_000} total={50_000} />);
+    expect(screen.getAllByText('50.000 đ')).toHaveLength(2);
+  });
+
+  it('stops polling terminal order states', () => {
+    expect(orderPollingInterval(order('COMPLETED'))).toBe(false);
+    expect(orderPollingInterval(order('REJECTED'))).toBe(false);
+    expect(orderPollingInterval(order('CANCELLED'))).toBe(false);
+    expect(orderPollingInterval(order('PREPARING'))).toBe(7_000);
+  });
+
+  it('redirects only to the payment URL returned by checkout', async () => {
+    legacyApi.cart.mockResolvedValue(cart);
+    ordersApi.checkout.mockResolvedValue({
+      orderId: 19,
+      orderCode: 'SB-000019',
       orderStatus: 'PENDING_PAYMENT',
-      paymentStatus: 'PENDING',
+      paymentTransactionId: 22,
+      provider: 'MOMO',
+      amount: 50_000,
+      paymentUrl: 'https://gateway.example/pay/22',
     });
     const user = userEvent.setup();
     renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
-    await user.click(await screen.findByRole('button', { name: 'Tiếp tục thanh toán qua MOMO' }));
-    expect(await screen.findByText('payment destination')).toBeInTheDocument();
-    expect(api.placeOrder).toHaveBeenCalledWith('MOMO', 'WEB-CART-7-3');
-    expect(api.confirmSandboxPayment).not.toHaveBeenCalled();
-  });
-
-  it('retries a failed payment on the same order, without creating another order', async () => {
-    api.customerOrder.mockResolvedValue({
-      ...order,
-      orderStatus: 'PENDING_PAYMENT',
-      paymentStatus: 'FAILED',
-    });
-    api.paymentOptions.mockResolvedValue({
-      mode: 'SANDBOX',
-      providers: ['MOMO'],
-      message: 'Không trừ tiền thật.',
-    });
-    api.confirmSandboxPayment.mockResolvedValue({
-      ...order,
-      orderStatus: 'PLACED',
-      paymentStatus: 'SUCCESS',
-    });
-    const user = userEvent.setup();
-    renderAt(
-      '/customer/orders/19/payment',
-      '/customer/orders/:orderId/payment',
-      <OrderPaymentScreen />,
+    await user.click(await screen.findByRole('button', { name: 'Thanh toán và đặt món' }));
+    await waitFor(() =>
+      expect(redirect).toHaveBeenCalledWith('https://gateway.example/pay/22'),
     );
-    await user.click(await screen.findByRole('button', { name: 'Thử lại thanh toán sandbox' }));
-    expect(await screen.findByText('order destination')).toBeInTheDocument();
-    expect(api.confirmSandboxPayment).toHaveBeenCalledWith(19);
-    expect(api.placeOrder).not.toHaveBeenCalled();
-  });
-
-  it('does not expose payment simulation when the server disables sandbox', async () => {
-    api.customerOrder.mockResolvedValue({
-      ...order,
-      orderStatus: 'PENDING_PAYMENT',
-      paymentStatus: 'PENDING',
-    });
-    renderAt(
-      '/customer/orders/19/payment',
-      '/customer/orders/:orderId/payment',
-      <OrderPaymentScreen />,
-    );
-    expect(await screen.findByText(/Thanh toán trực tuyến chưa sẵn sàng/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /sandbox/ })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Mô phỏng thanh toán thất bại' }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('shows net sales after successful refunds', async () => {
-    useAuthStore.setState((state) => ({
-      ...state,
-      user: state.user ? { ...state.user, role_code: 'VENDOR' } : null,
-    }));
-    api.salesSummary.mockResolvedValue({
-      period: 'DAY',
-      fromUtc: '2026-09-17T17:00:00Z',
-      toUtc: '2026-09-18T01:00:00Z',
-      completedOrderCount: 2,
-      grossSales: 100_000,
-      refundedAmount: 20_000,
-      netSales: 80_000,
-      orders: [],
-    });
-
-    renderAt('/vendor/store/sales', '/vendor/store/sales', <SalesSummaryScreen />);
-
-    expect(await screen.findByText('80.000 đ')).toBeInTheDocument();
-    expect(screen.getByText('100.000 đ')).toBeInTheDocument();
-    expect(screen.getByText('20.000 đ')).toBeInTheDocument();
   });
 });
