@@ -194,6 +194,11 @@ export type SlotTransferRequest = {
   acceptedAt: string | null;
   reviewDecisionReason: string | null;
   reviewedAt: string | null;
+  /** The slot and term being handed over. The receiver cannot read the sender's contract, so they come with the request. */
+  slotCode: string;
+  zoneName: string;
+  contractStartDate: string;
+  contractEndDate: string;
 };
 
 type SlotSearchFilters = {
