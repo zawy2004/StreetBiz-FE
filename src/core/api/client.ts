@@ -123,8 +123,12 @@ export async function apiGet<T>(url: string, config?: AxiosRequestConfig): Promi
   return data;
 }
 
-export async function apiPost<T>(url: string, body?: unknown): Promise<T> {
-  const { data } = await http.post<T>(url, body);
+export async function apiPost<T>(
+  url: string,
+  body?: unknown,
+  config?: AxiosRequestConfig,
+): Promise<T> {
+  const { data } = await http.post<T>(url, body, config);
   return data;
 }
 

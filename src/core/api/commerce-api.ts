@@ -117,6 +117,7 @@ export type CommerceCart = {
   cartId: number;
   storefrontId: number;
   storefrontName: string;
+  storefrontAddress: string | null;
   storefrontStatus: string;
   items: CommerceCartItem[];
   subtotal: number;
@@ -146,6 +147,7 @@ export type CommerceOrder = {
   customerName: string;
   storefrontId: number;
   storefrontName: string;
+  storefrontAddress?: string | null;
   orderStatus: string;
   subtotalAmount: number;
   totalAmount: number;
@@ -173,6 +175,22 @@ export type SalesSummary = {
   refundedAmount: number;
   netSales: number;
   orders: CommerceOrder[];
+};
+
+export type PaymentOptions = {
+  mode: 'SANDBOX' | 'UNAVAILABLE';
+  providers: ('MOMO' | 'ZALOPAY')[];
+  message: string;
+};
+export type CustomerComplaint = {
+  complaintId: number;
+  orderId: number;
+  complaintType: string;
+  description: string;
+  requestedRefundAmount: number | null;
+  status: string;
+  resolutionNotes: string | null;
+  createdAt: string;
 };
 
 export const commerceApi = {
