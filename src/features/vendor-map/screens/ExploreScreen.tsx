@@ -1,76 +1,84 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
-import { Avatar, Button, Card, Icon } from '@/components/common';
+import { Avatar, Card, Icon, IconButton } from '@/components/common';
 import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
+import { SegmentedControl } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
+import type { StorefrontSort } from '@/core/api/commerce-api';
+import { FilterBar } from '@/features/buyer-discovery/components/FilterBar';
+import { LocationBar } from '@/features/buyer-discovery/components/LocationBar';
+import { StorefrontList } from '@/features/buyer-discovery/components/StorefrontList';
+import { storefrontQuery } from '@/features/buyer-discovery/discovery-filters';
+import { formatDistance } from '@/features/buyer-discovery/discovery-format';
+import { useDiscoveryStore } from '@/features/buyer-discovery/discovery-store';
 import { colors } from '@/theme';
 import { ActiveVendorMap } from '../components/ActiveVendorMap';
 import { communityApi, CommunityApiError } from '../community-api';
 
-type SearchPosition = { latitude: number; longitude: number; radiusMeters: number };
+type Tab = 'STOREFRONTS' | 'VENDORS';
+
+const VENDOR_RADIUS_METERS = 5_000;
 
 export function ExploreScreen() {
   const navigate = useNavigate();
-  const [position, setPosition] = useState<SearchPosition>();
-  const [locationError, setLocationError] = useState<string>();
-  const [locating, setLocating] = useState(false);
-  const vendors = useQuery({
-    queryKey: ['community', 'vendors', position],
-    queryFn: () => communityApi.activeVendors(position),
-  });
-
-  const locate = () => {
-    if (!navigator.geolocation) {
-      setLocationError('Trình duyệt không hỗ trợ định vị.');
-      return;
-    }
-    setLocating(true);
-    setLocationError(undefined);
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setPosition({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          radiusMeters: 5_000,
-        });
-        setLocating(false);
-      },
-      () => {
-        setLocationError('Không lấy được vị trí. Hãy cấp quyền định vị rồi thử lại.');
-        setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10_000 },
-    );
-  };
-
-  const records = vendors.data ?? [];
+  const [tab, setTab] = useState<Tab>('STOREFRONTS');
 
   return (
     <Screen>
-      <AppHeader title="Khám phá" subtitle="Hộ kinh doanh có giấy phép đang hoạt động" />
-      <div className="flex gap-sm">
-        <Button
-          label={position ? 'Cập nhật vị trí' : 'Tìm quanh tôi'}
-          variant="outline"
-          fullWidth={false}
-          loading={locating}
-          onPress={locate}
-          icon={<Icon name="crosshairs-gps" size={18} color={colors.indigo} />}
-        />
-        {position ? (
-          <Button
-            label="Xem tất cả"
-            variant="ghost"
-            fullWidth={false}
-            onPress={() => setPosition(undefined)}
+      <AppHeader
+        title="Khám phá"
+        subtitle={tab === 'STOREFRONTS' ? 'Quán đang mở bán' : 'Hộ kinh doanh có giấy phép đang hoạt động'}
+        right={
+          <IconButton
+            icon="magnify"
+            accessibilityLabel="Tìm kiếm"
+            onPress={() => navigate('/customer/explore/search')}
           />
-        ) : null}
-      </div>
-      {locationError ? <p className="text-body-sm text-error">{locationError}</p> : null}
+        }
+      />
+      <LocationBar showArea={tab === 'STOREFRONTS'} />
+      <SegmentedControl
+        options={[
+          { value: 'STOREFRONTS', label: 'Quán ăn' },
+          { value: 'VENDORS', label: 'Trên bản đồ' },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
+      {tab === 'STOREFRONTS' ? <StorefrontsTab /> : <VendorsTab />}
+    </Screen>
+  );
+}
 
+function StorefrontsTab() {
+  const position = useDiscoveryStore((s) => s.position);
+  const filters = useDiscoveryStore((s) => s.filters);
+  const [sort, setSort] = useState<StorefrontSort | null>(null);
+  const query = useMemo(() => storefrontQuery(filters, position, '', sort), [filters, position, sort]);
+
+  return (
+    <>
+      <FilterBar showRadius={position != null} />
+      <StorefrontList query={query} sort={query.sort ?? 'name'} onSortChange={setSort} />
+    </>
+  );
+}
+
+function VendorsTab() {
+  const navigate = useNavigate();
+  const position = useDiscoveryStore((s) => s.position);
+  const vendors = useQuery({
+    queryKey: ['community', 'vendors', position],
+    queryFn: () =>
+      communityApi.activeVendors(position ? { ...position, radiusMeters: VENDOR_RADIUS_METERS } : undefined),
+  });
+  const records = vendors.data ?? [];
+
+  return (
+    <>
       {vendors.isPending ? <LoadingState /> : null}
       {vendors.isError ? (
         <ErrorState
@@ -87,7 +95,7 @@ export function ExploreScreen() {
           icon="storefront-outline"
           title={
             position
-              ? 'Không có hộ kinh doanh trong bán kính 5 km'
+              ? `Không có hộ kinh doanh trong bán kính ${VENDOR_RADIUS_METERS / 1000} km`
               : 'Chưa có hộ kinh doanh đang hoạt động'
           }
         />
@@ -114,9 +122,7 @@ export function ExploreScreen() {
                     {vendor.communityRating
                       ? `${vendor.communityRating.toFixed(1)} ★ (${vendor.communityCount})`
                       : 'Chưa có đánh giá'}
-                    {vendor.distanceMeters != null
-                      ? ` · ${Math.round(vendor.distanceMeters).toLocaleString('vi-VN')} m`
-                      : ''}
+                    {vendor.distanceMeters != null ? ` · ${formatDistance(vendor.distanceMeters)}` : ''}
                   </span>
                 </div>
                 <StatusChip code="VALID" />
@@ -129,6 +135,6 @@ export function ExploreScreen() {
         <Icon name="shield-check-outline" size={16} color={colors.tertiary} />
         <span className="text-body-sm text-muted">Dữ liệu được kiểm tra trực tiếp từ Backend</span>
       </div>
-    </Screen>
+    </>
   );
 }
