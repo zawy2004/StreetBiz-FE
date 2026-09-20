@@ -1,11 +1,17 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
-import { Button, Card, Money } from '@/components/common';
-import { AppHeader, Screen } from '@/components/layout';
+import { Card, Money } from '@/components/common';
+import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ErrorState, LoadingState } from '@/components/feedback';
-import { sideApi, SideApiError } from '@/core/api/side-api';
+import { sideApi } from '@/core/api/side-api';
+import { ActionRow } from '@/features/sidewalk-slots/components/ActionRow';
+import { Callout } from '@/features/sidewalk-slots/components/Callout';
+import { ContractTerm } from '@/features/sidewalk-slots/components/ContractTerm';
+import { InfoRows } from '@/features/sidewalk-slots/components/InfoRows';
+import { contractProgress } from '@/features/sidewalk-slots/my-slots-view';
+import { formatAreaSqm, formatHours, formatSize } from '@/features/sidewalk-slots/slot-format';
 import { useAuthStore } from '@/store/auth-store';
 
 export function ContractDetailScreen() {
@@ -29,64 +35,98 @@ export function ContractDetailScreen() {
 
   if (!validId) return <ErrorState message="Mã hợp đồng không hợp lệ." />;
   if (contract.isPending) return <LoadingState />;
-  if (contract.error)
-    return (
-      <ErrorState
-        message={contract.error instanceof SideApiError ? contract.error.message : contract.error.message}
-        onRetry={() => void contract.refetch()}
-      />
-    );
+  if (contract.error) return <ErrorState message={contract.error.message} onRetry={() => void contract.refetch()} />;
+
   const data = contract.data;
   const isActive = data.contractStatus === 'ACTIVE';
+  const live = isActive || data.contractStatus === 'SUSPENDED';
+  const today = new Date();
+  const expiringSoon = isActive && contractProgress(data.startDate, data.endDate, today).expiringSoon;
+  const size = slot.data
+    ? [formatSize(slot.data.widthMeters, slot.data.lengthMeters), formatAreaSqm(slot.data.widthMeters, slot.data.lengthMeters)]
+        .filter(Boolean)
+        .join(' · ')
+    : undefined;
+  const go = (path: string) => () => navigate(`/vendor/slots/contracts/${data.contractId}/${path}`);
 
   return (
     <Screen>
-      <AppHeader title={data.slotCode} back subtitle={data.zoneName} />
-      <Card>
-        <div className="flex justify-between">
-          {slot.data ? <Money amountVnd={slot.data.pricePerDay} size="lg" /> : <span />}
-          <StatusChip code={data.contractStatus} />
-        </div>
-        <p className="text-body-sm text-muted">
-          {new Date(data.startDate).toLocaleDateString('vi-VN')} —{' '}
-          {new Date(data.endDate).toLocaleDateString('vi-VN')}
-        </p>
-        {data.cancellationReason ? (
-          <p className="mt-1 text-body-sm text-muted">Lý do huỷ: {data.cancellationReason}</p>
-        ) : null}
-      </Card>
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-md">
+        <AppHeader title={data.slotCode} back subtitle={data.zoneName} />
 
-      {isActive ? (
-        <div className="flex flex-wrap gap-sm">
-          <div className="min-w-[150px] flex-grow">
-            <Button
-              label="Xem giấy phép QR"
-              onPress={() => navigate(`/vendor/slots/contracts/${data.contractId}/permit`)}
+        <Card>
+          <div className="flex flex-col gap-sm">
+            <div className="flex items-start justify-between gap-sm">
+              <div>
+                <p className="text-badge uppercase text-muted">Đơn giá ngày</p>
+                {slot.data ? (
+                  <p>
+                    <Money amountVnd={slot.data.pricePerDay} size="lg" />
+                    <span className="ml-1 text-body-sm text-muted">/ ngày</span>
+                  </p>
+                ) : (
+                  <p className="text-body-md text-muted">—</p>
+                )}
+              </div>
+              <div className="shrink-0">
+                <StatusChip code={data.contractStatus} />
+              </div>
+            </div>
+
+            <ContractTerm startDate={data.startDate} endDate={data.endDate} today={today} live={live} />
+
+            <InfoRows
+              rows={[
+                { label: 'Tuyến phố', value: data.zoneName },
+                { label: 'Kích thước', value: size },
+                { label: 'Giờ bán', value: slot.data && formatHours(slot.data.availableFrom, slot.data.availableTo) },
+                { label: 'Mã hợp đồng', value: `#${data.contractId}` },
+              ]}
             />
+
+            {expiringSoon && <Callout tone="pending">Hợp đồng sắp hết hạn. Gia hạn để tiếp tục thuê ô này.</Callout>}
+            {data.cancellationReason && (
+              <Callout tone="neutral">
+                <strong>Lý do huỷ:</strong> {data.cancellationReason}
+              </Callout>
+            )}
           </div>
-          <div className="min-w-[150px] flex-grow">
-            <Button
-              label="Gia hạn"
-              variant="outline"
-              onPress={() => navigate(`/vendor/slots/contracts/${data.contractId}/renewal`)}
-            />
-          </div>
-          <div className="min-w-[150px] flex-grow">
-            <Button
-              label="Chuyển nhượng"
-              variant="outline"
-              onPress={() => navigate(`/vendor/slots/contracts/${data.contractId}/transfer`)}
-            />
-          </div>
-          <div className="min-w-[150px] flex-grow">
-            <Button
-              label="Trả ô"
-              variant="ghost"
-              onPress={() => navigate(`/vendor/slots/contracts/${data.contractId}/return`)}
-            />
-          </div>
-        </div>
-      ) : null}
+        </Card>
+
+        {isActive && (
+          <Section title="Thao tác">
+            <div className="flex flex-col gap-sm">
+              <ActionRow
+                tone="primary"
+                icon="qrcode"
+                title="Giấy phép QR"
+                subtitle="Xuất trình khi cán bộ kiểm tra"
+                onPress={go('permit')}
+              />
+              <ActionRow
+                icon="timer-outline"
+                title="Gia hạn"
+                subtitle="Gửi yêu cầu kéo dài thời hạn thuê"
+                attention={expiringSoon}
+                onPress={go('renewal')}
+              />
+              <ActionRow
+                icon="swap-horizontal"
+                title="Chuyển nhượng"
+                subtitle="Chuyển ô cho hộ kinh doanh khác"
+                onPress={go('transfer')}
+              />
+              <ActionRow
+                tone="danger"
+                icon="close-circle-outline"
+                title="Trả ô"
+                subtitle="Kết thúc hợp đồng trước hạn"
+                onPress={go('return')}
+              />
+            </div>
+          </Section>
+        )}
+      </div>
     </Screen>
   );
 }

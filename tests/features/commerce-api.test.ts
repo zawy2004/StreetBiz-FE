@@ -65,6 +65,41 @@ describe('commerce API contracts', () => {
     ]);
   });
 
+  it('reads and saves an order review, and reads payment options', async () => {
+    client.apiGet.mockResolvedValue(null);
+    client.apiPut.mockResolvedValue({ reviewId: 1 });
+
+    await commerceApi.review(19);
+    await commerceApi.saveReview(19, 5, 'Ngon');
+    await commerceApi.paymentOptions();
+
+    expect(client.apiGet).toHaveBeenNthCalledWith(1, '/orders/19/review');
+    expect(client.apiPut).toHaveBeenCalledWith('/orders/19/review', { rating: 5, text: 'Ngon' });
+    expect(client.apiGet).toHaveBeenNthCalledWith(2, '/orders/payment-options');
+  });
+
+  it('lists and files order complaints', async () => {
+    client.apiGet.mockResolvedValue([]);
+    client.apiPost.mockResolvedValue({});
+    const input = { complaintType: 'REFUND_REQUEST', description: 'Thiếu món', requestedRefundAmount: 25000 };
+
+    await commerceApi.complaints(19);
+    await commerceApi.complain(19, input);
+
+    expect(client.apiGet).toHaveBeenCalledWith('/orders/19/complaints');
+    expect(client.apiPost).toHaveBeenCalledWith('/orders/19/complaints', input);
+  });
+
+  it('drives the sandbox payment and refund confirmations', async () => {
+    client.apiPost.mockResolvedValue({});
+
+    await commerceApi.failSandboxPayment(19);
+    await commerceApi.confirmSandboxRefund(19);
+
+    expect(client.apiPost).toHaveBeenNthCalledWith(1, '/orders/19/payment/sandbox-fail');
+    expect(client.apiPost).toHaveBeenNthCalledWith(2, '/orders/19/refund/sandbox-confirm');
+  });
+
   it('sends the cart item quantity and customer note', async () => {
     client.apiPost.mockResolvedValue({});
     client.apiPut.mockResolvedValue({});
