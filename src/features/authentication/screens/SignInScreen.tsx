@@ -13,6 +13,13 @@ import { useAuthStore } from '@/store/auth-store';
 
 const DEMO_ROLES: RoleCode[] = ['CUSTOMER', 'VENDOR', 'WARD_AUTHORITY', 'PLATFORM_ADMIN'];
 
+const DEMO_PHONE_BY_ROLE: Record<RoleCode, string> = {
+  CUSTOMER: '0905000001',
+  VENDOR: '0905000002',
+  WARD_AUTHORITY: '0905000004',
+  PLATFORM_ADMIN: '0905000005',
+};
+
 /** AUTH-03: sign in with phone + password. */
 export function SignInScreen() {
   const navigate = useNavigate();
@@ -100,10 +107,10 @@ export function SignInScreen() {
         Chưa có tài khoản? <span className="text-primary">Đăng ký ngay</span>
       </Link>
 
-      {isDev && !isLiveApi ? (
+      {isDev ? (
         <div className="mt-md rounded-md border border-border bg-card p-sm">
           <span className="mb-xs block text-label text-muted">
-            TÀI KHOẢN DEMO (chỉ hiện ở chế độ dữ liệu giả lập)
+            TÀI KHOẢN MẪU ({isLiveApi ? 'Live API - Điền sẵn' : 'Chế độ Demo'})
           </span>
           <div className="flex flex-col gap-xs">
             {DEMO_ROLES.map((role) => (
@@ -111,12 +118,19 @@ export function SignInScreen() {
                 key={role}
                 type="button"
                 onClick={() => {
-                  switchRoleDemo(role);
-                  navigate(ROLE_HOME_ROUTE[role], { replace: true });
+                  if (!isLiveApi) {
+                    switchRoleDemo(role);
+                    navigate(ROLE_HOME_ROUTE[role], { replace: true });
+                  } else {
+                    setPhone(DEMO_PHONE_BY_ROLE[role]);
+                    setPassword('123456');
+                  }
                 }}
-                className="flex h-10 items-center justify-center rounded-sm bg-bg"
+                className="flex h-10 items-center justify-center rounded-sm bg-bg hover:bg-border/40"
               >
-                <span className="text-body-md text-text">{ROLE_LABELS[role]}</span>
+                <span className="text-body-md text-text">
+                  {ROLE_LABELS[role]} {isLiveApi ? '(Điền nhanh)' : ''}
+                </span>
               </button>
             ))}
           </div>

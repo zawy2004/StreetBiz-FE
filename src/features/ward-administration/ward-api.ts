@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { env } from '@/core/config/env';
+import { getTokens } from '@/core/api/token-storage';
 
 export type CaseKind = 'proposals' | 'conflicts' | 'transfers';
 export const wardReviewRoot = '/ward/inbox/reviews';
@@ -61,7 +62,7 @@ export class WardApiError extends Error {
 export async function wardRequest<T>(
   path: string,
   init: RequestInit = {},
-  token = useWardSession.getState().token,
+  token = useWardSession.getState().token || getTokens()?.accessToken,
 ): Promise<T> {
   const base = env.apiBaseUrl.replace(/\/$/, '');
   if (!base) throw new WardApiError(0, 'Chưa cấu hình VITE_API_BASE_URL cho Backend.');
@@ -140,6 +141,267 @@ export function parsePoint(latitude: string, longitude: string): GeoPoint | null
     ? point
     : null;
 }
+
+// ---- Ward Review, Permit & Compliance (WARD-04..08, 11..13) ----
+
+export type WardEvidence = { evidenceId: number; type: string; label: string; fileUrl: string };
+export type AiDocumentCheck = {
+  matchPercentage: number;
+  isMatch: boolean;
+  needsManualVerification: boolean;
+  summary: string;
+  discrepancies: string[];
+  isAiGenerated: boolean;
+};
+export type WardEnrollmentItem = {
+  id: string;
+  displayName: string;
+  ownerName: string;
+  idNumber: string | null;
+  vendorType: string;
+  status: string;
+  address: string;
+  createdAt: string;
+  fastTrack: boolean;
+};
+export type WardEnrollmentDetail = WardEnrollmentItem & {
+  latitude: number | null;
+  longitude: number | null;
+  reviewReason: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  evidence: WardEvidence[];
+  aiCheck: AiDocumentCheck | null;
+};
+
+export type WardRentalApplicationItem = {
+  id: string;
+  applicationMethod: string;
+  requestedTermDays: number;
+  status: string;
+  vendorName: string;
+  slotCode: string;
+  slotStreet: string;
+  pricePerDay: number;
+  createdAt: string;
+};
+export type WardRentalApplicationDetail = WardRentalApplicationItem & {
+  registrationId: number;
+  registrationStatus: string;
+  vendorPhone: string;
+  slotId: number;
+  slotWidth: number;
+  slotLength: number;
+  reviewReason: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  canApprove: boolean;
+  blockers: string[];
+};
+
+export type AiEncroachment = {
+  detectedEncroachment: boolean;
+  encroachmentDistanceCm: number;
+  analysis: string;
+  visualCues: string[];
+  isAiGenerated: boolean;
+};
+export type InspectPermitResult = {
+  found: boolean;
+  isValid: boolean;
+  effectiveStatus: string;
+  permitId: number | null;
+  contractId: number | null;
+  vendorId: number | null;
+  vendorName: string | null;
+  slotId: number | null;
+  slotCode: string | null;
+  slotStreet: string | null;
+  width: number | null;
+  length: number | null;
+  startDate: string | null;
+  endDate: string | null;
+  distanceMeters: number | null;
+  isLocationMatched: boolean;
+  locationWarning: string | null;
+  aiVisionResult: AiEncroachment | null;
+};
+
+export type PenaltyScheduleItem = {
+  scheduleId: number;
+  violationType: string;
+  violationTypeName: string;
+  penaltyAmount: number;
+  legalBasis: string | null;
+};
+/** Fields mirror Mau MBB01 (Nghi dinh 118/2021/NĐ-CP). legalBasis is always copied verbatim
+ * from the ward's own PenaltyFeeSchedules row on the backend -- never AI-authored text. */
+export type AiLegalSuggestion = {
+  violationType: string;
+  penaltyScheduleId: number | null;
+  legalBasis: string | null;
+  suggestedPenaltyAmount: number | null;
+  hanhViViPham: string;
+  bienPhapKhacPhuc: string;
+  isAiGenerated: boolean;
+};
+export type WardViolationItem = {
+  violationId: number;
+  contractId: number | null;
+  slotCode: string | null;
+  vendorName: string | null;
+  violationType: string;
+  violationTypeName: string;
+  status: string;
+  penaltyAmount: number | null;
+  recordedAt: string;
+  recordedByName: string;
+};
+export type WardViolationDetail = WardViolationItem & {
+  slotId: number | null;
+  vendorId: number | null;
+  description: string | null;
+  evidenceUrl: string | null;
+  sanctionDecisionNumber: string | null;
+  signerName: string | null;
+  signerTitle: string | null;
+  sanctionedAt: string | null;
+  recentViolationCount90Days: number;
+  aiSuggestion: AiLegalSuggestion | null;
+};
+
+export type WardRiskQueueItem = {
+  registrationId: string;
+  displayName: string;
+  score: number;
+  breakdown: { reason: string; points: number }[];
+};
+export type WardPatrolHeatmapPoint = {
+  zoneId: number | null;
+  zoneName: string | null;
+  dayOfWeek: number;
+  hourOfDay: number;
+  violationCount: number;
+};
+
+export const complianceApi = {
+  listEnrollments: (status?: string, page = 1) =>
+    wardRequest<WardEnrollmentItem[]>(
+      `/ward/enrollments?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page) })}`,
+    ),
+  getEnrollment: (id: string) => wardRequest<WardEnrollmentDetail>(`/ward/enrollments/${id}`),
+  decideEnrollment: (id: string, decision: string, reason: string, expectedStatus: string) =>
+    wardRequest<WardEnrollmentDetail>(`/ward/enrollments/${id}/decision`, {
+      method: 'POST',
+      body: JSON.stringify({ decision, reason, expectedStatus }),
+    }),
+
+  listRentalApplications: (status?: string, page = 1) =>
+    wardRequest<WardRentalApplicationItem[]>(
+      `/ward/rental-applications?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page) })}`,
+    ),
+  getRentalApplication: (id: string) =>
+    wardRequest<WardRentalApplicationDetail>(`/ward/rental-applications/${id}`),
+  decideRentalApplication: (id: string, decision: string, reason: string, expectedStatus: string) =>
+    wardRequest<WardRentalApplicationDetail>(`/ward/rental-applications/${id}/decision`, {
+      method: 'POST',
+      body: JSON.stringify({ decision, reason, expectedStatus }),
+    }),
+
+  inspectPermit: (
+    permitCodeOrPayload: string,
+    latitude?: number,
+    longitude?: number,
+    inspectionPhotoUrl?: string,
+  ) =>
+    wardRequest<InspectPermitResult>('/ward/permits/inspect', {
+      method: 'POST',
+      body: JSON.stringify({ permitCodeOrPayload, latitude, longitude, inspectionPhotoUrl }),
+    }),
+  permitAction: (permitId: number, action: 'SUSPEND' | 'REVOKE', reason: string) =>
+    wardRequest<boolean>(`/ward/permits/${permitId}/action`, {
+      method: 'POST',
+      body: JSON.stringify({ action, reason }),
+    }),
+
+  listPenaltySchedules: () => wardRequest<PenaltyScheduleItem[]>('/ward/penalty-schedules'),
+  listViolations: (status?: string, page = 1) =>
+    wardRequest<WardViolationItem[]>(
+      `/ward/violations?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page) })}`,
+    ),
+  getViolation: (id: number) => wardRequest<WardViolationDetail>(`/ward/violations/${id}`),
+  recordViolation: (request: {
+    contractId?: number;
+    slotId?: number;
+    vendorId?: number;
+    violationType: string;
+    description: string;
+    evidenceUrl?: string;
+  }) => wardRequest<WardViolationDetail>('/ward/violations', { method: 'POST', body: JSON.stringify(request) }),
+  sanctionViolation: (
+    id: number,
+    penaltyScheduleId: number,
+    decisionNumber: string,
+    signerName: string,
+    signerTitle: string,
+    notes?: string,
+  ) =>
+    wardRequest<WardViolationDetail>(`/ward/violations/${id}/sanction`, {
+      method: 'POST',
+      body: JSON.stringify({ penaltyScheduleId, decisionNumber, signerName, signerTitle, notes }),
+    }),
+
+  riskQueue: () => wardRequest<WardRiskQueueItem[]>('/ward/insights/risk-queue'),
+  patrolHeatmap: () => wardRequest<WardPatrolHeatmapPoint[]>('/ward/insights/patrol-heatmap'),
+
+  /** Server-authoritative: loads this registration's own stored evidence + declared profile and
+   * checks biometric consent server-side. Never send an evidence list / declared name-address
+   * from the client -- an earlier draft did, and its shape drifted out of sync with the backend
+   * (which only ever needed the registration id). */
+  aiDocumentExtract: (registrationId: string) =>
+    wardRequest<AiDocumentCheck>('/ward/ai/document-extract', {
+      method: 'POST',
+      body: JSON.stringify({ registrationId: Number(registrationId) }),
+    }),
+
+  aiEncroachmentCheck: (photoUrl: string, slotWidth?: number, slotLength?: number) =>
+    wardRequest<AiEncroachment>('/ward/ai/encroachment-check', {
+      method: 'POST',
+      body: JSON.stringify({ photoUrl, slotWidth, slotLength }),
+    }),
+
+  askVendorAssistant: (question: string, context?: string) =>
+    wardRequest<{ answer: string; isAiGenerated: boolean }>('/ward/ai/vendor-assistant', {
+      method: 'POST',
+      body: JSON.stringify({ question, context }),
+    }),
+
+  /** Shared with REG-02; UploadsController also authorizes WARD_AUTHORITY for WARD-11/12 evidence. */
+  uploadEvidence: async (file: File): Promise<{ fileUrl: string }> => {
+    const base = env.apiBaseUrl.replace(/\/$/, '');
+    const form = new FormData();
+    form.append('file', file);
+    const token = useWardSession.getState().token || getTokens()?.accessToken;
+    const response = await fetch(base + '/uploads/evidence', {
+      method: 'POST',
+      body: form,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      const problem = (await response.json().catch(() => ({}))) as { detail?: string; title?: string };
+      throw new WardApiError(response.status, problem.detail ?? problem.title ?? 'Tải ảnh thất bại.');
+    }
+    return response.json() as Promise<{ fileUrl: string }>;
+  },
+};
+
+export const violationTypeLabels: Record<string, string> = {
+  UNAUTHORIZED_BUSINESS_USE: 'Sử dụng trái phép vỉa hè để kinh doanh',
+  EXPIRED_OR_INVALID_PERMIT: 'Giấy phép hết hạn / sai nội dung',
+  STREET_VENDING_RESTRICTED: 'Bán hàng rong tại tuyến phố cấm',
+  HYGIENE_LITTERING: 'Vứt rác, mất vệ sinh vỉa hè',
+  OBSTRUCT_PUBLIC_ORDER: 'Cản trở an ninh trật tự công cộng',
+};
 
 export const caseLabels: Record<CaseKind, string> = {
   proposals: 'Đề xuất vị trí',

@@ -43,6 +43,9 @@ type Draft = {
   addressLongitude: number | null;
   wardUnitId: number | null;
   evidence: DraftEvidence[];
+  /** Separate, explicit consent to run AI-OCR on the ID photo later (Luat Bao ve du lieu ca
+   * nhan 2025 / Nghi dinh 356/2025/ND-CP) -- unbundled from any other agreement checkbox. */
+  biometricConsent: boolean;
 };
 
 type NewRegistrationState = Draft & {
@@ -65,6 +68,7 @@ const initial: Draft = {
   addressLongitude: null,
   wardUnitId: null,
   evidence: [],
+  biometricConsent: false,
 };
 
 /** Evidence the user is asked for, by vendor type (MSG14). */

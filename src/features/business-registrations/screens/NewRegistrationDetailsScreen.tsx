@@ -26,7 +26,7 @@ export function NewRegistrationDetailsScreen() {
   const submit = () => {
     const next: Record<string, string | undefined> = {};
     if (!draft.displayName.trim()) next.displayName = 'Vui lòng nhập tên hộ kinh doanh.';
-    if (draft.wardUnitId === null) next.ward = 'Vui lòng chọn phường/xã.';
+    if (!draft.wardUnitId) next.ward = 'Vui lòng chọn phường/xã.';
     if (needsAddress && !draft.declaredAddress.trim()) {
       next.address = 'Cửa hàng cố định cần nhập địa chỉ kinh doanh.';
     }

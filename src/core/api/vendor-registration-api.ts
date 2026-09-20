@@ -92,6 +92,11 @@ export type EvidencePayload = {
   evidenceType: ApiEvidenceType;
   fileUrl: string;
   ocrExtractedData: string | null;
+  /** Separate, explicit consent to later run AI-OCR on this photo (WARD-04/05/06's document
+   * check) -- only meaningful (and only sent as true) for IDENTITY_DOCUMENT uploads. Luat Bao
+   * ve du lieu ca nhan 2025 / Nghi dinh 356/2025/ND-CP requires this consent to be its own
+   * affirmative action, never bundled into a general terms checkbox. */
+  biometricConsent?: boolean;
 };
 
 export const vendorRegistrationApi = {

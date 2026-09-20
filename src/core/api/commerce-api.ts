@@ -264,4 +264,13 @@ export const commerceApi = {
     apiPost<CommerceOrder>(`/seller/orders/${orderId}/handover`, { expectedStatus }),
   salesSummary: (period: 'DAY' | 'WEEK' | 'MONTH') =>
     apiGet<SalesSummary>(`/seller/orders/sales-summary?period=${period}`),
+  complaints: (orderId: string | number) => apiGet<any[]>(`/orders/${orderId}/complaints`),
+  complain: (
+    orderId: string | number,
+    payload: { complaintType: string; description: string; requestedRefundAmount: number | null },
+  ) => apiPost<any>(`/orders/${orderId}/complaints`, payload),
+  review: (orderId: string | number) =>
+    apiGet<{ rating?: number; text?: string } | null>(`/orders/${orderId}/review`),
+  saveReview: (orderId: string | number, rating: number, text: string) =>
+    apiPut<any>(`/orders/${orderId}/review`, { rating, text }),
 };
