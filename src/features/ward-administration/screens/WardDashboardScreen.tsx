@@ -69,15 +69,13 @@ export function WardDashboardScreen() {
       ) : null}
 
       <Section title="Lối tắt">
-        <Card onPress={() => navigate('/ward/inbox/reviews')}>
-          <h3 className="text-headline-sm text-text">Duyệt hồ sơ vị trí · Backend</h3>
-          <p className="text-body-sm text-muted">
-            Đề xuất ô, xung đột địa chỉ và chuyển nhượng theo dữ liệu thật
-          </p>
-        </Card>
+        {/* One destination: /ward/inbox is the live case queue against the backend,
+            and the mock list only when there is no backend configured. */}
         <Card onPress={() => navigate('/ward/inbox')}>
           <h3 className="text-headline-sm text-text">Hộp duyệt</h3>
-          <p className="text-body-sm text-muted">{pendingCount} việc cần xử lý</p>
+          <p className="text-body-sm text-muted">
+            Hồ sơ đăng ký, đề xuất ô, xung đột địa chỉ và chuyển nhượng
+          </p>
         </Card>
         <Card onPress={() => navigate('/ward/slots')}>
           <h3 className="text-headline-sm text-text">Lưới ô vỉa hè</h3>

@@ -6,6 +6,7 @@ import { AppHeader, Screen, Section, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ConfirmDialog, ErrorState, LoadingState, showToast } from '@/components/feedback';
 import { EDITABLE_STATUSES, errorMessage, VENDOR_TYPE } from '@/core/api';
+import { isLiveApi } from '@/core/config/env';
 import { useNewRegistrationStore } from '../new-registration-store';
 import { EvidencePreview } from '../components/EvidencePreview';
 import { useRegistrationDetail, useWithdrawRegistration } from '../useRegistrations';
@@ -57,6 +58,12 @@ export function RegistrationDetailScreen() {
   const isFixedApproved =
     registration.vendorType === VENDOR_TYPE.fixedStorefront &&
     registration.registrationStatus === 'APPROVED';
+  // The address-change screen posts to the backend through sideApi (SIDE-09/10),
+  // so it is offered in both modes. The adjacent-slot screen still picks a slot
+  // out of src/mocks: sideApi.submitAdjacentApplication exists but nothing calls
+  // it yet, and SIDE-03A needs a real picker bound by the backend's 150 m radius.
+  // Offering it against a live backend would be a dead end, so hide it until then.
+  const canRentAdjacentSlot = isFixedApproved && !isLiveApi;
   const needsMoreInfo = registration.registrationStatus === 'MORE_INFORMATION_REQUIRED';
 
   const startEdit = () => {
@@ -171,12 +178,14 @@ export function RegistrationDetailScreen() {
 
       {isFixedApproved ? (
         <Section title="Tiếp theo">
-          <Button
-            label="Thuê ô vỉa hè liền kề"
-            onPress={() =>
-              navigate(`/vendor/registrations/${registration.registrationId}/adjacent-slot`)
-            }
-          />
+          {canRentAdjacentSlot ? (
+            <Button
+              label="Thuê ô vỉa hè liền kề"
+              onPress={() =>
+                navigate(`/vendor/registrations/${registration.registrationId}/adjacent-slot`)
+              }
+            />
+          ) : null}
           <Button
             label="Cập nhật địa chỉ kinh doanh"
             variant="outline"

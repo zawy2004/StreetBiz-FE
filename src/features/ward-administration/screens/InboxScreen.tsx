@@ -6,13 +6,27 @@ import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { FilterChips } from '@/components/forms';
 import { EmptyState } from '@/components/feedback';
+import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
+import { WardCasesScreen } from './WardCasesScreen';
 
-type Category = 'ALL' | 'REG' | 'RENTAL' | 'RENEWAL' | 'REPORT';
-
+/**
+ * The ward's work queue.
+ *
+ * Against the backend this is WardCasesScreen, which reads the officer's real
+ * cases (registrations, proposals, conflicts, transfers) and decides on them
+ * through the API. The mock list below is the no-backend demo, and covers the
+ * review kinds that have no live queue yet - rental applications, renewals and
+ * vendor reports.
+ */
 export function InboxScreen() {
+  return isLiveApi ? <WardCasesScreen /> : <MockInboxScreen />;
+}
+
+type Category = 'ALL' | 'RENTAL' | 'RENEWAL' | 'REPORT';
+
+function MockInboxScreen() {
   const navigate = useNavigate();
-  const registrations = useMockDb((s) => s.registrations);
   const applications = useMockDb((s) => s.applications);
   const renewals = useMockDb((s) => s.renewals);
   const slots = useMockDb((s) => s.slots);
@@ -21,16 +35,6 @@ export function InboxScreen() {
 
   const items = useMemo(() => {
     const list = [
-      ...registrations
-        .filter((r) => r.registration_status === 'UNDER_REVIEW')
-        .map((r) => ({
-          key: `REG-${r.id}`,
-          category: 'REG' as const,
-          title: r.business_name,
-          subtitle: `Đăng ký · ${r.fast_track ? 'Ưu tiên xét nhanh' : 'Chờ duyệt'}`,
-          status: r.registration_status,
-          onPress: () => navigate(`/ward/inbox/registrations/${r.id}`),
-        })),
       ...applications
         .filter((a) => a.application_status === 'PENDING')
         .map((a) => ({
@@ -63,24 +67,19 @@ export function InboxScreen() {
         })),
     ];
     return list;
-  }, [registrations, applications, renewals, slots, reports, navigate]);
+  }, [applications, renewals, slots, reports, navigate]);
 
   const visible = category === 'ALL' ? items : items.filter((i) => i.category === category);
   const count = (c: Exclude<Category, 'ALL'>) => items.filter((i) => i.category === c).length;
 
   return (
     <Screen>
-      <AppHeader title="Hộp duyệt" subtitle="Tất cả việc cần xử lý" />
-      <Card onPress={() => navigate('/ward/inbox/reviews')}>
-        <h2 className="text-headline-sm">Hồ sơ vị trí · Dữ liệu Backend</h2>
-        <p>Đề xuất ô, xung đột địa chỉ, chuyển nhượng và kiểm tra ranh giới</p>
-      </Card>
+      <AppHeader title="Hộp duyệt" subtitle="Dữ liệu giả lập (không có Backend)" />
       <FilterChips
         value={category}
         onChange={setCategory}
         options={[
           { value: 'ALL', label: 'Tất cả' },
-          { value: 'REG', label: 'Đăng ký', count: count('REG') },
           { value: 'RENTAL', label: 'Thuê ô', count: count('RENTAL') },
           { value: 'RENEWAL', label: 'Gia hạn', count: count('RENEWAL') },
           { value: 'REPORT', label: 'Phản ánh', count: count('REPORT') },

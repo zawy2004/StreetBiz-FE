@@ -5,12 +5,12 @@ describe('ProblemDetails mapping', () => {
     const error = toApiError(409, {
       title: 'conflict',
       status: 409,
-      detail: 'You already have a registration under review.',
+      detail: 'Bạn đang có một hồ sơ chờ xét duyệt.',
     });
 
     expect(error).toBeInstanceOf(ApiError);
     expect(error.code).toBe('conflict');
-    expect(error.message).toBe('You already have a registration under review.');
+    expect(error.message).toBe('Bạn đang có một hồ sơ chờ xét duyệt.');
   });
 
   it('exposes field errors from a validation failure', () => {
@@ -18,8 +18,8 @@ describe('ProblemDetails mapping', () => {
       type: 'validation_error',
       status: 400,
       errors: {
-        PhoneNumber: ['Please enter a valid phone number.'],
-        Password: ['Password must be at least 8 characters...'],
+        PhoneNumber: ['Số điện thoại phải gồm 10 số, bắt đầu bằng 0.'],
+        Password: ['Mật khẩu cần tối thiểu 8 ký tự.'],
       },
     });
 
@@ -40,7 +40,7 @@ describe('ProblemDetails mapping', () => {
   it('falls back to a field message when validation has no detail', () => {
     const error = toApiError(400, {
       type: 'validation_error',
-      errors: { Otp: ['The verification code must be 6 digits.'] },
+      errors: { Otp: ['Mã xác thực gồm 6 chữ số.'] },
     });
 
     expect(error.message).toBe('Mã xác thực gồm 6 chữ số.');
@@ -65,24 +65,24 @@ describe('ProblemDetails mapping', () => {
   });
 });
 
-describe('backend message translation', () => {
-  it('shows backend messages in Vietnamese', () => {
-    const error = toApiError(401, { type: 'unauthorized', detail: 'Invalid phone number or password.' });
+describe('backend messages are passed through, since the API speaks Vietnamese', () => {
+  it('shows the backend detail as-is', () => {
+    const error = toApiError(401, { type: 'unauthorized', detail: 'Số điện thoại hoặc mật khẩu không đúng.' });
     expect(error.message).toBe('Số điện thoại hoặc mật khẩu không đúng.');
   });
 
-  it('translates field-level validation messages too', () => {
+  it('passes field-level validation messages through too', () => {
     const error = toApiError(400, {
       type: 'validation_error',
-      errors: { CurrentPassword: ['The current password you entered is incorrect.'] },
+      errors: { CurrentPassword: ['Mật khẩu hiện tại không đúng.'] },
     });
     expect(error.fieldError('CurrentPassword')).toBe('Mật khẩu hiện tại không đúng.');
   });
 
-  it('translates the templated not-editable message', () => {
+  it('passes the not-editable message through', () => {
     const error = toApiError(422, {
       type: 'domain_rule',
-      detail: 'This registration can no longer be edited because it is APPROVED.',
+      detail: 'Hồ sơ không thể chỉnh sửa vì đã được duyệt.',
     });
     expect(error.message).toBe('Hồ sơ không thể chỉnh sửa vì đã được duyệt.');
   });
@@ -90,7 +90,7 @@ describe('backend message translation', () => {
   it('carries the OTP cooldown so the UI can count down', () => {
     const error = toApiError(429, {
       type: 'otp_cooldown',
-      detail: 'Please wait before requesting another verification code.',
+      detail: 'Vui lòng chờ trước khi yêu cầu mã xác thực mới.',
       retryAfterSeconds: 37,
     });
     expect(error.code).toBe('otp_cooldown');

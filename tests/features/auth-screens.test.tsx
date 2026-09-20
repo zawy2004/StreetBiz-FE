@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -150,5 +150,48 @@ describe('sign-up data handling', () => {
     );
 
     expect(await screen.findByText('register start')).toBeInTheDocument();
+  });
+
+  it('sends a newly registered user to sign in rather than straight into the app', async () => {
+    const { VerifyPhoneScreen } = await import('@/features/authentication/screens/VerifyPhoneScreen');
+    const { usePendingAuthStore } = await import('@/features/authentication/pending-auth-store');
+    const { useAuthStore } = await import('@/store/auth-store');
+    const { SignInScreen } = await import('@/features/authentication/screens/SignInScreen');
+
+    usePendingAuthStore.getState().startRegistration({
+      phoneNumber: '0912345678',
+      fullName: 'Người Dùng Mới',
+      password: 'Str0ng!Pass',
+      roleCode: 'VENDOR',
+      wardUnitId: 10,
+    });
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter initialEntries={['/auth/verify-phone?purpose=REGISTRATION']}>
+          <Routes>
+            <Route path="/auth/verify-phone" element={<VerifyPhoneScreen />} />
+            <Route path="/auth/sign-in" element={<SignInScreen />} />
+            <Route path="/vendor/home" element={<div>vendor home</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    // Mock mode accepts the fixed demo code.
+    const boxes = screen.getAllByRole('textbox');
+    for (const [index, character] of [...'123456'].entries()) {
+      fireEvent.change(boxes[index]!, { target: { value: character } });
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận & Tạo tài khoản' }));
+
+    // Lands on sign-in, with the reason explained and the number carried over.
+    expect(
+      await screen.findByText('Tạo tài khoản thành công. Vui lòng đăng nhập bằng mật khẩu bạn vừa đặt.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('vendor home')).not.toBeInTheDocument();
+    // No session was started, and the plaintext password did not survive the hop.
+    expect(useAuthStore.getState().user).toBeNull();
+    expect(usePendingAuthStore.getState().registration).toBeNull();
   });
 });
