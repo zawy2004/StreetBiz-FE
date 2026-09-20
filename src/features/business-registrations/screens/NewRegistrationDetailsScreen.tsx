@@ -33,7 +33,7 @@ export function NewRegistrationDetailsScreen() {
 
     setErrors(next);
     if (Object.values(next).some(Boolean)) return;
-    navigate('/vendor/registrations/new/evidence');
+    navigate('/vendor/registrations/new/owner');
   };
 
   return (
@@ -48,7 +48,7 @@ export function NewRegistrationDetailsScreen() {
         title={draft.registrationId ? 'Cập nhật hồ sơ' : 'Đăng ký kinh doanh'}
         back
       />
-      <Stepper step={2} total={3} label="Thông tin hộ kinh doanh" />
+      <Stepper step={2} total={4} label="Thông tin hộ kinh doanh" />
 
       <TextField
         label="Tên hộ kinh doanh"

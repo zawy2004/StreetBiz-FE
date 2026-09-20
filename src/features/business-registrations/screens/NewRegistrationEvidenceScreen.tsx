@@ -129,7 +129,7 @@ export function NewRegistrationEvidenceScreen() {
       }
     >
       <AppHeader title={isEditing ? 'Cập nhật hồ sơ' : 'Đăng ký kinh doanh'} back />
-      <Stepper step={3} total={3} label="Giấy tờ minh chứng" />
+      <Stepper step={4} total={4} label="Giấy tờ minh chứng" />
 
       {env.enableAiCompliance ? (
         <AiHint title="Tự động điền từ giấy tờ">

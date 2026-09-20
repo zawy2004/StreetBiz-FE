@@ -26,6 +26,9 @@ export function RegistrationReviewScreen() {
   // AI Check State (Live or Mock)
   const [customAiCheck, setCustomAiCheck] = useState<WardEnrollmentDetail['aiCheck']>(null);
   const [ocrRunning, setOcrRunning] = useState(false);
+  // BR-41 KYC gate: officer's manual identity-verification confirmation.
+  const [identityNote, setIdentityNote] = useState('');
+  const [confirmingIdentity, setConfirmingIdentity] = useState(false);
 
   useEffect(() => {
     if (!isLiveApi || !id) return;
@@ -80,6 +83,15 @@ export function RegistrationReviewScreen() {
     fileUrl: e.uri,
   })) ?? [];
 
+  // BR-41: in live mode, APPROVE is refused server-side until confirmIdentity has been called
+  // (AI-OCR alone never satisfies this -- it only reads/self-compares a photo). Mock mode has
+  // no such server gate, so the button stays enabled there to keep the demo unblocked.
+  const identityVerified = !isLiveApi || (liveDetail?.identityVerified ?? false);
+  const ownerProfile = liveDetail?.ownerProfile;
+  const businessProfile = liveDetail?.businessProfile;
+  const householdMembers = liveDetail?.householdMembers ?? [];
+  const kycChecks = liveDetail?.kycChecks ?? [];
+
   const handleRunOcr = async () => {
     if (!id) return;
     setOcrRunning(true);
@@ -112,9 +124,34 @@ export function RegistrationReviewScreen() {
     }
   };
 
+  const handleConfirmIdentity = async () => {
+    if (!id || !identityNote.trim()) {
+      showToast('Vui lòng ghi chú ngắn gọn cách đối chiếu CCCD trước khi xác nhận.');
+      return;
+    }
+    setConfirmingIdentity(true);
+    try {
+      if (isLiveApi) {
+        const updated = await complianceApi.confirmIdentity(id, identityNote.trim());
+        setLiveDetail(updated);
+        showToast('Đã ghi nhận xác nhận đối chiếu CCCD thủ công.');
+      } else {
+        showToast('Đã ghi nhận xác nhận (chế độ demo, không có gate phía máy chủ).');
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Lỗi xác nhận đối chiếu CCCD');
+    } finally {
+      setConfirmingIdentity(false);
+    }
+  };
+
   const act = async (action: 'APPROVE' | 'REJECT' | 'MORE_INFO') => {
     if ((action === 'REJECT' || action === 'MORE_INFO') && !note.trim()) {
       showToast('Vui lòng nhập lý do quyết định');
+      return;
+    }
+    if (action === 'APPROVE' && !identityVerified) {
+      showToast('Cán bộ phải xác nhận đã đối chiếu CCCD thủ công trước khi duyệt hồ sơ.');
       return;
     }
 
@@ -164,7 +201,12 @@ export function RegistrationReviewScreen() {
             <Button label="Từ chối" variant="danger" onPress={() => act('REJECT')} />
           </div>
           <div className="flex-1">
-            <Button label="Duyệt điểm bán" variant="approve" onPress={() => act('APPROVE')} />
+            <Button
+              label={identityVerified ? 'Duyệt điểm bán' : 'Duyệt (cần xác nhận CCCD trước)'}
+              variant="approve"
+              disabled={!identityVerified}
+              onPress={() => act('APPROVE')}
+            />
           </div>
         </StickyActions>
       }
@@ -243,6 +285,135 @@ export function RegistrationReviewScreen() {
         </Card>
       </Section>
 
+      {kycChecks.length > 0 ? (
+        <Section title="Kết quả eKYC hộ kinh doanh đã thực hiện (FPT.AI)">
+          <Card padded={false}>
+            <div className="px-md">
+              {kycChecks.map((check, idx) => (
+                <div key={check.checkType}>
+                  {idx > 0 ? <Divider /> : null}
+                  <ListRow
+                    title={check.checkType === 'FACE_MATCH' ? 'Đối chiếu khuôn mặt ↔ ảnh CCCD' : 'Đọc dữ liệu CCCD (OCR)'}
+                    subtitle={
+                      check.checkType === 'FACE_MATCH'
+                        ? `${check.isMatch ? '✅ Khớp' : '⚠️ Chưa khớp'} · độ tương đồng ${check.similarityPercent ?? 0}% (ngưỡng 80%)`
+                        : `Độ tin cậy ${check.confidencePercent ?? 0}%`
+                    }
+                  />
+                  {check.warnings ? (
+                    <p className="pb-sm text-body-sm text-danger">{check.warnings}</p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </Card>
+          <p className="mt-1 text-body-sm text-muted">
+            Đây là kết quả do máy chủ ghi nhận khi hộ kinh doanh nộp hồ sơ. Khớp khuôn mặt chỉ
+            chứng minh hai ảnh cùng một người — <strong>không</strong> chứng minh CCCD là thật hay
+            có trong Cơ sở dữ liệu quốc gia về dân cư.
+          </p>
+        </Section>
+      ) : null}
+
+      <Section title="Xác minh danh tính (bắt buộc trước khi duyệt — BR-41)">
+        <Card>
+          {identityVerified && liveDetail?.identityVerifiedAt ? (
+            <p className="text-body-sm text-tertiary">
+              ✅ Đã xác nhận lúc {new Date(liveDetail.identityVerifiedAt).toLocaleString('vi-VN')}
+              {liveDetail.identityVerificationNote ? ` — "${liveDetail.identityVerificationNote}"` : ''}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-body-sm text-muted">
+                AI ở trên chỉ đọc và tự đối chiếu ảnh CCCD, <strong>không tra cứu Cơ sở dữ liệu quốc gia về dân cư</strong> nên không thể xác minh giấy tờ là thật. Cán bộ phải trực tiếp đối chiếu ảnh/CCCD gốc với người nộp hồ sơ rồi xác nhận bên dưới trước khi được phép Duyệt.
+              </p>
+              <TextField
+                value={identityNote}
+                onChangeText={setIdentityNote}
+                placeholder="VD: Đã đối chiếu trực tiếp tại UBND phường ngày ..., khớp CCCD gốc."
+              />
+              <Button
+                label={confirmingIdentity ? 'Đang xác nhận...' : 'Xác nhận đã đối chiếu CCCD'}
+                variant="outline"
+                loading={confirmingIdentity}
+                onPress={handleConfirmIdentity}
+              />
+            </div>
+          )}
+        </Card>
+      </Section>
+
+      <Section title="Chủ hộ kinh doanh (Mẫu số 01 Phụ lục II, TT 68/2025/TT-BTC)">
+        <Card padded={false}>
+          <div className="px-md">
+            <ListRow
+              title="Ngày sinh / Giới tính"
+              subtitle={`${ownerProfile?.dateOfBirth ?? 'Chưa cập nhật'} · ${ownerProfile?.gender ?? '—'}`}
+            />
+            <Divider />
+            <ListRow
+              title="Dân tộc / Quốc tịch"
+              subtitle={`${ownerProfile?.ethnicity ?? '—'} · ${ownerProfile?.nationality ?? '—'}`}
+            />
+            <Divider />
+            <ListRow
+              title="Giấy tờ pháp lý"
+              subtitle={
+                ownerProfile?.idType
+                  ? `${ownerProfile.idType} — cấp ${ownerProfile.idIssuedDate ?? '—'} tại ${ownerProfile.idIssuedPlace ?? '—'}`
+                  : 'Chưa cập nhật'
+              }
+            />
+            <Divider />
+            <ListRow title="Địa chỉ thường trú" subtitle={ownerProfile?.permanentAddress ?? 'Chưa cập nhật'} />
+            <Divider />
+            <ListRow title="Địa chỉ liên lạc" subtitle={ownerProfile?.contactAddress ?? 'Chưa cập nhật'} />
+          </div>
+        </Card>
+      </Section>
+
+      <Section title="Ngành nghề, quy mô hộ kinh doanh">
+        <Card padded={false}>
+          <div className="px-md">
+            <ListRow title="Ngành, nghề kinh doanh" subtitle={businessProfile?.businessLine ?? 'Chưa cập nhật'} />
+            <Divider />
+            <ListRow
+              title="Vốn kinh doanh / Số lao động"
+              subtitle={`${businessProfile?.capitalAmount != null ? `${businessProfile.capitalAmount.toLocaleString('vi-VN')} đ` : '—'} · ${businessProfile?.laborCount ?? '—'} lao động`}
+            />
+            <Divider />
+            <ListRow title="Ngày dự kiến bắt đầu hoạt động" subtitle={businessProfile?.plannedStartDate ?? 'Chưa cập nhật'} />
+            <Divider />
+            <ListRow
+              title="Cam kết an toàn thực phẩm"
+              subtitle={
+                liveDetail?.foodSafetyCommitmentAt
+                  ? `Đã cam kết lúc ${new Date(liveDetail.foodSafetyCommitmentAt).toLocaleString('vi-VN')}`
+                  : 'Chưa cam kết'
+              }
+            />
+          </div>
+        </Card>
+      </Section>
+
+      {householdMembers.length > 0 ? (
+        <Section title="Thành viên hộ gia đình cùng góp vốn">
+          <Card padded={false}>
+            <div className="px-md">
+              {householdMembers.map((m, idx) => (
+                <div key={idx}>
+                  {idx > 0 ? <Divider /> : null}
+                  <ListRow
+                    title={m.fullName}
+                    subtitle={`${m.relationshipToOwner ?? 'Thành viên'} · ${m.capitalContribution != null ? `${m.capitalContribution.toLocaleString('vi-VN')} đ` : 'Chưa khai vốn góp'}`}
+                  />
+                </div>
+              ))}
+            </div>
+          </Card>
+        </Section>
+      ) : null}
+
       <Section title="Giấy tờ minh chứng (Ảnh CCCD & Giấy phép)">
         <div className="flex flex-row flex-wrap gap-sm">
           {evidenceList.map((ev) => (
@@ -271,7 +442,7 @@ export function RegistrationReviewScreen() {
       <Section title="Căn cứ pháp lý thẩm quyền cấp phường">
         <Card>
           <p className="text-body-sm text-muted">
-            * Căn cứ Nghị định 01/2021/NĐ-CP: Thủ tục này nhằm xác nhận điểm kinh doanh bảo đảm các điều kiện về trật tự đô thị, an toàn giao thông và vệ sinh môi trường trên địa bàn phường. Thủ tục này <strong>không thay thế</strong> Giấy chứng nhận Đăng ký kinh doanh Hộ kinh doanh do UBND cấp Quận/Huyện cấp.
+            * Căn cứ Nghị định 168/2025/NĐ-CP (thay thế Nghị định 01/2021/NĐ-CP từ 01/07/2025) và mô hình chính quyền địa phương 2 cấp: thẩm quyền cấp Giấy chứng nhận đăng ký hộ kinh doanh nay thuộc <strong>Phòng Kinh tế / Phòng Kinh tế, Hạ tầng và Đô thị thuộc UBND cấp xã (phường)</strong> — không còn cấp quận/huyện. Thủ tục thẩm định điểm bán vỉa hè này (WARD-04/05/06) xác nhận điều kiện trật tự đô thị, an toàn giao thông và vệ sinh môi trường tại địa bàn phường; nó <strong>không thay thế</strong> Giấy chứng nhận đăng ký hộ kinh doanh — hộ kinh doanh vẫn phải đăng ký riêng theo Mẫu số 01 Phụ lục II, Thông tư 68/2025/TT-BTC.
           </p>
         </Card>
       </Section>

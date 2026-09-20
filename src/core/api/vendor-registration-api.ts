@@ -13,6 +13,21 @@ export const VENDOR_TYPE = {
 
 export type ApiVendorType = (typeof VENDOR_TYPE)[keyof typeof VENDOR_TYPE];
 
+/** BusinessRegistrations.owner_gender values. */
+export const OWNER_GENDER = {
+  male: 'MALE',
+  female: 'FEMALE',
+  other: 'OTHER',
+} as const;
+export type ApiOwnerGender = (typeof OWNER_GENDER)[keyof typeof OWNER_GENDER];
+
+/** BusinessRegistrations.id_type values -- the legal document backing owner identity. */
+export const OWNER_ID_TYPE = {
+  citizenId: 'CCCD',
+  passport: 'PASSPORT',
+} as const;
+export type ApiOwnerIdType = (typeof OWNER_ID_TYPE)[keyof typeof OWNER_ID_TYPE];
+
 /** BusinessRegistrations.registration_status (DB CHECK). */
 export type RegistrationStatus =
   | 'DRAFT'
@@ -32,13 +47,27 @@ export const EDITABLE_STATUSES: RegistrationStatus[] = [
 
 /** RegistrationEvidence.evidence_type (DB CHECK). */
 export const EVIDENCE_TYPE = {
+  /** CCCD mặt trước — số, họ tên, ngày sinh, giới tính, quốc tịch, địa chỉ thường trú. */
   identityDocument: 'IDENTITY_DOCUMENT',
+  /** CCCD mặt sau — dân tộc, ngày cấp, nơi cấp (không in ở mặt trước). */
+  identityDocumentBack: 'IDENTITY_DOCUMENT_BACK',
+  /** Ảnh chân dung, để đối chiếu với ảnh in trên CCCD. */
+  portraitSelfie: 'PORTRAIT_SELFIE',
   businessLicense: 'BUSINESS_LICENSE',
   addressProof: 'ADDRESS_PROOF',
   other: 'OTHER',
 } as const;
 
 export type ApiEvidenceType = (typeof EVIDENCE_TYPE)[keyof typeof EVIDENCE_TYPE];
+
+export type ApiHouseholdMember = {
+  memberId?: number;
+  fullName: string;
+  dateOfBirth: string | null;
+  idNumber: string | null;
+  relationshipToOwner: string | null;
+  capitalContribution: number | null;
+};
 
 export type ApiRegistration = {
   registrationId: number;
@@ -54,6 +83,27 @@ export type ApiRegistration = {
   reviewedAt: string | null;
   createdAt: string;
   updatedAt: string | null;
+  // ---- Chủ hộ kinh doanh (Mẫu số 01 Phụ lục II, Thông tư 68/2025/TT-BTC) ----
+  ownerDateOfBirth: string | null;
+  ownerGender: ApiOwnerGender | null;
+  ownerEthnicity: string | null;
+  ownerNationality: string | null;
+  idType: ApiOwnerIdType | null;
+  idIssuedDate: string | null;
+  idIssuedPlace: string | null;
+  permanentAddress: string | null;
+  contactAddress: string | null;
+  // ---- Ngành nghề, quy mô hộ kinh doanh ----
+  businessLine: string | null;
+  businessLineCode: string | null;
+  capitalAmount: number | null;
+  laborCount: number | null;
+  plannedStartDate: string | null;
+  // ---- Cam kết ATTP / xác minh danh tính ----
+  foodSafetyCommitmentAt: string | null;
+  identityVerifiedAt: string | null;
+  identityVerificationNote: string | null;
+  householdMembers: ApiHouseholdMember[];
 };
 
 export type ApiEvidence = {
@@ -86,6 +136,22 @@ export type RegistrationPayload = {
   addressLatitude: number | null;
   addressLongitude: number | null;
   wardUnitId: number;
+  ownerDateOfBirth: string | null;
+  ownerGender: ApiOwnerGender | null;
+  ownerEthnicity: string | null;
+  ownerNationality: string | null;
+  idType: ApiOwnerIdType | null;
+  idIssuedDate: string | null;
+  idIssuedPlace: string | null;
+  permanentAddress: string | null;
+  contactAddress: string | null;
+  businessLine: string | null;
+  businessLineCode: string | null;
+  capitalAmount: number | null;
+  laborCount: number | null;
+  plannedStartDate: string | null;
+  foodSafetyCommitment: boolean;
+  householdMembers: ApiHouseholdMember[];
 };
 
 export type EvidencePayload = {

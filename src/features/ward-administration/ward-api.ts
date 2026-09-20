@@ -164,6 +164,43 @@ export type WardEnrollmentItem = {
   createdAt: string;
   fastTrack: boolean;
 };
+/** Mẫu số 01 Phụ lục II, Thông tư 68/2025/TT-BTC -- chủ hộ kinh doanh. */
+export type WardOwnerProfile = {
+  dateOfBirth: string | null;
+  gender: string | null;
+  ethnicity: string | null;
+  nationality: string | null;
+  idType: string | null;
+  idIssuedDate: string | null;
+  idIssuedPlace: string | null;
+  permanentAddress: string | null;
+  contactAddress: string | null;
+};
+export type WardBusinessProfile = {
+  businessLine: string | null;
+  businessLineCode: string | null;
+  capitalAmount: number | null;
+  laborCount: number | null;
+  plannedStartDate: string | null;
+};
+export type WardHouseholdMember = {
+  fullName: string;
+  dateOfBirth: string | null;
+  idNumber: string | null;
+  relationshipToOwner: string | null;
+  capitalContribution: number | null;
+};
+/** A server-recorded eKYC check. Scores are written where they are computed, never sent by
+ * the applicant's browser, so a client cannot claim a similarity it did not get. */
+export type WardKycCheck = {
+  checkType: 'ID_CARD_OCR' | 'FACE_MATCH';
+  provider: string;
+  isMatch: boolean | null;
+  similarityPercent: number | null;
+  confidencePercent: number | null;
+  warnings: string | null;
+  createdAt: string;
+};
 export type WardEnrollmentDetail = WardEnrollmentItem & {
   latitude: number | null;
   longitude: number | null;
@@ -172,6 +209,18 @@ export type WardEnrollmentDetail = WardEnrollmentItem & {
   reviewedAt: string | null;
   evidence: WardEvidence[];
   aiCheck: AiDocumentCheck | null;
+  ownerProfile: WardOwnerProfile;
+  businessProfile: WardBusinessProfile;
+  foodSafetyCommitmentAt: string | null;
+  householdMembers: WardHouseholdMember[];
+  /** BR-41 KYC gate: true only after an officer called confirmIdentity -- AI-OCR alone never
+   * sets this, since it only reads/self-compares a photo and never queries the national
+   * population database. decideEnrollment's APPROVE is refused server-side until this is true. */
+  identityVerified: boolean;
+  identityVerifiedAt: string | null;
+  identityVerifiedByName: string | null;
+  identityVerificationNote: string | null;
+  kycChecks: WardKycCheck[];
 };
 
 export type WardRentalApplicationItem = {
@@ -294,6 +343,13 @@ export const complianceApi = {
     wardRequest<WardEnrollmentDetail>(`/ward/enrollments/${id}/decision`, {
       method: 'POST',
       body: JSON.stringify({ decision, reason, expectedStatus }),
+    }),
+  /** BR-41 KYC gate: officer confirms they compared the vendor against their physical/chip
+   * CCCD. The backend refuses decideEnrollment's APPROVE until this has been called. */
+  confirmIdentity: (id: string, note: string) =>
+    wardRequest<WardEnrollmentDetail>(`/ward/enrollments/${id}/confirm-identity`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
     }),
 
   listRentalApplications: (status?: string, page = 1) =>

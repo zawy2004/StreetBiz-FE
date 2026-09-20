@@ -1,5 +1,5 @@
 import { EVIDENCE_TYPE, vendorRegistrationApi, type ApiRegistration, type RegistrationPayload } from '@/core/api';
-import { useNewRegistrationStore } from './new-registration-store';
+import { parseVndAmount, useNewRegistrationStore } from './new-registration-store';
 
 /**
  * REG-01/02/04 submission against StreetBiz-BE, in three resumable steps:
@@ -33,6 +33,30 @@ export async function submitRegistrationDraft(): Promise<ApiRegistration> {
     addressLatitude: draft.addressLatitude,
     addressLongitude: draft.addressLongitude,
     wardUnitId: draft.wardUnitId,
+    ownerDateOfBirth: draft.ownerDateOfBirth || null,
+    ownerGender: draft.ownerGender || null,
+    ownerEthnicity: draft.ownerEthnicity.trim() || null,
+    ownerNationality: draft.ownerNationality.trim() || null,
+    idType: draft.idType || null,
+    idIssuedDate: draft.idIssuedDate || null,
+    idIssuedPlace: draft.idIssuedPlace.trim() || null,
+    permanentAddress: draft.permanentAddress.trim() || null,
+    contactAddress: draft.contactAddress.trim() || null,
+    businessLine: draft.businessLine.trim() || null,
+    businessLineCode: draft.businessLineCode.trim() || null,
+    capitalAmount: parseVndAmount(draft.capitalAmount),
+    laborCount: draft.laborCount.trim() ? Number(draft.laborCount) : null,
+    plannedStartDate: draft.plannedStartDate || null,
+    foodSafetyCommitment: draft.foodSafetyCommitment,
+    householdMembers: draft.householdMembers
+      .filter((m) => m.fullName.trim())
+      .map((m) => ({
+        fullName: m.fullName.trim(),
+        dateOfBirth: m.dateOfBirth || null,
+        idNumber: m.idNumber.trim() || null,
+        relationshipToOwner: m.relationshipToOwner.trim() || null,
+        capitalContribution: parseVndAmount(m.capitalContribution),
+      })),
   };
 
   // Editing, or retrying after this wizard already created the application: update

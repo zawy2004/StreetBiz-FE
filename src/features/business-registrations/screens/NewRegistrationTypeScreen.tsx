@@ -29,7 +29,7 @@ export function NewRegistrationTypeScreen() {
         title={registrationId ? 'Cập nhật hồ sơ' : 'Đăng ký kinh doanh'}
         back
       />
-      <Stepper step={1} total={3} label="Loại hình kinh doanh" />
+      <Stepper step={1} total={4} label="Loại hình kinh doanh" />
       <SelectField
         value={vendorType}
         onChange={(v) => setField('vendorType', v)}

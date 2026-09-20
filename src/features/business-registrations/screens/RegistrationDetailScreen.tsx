@@ -6,7 +6,7 @@ import { AppHeader, Screen, Section, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ConfirmDialog, ErrorState, LoadingState, showToast } from '@/components/feedback';
 import { EDITABLE_STATUSES, errorMessage, VENDOR_TYPE } from '@/core/api';
-import { useNewRegistrationStore } from '../new-registration-store';
+import { householdMemberToDraft, useNewRegistrationStore } from '../new-registration-store';
 import { EvidencePreview } from '../components/EvidencePreview';
 import { useRegistrationDetail, useWithdrawRegistration } from '../useRegistrations';
 import { vendorTypeLabel } from '../labels';
@@ -68,6 +68,24 @@ export function RegistrationDetailScreen() {
       addressLatitude: registration.addressLatitude,
       addressLongitude: registration.addressLongitude,
       wardUnitId: registration.wardUnitId,
+      ownerDateOfBirth: registration.ownerDateOfBirth ?? '',
+      ownerGender: registration.ownerGender ?? '',
+      ownerEthnicity: registration.ownerEthnicity ?? '',
+      ownerNationality: registration.ownerNationality ?? 'Việt Nam',
+      idType: registration.idType ?? 'CCCD',
+      idIssuedDate: registration.idIssuedDate ?? '',
+      idIssuedPlace: registration.idIssuedPlace ?? '',
+      permanentAddress: registration.permanentAddress ?? '',
+      contactAddress: registration.contactAddress ?? '',
+      businessLine: registration.businessLine ?? '',
+      businessLineCode: registration.businessLineCode ?? '',
+      capitalAmount: registration.capitalAmount != null ? String(registration.capitalAmount) : '',
+      laborCount: registration.laborCount != null ? String(registration.laborCount) : '',
+      plannedStartDate: registration.plannedStartDate ?? '',
+      // Already committed once cannot be un-committed (mirrors biometricConsent) -- re-editing
+      // never resets this back to false.
+      foodSafetyCommitment: registration.foodSafetyCommitmentAt != null,
+      householdMembers: registration.householdMembers.map(householdMemberToDraft),
     });
     navigate('/vendor/registrations/new/type');
   };
@@ -150,6 +168,21 @@ export function RegistrationDetailScreen() {
             <ListRow
               title="Ưu tiên xử lý nhanh"
               subtitle={registration.fastTrackFlag ? 'Có' : 'Không'}
+            />
+            <Divider />
+            <ListRow
+              title="Ngành, nghề kinh doanh"
+              subtitle={registration.businessLine ?? 'Chưa cập nhật'}
+            />
+            <Divider />
+            <ListRow
+              title="Vốn kinh doanh / Số lao động"
+              subtitle={`${registration.capitalAmount != null ? `${registration.capitalAmount.toLocaleString('vi-VN')} đ` : '—'} · ${registration.laborCount ?? '—'} lao động`}
+            />
+            <Divider />
+            <ListRow
+              title="Cam kết an toàn thực phẩm"
+              subtitle={registration.foodSafetyCommitmentAt ? 'Đã cam kết' : 'Chưa cam kết'}
             />
           </div>
         </Card>

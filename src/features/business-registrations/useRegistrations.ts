@@ -34,6 +34,26 @@ function fromMock(r: BusinessRegistration): ApiRegistration {
     reviewedAt: null,
     createdAt: r.submitted_at,
     updatedAt: null,
+    // The mock seed predates the Mẫu số 01 (Thông tư 68/2025/TT-BTC) field set -- demo mode
+    // shows these as not-yet-filled rather than inventing plausible-looking fake values.
+    ownerDateOfBirth: null,
+    ownerGender: null,
+    ownerEthnicity: null,
+    ownerNationality: null,
+    idType: null,
+    idIssuedDate: null,
+    idIssuedPlace: null,
+    permanentAddress: null,
+    contactAddress: null,
+    businessLine: null,
+    businessLineCode: null,
+    capitalAmount: null,
+    laborCount: null,
+    plannedStartDate: null,
+    foodSafetyCommitmentAt: null,
+    identityVerifiedAt: null,
+    identityVerificationNote: null,
+    householdMembers: [],
   };
 }
 

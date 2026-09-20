@@ -212,7 +212,7 @@ export function RentalApplicationReviewScreen() {
               subtitle={`${timeWindow} hàng ngày`}
             />
             <Divider />
-            <ListRow title="Thời hạn đề nghị cấp phép" subtitle={`${requestedTermDays} ngày (Thời hạn xử lý ≤ 5 ngày)`} />
+            <ListRow title="Thời hạn đề nghị cấp phép" subtitle={`${requestedTermDays} ngày (Thời hạn xử lý hồ sơ ≤ 3 ngày làm việc)`} />
           </div>
         </Card>
       </Section>
@@ -250,7 +250,7 @@ export function RentalApplicationReviewScreen() {
       <Section title="Căn cứ pháp lý hành chính công">
         <Card>
           <p className="text-body-sm text-muted">
-            * Căn cứ <strong>Luật Đường bộ 2024 (Điều 77)</strong>, <strong>Nghị định 165/2024/NĐ-CP (Điều 21)</strong> và <strong>Luật Phí và Lệ phí 2015</strong>: Việc phê duyệt đơn này là quyết định hành chính cấp Giấy phép sử dụng tạm thời lòng đường, vỉa hè vào mục đích khác có thời hạn và có thu phí nộp Ngân sách Nhà nước. Sau khi phê duyệt, hệ thống tự động phát hành Hợp đồng điện tử, Giấy phép số QR và Lịch thu phí.
+            * Căn cứ <strong>Luật Đường bộ 2024 (Điều 77)</strong>, <strong>Nghị định 165/2024/NĐ-CP (Điều 21)</strong> được sửa đổi bởi <strong>Nghị định 241/2026/NĐ-CP</strong> (hiệu lực 01/07/2026 — rút thời hạn xử lý còn ≤3 ngày làm việc, tang lễ ≤1 ngày; thẩm quyền cấp phép các trường hợp còn lại thuộc UBND cấp xã) và <strong>Luật Phí và Lệ phí 2015</strong>: Việc phê duyệt đơn này là quyết định hành chính cấp Giấy phép sử dụng tạm thời lòng đường, vỉa hè vào mục đích khác có thời hạn và có thu phí nộp Ngân sách Nhà nước. Sau khi phê duyệt, hệ thống tự động phát hành Hợp đồng điện tử, Giấy phép số QR và Lịch thu phí.
           </p>
         </Card>
       </Section>
