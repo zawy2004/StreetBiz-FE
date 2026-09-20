@@ -75,7 +75,7 @@ import {
   VendorProfileScreen,
 } from '@/features/vendor-map/screens';
 import { ReportContentScreen, VendorReportFormScreen } from '@/features/vendor-reports/screens';
-import { ItemDetailScreen, SearchScreen } from '@/features/buyer-discovery/screens';
+import { ItemDetailScreen, SearchScreen, StorefrontDetailScreen } from '@/features/buyer-discovery/screens';
 import { CartScreen, CheckoutScreen } from '@/features/cart/screens';
 import {
   CustomerOrdersScreen,
@@ -193,6 +193,7 @@ export function AppRouter() {
         <Route path="explore/vendors/:vendorId/comments/new" element={<CommentFormScreen />} />
         <Route path="explore/vendors/:vendorId/reports/new" element={<VendorReportFormScreen />} />
         <Route path="explore/items/:itemId" element={<ItemDetailScreen />} />
+        <Route path="explore/stores/:storefrontId" element={<StorefrontDetailScreen />} />
         <Route path="scan" element={<PublicScanScreen />} />
         <Route path="checkout" element={<CheckoutScreen />} />
         <Route path="account" element={<AccountScreen />} />

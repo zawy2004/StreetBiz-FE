@@ -1,15 +1,28 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import { Card, Money } from '@/components/common';
 import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
-import { TextField } from '@/components/forms';
-import { AppHeader, Screen } from '@/components/layout';
+import { SegmentedControl, TextField } from '@/components/forms';
+import { AppHeader, Screen, Section } from '@/components/layout';
 import { AiHint } from '@/components/status';
-import { commerceApi, errorMessage } from '@/core/api';
+import { errorMessage } from '@/core/api';
 import { env, isLiveApi } from '@/core/config/env';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useMockDb } from '@/mocks/db';
+import { FilterBar } from '../components/FilterBar';
+import { LocationBar } from '../components/LocationBar';
+import { StorefrontCard } from '../components/StorefrontCard';
+import {
+  hasActiveFilters,
+  menuItemQuery,
+  menuSortFor,
+  storefrontQuery,
+  storefrontSortFor,
+  type SearchSort,
+} from '../discovery-filters';
+import { useDiscoveryStore } from '../discovery-store';
+import { useMenuItemSearch, useStorefronts } from '../useDiscovery';
 
 export function SearchScreen() {
   return isLiveApi ? <LiveSearchScreen /> : <MockSearchScreen />;
@@ -18,38 +31,75 @@ export function SearchScreen() {
 function LiveSearchScreen() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
-  const normalized = query.trim();
-  const results = useQuery({
-    queryKey: ['commerce', 'menu-search', normalized],
-    queryFn: () => commerceApi.menuItems(normalized),
-    enabled: normalized.length > 0,
-  });
+  const [sort, setSort] = useState<SearchSort>('NEAREST');
+  const position = useDiscoveryStore((s) => s.position);
+  const filters = useDiscoveryStore((s) => s.filters);
+  const text = useDebouncedValue(query.trim());
+  // Results appear once there is something to ask for: a word, an area or any filter.
+  const active = text.length > 0 || filters.wardId != null || hasActiveFilters(filters);
+  // "Nearest" needs a position; without one the choice quietly becomes "by name".
+  const effectiveSort: SearchSort = sort === 'NEAREST' && !position ? 'NAME' : sort;
+  const storefronts = useStorefronts(
+    storefrontQuery(filters, position, text, storefrontSortFor(effectiveSort, position)),
+    active,
+  );
+  const items = useMenuItemSearch(menuItemQuery(filters, text, menuSortFor(effectiveSort)), active);
+  const sorts: { value: SearchSort; label: string }[] = [
+    ...(position ? [{ value: 'NEAREST' as const, label: 'Gần nhất' }] : []),
+    { value: 'NAME', label: 'Tên' },
+    { value: 'RATING', label: 'Đánh giá' },
+    { value: 'PRICE_ASC', label: 'Giá thấp' },
+    { value: 'PRICE_DESC', label: 'Giá cao' },
+  ];
+  const nothingFound =
+    storefronts.isSuccess && items.isSuccess && storefronts.data.length === 0 && items.data.length === 0;
 
   return (
-    <SearchLayout query={query} setQuery={setQuery}>
-      {results.isPending && normalized ? <LoadingState /> : null}
-      {results.isError ? (
-        <ErrorState message={errorMessage(results.error)} onRetry={() => results.refetch()} />
+    <SearchLayout
+      query={query}
+      setQuery={setQuery}
+      controls={
+        <>
+          <LocationBar />
+          <FilterBar showRadius={position != null} showPrice />
+          <SegmentedControl options={sorts} value={effectiveSort} onChange={setSort} />
+        </>
+      }
+    >
+      {active && (storefronts.isPending || items.isPending) ? <LoadingState /> : null}
+      {storefronts.isError ? (
+        <ErrorState message={errorMessage(storefronts.error)} onRetry={() => storefronts.refetch()} />
       ) : null}
-      {normalized && results.data?.length === 0 ? (
-        <EmptyState icon="magnify" title="Không tìm thấy kết quả" />
+      {items.isError ? <ErrorState message={errorMessage(items.error)} onRetry={() => items.refetch()} /> : null}
+      {nothingFound ? <EmptyState icon="magnify" title="Không tìm thấy kết quả" /> : null}
+      {storefronts.data && storefronts.data.length > 0 ? (
+        <Section title={`Quán (${storefronts.data.length})`}>
+          {storefronts.data.map((storefront) => (
+            <StorefrontCard
+              key={storefront.storefrontId}
+              storefront={storefront}
+              onPress={() => navigate(`/customer/explore/stores/${storefront.storefrontId}`)}
+            />
+          ))}
+        </Section>
       ) : null}
-      {results.data?.map((item) => (
-        <Card
-          key={item.menuItemId}
-          onPress={() => navigate(`/customer/explore/items/${item.menuItemId}`)}
-        >
-          <div className="flex items-center justify-between gap-sm">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-headline-sm text-text">{item.itemName}</p>
-              <p className="text-body-sm text-muted">
-                {item.storefrontName} · {item.categoryName}
-              </p>
-            </div>
-            <Money amountVnd={item.unitPrice} />
-          </div>
-        </Card>
-      ))}
+      {items.data && items.data.length > 0 ? (
+        <Section title={`Món (${items.data.length})`}>
+          {items.data.map((item) => (
+            <Card key={item.menuItemId} onPress={() => navigate(`/customer/explore/items/${item.menuItemId}`)}>
+              <div className="flex items-center justify-between gap-sm">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-headline-sm text-text">{item.itemName}</p>
+                  <p className="text-body-sm text-muted">
+                    {item.storefrontName} · {item.categoryName}
+                  </p>
+                </div>
+                <Money amountVnd={item.unitPrice} />
+              </div>
+            </Card>
+          ))}
+        </Section>
+      ) : null}
     </SearchLayout>
   );
 }
@@ -98,10 +148,12 @@ function MockSearchScreen() {
 function SearchLayout({
   query,
   setQuery,
+  controls,
   children,
 }: {
   query: string;
   setQuery: (value: string) => void;
+  controls?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -113,6 +165,7 @@ function SearchLayout({
         placeholder="Tìm món ăn hoặc quán, VD: xôi gà giá rẻ"
         autoFocus
       />
+      {controls}
       {env.enableAiCompliance && query.length > 3 ? (
         <AiHint title="Hiểu theo ngôn ngữ tự nhiên">
           Đang tìm theo từ khoá &ldquo;{query}&rdquo; — kết quả bao gồm cả tên món, danh mục và tên
