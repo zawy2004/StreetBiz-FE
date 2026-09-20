@@ -1,14 +1,37 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button, Card, Money } from '@/components/common';
-import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
+import { EmptyState, ErrorState } from '@/components/feedback';
+import { SegmentedControl } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { commerceApi, errorMessage } from '@/core/api';
+import { errorMessage } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
+import { OrderCard, OrderEmptyState, OrderListSkeleton } from '../components';
+import { useCustomerOrders } from '../hooks/useOrders';
+import type { OrderStatus } from '../types/order.types';
+
+type CustomerTab =
+  | 'ALL'
+  | 'PENDING_PAYMENT'
+  | 'PLACED'
+  | 'PROCESSING'
+  | 'READY_FOR_PICKUP'
+  | 'COMPLETED'
+  | 'CLOSED';
+
+const CUSTOMER_FILTERS: { value: CustomerTab; label: string }[] = [
+  { value: 'ALL', label: 'Tất cả' },
+  { value: 'PENDING_PAYMENT', label: 'Chờ thanh toán' },
+  { value: 'PLACED', label: 'Đã đặt' },
+  { value: 'PROCESSING', label: 'Đang xử lý' },
+  { value: 'READY_FOR_PICKUP', label: 'Sẵn sàng nhận' },
+  { value: 'COMPLETED', label: 'Hoàn thành' },
+  { value: 'CLOSED', label: 'Đã hủy / từ chối' },
+];
 
 export function CustomerOrdersScreen() {
   return isLiveApi ? <LiveCustomerOrdersScreen /> : <MockCustomerOrdersScreen />;
@@ -17,12 +40,15 @@ export function CustomerOrdersScreen() {
 function LiveCustomerOrdersScreen() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const orders = useQuery({
-    queryKey: ['commerce', 'customer-orders'],
-    queryFn: commerceApi.customerOrders,
-    enabled: user?.role_code === 'CUSTOMER',
-    refetchInterval: 10_000,
-  });
+  const [tab, setTab] = useState<CustomerTab>('ALL');
+  const [page, setPage] = useState(1);
+  const directStatus = ['PENDING_PAYMENT', 'PLACED', 'READY_FOR_PICKUP', 'COMPLETED'].includes(tab)
+    ? (tab as OrderStatus)
+    : undefined;
+  const orders = useCustomerOrders(
+    { status: directStatus, page, pageSize: 10 },
+    user?.role_code === 'CUSTOMER',
+  );
   if (user?.role_code !== 'CUSTOMER') {
     return (
       <Screen>
@@ -35,34 +61,71 @@ function LiveCustomerOrdersScreen() {
       </Screen>
     );
   }
-  if (orders.isPending) return <LoadingState />;
-  if (orders.isError) {
-    return <ErrorState message={errorMessage(orders.error)} onRetry={() => orders.refetch()} />;
-  }
+  const visible = (orders.data?.items ?? []).filter((order) => {
+    if (tab === 'PROCESSING') return ['ACCEPTED', 'PREPARING'].includes(order.orderStatus);
+    if (tab === 'CLOSED') return ['CANCELLED', 'REJECTED'].includes(order.orderStatus);
+    return true;
+  });
 
   return (
     <Screen>
-      <AppHeader title="Đơn hàng của tôi" />
-      {orders.data.length === 0 ? (
-        <EmptyState icon="receipt-text-outline" title="Chưa có đơn hàng nào" />
+      <AppHeader
+        title="Đơn hàng của tôi"
+        right={
+          <Button
+            label="Làm mới"
+            variant="ghost"
+            fullWidth={false}
+            onPress={() => void orders.refetch()}
+          />
+        }
+      />
+      <div className="overflow-x-auto pb-2xs">
+        <div className="min-w-[760px]">
+          <SegmentedControl
+            value={tab}
+            onChange={(value) => {
+              setTab(value);
+              setPage(1);
+            }}
+            options={CUSTOMER_FILTERS}
+          />
+        </div>
+      </div>
+      {orders.isPending ? (
+        <OrderListSkeleton />
+      ) : orders.isError ? (
+        <ErrorState message={errorMessage(orders.error)} onRetry={() => orders.refetch()} />
+      ) : visible.length === 0 ? (
+        <OrderEmptyState />
       ) : (
-        orders.data.map((order) => (
-          <Card key={order.orderId} onPress={() => navigate(`/customer/orders/${order.orderId}`)}>
-            <div className="flex items-center justify-between gap-sm">
-              <div className="min-w-0 flex-1">
-                <span className="block truncate text-headline-sm text-text">
-                  {order.storefrontName}
-                </span>
-                <span className="text-body-sm text-muted">#{order.orderCode}</span>
-              </div>
-              <StatusChip code={order.orderStatus} />
-            </div>
-            <div className="mt-xs">
-              <Money amountVnd={order.totalAmount} />
-            </div>
-          </Card>
+        visible.map((order) => (
+          <OrderCard
+            key={order.orderId}
+            order={order}
+            onPress={() => navigate(`/customer/orders/${order.orderId}`)}
+          />
         ))
       )}
+      {orders.data && orders.data.totalPages > 1 ? (
+        <div className="flex items-center justify-between gap-sm">
+          <Button
+            label="Trang trước"
+            variant="outline"
+            disabled={page <= 1}
+            onPress={() => setPage((current) => current - 1)}
+          />
+          <span className="whitespace-nowrap text-body-sm text-muted">
+            {page}/{orders.data.totalPages}
+          </span>
+          <Button
+            label="Trang sau"
+            variant="outline"
+            disabled={page >= orders.data.totalPages}
+            onPress={() => setPage((current) => current + 1)}
+          />
+        </div>
+      ) : null}
     </Screen>
   );
 }

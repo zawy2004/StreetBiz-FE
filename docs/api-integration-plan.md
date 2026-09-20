@@ -50,5 +50,5 @@ contain only the API base URL, never credentials or tokens.
 - Live permit verification must not treat an offline/cache result as
   authoritative.
 - External services will sit behind adapters and have timeout/fallback behavior.
-- SignalR will be added only after a hub contract exists; polling or refresh must
-  remain available where appropriate.
+- Orders use `/hubs/orders` with JWT authentication and per-order ownership
+  checks. Polling remains active only while that realtime connection is down.
