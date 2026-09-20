@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { AuthShell } from '../components/AuthShell';
@@ -8,7 +8,6 @@ import { OtpInput } from '@/components/forms';
 import { showToast } from '@/components/feedback';
 import { ApiError, authApi, errorMessage, OTP_PURPOSE } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
-import { ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
 import { formatPhone } from '@/core/utils/phone';
 import { useCountdown } from '@/hooks/useCountdown';
 import { useAuthStore } from '@/store/auth-store';
@@ -43,10 +42,16 @@ export function VerifyPhoneScreen() {
   const [resending, setResending] = useState(false);
   const { seconds, start, isRunning } = useCountdown(resendAvailableIn ?? RESEND_SECONDS);
 
+  // Set once the OTP has been accepted, so finishing the flow is not mistaken
+  // for arriving without pending data. Completing clears the pending store on
+  // purpose, which would otherwise trip the guard below and bounce the user
+  // back to the start of sign-up instead of on to the next screen.
+  const completed = useRef(false);
+
   // The pending data lives in memory only; after a reload there is nothing to
   // verify, so restart the flow rather than showing a dead form.
   useEffect(() => {
-    if (!phone) {
+    if (!phone && !completed.current) {
       navigate(isRegistration ? '/auth/register' : '/auth/password/reset-request', {
         replace: true,
       });
@@ -77,10 +82,16 @@ export function VerifyPhoneScreen() {
     if (!registration) return;
     setSubmitting(true);
     try {
-      const user = await register({ ...registration, fullName: registration.fullName || null, otp: code });
+      await register({ ...registration, fullName: registration.fullName || null, otp: code });
+      const registeredPhone = registration.phoneNumber;
+      completed.current = true;
+      // The pending store holds the plaintext password, so clear it before
+      // leaving rather than carrying it to the next screen.
       clearPending();
       showToast('Tạo tài khoản thành công');
-      navigate(ROLE_HOME_ROUTE[user.role_code], { replace: true });
+      // Registration does not sign the user in: they confirm the password they
+      // just chose on the sign-in screen, with the number filled in for them.
+      navigate('/auth/sign-in', { replace: true, state: { registered: true, phone: registeredPhone } });
     } catch (err) {
       if (err instanceof ApiError && err.isValidation) {
         setError(

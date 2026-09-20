@@ -1,8 +1,8 @@
-import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-import { env } from '@/core/config/env';
-import { getTokens } from '@/core/api/token-storage';
+import { apiGet, apiGetBlob, apiPathFromFileUrl, apiPost, apiPut, apiUpload } from '@/core/api';
 
+// Business-registration review ("registrations") is NOT a CaseKind: it goes through
+// WardComplianceController's dedicated /ward/enrollments endpoints below (complianceApi),
+// which enforce the BR-41 identity-verification gate. See RegistrationReviewScreen.
 export type CaseKind = 'proposals' | 'conflicts' | 'transfers';
 export const wardReviewRoot = '/ward/inbox/reviews';
 export type GeoPoint = { latitude: number; longitude: number };
@@ -24,111 +24,59 @@ export type WardCase = {
   queuePosition: number | null;
   contractTerm: string | null;
   outstanding: number | null;
+  /** REG-02 documents attached to a registration case; empty for slot cases. */
+  documents: WardDocument[] | null;
+  /** REG-06: flagged for expedited handling. */
+  fastTrack: boolean;
+};
+export type WardDocument = {
+  evidenceType: string;
+  fileUrl: string;
+  uploadedAt: string;
 };
 export type WardProfile = { userId: string; wardId: number; name: string };
 export type CasePage = { items: WardCase[]; page: number; hasMore: boolean };
 
-type ApiSession = {
-  token: string;
-  generation: number;
-  connect: (token: string) => void;
-  disconnect: () => void;
-};
-export const useWardSession = create<ApiSession>()(
-  persist(
-    (set) => ({
-      token: '',
-      generation: 0,
-      connect: (token) => set((state) => ({ token, generation: state.generation + 1 })),
-      disconnect: () => set((state) => ({ token: '', generation: state.generation + 1 })),
-    }),
-    {
-      name: 'streetbiz-ward-api',
-      storage: createJSONStorage(() => sessionStorage),
-      partialize: ({ token, generation }) => ({ token, generation }),
-    },
-  ),
-);
-
-export class WardApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-
-export async function wardRequest<T>(
-  path: string,
-  init: RequestInit = {},
-  token = useWardSession.getState().token || getTokens()?.accessToken,
-): Promise<T> {
-  const base = env.apiBaseUrl.replace(/\/$/, '');
-  if (!base) throw new WardApiError(0, 'Chưa cấu hình VITE_API_BASE_URL cho Backend.');
-  let response: Response;
-  try {
-    response = await fetch(base + path, {
-      ...init,
-      signal: init.signal ?? AbortSignal.timeout(15000),
-      headers: {
-        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...init.headers,
-      },
-    });
-  } catch {
-    throw new WardApiError(
-      0,
-      'Không kết nối được Backend. Kiểm tra URL API, HTTPS và CORS rồi thử lại.',
-    );
-  }
-  if (!response.ok) {
-    const problem = (await response.json().catch(() => ({}))) as {
-      title?: string;
-      detail?: string;
-      errors?: Record<string, string[]>;
-    };
-    if (response.status === 401 && token === useWardSession.getState().token)
-      useWardSession.getState().disconnect();
-    throw new WardApiError(
-      response.status,
-      Object.values(problem.errors ?? {})[0]?.[0] ??
-        problem.detail ??
-        problem.title ??
-        (response.status === 401
-          ? 'Phiên đã hết hạn hoặc token không hợp lệ. Vui lòng kết nối lại.'
-          : response.status === 403
-            ? 'Tài khoản không có quyền cán bộ phường.'
-            : response.status === 429
-              ? 'Bạn thao tác quá nhanh. Vui lòng thử lại sau.'
-              : 'Không thể xử lý yêu cầu.'),
-    );
-  }
-  return response.json() as Promise<T>;
-}
-
+/**
+ * Ward endpoints go through the app's shared axios client, so a signed-in ward
+ * officer's ordinary session is the only credential involved. They used to run on
+ * a private fetch client with its own token in sessionStorage, which meant an
+ * officer had to paste a JWT by hand before they could review anything.
+ *
+ * What that buys us, for free: the bearer is attached by the request interceptor,
+ * an expired access token is refreshed once and the call retried, a revoked
+ * session clears the app session and redirects to sign-in, and every failure
+ * arrives as an `ApiError` carrying the backend's own Vietnamese message
+ * (`code: 'conflict'` for the 409 stale-status case the reviewer sees). complianceApi
+ * below (WARD-04/05/06, 11..13) was migrated onto the same client for the same reason --
+ * it used to share the old private fetch client and the same paste-a-JWT problem.
+ */
 export const wardApi = {
-  me: (token?: string) => wardRequest<WardProfile>('/ward/me', {}, token),
-  list: (kind: CaseKind, page: number) => wardRequest<CasePage>(`/ward/cases/${kind}?page=${page}`),
+  me: () => apiGet<WardProfile>('/ward/me'),
+  list: (kind: CaseKind, page: number) => apiGet<CasePage>(`/ward/cases/${kind}?page=${page}`),
   get: (kind: CaseKind, id: string) =>
-    wardRequest<WardCase>(`/ward/cases/${kind}/${encodeURIComponent(id)}`),
+    apiGet<WardCase>(`/ward/cases/${kind}/${encodeURIComponent(id)}`),
   decide: (record: WardCase, decision: string, reason: string) =>
-    wardRequest<WardCase>(`/ward/cases/${record.kind}/${record.id}/decision`, {
-      method: 'POST',
-      body: JSON.stringify({ decision, reason, expectedStatus: record.status }),
+    apiPost<WardCase>(`/ward/cases/${record.kind}/${record.id}/decision`, {
+      decision,
+      reason,
+      expectedStatus: record.status,
     }),
   search: (address: string) =>
-    wardRequest<{ label: string; point: GeoPoint }[]>(
+    apiGet<{ label: string; point: GeoPoint }[]>(
       `/ward/geo/search?address=${encodeURIComponent(address)}`,
     ),
-  verify: (point: GeoPoint) =>
-    wardRequest<GeoResult>('/ward/geo/verify', { method: 'POST', body: JSON.stringify(point) }),
+  verify: (point: GeoPoint) => apiPost<GeoResult>('/ward/geo/verify', point),
   pin: (id: string, point: GeoPoint) =>
-    wardRequest<WardCase>(`/ward/cases/proposals/${id}/location`, {
-      method: 'PUT',
-      body: JSON.stringify(point),
-    }),
+    apiPut<WardCase>(`/ward/cases/proposals/${id}/location`, point),
+
+  /**
+   * Evidence files require the bearer token (PRI-02), so they are fetched as a blob
+   * rather than linked. `fileUrl` is origin-relative and already starts with /api,
+   * which the client's baseURL also ends in - hence apiPathFromFileUrl.
+   */
+  document: async (fileUrl: string): Promise<string> =>
+    URL.createObjectURL(await apiGetBlob(apiPathFromFileUrl(fileUrl))),
 };
 
 export function parsePoint(latitude: string, longitude: string): GeoPoint | null {
@@ -335,33 +283,28 @@ export type WardPatrolHeatmapPoint = {
 
 export const complianceApi = {
   listEnrollments: (status?: string, page = 1) =>
-    wardRequest<WardEnrollmentItem[]>(
+    apiGet<WardEnrollmentItem[]>(
       `/ward/enrollments?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page) })}`,
     ),
-  getEnrollment: (id: string) => wardRequest<WardEnrollmentDetail>(`/ward/enrollments/${id}`),
+  getEnrollment: (id: string) => apiGet<WardEnrollmentDetail>(`/ward/enrollments/${id}`),
   decideEnrollment: (id: string, decision: string, reason: string, expectedStatus: string) =>
-    wardRequest<WardEnrollmentDetail>(`/ward/enrollments/${id}/decision`, {
-      method: 'POST',
-      body: JSON.stringify({ decision, reason, expectedStatus }),
-    }),
+    apiPost<WardEnrollmentDetail>(`/ward/enrollments/${id}/decision`, { decision, reason, expectedStatus }),
   /** BR-41 KYC gate: officer confirms they compared the vendor against their physical/chip
    * CCCD. The backend refuses decideEnrollment's APPROVE until this has been called. */
   confirmIdentity: (id: string, note: string) =>
-    wardRequest<WardEnrollmentDetail>(`/ward/enrollments/${id}/confirm-identity`, {
-      method: 'POST',
-      body: JSON.stringify({ note }),
-    }),
+    apiPost<WardEnrollmentDetail>(`/ward/enrollments/${id}/confirm-identity`, { note }),
 
   listRentalApplications: (status?: string, page = 1) =>
-    wardRequest<WardRentalApplicationItem[]>(
+    apiGet<WardRentalApplicationItem[]>(
       `/ward/rental-applications?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page) })}`,
     ),
   getRentalApplication: (id: string) =>
-    wardRequest<WardRentalApplicationDetail>(`/ward/rental-applications/${id}`),
+    apiGet<WardRentalApplicationDetail>(`/ward/rental-applications/${id}`),
   decideRentalApplication: (id: string, decision: string, reason: string, expectedStatus: string) =>
-    wardRequest<WardRentalApplicationDetail>(`/ward/rental-applications/${id}/decision`, {
-      method: 'POST',
-      body: JSON.stringify({ decision, reason, expectedStatus }),
+    apiPost<WardRentalApplicationDetail>(`/ward/rental-applications/${id}/decision`, {
+      decision,
+      reason,
+      expectedStatus,
     }),
 
   inspectPermit: (
@@ -370,22 +313,21 @@ export const complianceApi = {
     longitude?: number,
     inspectionPhotoUrl?: string,
   ) =>
-    wardRequest<InspectPermitResult>('/ward/permits/inspect', {
-      method: 'POST',
-      body: JSON.stringify({ permitCodeOrPayload, latitude, longitude, inspectionPhotoUrl }),
+    apiPost<InspectPermitResult>('/ward/permits/inspect', {
+      permitCodeOrPayload,
+      latitude,
+      longitude,
+      inspectionPhotoUrl,
     }),
   permitAction: (permitId: number, action: 'SUSPEND' | 'REVOKE', reason: string) =>
-    wardRequest<boolean>(`/ward/permits/${permitId}/action`, {
-      method: 'POST',
-      body: JSON.stringify({ action, reason }),
-    }),
+    apiPost<boolean>(`/ward/permits/${permitId}/action`, { action, reason }),
 
-  listPenaltySchedules: () => wardRequest<PenaltyScheduleItem[]>('/ward/penalty-schedules'),
+  listPenaltySchedules: () => apiGet<PenaltyScheduleItem[]>('/ward/penalty-schedules'),
   listViolations: (status?: string, page = 1) =>
-    wardRequest<WardViolationItem[]>(
+    apiGet<WardViolationItem[]>(
       `/ward/violations?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page) })}`,
     ),
-  getViolation: (id: number) => wardRequest<WardViolationDetail>(`/ward/violations/${id}`),
+  getViolation: (id: number) => apiGet<WardViolationDetail>(`/ward/violations/${id}`),
   recordViolation: (request: {
     contractId?: number;
     slotId?: number;
@@ -393,7 +335,7 @@ export const complianceApi = {
     violationType: string;
     description: string;
     evidenceUrl?: string;
-  }) => wardRequest<WardViolationDetail>('/ward/violations', { method: 'POST', body: JSON.stringify(request) }),
+  }) => apiPost<WardViolationDetail>('/ward/violations', request),
   sanctionViolation: (
     id: number,
     penaltyScheduleId: number,
@@ -402,52 +344,35 @@ export const complianceApi = {
     signerTitle: string,
     notes?: string,
   ) =>
-    wardRequest<WardViolationDetail>(`/ward/violations/${id}/sanction`, {
-      method: 'POST',
-      body: JSON.stringify({ penaltyScheduleId, decisionNumber, signerName, signerTitle, notes }),
+    apiPost<WardViolationDetail>(`/ward/violations/${id}/sanction`, {
+      penaltyScheduleId,
+      decisionNumber,
+      signerName,
+      signerTitle,
+      notes,
     }),
 
-  riskQueue: () => wardRequest<WardRiskQueueItem[]>('/ward/insights/risk-queue'),
-  patrolHeatmap: () => wardRequest<WardPatrolHeatmapPoint[]>('/ward/insights/patrol-heatmap'),
+  riskQueue: () => apiGet<WardRiskQueueItem[]>('/ward/insights/risk-queue'),
+  patrolHeatmap: () => apiGet<WardPatrolHeatmapPoint[]>('/ward/insights/patrol-heatmap'),
 
   /** Server-authoritative: loads this registration's own stored evidence + declared profile and
    * checks biometric consent server-side. Never send an evidence list / declared name-address
    * from the client -- an earlier draft did, and its shape drifted out of sync with the backend
    * (which only ever needed the registration id). */
   aiDocumentExtract: (registrationId: string) =>
-    wardRequest<AiDocumentCheck>('/ward/ai/document-extract', {
-      method: 'POST',
-      body: JSON.stringify({ registrationId: Number(registrationId) }),
-    }),
+    apiPost<AiDocumentCheck>('/ward/ai/document-extract', { registrationId: Number(registrationId) }),
 
   aiEncroachmentCheck: (photoUrl: string, slotWidth?: number, slotLength?: number) =>
-    wardRequest<AiEncroachment>('/ward/ai/encroachment-check', {
-      method: 'POST',
-      body: JSON.stringify({ photoUrl, slotWidth, slotLength }),
-    }),
+    apiPost<AiEncroachment>('/ward/ai/encroachment-check', { photoUrl, slotWidth, slotLength }),
 
   askVendorAssistant: (question: string, context?: string) =>
-    wardRequest<{ answer: string; isAiGenerated: boolean }>('/ward/ai/vendor-assistant', {
-      method: 'POST',
-      body: JSON.stringify({ question, context }),
-    }),
+    apiPost<{ answer: string; isAiGenerated: boolean }>('/ward/ai/vendor-assistant', { question, context }),
 
   /** Shared with REG-02; UploadsController also authorizes WARD_AUTHORITY for WARD-11/12 evidence. */
-  uploadEvidence: async (file: File): Promise<{ fileUrl: string }> => {
-    const base = env.apiBaseUrl.replace(/\/$/, '');
+  uploadEvidence: (file: File): Promise<{ fileUrl: string }> => {
     const form = new FormData();
     form.append('file', file);
-    const token = useWardSession.getState().token || getTokens()?.accessToken;
-    const response = await fetch(base + '/uploads/evidence', {
-      method: 'POST',
-      body: form,
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!response.ok) {
-      const problem = (await response.json().catch(() => ({}))) as { detail?: string; title?: string };
-      throw new WardApiError(response.status, problem.detail ?? problem.title ?? 'Tải ảnh thất bại.');
-    }
-    return response.json() as Promise<{ fileUrl: string }>;
+    return apiUpload<{ fileUrl: string }>('/uploads/evidence', form);
   },
 };
 
@@ -468,12 +393,32 @@ export const actionLabels: Record<string, string> = {
   APPROVE: 'Phê duyệt',
   REJECT: 'Từ chối',
   QUEUE: 'Đưa vào hàng chờ',
+  REVIEW: 'Nhận xét duyệt',
+  REQUEST_INFO: 'Yêu cầu bổ sung',
 };
 export const statusLabels: Record<string, string> = {
   PENDING: 'Chờ xử lý',
-  UNDER_REVIEW: 'Đang xếp hàng',
+  SUBMITTED: 'Chờ xét duyệt',
+  UNDER_REVIEW: 'Đang xét duyệt',
+  MORE_INFORMATION_REQUIRED: 'Chờ bổ sung giấy tờ',
   ACCEPTED_BY_RECEIVER: 'Bên nhận đã đồng ý',
   APPROVED: 'Đã duyệt',
   REJECTED: 'Đã từ chối',
   WITHDRAWN: 'Đã rút',
+};
+
+/**
+ * UNDER_REVIEW means "under review" for a registration but "queued for the slot"
+ * for an address conflict, so the label depends on the case kind.
+ */
+export function statusLabel(kind: CaseKind, status: string): string {
+  if (kind === 'conflicts' && status === 'UNDER_REVIEW') return 'Đang xếp hàng';
+  return statusLabels[status] ?? status;
+}
+
+export const evidenceLabels: Record<string, string> = {
+  IDENTITY_DOCUMENT: 'CCCD gắn chip',
+  BUSINESS_LICENSE: 'Giấy phép kinh doanh',
+  ADDRESS_PROOF: 'Giấy tờ địa chỉ',
+  OTHER: 'Giấy tờ khác',
 };

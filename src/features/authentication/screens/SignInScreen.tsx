@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { AuthShell } from '../components/AuthShell';
 import { Button } from '@/components/common';
@@ -28,7 +28,14 @@ export function SignInScreen() {
   const sessionExpired = useAuthStore((s) => s.sessionExpired);
   const clearSessionExpired = useAuthStore((s) => s.clearSessionExpired);
 
-  const [phone, setPhone] = useState('');
+  // Set by VerifyPhoneScreen after a successful registration, so the new user is
+  // told why they are here and does not have to retype the number.
+  const { registered, phone: registeredPhone } = (useLocation().state ?? {}) as {
+    registered?: boolean;
+    phone?: string;
+  };
+
+  const [phone, setPhone] = useState(registeredPhone ?? '');
   const [password, setPassword] = useState('');
   const [phoneMessage, setPhoneMessage] = useState<string>();
   const [error, setError] = useState<string>();
@@ -77,6 +84,15 @@ export function SignInScreen() {
       title="Đăng nhập StreetBiz"
       subtitle="Quản lý kinh doanh vỉa hè, minh bạch và đơn giản"
     >
+      {registered ? (
+        <div
+          role="status"
+          className="rounded-sm border border-border bg-tint-tertiary p-sm text-body-sm text-text"
+        >
+          Tạo tài khoản thành công. Vui lòng đăng nhập bằng mật khẩu bạn vừa đặt.
+        </div>
+      ) : null}
+
       {sessionExpired ? (
         <div
           role="status"

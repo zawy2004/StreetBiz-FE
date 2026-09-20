@@ -26,9 +26,7 @@ function fromMock(r: BusinessRegistration): ApiRegistration {
     // The mock seed predates the backend's status set; PENDING is its SUBMITTED.
     registrationStatus: (r.registration_status === 'PENDING'
       ? 'SUBMITTED'
-      : r.registration_status === 'NEEDS_INFO'
-        ? 'MORE_INFORMATION_REQUIRED'
-        : r.registration_status) as ApiRegistration['registrationStatus'],
+      : r.registration_status) as ApiRegistration['registrationStatus'],
     fastTrackFlag: r.fast_track,
     reviewDecisionReason: r.review_note ?? null,
     reviewedAt: null,
