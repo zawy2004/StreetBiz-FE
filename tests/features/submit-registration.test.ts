@@ -75,6 +75,7 @@ describe('submitRegistrationDraft', () => {
       evidenceType: 'IDENTITY_DOCUMENT',
       fileUrl: '/api/uploads/evidence/1/id.jpg',
       ocrExtractedData: null,
+      biometricConsent: false,
     });
     // Never the browser-only preview URL.
     for (const [, payload] of api.submitEvidence.mock.calls) {
