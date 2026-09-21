@@ -9,7 +9,7 @@ import { errorMessage } from '@/core/api';
 import { orderApi } from '@/features/orders/api/orderApi';
 import { orderKeys } from '@/features/orders/hooks/useOrders';
 import type { SalesGroup } from '@/features/orders/types/order.types';
-import { colors } from '@/theme';
+import { alpha, colors } from '@/theme';
 
 function dateInput(date: Date): string {
   const year = date.getFullYear();
@@ -102,10 +102,10 @@ export function SalesSummaryScreen() {
         <ErrorState message={errorMessage(summary.error)} onRetry={() => summary.refetch()} />
       ) : summary.data ? (
         <>
-          <Card style={{ backgroundColor: colors.indigo }}>
-            <p className="text-body-md" style={{ color: '#C7CCDB' }}>Doanh thu thuần</p>
-            <Money amountVnd={summary.data.netSales} size="lg" color={colors.white} />
-            <p className="mt-xs text-body-sm" style={{ color: '#C7CCDB' }}>
+          <Card className="!border-transparent !bg-indigo">
+            <p className="text-body-md" style={{ color: alpha(colors.onIndigo, 0.72) }}>Doanh thu thuần</p>
+            <Money amountVnd={summary.data.netSales} size="lg" color={colors.onIndigo} />
+            <p className="mt-xs text-body-sm" style={{ color: alpha(colors.onIndigo, 0.72) }}>
               {summary.data.completedOrderCount} đơn hoàn thành
             </p>
           </Card>

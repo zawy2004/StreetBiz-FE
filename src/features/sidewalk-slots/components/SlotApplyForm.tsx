@@ -158,7 +158,7 @@ export function SlotApplyForm({ slot }: Props) {
           <label key={text} className="flex items-start gap-xs text-body-sm text-text">
             <input
               type="checkbox"
-              className="mt-0.5 h-4 w-4 shrink-0 accent-[#1A2238]"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
               checked={accepted[i]}
               onChange={(e) => setAccepted((prev) => prev.map((v, j) => (j === i ? e.target.checked : v)))}
             />

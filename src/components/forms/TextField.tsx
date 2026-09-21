@@ -1,5 +1,7 @@
 import { forwardRef, InputHTMLAttributes, useId } from 'react';
 
+import { Field, inputShellClass } from './Field';
+
 type KeyboardType = 'default' | 'number-pad' | 'numeric' | 'phone-pad' | 'email-address';
 
 type InputMode = InputHTMLAttributes<HTMLInputElement>['inputMode'];
@@ -50,8 +52,8 @@ export const TextField = forwardRef<HTMLInputElement | HTMLTextAreaElement, Prop
     const messageId = `${id}-message`;
 
     const inputClassName = [
-      'h-12 w-full rounded-sm border bg-card px-sm text-body-lg text-text placeholder:text-muted',
-      error ? 'border-error' : 'border-border',
+      inputShellClass(error),
+      'h-12 w-full px-sm text-body-lg text-text placeholder:text-muted/80 disabled:cursor-not-allowed disabled:bg-sunken disabled:text-muted',
     ].join(' ');
 
     const sharedProps = {
@@ -67,19 +69,14 @@ export const TextField = forwardRef<HTMLInputElement | HTMLTextAreaElement, Prop
     };
 
     return (
-      <div className="flex flex-col gap-2xs">
-        {label ? (
-          <label htmlFor={id} className="text-label text-text">
-            {label}
-          </label>
-        ) : null}
+      <Field htmlFor={id} label={label} error={error} helperText={helperText} messageId={messageId}>
         {multiline ? (
           <textarea
             ref={ref as never}
             {...sharedProps}
             onChange={(e) => onChangeText(e.target.value)}
             rows={4}
-            className={`${inputClassName} h-auto min-h-[96px] py-sm`}
+            className={`${inputClassName} h-auto min-h-[104px] resize-y py-sm`}
           />
         ) : (
           <input
@@ -90,16 +87,7 @@ export const TextField = forwardRef<HTMLInputElement | HTMLTextAreaElement, Prop
             className={inputClassName}
           />
         )}
-        {error ? (
-          <span id={messageId} className="text-body-sm text-error">
-            {error}
-          </span>
-        ) : helperText ? (
-          <span id={messageId} className="text-body-sm text-muted">
-            {helperText}
-          </span>
-        ) : null}
-      </div>
+      </Field>
     );
   },
 );

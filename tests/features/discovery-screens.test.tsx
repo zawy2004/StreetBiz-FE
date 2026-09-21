@@ -95,7 +95,8 @@ describe('Explore: storefronts (DISC-03)', () => {
 
     const first = (await screen.findByText('Bún chả Hải Châu')).closest('button')!;
     expect(within(first).getByText('ĐANG MỞ')).toBeInTheDocument();
-    expect(within(first).getByText(/Phường Nam Dương · Ô NVL-14/)).toBeInTheDocument();
+    expect(within(first).getByText(/Phường Nam Dương/)).toBeInTheDocument();
+    expect(within(first).getByText('Ô NVL-14')).toBeInTheDocument();
     expect(within(first).getByText(/4\.5 ★ \(3\)/)).toBeInTheDocument();
     expect(within(first).getByText(/10:00–21:00/)).toBeInTheDocument();
     const closed = screen.getByText('Bánh mì & Xôi Cô Lan').closest('button')!;

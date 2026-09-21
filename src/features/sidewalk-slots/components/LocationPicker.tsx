@@ -1,7 +1,7 @@
 import { CircleMarker, MapContainer, ZoomControl, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
-import { colors } from '@/theme';
+import { palette } from '@/theme';
 import { DEFAULT_CENTER } from '../map-constants';
 import { MapBaseLayers } from './MapBaseLayers';
 
@@ -42,7 +42,7 @@ export function LocationPicker({ position, viewKey, onPick }: Props) {
           <CircleMarker
             center={[position.latitude, position.longitude]}
             radius={9}
-            pathOptions={{ color: '#fff', weight: 3, fillColor: colors.primary, fillOpacity: 1 }}
+            pathOptions={{ color: '#fff', weight: 3, fillColor: palette.light.primary, fillOpacity: 1 }}
           />
         )}
       </MapContainer>

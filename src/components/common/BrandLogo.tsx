@@ -1,33 +1,24 @@
-import { colors } from '@/theme';
+import brandMark from '@/assets/brand/streetbiz-mark-orange.png';
 
 type Props = {
   size?: number;
 };
 
 /**
- * StreetBiz mark — a grid of sidewalk-slot squares wrapping a market stall
- * dot, recolored from the original blue/orange to the app palette (indigo
- * squares, terracotta dot). See streetbiz-fe-ui-decisions memory.
+ * StreetBiz mark: a ring of sidewalk-slot squares around a market-stall dot.
+ * Fixed brand colours (not theme tokens) - the mark is designed to sit on a
+ * transparent background, so it reads the same on light headers, the indigo
+ * sidebar and dark mode alike.
  */
 export function BrandLogo({ size = 32 }: Props) {
-  const sq = (x: number, y: number, w: number, h: number, r = 3, key?: string) => (
-    <rect key={key ?? `${x}-${y}`} x={x} y={y} width={w} height={h} rx={r} fill={colors.indigo} opacity={0.9} />
-  );
-
   return (
-    <svg width={size} height={size} viewBox="0 0 120 120" aria-hidden="true">
-      {sq(4, 4, 22, 22, 4)}
-      {sq(30, 4, 22, 22, 4)}
-      {sq(4, 30, 22, 22, 4)}
-      {sq(4, 56, 22, 22, 4)}
-      {sq(4, 82, 22, 22, 4)}
-      {sq(30, 82, 22, 22, 4)}
-      {sq(56, 82, 22, 22, 4)}
-      {sq(82, 82, 22, 22, 4)}
-      {sq(82, 56, 22, 22, 4)}
-      {sq(82, 30, 22, 22, 4)}
-      <circle cx={60} cy={60} r={28} fill={colors.primary} />
-      <circle cx={60} cy={60} r={28} fill="none" stroke={colors.gold} strokeWidth={2.5} opacity={0.85} />
-    </svg>
+    <img
+      src={brandMark}
+      alt="StreetBiz"
+      width={size}
+      height={size}
+      className="shrink-0 select-none"
+      draggable={false}
+    />
   );
 }

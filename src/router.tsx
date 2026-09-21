@@ -202,7 +202,7 @@ export function AppRouter() {
       <Route
         path="/customer"
         element={
-          <RoleShell role="CUSTOMER" allowGuest roleLabel="Người mua" items={CUSTOMER_TABS} />
+          <RoleShell role="CUSTOMER" allowGuest roleLabel="Người mua" items={CUSTOMER_TABS} navigation="topnav" />
         }
       >
         <Route path="explore" element={<ExploreScreen />} />

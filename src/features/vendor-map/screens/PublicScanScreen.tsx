@@ -72,7 +72,7 @@ export function PublicScanScreen() {
             style={
               result.isValid
                 ? undefined
-                : { backgroundColor: '#FFDAD614', borderColor: '#BA1A1A33' }
+                : { backgroundColor: 'rgb(var(--c-error) / 0.06)', borderColor: 'rgb(var(--c-error) / 0.25)' }
             }
           >
             <div className="flex items-center justify-between gap-sm">

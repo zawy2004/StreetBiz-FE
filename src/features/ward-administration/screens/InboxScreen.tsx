@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Card } from '@/components/common';
+import { Card, Icon } from '@/components/common';
+import { DataTable, type Column } from '@/components/data';
+import { colors } from '@/theme';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { FilterChips } from '@/components/forms';
-import { EmptyState } from '@/components/feedback';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
 import { complianceApi, type WardEnrollmentItem, type WardRiskQueueItem } from '../ward-api';
@@ -39,30 +40,72 @@ type QueueItem = {
   onPress: () => void;
 };
 
-function QueueCard({ item }: { item: QueueItem }) {
-  return (
-    <Card onPress={item.onPress}>
-      <div className="flex flex-row justify-between gap-sm">
-        <div className="flex flex-1 flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <span className="truncate text-headline-sm text-text">{item.title}</span>
-            {item.riskScore > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-body-xs font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                <span>⚠</span>
-                <span>Cần xem kỹ (+{item.riskScore}đ)</span>
-              </span>
-            ) : null}
-          </div>
-          <span className="truncate text-body-sm text-muted">{item.subtitle}</span>
-          {item.riskBreakdown.length > 0 ? (
-            <p className="mt-0.5 text-body-xs text-amber-700 dark:text-amber-400">
-              Lý do: {item.riskBreakdown.map((b) => (typeof b === 'string' ? b : `${b.reason} (+${b.points}đ)`)).join(', ')}
-            </p>
-          ) : null}
-        </div>
-        <StatusChip code={item.status} />
+const CATEGORY_LABELS: Record<string, string> = {
+  REG: 'Đăng ký điểm bán',
+  RENTAL: 'Cấp phép hè phố',
+  RENEWAL: 'Gia hạn',
+  REPORT: 'Phản ánh',
+};
+
+const riskReasons = (item: QueueItem) =>
+  item.riskBreakdown.map((b) => (typeof b === 'string' ? b : `${b.reason} (+${b.points}đ)`)).join(', ');
+
+const QUEUE_COLUMNS: Column<QueueItem>[] = [
+  {
+    key: 'title',
+    header: 'Hồ sơ',
+    render: (item) => (
+      <div className="min-w-0">
+        <p className="truncate font-semibold text-text">{item.title}</p>
+        <p className="truncate text-body-sm font-normal text-muted">{item.subtitle}</p>
+        {item.riskBreakdown.length > 0 ? (
+          <p className="mt-0.5 text-body-xs font-normal text-on-secondary">Lý do: {riskReasons(item)}</p>
+        ) : null}
       </div>
-    </Card>
+    ),
+  },
+  {
+    key: 'category',
+    header: 'Loại',
+    width: '170px',
+    hideOnMobile: true,
+    render: (item) => <span className="text-body-sm text-muted">{CATEGORY_LABELS[item.category] ?? item.category}</span>,
+  },
+  {
+    key: 'risk',
+    header: 'Mức ưu tiên',
+    width: '190px',
+    render: (item) =>
+      item.riskScore > 0 ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-tint-secondary px-2 py-0.5 text-body-xs font-semibold text-on-secondary">
+          Cần xem kỹ (+{item.riskScore}đ)
+        </span>
+      ) : (
+        <span className="text-body-sm text-muted">Bình thường</span>
+      ),
+  },
+  { key: 'status', header: 'Trạng thái', width: '150px', render: (item) => <StatusChip code={item.status} /> },
+];
+
+type QueueTableProps = { items: QueueItem[]; loading?: boolean; emptyTitle: string; toolbar?: ReactNode };
+
+function QueueTable({ items, loading, emptyTitle, toolbar }: QueueTableProps) {
+  return (
+    <DataTable
+      caption="Hồ sơ cần xử lý"
+      rows={items}
+      columns={QUEUE_COLUMNS}
+      rowKey={(item) => item.key}
+      rowLabel={(item) => `Mở hồ sơ ${item.title}`}
+      onRowClick={(item) => item.onPress()}
+      loading={loading}
+      toolbar={toolbar}
+      empty={{
+        icon: 'check-circle-outline',
+        title: emptyTitle,
+        description: 'Hồ sơ mới sẽ hiện ở đây ngay khi được nộp.',
+      }}
+    />
   );
 }
 
@@ -106,24 +149,21 @@ function LiveInboxScreen() {
   );
 
   return (
-    <Screen>
+    <Screen width="wide">
       <AppHeader title="Hộp duyệt" subtitle="Tất cả hồ sơ cần thẩm định & cấp phép" />
 
       <Card onPress={() => navigate('/ward/inbox/reviews')}>
-        <h2 className="text-headline-sm">Hồ sơ vị trí · Dữ liệu Backend (WARD-16/17/18)</h2>
-        <p className="text-body-sm text-muted">
-          Đề xuất ô, xung đột địa chỉ, chuyển nhượng và kiểm tra ranh giới
-        </p>
+        <div className="flex items-center justify-between gap-sm">
+          <div className="min-w-0">
+            <h2 className="text-headline-sm text-text">Hồ sơ vị trí</h2>
+            <p className="text-body-sm text-muted">Đề xuất ô, xung đột địa chỉ, chuyển nhượng và kiểm tra ranh giới</p>
+          </div>
+          <Icon name="chevron-right" size={20} color={colors.muted} />
+        </div>
       </Card>
 
-      <Section title="Hồ sơ đăng ký điểm bán vỉa hè (WARD-04/05/06)">
-        {loading ? (
-          <div className="py-4 text-center text-body-sm text-muted">Đang đồng bộ hồ sơ từ máy chủ...</div>
-        ) : items.length === 0 ? (
-          <EmptyState icon="check-circle-outline" title="Không có hồ sơ đăng ký cần xử lý" />
-        ) : (
-          items.map((item) => <QueueCard key={item.key} item={item} />)
-        )}
+      <Section title="Hồ sơ đăng ký điểm bán vỉa hè" description="Hồ sơ cần xem kỹ được xếp lên đầu.">
+        <QueueTable items={items} loading={loading} emptyTitle="Không có hồ sơ đăng ký cần xử lý" />
       </Section>
     </Screen>
   );
@@ -206,25 +246,25 @@ function MockInboxScreen() {
   const count = (c: Exclude<Category, 'ALL'>) => items.filter((i) => i.category === c).length;
 
   return (
-    <Screen>
+    <Screen width="wide">
       <AppHeader title="Hộp duyệt" subtitle="Dữ liệu giả lập (không có Backend)" />
-      <FilterChips
-        value={category}
-        onChange={setCategory}
-        options={[
-          { value: 'ALL', label: 'Tất cả' },
-          { value: 'REG', label: 'Điểm bán', count: count('REG') },
-          { value: 'RENTAL', label: 'Cấp phép hè phố', count: count('RENTAL') },
-          { value: 'RENEWAL', label: 'Gia hạn', count: count('RENEWAL') },
-          { value: 'REPORT', label: 'Phản ánh', count: count('REPORT') },
-        ]}
+      <QueueTable
+        items={visible}
+        emptyTitle="Không có việc cần xử lý"
+        toolbar={
+          <FilterChips
+            value={category}
+            onChange={setCategory}
+            options={[
+              { value: 'ALL', label: 'Tất cả' },
+              { value: 'REG', label: 'Điểm bán', count: count('REG') },
+              { value: 'RENTAL', label: 'Cấp phép hè phố', count: count('RENTAL') },
+              { value: 'RENEWAL', label: 'Gia hạn', count: count('RENEWAL') },
+              { value: 'REPORT', label: 'Phản ánh', count: count('REPORT') },
+            ]}
+          />
+        }
       />
-
-      {visible.length === 0 ? (
-        <EmptyState icon="check-circle-outline" title="Không có việc cần xử lý" />
-      ) : (
-        visible.map((item) => <QueueCard key={item.key} item={item} />)
-      )}
     </Screen>
   );
 }

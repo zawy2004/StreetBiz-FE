@@ -109,7 +109,7 @@ function ChipSelect<T extends string>({
     <label
       className={[
         'relative inline-flex h-9 items-center rounded-full border px-sm text-label',
-        active ? 'border-indigo bg-indigo text-white' : 'border-border bg-card text-text',
+        active ? 'border-indigo bg-indigo text-on-indigo' : 'border-border bg-card text-text',
       ].join(' ')}
     >
       <span className="sr-only">{label}</span>
@@ -131,7 +131,7 @@ function ChipSelect<T extends string>({
       <Icon
         name="chevron-down"
         size={16}
-        color={active ? colors.white : colors.muted}
+        color={active ? colors.onIndigo : colors.muted}
         className="pointer-events-none absolute right-2"
       />
     </label>
@@ -156,10 +156,10 @@ function ChipToggle({
       onClick={onToggle}
       className={[
         'inline-flex h-9 items-center gap-1 rounded-full border px-sm text-label',
-        on ? 'border-indigo bg-indigo text-white' : 'border-border bg-card text-text',
+        on ? 'border-indigo bg-indigo text-on-indigo' : 'border-border bg-card text-text',
       ].join(' ')}
     >
-      <Icon name={icon} size={16} color={on ? colors.white : colors.muted} />
+      <Icon name={icon} size={16} color={on ? colors.onIndigo : colors.muted} />
       {label}
     </button>
   );

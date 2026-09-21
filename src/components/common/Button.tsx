@@ -12,17 +12,19 @@ type Props = {
   loading?: boolean;
   icon?: ReactNode;
   fullWidth?: boolean;
+  /** `sm` for toolbars and table rows; the default keeps the 48px outdoor touch target. */
+  size?: 'md' | 'sm';
   testID?: string;
   type?: ButtonHTMLAttributes<HTMLButtonElement>['type'];
 };
 
 const variantClass: Record<ButtonVariant, string> = {
-  primary: 'bg-gradient-to-r from-primary to-[#CE5B49] text-on-primary shadow-sm hover:shadow-md hover:brightness-105 active:scale-[0.99]',
-  civic: 'bg-indigo text-on-indigo border border-gold/35 hover:bg-[#252E3D] hover:border-gold/60 shadow-sm active:scale-[0.99]',
-  approve: 'bg-gradient-to-r from-tertiary to-[#2E6B5C] text-white shadow-sm hover:shadow-md hover:brightness-105 active:scale-[0.99]',
-  outline: 'bg-card text-text border border-border hover:border-gold/60 hover:bg-gold-light/30 active:scale-[0.99]',
-  ghost: 'bg-transparent text-primary hover:bg-tint-primary active:scale-[0.99]',
-  danger: 'bg-error text-white shadow-sm hover:brightness-105 active:scale-[0.99]',
+  primary: 'bg-primary text-on-primary hover:bg-primary-pressed',
+  civic: 'bg-indigo text-on-indigo hover:opacity-90',
+  approve: 'bg-tertiary text-white hover:brightness-95 dark:text-[#06140C]',
+  outline: 'border border-border bg-card text-text hover:border-muted/50 hover:bg-sunken',
+  ghost: 'bg-transparent text-primary hover:bg-tint-primary',
+  danger: 'bg-error text-white hover:brightness-95 dark:text-[#1A0604]',
 };
 
 export function Button({
@@ -33,18 +35,24 @@ export function Button({
   loading,
   icon,
   fullWidth = true,
+  size = 'md',
   testID,
   type = 'button',
 }: Props) {
+  const width = fullWidth ? 'w-full' : 'w-auto';
+  const sizing = size === 'sm' ? 'h-9 min-h-9 px-sm text-label' : `h-12 min-h-12 text-[15px] ${fullWidth ? 'px-md' : 'px-lg'}`;
+
   return (
     <button
       type={type}
       data-testid={testID}
       onClick={onPress}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={[
-        'inline-flex h-12 min-h-12 items-center justify-center rounded-sm text-headline-sm font-medium transition-all duration-150 active:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100 disabled:active:scale-100',
-        fullWidth ? 'w-full px-md' : 'w-auto px-lg',
+        'inline-flex shrink-0 items-center justify-center rounded-sm font-semibold transition-[background-color,border-color,opacity,filter] duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45',
+        sizing,
+        width,
         variantClass[variant],
       ].join(' ')}
     >

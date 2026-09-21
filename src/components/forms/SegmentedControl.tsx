@@ -6,7 +6,7 @@ type Props<T extends string> = {
 
 export function SegmentedControl<T extends string>({ options, value, onChange }: Props<T>) {
   return (
-    <div className="flex gap-1 rounded-sm bg-bg p-1">
+    <div role="tablist" className="flex w-full gap-1 rounded-sm bg-sunken p-1 sm:w-fit">
       {options.map((opt) => {
         const active = opt.value === value;
         return (
@@ -17,8 +17,8 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
             role="tab"
             aria-selected={active}
             className={[
-              'h-9 flex-1 truncate rounded-[6px] text-label transition-colors',
-              active ? 'bg-card text-text' : 'text-muted',
+              'h-9 flex-1 truncate rounded-[6px] px-md text-label transition-colors sm:flex-none',
+              active ? 'bg-card font-semibold text-text shadow-card' : 'text-muted hover:text-text',
             ].join(' ')}
           >
             {opt.label}

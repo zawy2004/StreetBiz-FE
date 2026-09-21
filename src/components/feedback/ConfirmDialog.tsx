@@ -64,23 +64,19 @@ export function ConfirmDialog({
   if (!visible) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(26,34,56,0.4)] p-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgb(var(--scrim)/0.5)] p-md backdrop-blur-[2px]">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="w-full max-w-[400px] rounded-md bg-card p-md shadow-sheet"
+        className="w-full max-w-[420px] rounded-lg border border-border bg-card p-lg shadow-sheet"
       >
         <h2 id="confirm-dialog-title" className="text-headline-md text-text">{title}</h2>
-        {description ? <p className="mt-2xs text-body-md text-muted">{description}</p> : null}
-        <div className="mt-md flex gap-sm">
-          <div className="flex-1">
-            <Button label="Huỷ" variant="outline" onPress={onCancel} />
-          </div>
-          <div className="flex-1">
-            <Button label={confirmLabel} variant={confirmVariant} onPress={onConfirm} />
-          </div>
+        {description ? <p className="mt-xs text-body-md text-muted">{description}</p> : null}
+        <div className="mt-lg flex flex-col-reverse gap-sm sm:flex-row sm:justify-end">
+          <Button label="Huỷ" variant="outline" fullWidth={false} onPress={onCancel} />
+          <Button label={confirmLabel} variant={confirmVariant} fullWidth={false} onPress={onConfirm} />
         </div>
       </div>
     </div>,

@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 
-import { Button, Card, IconButton } from '@/components/common';
+import { Button, IconButton } from '@/components/common';
+import { ResponsiveGrid, StatCard } from '@/components/data';
 import { AppHeader, Screen } from '@/components/layout';
 import { showToast } from '@/components/feedback';
 import { useMockDb } from '@/mocks/db';
@@ -13,46 +14,56 @@ export function PlatformDashboardScreen() {
   const orders = useMockDb((s) => s.orders);
   const reportedContent = useMockDb((s) => s.reportedContent);
 
-  const stats = [
-    { label: 'Tổng tài khoản', value: `${users.length}` },
-    { label: 'Hộ kinh doanh', value: `${vendors.length}` },
-    {
-      label: 'Gian hàng đang mở',
-      value: `${storefronts.filter((s) => s.availability_status === 'OPEN').length}`,
-    },
-    { label: 'Đơn hàng', value: `${orders.length}` },
-    {
-      label: 'Nội dung cần kiểm duyệt',
-      value: `${reportedContent.filter((r) => r.status === 'PENDING').length}`,
-    },
-  ];
+  const openStores = storefronts.filter((s) => s.availability_status === 'OPEN').length;
+  const pendingModeration = reportedContent.filter((r) => r.status === 'PENDING').length;
 
   return (
-    <Screen>
+    <Screen width="wide">
       <AppHeader
         title="Tổng quan nền tảng"
-        subtitle="Marketplace StreetBiz"
+        subtitle="Chợ vỉa hè StreetBiz"
         right={
-          <IconButton
-            icon="account-circle-outline"
-            accessibilityLabel="Tài khoản"
-            onPress={() => navigate('/account')}
-          />
+          <>
+            <Button
+              label="Xuất báo cáo"
+              variant="outline"
+              size="sm"
+              fullWidth={false}
+              onPress={() => showToast('Đã xuất báo cáo (demo)')}
+            />
+            <IconButton
+              icon="account-circle-outline"
+              accessibilityLabel="Tài khoản"
+              onPress={() => navigate('/account')}
+            />
+          </>
         }
       />
-      <div className="flex flex-wrap gap-sm">
-        {stats.map((s) => (
-          <Card key={s.label} style={{ flexGrow: 1, minWidth: 150 }}>
-            <span className="block text-body-sm text-muted">{s.label}</span>
-            <span className="mt-2xs block text-headline-lg text-text">{s.value}</span>
-          </Card>
-        ))}
-      </div>
-      <Button
-        label="Xuất báo cáo vận hành"
-        variant="outline"
-        onPress={() => showToast('Đã xuất báo cáo (demo)')}
-      />
+      <ResponsiveGrid minItemWidth={200} fit>
+        <StatCard
+          label="Tài khoản"
+          value={`${users.length}`}
+          icon="account-group-outline"
+          onPress={() => navigate('/platform/accounts')}
+        />
+        <StatCard label="Hộ kinh doanh" value={`${vendors.length}`} icon="storefront-outline" tone="tertiary" />
+        <StatCard
+          label="Gian hàng đang mở"
+          value={`${openStores}`}
+          hint={`trên ${storefronts.length} gian hàng`}
+          icon="silverware-fork-knife"
+          tone="secondary"
+        />
+        <StatCard label="Đơn hàng" value={`${orders.length}`} icon="receipt-text-outline" />
+        <StatCard
+          label="Chờ kiểm duyệt"
+          value={`${pendingModeration}`}
+          hint={pendingModeration > 0 ? 'Nội dung bị báo cáo' : 'Không có báo cáo mới'}
+          icon="shield-alert-outline"
+          tone="primary"
+          onPress={() => navigate('/platform/moderation')}
+        />
+      </ResponsiveGrid>
     </Screen>
   );
 }

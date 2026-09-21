@@ -1,7 +1,14 @@
+/**
+ * One family throughout: Be Vietnam Pro was drawn for Vietnamese, so stacked
+ * diacritics (ặ, ỗ, ừ) sit cleanly at every size. Hierarchy comes from weight
+ * and tracking, not from mixing typefaces.
+ */
+const family = '"Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif';
+
 export const fontFamily = {
-  display: '"Playfair Display", "Lora", Georgia, serif',
-  body: '"Be Vietnam Pro", system-ui, sans-serif',
-  number: '"Plus Jakarta Sans", system-ui, sans-serif',
+  display: family,
+  body: family,
+  number: family,
 } as const;
 
 type Variant = {
@@ -12,25 +19,19 @@ type Variant = {
   letterSpacing?: number;
 };
 
-/** Type scale. Combining modern Indochine serif display with clean Be Vietnam Pro body. */
 export const typography: Record<string, Variant> = {
-  displayLg: { fontFamily: fontFamily.display, fontWeight: 700, fontSize: 32, lineHeight: 40, letterSpacing: -0.5 },
-  displayMd: { fontFamily: fontFamily.display, fontWeight: 700, fontSize: 24, lineHeight: 32, letterSpacing: -0.3 },
-  headlineLg: { fontFamily: fontFamily.body, fontWeight: 600, fontSize: 22, lineHeight: 28 },
-  headlineMd: { fontFamily: fontFamily.body, fontWeight: 600, fontSize: 18, lineHeight: 24 },
-  headlineSm: { fontFamily: fontFamily.body, fontWeight: 600, fontSize: 16, lineHeight: 22 },
-  bodyLg: { fontFamily: fontFamily.body, fontWeight: 400, fontSize: 16, lineHeight: 24 },
-  bodyMd: { fontFamily: fontFamily.body, fontWeight: 400, fontSize: 14, lineHeight: 20 },
-  bodySm: { fontFamily: fontFamily.body, fontWeight: 400, fontSize: 12, lineHeight: 16 },
-  label: { fontFamily: fontFamily.body, fontWeight: 500, fontSize: 13, lineHeight: 18 },
-  badge: {
-    fontFamily: fontFamily.body,
-    fontWeight: 700,
-    fontSize: 11,
-    lineHeight: 14,
-    letterSpacing: 0.5,
-  },
-  money: { fontFamily: fontFamily.number, fontWeight: 700, fontSize: 18, lineHeight: 24 },
-  moneyLg: { fontFamily: fontFamily.number, fontWeight: 700, fontSize: 28, lineHeight: 34 },
-  code: { fontFamily: fontFamily.number, fontWeight: 600, fontSize: 13, lineHeight: 18, letterSpacing: 0.5 },
+  displayLg: { fontFamily: family, fontWeight: 800, fontSize: 32, lineHeight: 38, letterSpacing: -0.9 },
+  displayMd: { fontFamily: family, fontWeight: 800, fontSize: 24, lineHeight: 30, letterSpacing: -0.5 },
+  headlineLg: { fontFamily: family, fontWeight: 700, fontSize: 20, lineHeight: 28, letterSpacing: -0.3 },
+  headlineMd: { fontFamily: family, fontWeight: 700, fontSize: 17, lineHeight: 24, letterSpacing: -0.15 },
+  headlineSm: { fontFamily: family, fontWeight: 600, fontSize: 15, lineHeight: 22 },
+  bodyLg: { fontFamily: family, fontWeight: 400, fontSize: 16, lineHeight: 24 },
+  bodyMd: { fontFamily: family, fontWeight: 400, fontSize: 14, lineHeight: 21 },
+  bodySm: { fontFamily: family, fontWeight: 400, fontSize: 12.5, lineHeight: 18 },
+  bodyXs: { fontFamily: family, fontWeight: 400, fontSize: 11.5, lineHeight: 16 },
+  label: { fontFamily: family, fontWeight: 500, fontSize: 13, lineHeight: 18 },
+  badge: { fontFamily: family, fontWeight: 600, fontSize: 11.5, lineHeight: 14, letterSpacing: 0.1 },
+  money: { fontFamily: family, fontWeight: 700, fontSize: 17, lineHeight: 24, letterSpacing: -0.2 },
+  moneyLg: { fontFamily: family, fontWeight: 800, fontSize: 28, lineHeight: 34, letterSpacing: -0.6 },
+  code: { fontFamily: family, fontWeight: 600, fontSize: 13, lineHeight: 18, letterSpacing: 0.2 },
 };

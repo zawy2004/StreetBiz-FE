@@ -31,7 +31,7 @@ export function SlotDetailPanel({ slot, zone }: Props) {
 
   return (
     <article className="flex flex-col gap-md" data-testid="slot-detail-panel">
-      <div className="relative h-40 overflow-hidden rounded-md bg-indigo">
+      <div className="relative h-40 overflow-hidden rounded-md bg-[#1D2939]">
         {slot.imageUrl ? (
           <img src={slot.imageUrl} alt={`Ô ${slot.slotCode}`} className="h-full w-full object-cover" />
         ) : (

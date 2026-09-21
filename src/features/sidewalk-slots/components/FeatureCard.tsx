@@ -1,6 +1,6 @@
 import { Icon } from '@/components/common';
 import type { StreetFeature } from '@/core/api/side-api';
-import { colors } from '@/theme';
+import { alpha, colors } from '@/theme';
 import { FEATURE_ICONS, FEATURE_LABELS } from '../slot-visuals';
 
 type Props = { feature: StreetFeature };
@@ -20,7 +20,7 @@ export function FeatureCard({ feature }: Props) {
       title={feature.note ?? feature.label}
       style={{
         backgroundColor: blocked ? colors.errorBg : colors.card,
-        borderColor: blocked ? `${colors.error}66` : colors.border,
+        borderColor: blocked ? alpha(colors.error, 0.4) : colors.border,
       }}
       className="flex min-h-[124px] w-[104px] shrink-0 flex-col items-center justify-center gap-1 rounded-md border border-dashed p-xs text-center"
     >
@@ -29,7 +29,7 @@ export function FeatureCard({ feature }: Props) {
         {feature.label || FEATURE_LABELS[feature.featureType]}
       </span>
       {blocked ? (
-        <span className="rounded-sm bg-error px-1 text-badge text-white">CẤM KINH DOANH</span>
+        <span className="rounded-sm bg-error px-1 text-badge text-white dark:text-[#1A0604]">CẤM KINH DOANH</span>
       ) : (
         <span className="text-badge text-muted">{FEATURE_LABELS[feature.featureType]}</span>
       )}

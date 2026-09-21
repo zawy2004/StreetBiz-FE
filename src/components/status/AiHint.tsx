@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 
 import { Icon } from '@/components/common';
-import { colors, tints } from '@/theme';
+import { colors } from '@/theme';
 
 type Props = {
   title: string;
@@ -14,17 +14,12 @@ type Props = {
  */
 export function AiHint({ title, children }: Props) {
   return (
-    <div
-      style={{ backgroundColor: tints.gold, borderColor: colors.goldBorder }}
-      className="rounded-md border p-sm shadow-sm transition-all"
-    >
-      <div className="flex items-center gap-1.5">
-        <Icon name="creation" size={16} color={colors.gold} />
-        <span className="rounded border border-gold/30 bg-gold/15 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-[#8A5A00]">
-          [AI] GỢI Ý THAM KHẢO
-        </span>
+    <div className="rounded-md border border-secondary/30 bg-tint-secondary p-sm">
+      <div className="flex items-center gap-1.5 text-body-sm font-semibold text-on-secondary">
+        <Icon name="creation" size={16} color={colors.onSecondary} />
+        Gợi ý AI, chỉ để tham khảo
       </div>
-      <p className="mt-xs text-headline-sm font-semibold text-text">{title}</p>
+      <p className="mt-xs text-headline-sm text-text">{title}</p>
       {children ? <div className="mt-1 text-body-md text-muted">{children}</div> : null}
     </div>
   );

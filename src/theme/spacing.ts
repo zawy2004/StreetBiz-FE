@@ -9,10 +9,11 @@ export const spacing = {
   '2xl': 48,
 } as const;
 
+/** Radius grows with the size of the surface: controls < cards < sheets. */
 export const radius = {
-  sm: 10,
-  md: 16,
-  lg: 24,
+  sm: 8,
+  md: 12,
+  lg: 20,
   full: 999,
 } as const;
 

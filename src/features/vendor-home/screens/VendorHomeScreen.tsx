@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 
-import { Button, Card, Icon, ListRow } from '@/components/common';
+import { Button, Card, Icon, ListRow, type IconName } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { EmptyState } from '@/components/feedback';
@@ -51,68 +51,99 @@ export function VendorHomeScreen() {
   const permit = permits[0];
 
   return (
-    <Screen>
-      <AppHeader title={`Chào ${user?.fullName ?? ''}`} subtitle="Hộ kinh doanh" />
+    <Screen width="wide">
+      <AppHeader title={`Chào ${user?.fullName ?? ''}`} subtitle="Hôm nay quán mình cần làm gì?" />
 
-      {permit ? (
-        <Card onPress={() => navigate(`/vendor/slots/contracts/${permit.contractId}/permit`)}>
-          <div className="flex items-center gap-sm">
-            <Icon name="qrcode" size={28} color={colors.tertiary} />
-            <div className="flex flex-1 flex-col gap-2xs">
-              <span className="truncate text-headline-sm text-text">Giấy phép số</span>
-              <span className="truncate text-body-md text-muted">{permit.permit_code}</span>
-            </div>
-            <StatusChip code={permit.permit_status} />
-          </div>
-        </Card>
-      ) : null}
+      <div className="grid gap-md lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+        <div className="flex min-w-0 flex-col gap-md">
+          <Section title="Việc cần làm" description={todos.length > 0 ? `${todos.length} việc đang chờ bạn` : undefined}>
+            {todos.length === 0 ? (
+              <Card padded={false}>
+                <EmptyState
+                  icon="check-circle-outline"
+                  title="Không có việc cần xử lý"
+                  description="Phí, biên bản và yêu cầu bổ sung hồ sơ sẽ hiện ở đây."
+                />
+              </Card>
+            ) : (
+              <Card padded={false}>
+                <div className="divide-y divide-border px-md">
+                  {todos.map((t) => (
+                    <ListRow
+                      key={t.key}
+                      title={t.title}
+                      leading={
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-tint-primary">
+                          <Icon name="alert-circle-outline" size={18} color={colors.primary} />
+                        </span>
+                      }
+                      showChevron
+                      onPress={t.onPress}
+                    />
+                  ))}
+                </div>
+              </Card>
+            )}
+          </Section>
 
-      <Section title="Việc cần làm">
-        {todos.length === 0 ? (
-          <EmptyState icon="check-circle-outline" title="Không có việc cần xử lý" />
-        ) : (
-          <Card padded={false}>
-            <div className="px-md">
-              {todos.map((t) => (
-                <ListRow key={t.key} title={t.title} showChevron onPress={t.onPress} />
-              ))}
-            </div>
-          </Card>
-        )}
-      </Section>
-
-      <Section title="Lối tắt">
-        <div className="flex flex-wrap gap-sm">
-          <div className="min-w-[150px] grow">
-            <Button
-              label="Đăng ký kinh doanh"
-              variant="outline"
-              onPress={() => navigate('/vendor/registrations')}
-            />
-          </div>
-          <div className="min-w-[150px] grow">
-            <Button
-              label="Thuê ô vỉa hè"
-              variant="outline"
-              onPress={() => navigate('/vendor/slots')}
-            />
-          </div>
+          {!registrationsLoading && registrations.length === 0 ? (
+            <Card padded={false}>
+              <EmptyState
+                icon="file-document-outline"
+                title="Chưa có hồ sơ đăng ký"
+                description="Đăng ký kinh doanh để bắt đầu thuê ô vỉa hè hợp pháp."
+                action={
+                  <Button
+                    label="Đăng ký ngay"
+                    fullWidth={false}
+                    onPress={() => navigate('/vendor/registrations/new/type')}
+                  />
+                }
+              />
+            </Card>
+          ) : null}
         </div>
-      </Section>
 
-      {!registrationsLoading && registrations.length === 0 ? (
-        <EmptyState
-          icon="file-document-outline"
-          title="Chưa có hồ sơ đăng ký"
-          description="Đăng ký kinh doanh để bắt đầu thuê ô vỉa hè hợp pháp."
-          action={
-            <Button
-              label="Đăng ký ngay"
-              onPress={() => navigate('/vendor/registrations/new/type')}
-            />
-          }
-        />
-      ) : null}
+        <div className="flex min-w-0 flex-col gap-md">
+          {permit ? (
+            <Card onPress={() => navigate(`/vendor/slots/contracts/${permit.contractId}/permit`)}>
+              <div className="flex items-center gap-sm">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-tint-tertiary">
+                  <Icon name="qrcode" size={28} color={colors.tertiary} />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-2xs">
+                  <span className="truncate text-headline-sm text-text">Giấy phép số</span>
+                  <span className="truncate text-body-md font-tabular text-muted">{permit.permit_code}</span>
+                </div>
+                <StatusChip code={permit.permit_status} />
+              </div>
+            </Card>
+          ) : null}
+
+          <Section title="Lối tắt">
+            <div className="grid grid-cols-2 gap-sm lg:grid-cols-1">
+              <Shortcut
+                icon="file-document-outline"
+                label="Đăng ký kinh doanh"
+                onPress={() => navigate('/vendor/registrations')}
+              />
+              <Shortcut icon="map-marker-radius-outline" label="Thuê ô vỉa hè" onPress={() => navigate('/vendor/slots')} />
+            </div>
+          </Section>
+        </div>
+      </div>
     </Screen>
+  );
+}
+
+function Shortcut({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+  return (
+    <Card onPress={onPress}>
+      <div className="flex items-center gap-sm">
+        <Icon name={icon} size={22} color={colors.primary} />
+        <span className="min-w-0 flex-1 truncate text-headline-sm text-text">{label}</span>
+        <Icon name="chevron-right" size={18} color={colors.muted} />
+      </div>
+    </Card>
   );
 }
