@@ -10,7 +10,8 @@ type Props = {
 
 export function Card({ children, onPress, style, padded = true, testID }: Props) {
   const className = [
-    'rounded-md border border-border bg-card shadow-card',
+    'rounded-md border border-border bg-card shadow-card transition-all duration-200',
+    onPress ? 'hover:shadow-card-hover hover:border-gold/50 cursor-pointer active:scale-[0.995]' : '',
     padded ? 'p-md' : '',
   ].join(' ');
 
@@ -21,7 +22,7 @@ export function Card({ children, onPress, style, padded = true, testID }: Props)
         data-testid={testID}
         onClick={onPress}
         style={style}
-        className={`${className} block w-full text-left transition-opacity active:opacity-90`}
+        className={`${className} block w-full text-left`}
       >
         {children}
       </button>

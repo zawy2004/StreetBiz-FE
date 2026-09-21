@@ -10,8 +10,8 @@ type Props = {
  * squares, terracotta dot). See streetbiz-fe-ui-decisions memory.
  */
 export function BrandLogo({ size = 32 }: Props) {
-  const sq = (x: number, y: number, w: number, h: number, r = 0, key?: string) => (
-    <rect key={key ?? `${x}-${y}`} x={x} y={y} width={w} height={h} rx={r} fill={colors.indigo} />
+  const sq = (x: number, y: number, w: number, h: number, r = 3, key?: string) => (
+    <rect key={key ?? `${x}-${y}`} x={x} y={y} width={w} height={h} rx={r} fill={colors.indigo} opacity={0.9} />
   );
 
   return (
@@ -27,6 +27,7 @@ export function BrandLogo({ size = 32 }: Props) {
       {sq(82, 56, 22, 22, 4)}
       {sq(82, 30, 22, 22, 4)}
       <circle cx={60} cy={60} r={28} fill={colors.primary} />
+      <circle cx={60} cy={60} r={28} fill="none" stroke={colors.gold} strokeWidth={2.5} opacity={0.85} />
     </svg>
   );
 }

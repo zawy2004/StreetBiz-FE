@@ -2,7 +2,7 @@ import type { Config } from 'tailwindcss';
 import { colors, tints } from './src/theme/colors';
 import { spacing, radius } from './src/theme/spacing';
 import { typography, fontFamily } from './src/theme/typography';
-import { cardShadow, sheetShadow } from './src/theme/shadows';
+import { cardShadow, cardHoverShadow, sheetShadow } from './src/theme/shadows';
 
 function px(value: number) {
   return `${value}px`;
@@ -48,6 +48,9 @@ export default {
         border: colors.border,
         muted: colors.muted,
         text: colors.text,
+        gold: colors.gold,
+        'gold-light': colors.goldLight,
+        'gold-border': colors.goldBorder,
         error: colors.error,
         'error-bg': colors.errorBg,
         'tint-primary': tints.primary,
@@ -55,19 +58,24 @@ export default {
         'tint-tertiary': tints.tertiary,
         'tint-indigo': tints.indigo,
         'tint-muted': tints.muted,
+        'tint-gold': tints.gold,
       },
       spacing: Object.fromEntries(Object.entries(spacing).map(([k, v]) => [k, px(v)])),
       borderRadius: {
         sm: px(radius.sm),
         md: px(radius.md),
+        lg: px(radius.lg),
         full: px(radius.full),
       },
       boxShadow: {
         card: cardShadow,
+        'card-hover': cardHoverShadow,
         sheet: sheetShadow,
       },
       fontFamily: {
         sans: [fontFamily.body],
+        serif: [fontFamily.display],
+        display: [fontFamily.display],
         number: [fontFamily.number],
       },
       fontSize,
