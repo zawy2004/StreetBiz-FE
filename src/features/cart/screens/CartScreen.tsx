@@ -73,17 +73,21 @@ function LiveCartScreen() {
   }
 
   const data = cart.data;
+  // `items` isn't guaranteed present on every response shape the API can return
+  // (e.g. once a cart is abandoned server-side) - default to [] so nothing below
+  // ever reads .length/.map off undefined.
+  const items = data?.items ?? [];
   const canCheckout =
     data?.storefrontStatus === 'OPEN' &&
-    data.items.length > 0 &&
-    data.items.every((item) => item.availabilityStatus === 'AVAILABLE');
+    items.length > 0 &&
+    items.every((item) => item.availabilityStatus === 'AVAILABLE');
   return (
     <Screen
       footer={
-        data?.items.length ? (
+        items.length ? (
           <StickyActions>
             <Button
-              label={`Thanh toán · ${data.subtotal.toLocaleString('vi-VN')} đ`}
+              label={`Thanh toán · ${(data?.subtotal ?? 0).toLocaleString('vi-VN')} đ`}
               disabled={!canCheckout || update.isPending}
               onPress={() => navigate('/customer/checkout')}
             />
@@ -92,10 +96,10 @@ function LiveCartScreen() {
       }
     >
       <AppHeader title="Giỏ hàng" back subtitle={data?.storefrontName} />
-      {!data || data.items.length === 0 ? (
+      {items.length === 0 ? (
         <EmptyState icon="cart-outline" title="Giỏ hàng trống" />
       ) : (
-        data.items.map((item) => (
+        items.map((item) => (
           <Card key={item.cartItemId}>
             <div className="flex items-center justify-between gap-sm">
               <div className="min-w-0 flex-1">
@@ -137,7 +141,7 @@ function LiveCartScreen() {
           </Card>
         ))
       )}
-      {data?.items.length ? (
+      {items.length ? (
         <Button
           label="Xoá toàn bộ giỏ hàng"
           variant="ghost"

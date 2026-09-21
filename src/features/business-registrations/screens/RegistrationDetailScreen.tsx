@@ -149,7 +149,7 @@ export function RegistrationDetailScreen() {
       </Card>
 
       {registration.reviewDecisionReason ? (
-        <Card style={{ backgroundColor: '#FFDAD614', borderColor: '#BA1A1A33' }}>
+        <Card style={{ backgroundColor: 'rgb(var(--c-error) / 0.06)', borderColor: 'rgb(var(--c-error) / 0.25)' }}>
           <p className="mb-1 text-label text-error">Phản hồi từ Phường</p>
           <p className="text-body-md text-text">{registration.reviewDecisionReason}</p>
           {needsMoreInfo ? (

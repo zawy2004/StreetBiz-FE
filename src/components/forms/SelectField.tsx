@@ -1,5 +1,6 @@
 import { Icon } from '@/components/common';
 import { colors } from '@/theme';
+import { Field } from './Field';
 
 export type SelectOption<T extends string> = { value: T; label: string; description?: string };
 
@@ -19,9 +20,16 @@ export function SelectField<T extends string>({
   layout = 'cards',
 }: Props<T>) {
   return (
-    <div className="flex flex-col gap-xs">
-      {label ? <span className="text-label text-text">{label}</span> : null}
-      <div className={layout === 'cards' ? 'flex flex-col gap-sm' : 'flex flex-wrap gap-xs'}>
+    <Field label={label} alignCenter={layout === 'inline'}>
+      <div
+        role="radiogroup"
+        aria-label={label}
+        className={
+          layout === 'cards'
+            ? 'grid grid-cols-1 gap-sm sm:grid-cols-[repeat(auto-fit,minmax(220px,1fr))]'
+            : 'flex flex-wrap gap-xs'
+        }
+      >
         {options.map((opt) => {
           const selected = opt.value === value;
           return (
@@ -32,26 +40,28 @@ export function SelectField<T extends string>({
               role="radio"
               aria-checked={selected}
               className={[
-                'flex items-center border-[1.5px] text-left transition-colors',
-                layout === 'cards'
-                  ? 'gap-sm rounded-md p-sm'
-                  : 'h-12 gap-xs rounded-sm px-sm',
-                selected ? 'border-primary bg-tint-primary' : 'border-border bg-card',
+                'flex items-center text-left transition-colors',
+                layout === 'cards' ? 'gap-sm rounded-md border-[1.5px] p-sm' : 'h-10 gap-xs rounded-full border px-md',
+                selected
+                  ? 'border-primary bg-tint-primary'
+                  : 'border-border bg-card hover:border-muted/50',
               ].join(' ')}
             >
-              <div className="flex-1">
-                <div className={`text-headline-sm ${selected ? 'text-primary' : 'text-text'}`}>
-                  {opt.label}
-                </div>
-                {opt.description ? (
-                  <div className="mt-0.5 text-body-sm text-muted">{opt.description}</div>
-                ) : null}
+              <div className="min-w-0 flex-1">
+                <div className={`text-headline-sm ${selected ? 'text-primary' : 'text-text'}`}>{opt.label}</div>
+                {opt.description ? <div className="mt-0.5 text-body-sm text-muted">{opt.description}</div> : null}
               </div>
-              {selected ? <Icon name="check-circle" size={20} color={colors.primary} /> : null}
+              {layout === 'cards' ? (
+                <Icon
+                  name={selected ? 'check-circle' : 'circle-outline'}
+                  size={20}
+                  color={selected ? colors.primary : colors.border}
+                />
+              ) : null}
             </button>
           );
         })}
       </div>
-    </div>
+    </Field>
   );
 }

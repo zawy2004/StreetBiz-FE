@@ -10,3 +10,4 @@ export * from './Divider';
 export * from './QrCode';
 export * from './Icon';
 export * from './Spinner';
+export * from './KerbTag';

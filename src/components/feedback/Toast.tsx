@@ -8,15 +8,19 @@ export function ToastHost() {
 
   useEffect(() => {
     if (!message) return;
-    const t = setTimeout(hide, 2200);
+    const t = setTimeout(hide, 2600);
     return () => clearTimeout(t);
   }, [message, hide]);
 
   if (!message) return null;
 
   return createPortal(
-    <div className="pointer-events-none fixed inset-x-0 bottom-xl z-50 flex justify-center">
-      <div className="max-w-[90%] rounded-sm bg-indigo px-md py-sm text-body-md text-white shadow-sheet">
+    <div
+      role="status"
+      aria-live="polite"
+      className="pointer-events-none fixed inset-x-0 bottom-[88px] z-[60] flex justify-center px-md lg:bottom-lg"
+    >
+      <div className="max-w-[480px] rounded-md bg-text px-md py-sm text-body-md font-medium text-bg shadow-sheet">
         {message}
       </div>
     </div>,

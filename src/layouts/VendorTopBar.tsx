@@ -30,7 +30,7 @@ export function VendorTopBar() {
   const onWorkspace = zones.length > 0;
 
   return (
-    <header className="flex shrink-0 flex-col border-b border-border bg-card/95 backdrop-blur-md shadow-sm">
+    <header className="flex shrink-0 flex-col border-b border-border bg-card">
       <div className="flex h-16 items-center gap-sm px-md">
         {onWorkspace && <RouteSelect />}
         {onWorkspace && isDesktop && <SlotSearch />}
@@ -40,7 +40,7 @@ export function VendorTopBar() {
           <Link
             to="/account/notifications"
             aria-label="Thông báo"
-            className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-gold-light/40"
+            className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-sunken"
           >
             <Icon name="bell-outline" size={22} color={colors.text} />
           </Link>
@@ -72,7 +72,7 @@ function RouteSelect() {
   const selectZone = useWorkspaceStore((s) => s.selectZone);
 
   return (
-    <label className="flex h-10 min-w-0 max-w-[280px] items-center gap-xs rounded-full border border-border bg-card px-sm text-label text-text shadow-sm transition-all hover:border-gold/50">
+    <label className="flex h-10 min-w-0 max-w-[280px] items-center gap-xs rounded-full border border-border bg-card px-sm text-label text-text transition-colors hover:border-muted/50">
       <Icon name="map-marker-outline" size={18} color={colors.muted} />
       <span className="sr-only">Tuyến</span>
       <select
@@ -104,7 +104,7 @@ function SlotSearch() {
 
   return (
     <div className="relative min-w-0 flex-1 md:max-w-md">
-      <div className="flex h-10 items-center gap-xs rounded-full border border-border bg-bg px-sm">
+      <div className="flex h-10 items-center gap-xs rounded-full border border-border bg-sunken px-sm">
         <Icon name="magnify" size={18} color={colors.muted} />
         <input
           className="min-w-0 flex-1 bg-transparent text-body-sm text-text outline-none"
@@ -123,7 +123,7 @@ function SlotSearch() {
               <li key={s.slotId}>
                 <button
                   type="button"
-                  className="flex w-full flex-col px-sm py-xs text-left hover:bg-bg"
+                  className="flex w-full flex-col px-sm py-xs text-left hover:bg-sunken"
                   onClick={() => {
                     focusSlot(s.zoneId, s.slotId);
                     if (location.pathname !== WORKSPACE_PATH) navigate(WORKSPACE_PATH);
@@ -154,7 +154,7 @@ function LayersToggle() {
       onClick={toggle}
       className={[
         'flex h-10 w-10 items-center justify-center rounded-full',
-        showFeatures ? 'bg-tint-indigo' : 'hover:bg-bg',
+        showFeatures ? 'bg-tint-indigo' : 'hover:bg-sunken',
       ].join(' ')}
     >
       <Icon name="layers-outline" size={22} color={showFeatures ? colors.indigo : colors.muted} />
@@ -199,7 +199,7 @@ function HoldBasket() {
         aria-label={`Giỏ giữ chỗ (${holds.length})`}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="relative flex h-10 w-10 items-center justify-center rounded-full hover:bg-bg"
+        className="relative flex h-10 w-10 items-center justify-center rounded-full hover:bg-sunken"
       >
         <Icon name="bookmark-outline" size={22} color={colors.text} />
         {holds.length > 0 && (

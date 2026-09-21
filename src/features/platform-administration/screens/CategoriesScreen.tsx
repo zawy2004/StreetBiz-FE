@@ -2,13 +2,8 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button, Card, IconButton } from '@/components/common';
-import {
-  ConfirmDialog,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  showToast,
-} from '@/components/feedback';
+import { DataTable, type Column } from '@/components/data';
+import { ConfirmDialog, ErrorState, showToast } from '@/components/feedback';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
 import { colors } from '@/theme';
@@ -61,29 +56,106 @@ function CategoriesContent() {
   });
   const mutationError = create.error ?? rename.error ?? remove.error;
 
-  return (
-    <Screen>
-      <AppHeader title="Danh mục món ăn" subtitle="ADM-01 · Dữ liệu Backend" />
-      <div className="flex items-end gap-sm">
-        <div className="flex-1">
-          <TextField
-            label="Danh mục mới"
-            value={name}
-            onChangeText={(value) => setName(value.slice(0, 100))}
-            placeholder="VD: Bánh tráng trộn"
-            error={mutationError instanceof PlatformApiError ? mutationError.message : undefined}
+  const columns: Column<FoodCategory>[] = [
+    {
+      key: 'name',
+      header: 'Tên danh mục',
+      render: (category) =>
+        editing?.categoryId === category.categoryId ? (
+          <div className="flex flex-wrap items-center gap-xs" onClick={(e) => e.stopPropagation()}>
+            <input
+              aria-label="Tên danh mục"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value.slice(0, 100))}
+              autoFocus
+              className="input-shell h-9 min-w-[180px] flex-1 rounded-sm border border-border bg-card px-sm text-body-md text-text"
+            />
+            <Button size="sm" label="Huỷ" variant="outline" fullWidth={false} onPress={() => setEditing(undefined)} />
+            <Button
+              size="sm"
+              label="Lưu"
+              fullWidth={false}
+              loading={rename.isPending}
+              disabled={!editName.trim()}
+              onPress={() => rename.mutate()}
+            />
+          </div>
+        ) : (
+          category.categoryName
+        ),
+    },
+    {
+      key: 'items',
+      header: 'Số món',
+      align: 'right',
+      width: '110px',
+      render: (category) => <span className="font-tabular">{category.itemCount}</span>,
+    },
+    {
+      key: 'creator',
+      header: 'Người tạo',
+      width: '200px',
+      render: (category) => <span className="text-muted">{category.createdByName ?? 'Hệ thống'}</span>,
+    },
+    {
+      key: 'actions',
+      header: 'Thao tác',
+      align: 'right',
+      width: '120px',
+      render: (category) => (
+        <div className="flex justify-end gap-1">
+          <IconButton
+            icon="pencil-outline"
+            accessibilityLabel="Đổi tên danh mục"
+            onPress={() => {
+              setEditing(category);
+              setEditName(category.categoryName);
+            }}
           />
+          {category.itemCount === 0 ? (
+            <IconButton
+              icon="trash-can-outline"
+              accessibilityLabel="Xoá danh mục"
+              color={colors.error}
+              onPress={() => setDeleting(category)}
+            />
+          ) : null}
         </div>
-        <Button
-          label="Thêm"
-          fullWidth={false}
-          loading={create.isPending}
-          disabled={!name.trim()}
-          onPress={() => create.mutate()}
-        />
-      </div>
+      ),
+    },
+  ];
 
-      {categories.isPending ? <LoadingState /> : null}
+  return (
+    <Screen width="wide">
+      <AppHeader title="Danh mục món ăn" subtitle="Nhóm món người mua dùng để lọc quán. Chỉ xoá được danh mục chưa có món." />
+
+      <Card>
+        <form
+          className="flex flex-col gap-sm sm:flex-row sm:items-start"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (name.trim()) create.mutate();
+          }}
+        >
+          <div className="min-w-0 flex-1">
+            <TextField
+              label="Danh mục mới"
+              value={name}
+              onChangeText={(value) => setName(value.slice(0, 100))}
+              placeholder="VD: Bánh tráng trộn"
+              error={mutationError instanceof PlatformApiError ? mutationError.message : undefined}
+            />
+          </div>
+          <Button
+            type="submit"
+            label="Thêm danh mục"
+            fullWidth={false}
+            loading={create.isPending}
+            disabled={!name.trim()}
+          />
+        </form>
+      </Card>
+
       {categories.isError ? (
         <ErrorState
           message={
@@ -93,61 +165,20 @@ function CategoriesContent() {
           }
           onRetry={() => categories.refetch()}
         />
-      ) : null}
-      {categories.data?.length === 0 ? (
-        <EmptyState icon="shape-outline" title="Chưa có danh mục món ăn" />
-      ) : null}
-      {categories.data?.map((category) => (
-        <Card key={category.categoryId}>
-          {editing?.categoryId === category.categoryId ? (
-            <div className="flex flex-col gap-sm">
-              <TextField
-                label="Tên danh mục"
-                value={editName}
-                onChangeText={(value) => setEditName(value.slice(0, 100))}
-                autoFocus
-              />
-              <div className="flex gap-sm">
-                <Button label="Huỷ" variant="outline" onPress={() => setEditing(undefined)} />
-                <Button
-                  label="Lưu"
-                  loading={rename.isPending}
-                  disabled={!editName.trim()}
-                  onPress={() => rename.mutate()}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between gap-sm">
-              <div className="min-w-0 flex-1">
-                <span className="block truncate text-headline-sm text-text">
-                  {category.categoryName}
-                </span>
-                <span className="block text-body-sm text-muted">
-                  {category.itemCount} món
-                  {category.createdByName ? ` · Tạo bởi ${category.createdByName}` : ''}
-                </span>
-              </div>
-              <IconButton
-                icon="pencil-outline"
-                accessibilityLabel="Đổi tên danh mục"
-                onPress={() => {
-                  setEditing(category);
-                  setEditName(category.categoryName);
-                }}
-              />
-              {category.itemCount === 0 ? (
-                <IconButton
-                  icon="trash-can-outline"
-                  accessibilityLabel="Xoá danh mục"
-                  color={colors.error}
-                  onPress={() => setDeleting(category)}
-                />
-              ) : null}
-            </div>
-          )}
-        </Card>
-      ))}
+      ) : (
+        <DataTable
+          caption="Danh mục món ăn"
+          rows={categories.data ?? []}
+          columns={columns}
+          rowKey={(category) => String(category.categoryId)}
+          loading={categories.isPending}
+          empty={{
+            icon: 'shape-outline',
+            title: 'Chưa có danh mục món ăn',
+            description: 'Thêm danh mục đầu tiên ở ô phía trên.',
+          }}
+        />
+      )}
       <ConfirmDialog
         visible={Boolean(deleting)}
         title="Xoá danh mục?"

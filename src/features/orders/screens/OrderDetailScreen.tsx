@@ -109,7 +109,7 @@ function LiveOrderDetailScreen() {
         {data.paymentStatus ? <StatusChip code={data.paymentStatus} /> : null}
       </div>
       {data.orderStatus === 'PENDING_PAYMENT' ? (
-        <Card style={{ backgroundColor: '#E09F3E14', borderColor: '#E09F3E33' }}>
+        <Card style={{ backgroundColor: 'rgb(var(--c-secondary) / 0.1)', borderColor: 'rgb(var(--c-secondary) / 0.35)' }}>
           <p className="text-headline-sm text-text">Đang chờ xác nhận thanh toán</p>
           <p className="mt-2xs text-body-md text-muted">
             Trạng thái chỉ thay đổi sau khi backend nhận callback hợp lệ từ cổng thanh toán.
@@ -171,7 +171,7 @@ function LiveOrderDetailScreen() {
         </Card>
       ) : null}
       {refund ? (
-        <Card style={{ backgroundColor: '#E09F3E14', borderColor: '#E09F3E33' }}>
+        <Card style={{ backgroundColor: 'rgb(var(--c-secondary) / 0.1)', borderColor: 'rgb(var(--c-secondary) / 0.35)' }}>
           <div className="mb-xs flex items-center justify-between gap-sm">
             <p className="text-label text-text">Hoàn tiền</p>
             <StatusChip label={refund.label} tone={refund.tone} />
@@ -288,7 +288,7 @@ function MockOrderDetailScreen() {
         </div>
       </Card>
       {order.order_status === 'REJECTED' || order.order_status === 'CANCELLED' ? (
-        <Card style={{ backgroundColor: '#2D7D4614', borderColor: '#2D7D4633' }}>
+        <Card style={{ backgroundColor: 'rgb(var(--c-tertiary) / 0.08)', borderColor: 'rgb(var(--c-tertiary) / 0.3)' }}>
           <p className="text-body-md" style={{ color: colors.tertiary }}>
             Đã tạo yêu cầu hoàn tiền.
           </p>

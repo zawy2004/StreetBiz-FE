@@ -15,7 +15,7 @@ export function Money({ amountVnd, size = 'md', color = colors.text, style, clas
   return (
     <span
       style={{ color, ...style }}
-      className={`font-number font-tabular ${size === 'lg' ? 'text-money-lg' : 'text-money'} ${className ?? ''}`}
+      className={`font-tabular ${size === 'lg' ? 'text-money-lg' : 'text-money'} ${className ?? ''}`}
     >
       {formatVnd(amountVnd)}
     </span>

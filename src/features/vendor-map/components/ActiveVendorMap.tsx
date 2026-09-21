@@ -20,10 +20,10 @@ export function ActiveVendorMap({ vendors, onSelect }: Props) {
   return (
     <div
       aria-label="Bản đồ hộ kinh doanh đang hoạt động"
-      className="relative h-64 overflow-hidden rounded-md border border-border bg-[#E7F1EC]"
+      className="relative h-64 overflow-hidden rounded-md border border-border bg-tint-tertiary"
     >
-      <div className="absolute left-[-10%] top-[35%] h-8 w-[120%] rotate-6 bg-white/70" />
-      <div className="absolute left-[42%] top-[-10%] h-[120%] w-7 -rotate-12 bg-white/70" />
+      <div className="absolute left-[-10%] top-[35%] h-8 w-[120%] rotate-6 bg-card/70" />
+      <div className="absolute left-[42%] top-[-10%] h-[120%] w-7 -rotate-12 bg-card/70" />
       {vendors.map((vendor) => {
         const left = 8 + ((vendor.longitude - minLng) / lngSpan) * 84;
         const top = 8 + ((maxLat - vendor.latitude) / latSpan) * 84;
@@ -34,7 +34,7 @@ export function ActiveVendorMap({ vendors, onSelect }: Props) {
             title={`${vendor.displayName} · Ô ${vendor.slotCode}`}
             aria-label={`${vendor.displayName}, ô ${vendor.slotCode}`}
             onClick={() => onSelect(vendor)}
-            className="absolute -translate-x-1/2 -translate-y-full rounded-full bg-white p-1 shadow-card"
+            className="absolute -translate-x-1/2 -translate-y-full rounded-full bg-card p-1 shadow-card"
             style={{ left: `${left}%`, top: `${top}%` }}
           >
             <Icon name="map-marker" size={24} color={colors.primary} />

@@ -126,7 +126,7 @@ export function SignInScreen() {
       {isDev ? (
         <div className="mt-md rounded-md border border-border bg-card p-sm">
           <span className="mb-xs block text-label text-muted">
-            TÀI KHOẢN MẪU ({isLiveApi ? 'Live API - Điền sẵn' : 'Chế độ Demo'})
+            Tài khoản mẫu ({isLiveApi ? 'điền sẵn số và mật khẩu' : 'chế độ demo'})
           </span>
           <div className="flex flex-col gap-xs">
             {DEMO_ROLES.map((role) => (
@@ -142,7 +142,7 @@ export function SignInScreen() {
                     setPassword('123456');
                   }
                 }}
-                className="flex h-10 items-center justify-center rounded-sm bg-bg hover:bg-border/40"
+                className="flex h-10 items-center justify-center rounded-sm bg-sunken hover:bg-border"
               >
                 <span className="text-body-md text-text">
                   {ROLE_LABELS[role]} {isLiveApi ? '(Điền nhanh)' : ''}

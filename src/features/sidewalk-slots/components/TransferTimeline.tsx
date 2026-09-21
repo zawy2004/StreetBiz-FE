@@ -2,7 +2,7 @@ import { Icon } from '@/components/common';
 import { TRANSFER_STEP_LABELS, type TransferStepState } from '../my-slots-view';
 
 const CIRCLE: Record<TransferStepState, string> = {
-  done: 'bg-tertiary text-white',
+  done: 'bg-tertiary text-white dark:text-[#06140C]',
   current: 'bg-secondary text-on-secondary',
   todo: 'bg-border text-muted',
 };

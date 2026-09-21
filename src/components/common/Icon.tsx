@@ -97,6 +97,23 @@ const ICON_MAP: Record<string, IconType> = {
   'plus-circle-outline': Md.MdOutlineAddCircleOutline,
   'arrow-right': Md.MdArrowForward,
   headset: Md.MdOutlineSupportAgent,
+  'white-balance-sunny': Md.MdOutlineLightMode,
+  'weather-night': Md.MdOutlineDarkMode,
+  'monitor': Md.MdOutlineDesktopWindows,
+  logout: Md.MdOutlineLogout,
+  menu: Md.MdMenu,
+  'chevron-left': Md.MdChevronLeft,
+  'chevron-up': Md.MdExpandLess,
+  'noodles': Md.MdOutlineRamenDining,
+  'coffee-outline': Md.MdOutlineLocalCafe,
+  'cupcake': Md.MdOutlineCake,
+  'fire': Md.MdOutlineLocalFireDepartment,
+  'rice': Md.MdOutlineRiceBowl,
+  'fastfood': Md.MdOutlineFastfood,
+  'icecream': Md.MdOutlineIcecream,
+  'tune': Md.MdTune,
+  'map-marker': Md.MdLocationOn,
+  'sort': Md.MdSort,
 };
 
 export type IconName = keyof typeof ICON_MAP | (string & {});

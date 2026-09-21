@@ -49,20 +49,20 @@ export function BottomSheet({ visible, onClose, children }: Props) {
   if (!visible) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 z-50 flex flex-col justify-end lg:items-center lg:justify-center lg:p-lg">
       <button
         type="button"
         aria-label="Đóng"
         onClick={onClose}
-        className="absolute inset-0 bg-[rgba(26,34,56,0.4)]"
+        className="absolute inset-0 bg-[rgb(var(--scrim)/0.5)] backdrop-blur-[2px]"
       />
       <div
         ref={sheetRef}
         role="dialog"
         aria-modal="true"
-        className="relative flex flex-col gap-md rounded-t-md bg-card p-md shadow-sheet"
+        className="cq relative flex max-h-[90vh] flex-col gap-md overflow-y-auto rounded-t-lg border border-border bg-card p-md pb-lg shadow-sheet lg:w-full lg:max-w-[560px] lg:rounded-lg lg:p-lg"
       >
-        <div className="mx-auto h-1 w-10 rounded-full bg-border" />
+        <div className="mx-auto h-1 w-10 shrink-0 rounded-full bg-border lg:hidden" />
         {children}
       </div>
     </div>,

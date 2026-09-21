@@ -80,7 +80,8 @@ function LiveCheckoutScreen() {
   if (cart.isError) {
     return <ErrorState message={errorMessage(cart.error)} onRetry={() => cart.refetch()} />;
   }
-  if (!cart.data || cart.data.items.length === 0) {
+  const items = cart.data?.items ?? [];
+  if (!cart.data || items.length === 0) {
     return (
       <Screen>
         <AppHeader title="Thanh toán" back />
@@ -102,7 +103,7 @@ function LiveCheckoutScreen() {
             disabled={
               place.isPending ||
               data.storefrontStatus !== 'OPEN' ||
-              data.items.some((item) => item.availabilityStatus !== 'AVAILABLE')
+              items.some((item) => item.availabilityStatus !== 'AVAILABLE')
             }
             onPress={startCheckout}
           />
@@ -119,7 +120,7 @@ function LiveCheckoutScreen() {
       </Card>
       <Card padded={false}>
         <div className="px-md">
-          {data.items.map((item, index) => (
+          {items.map((item, index) => (
             <div key={item.cartItemId}>
               {index ? <Divider /> : null}
               <ListRow
@@ -231,7 +232,7 @@ function MockCheckoutScreen() {
         </div>
       </Card>
       {failed ? (
-        <Card style={{ backgroundColor: '#FFDAD614', borderColor: '#BA1A1A33' }}>
+        <Card style={{ backgroundColor: 'rgb(var(--c-error) / 0.06)', borderColor: 'rgb(var(--c-error) / 0.25)' }}>
           <p className="text-body-md" style={{ color: colors.error }}>
             Thanh toán thất bại. Vui lòng thử lại.
           </p>

@@ -1,11 +1,37 @@
 import { useNavigate } from 'react-router-dom';
 
-import { Card, IconButton } from '@/components/common';
+import { Card, Icon, IconButton, type IconName } from '@/components/common';
+import { ResponsiveGrid, StatCard } from '@/components/data';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { AiHint } from '@/components/status';
 import { env } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
 import { WARD } from '@/mocks/seed';
+import { colors } from '@/theme';
+
+type Shortcut = { to: string; icon: IconName; title: string; description: string };
+
+const SHORTCUTS: Shortcut[] = [
+  {
+    to: '/ward/inbox',
+    icon: 'inbox-outline',
+    title: 'Hộp duyệt',
+    description: 'Hồ sơ đăng ký, đề xuất ô, xung đột địa chỉ và chuyển nhượng',
+  },
+  { to: '/ward/slots', icon: 'map-marker-radius-outline', title: 'Lưới ô vỉa hè', description: 'Theo dõi trạng thái từng ô' },
+  {
+    to: '/ward/patrol',
+    icon: 'qrcode-scan',
+    title: 'Tuần tra và quét QR',
+    description: 'Kiểm tra giấy phép số, phân tích ảnh hiện trường',
+  },
+  {
+    to: '/ward/patrol/violations/new',
+    icon: 'gavel',
+    title: 'Lập biên bản vi phạm',
+    description: 'Biên bản hiện trường và quyết định xử phạt (NĐ 168/2024)',
+  },
+];
 
 export function WardDashboardScreen() {
   const navigate = useNavigate();
@@ -24,20 +50,13 @@ export function WardDashboardScreen() {
     feeItems.filter((f) => f.item_status === 'PAID').reduce((s, f) => s + f.amount, 0) +
     penalties.filter((p) => p.penalty_status === 'PAID').reduce((s, p) => s + p.amount, 0);
 
-  const stats = [
-    { label: 'Ô đang thuê', value: `${rented}/${slots.length}` },
-    { label: 'Tỷ lệ lấp đầy', value: `${occupancy}%` },
-    { label: 'Hồ sơ chờ duyệt', value: `${pendingCount}` },
-    { label: 'Doanh thu đã thu', value: `${(revenue / 1000).toLocaleString('vi-VN')}k đ` },
-  ];
-
   return (
-    <Screen>
+    <Screen width="wide">
       <AppHeader
         title="Tổng quan"
         subtitle={WARD.unit_type}
         right={
-          <div className="flex flex-row gap-xs">
+          <>
             <IconButton
               icon="cog-outline"
               accessibilityLabel="Cấu hình"
@@ -48,18 +67,36 @@ export function WardDashboardScreen() {
               accessibilityLabel="Tài khoản"
               onPress={() => navigate('/account')}
             />
-          </div>
+          </>
         }
       />
 
-      <div className="flex flex-row flex-wrap gap-sm">
-        {stats.map((s) => (
-          <Card key={s.label} style={{ flexGrow: 1, minWidth: 140 }}>
-            <span className="block text-body-sm text-muted">{s.label}</span>
-            <span className="mt-0.5 block text-headline-lg text-text">{s.value}</span>
-          </Card>
-        ))}
-      </div>
+      <ResponsiveGrid minItemWidth={210} fit>
+        <StatCard
+          label="Ô đang thuê"
+          value={`${rented}/${slots.length}`}
+          hint="ô trên toàn phường"
+          icon="map-marker-radius-outline"
+          tone="indigo"
+          onPress={() => navigate('/ward/slots')}
+        />
+        <StatCard label="Tỷ lệ lấp đầy" value={`${occupancy}%`} icon="chart-bar" tone="tertiary" />
+        <StatCard
+          label="Hồ sơ chờ duyệt"
+          value={`${pendingCount}`}
+          hint={pendingCount > 0 ? 'Mở hộp duyệt để xử lý' : 'Đã xử lý hết'}
+          icon="inbox-outline"
+          tone="primary"
+          onPress={() => navigate('/ward/inbox')}
+        />
+        <StatCard
+          label="Đã thu"
+          value={`${(revenue / 1000).toLocaleString('vi-VN')}k đ`}
+          hint="phí thuê ô và tiền phạt"
+          icon="cash-multiple"
+          tone="secondary"
+        />
+      </ResponsiveGrid>
 
       {env.enableAiCompliance ? (
         <AiHint title="Tóm tắt tuần này">
@@ -69,26 +106,21 @@ export function WardDashboardScreen() {
       ) : null}
 
       <Section title="Lối tắt">
-        {/* One destination: /ward/inbox is the live case queue against the backend,
-            and the mock list only when there is no backend configured. */}
-        <Card onPress={() => navigate('/ward/inbox')}>
-          <h3 className="text-headline-sm text-text">Hộp duyệt</h3>
-          <p className="text-body-sm text-muted">
-            Hồ sơ đăng ký, đề xuất ô, xung đột địa chỉ và chuyển nhượng
-          </p>
-        </Card>
-        <Card onPress={() => navigate('/ward/slots')}>
-          <h3 className="text-headline-sm text-text">Lưới ô vỉa hè</h3>
-          <p className="text-body-sm text-muted">Theo dõi trạng thái từng ô</p>
-        </Card>
-        <Card onPress={() => navigate('/ward/patrol')}>
-          <h3 className="text-headline-sm text-text">Tuần tra hiện trường &amp; Quét QR</h3>
-          <p className="text-body-sm text-muted">Kiểm tra Giấy phép số và phân tích AI Vision</p>
-        </Card>
-        <Card onPress={() => navigate('/ward/patrol/violations/new')}>
-          <h3 className="text-headline-sm text-text">Lập biên bản vi phạm &amp; Xử phạt</h3>
-          <p className="text-body-sm text-muted">Biên bản hiện trường và Quyết định xử phạt (NĐ 168/2024)</p>
-        </Card>
+        <ResponsiveGrid minItemWidth={240} gap="sm">
+          {SHORTCUTS.map((s) => (
+            <Card key={s.to} onPress={() => navigate(s.to)}>
+              <div className="flex items-start gap-sm">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-tint-indigo">
+                  <Icon name={s.icon} size={22} color={colors.indigo} />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-headline-sm text-text">{s.title}</h3>
+                  <p className="mt-0.5 text-body-sm text-muted">{s.description}</p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </ResponsiveGrid>
       </Section>
     </Screen>
   );

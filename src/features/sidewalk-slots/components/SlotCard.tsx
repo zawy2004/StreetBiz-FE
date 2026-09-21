@@ -1,6 +1,6 @@
 import { Icon } from '@/components/common';
 import type { SidewalkSlot } from '@/core/api/side-api';
-import { colors } from '@/theme';
+import { alpha, colors } from '@/theme';
 import { formatShortVnd, formatSize, secondsUntil, formatCountdown } from '../slot-format';
 import { BUSINESS_CATEGORY_LABELS, type SlotDisplayState } from '../slot-stats';
 import {
@@ -44,8 +44,8 @@ function footerText(slot: SidewalkSlot, state: SlotDisplayState, mine: boolean, 
 export function SlotCard({ slot, state, selected, mine, matchesFilters, widthPx, nowMs, onSelect }: Props) {
   const accent = slotDisplayColor(state);
   const onDark = selected;
-  const textColor = onDark ? colors.white : colors.text;
-  const mutedColor = onDark ? 'rgba(255,255,255,0.78)' : colors.muted;
+  const textColor = onDark ? colors.onIndigo : colors.text;
+  const mutedColor = onDark ? alpha(colors.onIndigo, 0.78) : colors.muted;
   const title =
     state === 'ACTIVE'
       ? (slot.tenantName ?? 'Đã cho thuê')
@@ -62,7 +62,7 @@ export function SlotCard({ slot, state, selected, mine, matchesFilters, widthPx,
       style={{
         width: widthPx,
         backgroundColor: selected ? SLOT_SELECTED_COLOR : slotDisplayTint(state),
-        borderColor: selected ? SLOT_SELECTED_COLOR : `${accent}66`,
+        borderColor: selected ? SLOT_SELECTED_COLOR : alpha(accent, 0.4),
         opacity: matchesFilters ? 1 : 0.35,
       }}
       className="relative flex min-h-[124px] shrink-0 flex-col justify-between rounded-md border p-xs text-left transition-opacity hover:opacity-100"
@@ -70,14 +70,14 @@ export function SlotCard({ slot, state, selected, mine, matchesFilters, widthPx,
       {/* A tab on the card's top edge: inside the header row it would squeeze the code onto two lines at narrow card widths. */}
       {selected && (
         <span
-          className="absolute -top-2 right-1 rounded-sm bg-white px-1 text-badge shadow-card"
+          className="absolute -top-2 right-1 rounded-sm bg-card px-1 text-badge shadow-card"
           style={{ color: SLOT_SELECTED_COLOR }}
         >
           ĐANG CHỌN
         </span>
       )}
       <div className="flex items-start justify-between gap-1">
-        <span className="whitespace-nowrap text-headline-sm font-bold" style={{ color: onDark ? colors.white : accent }}>
+        <span className="whitespace-nowrap text-headline-sm font-bold" style={{ color: onDark ? colors.onIndigo : accent }}>
           #{slot.slotCode}
         </span>
         {slot.businessCategory && (
@@ -94,12 +94,12 @@ export function SlotCard({ slot, state, selected, mine, matchesFilters, widthPx,
         </span>
       </div>
 
-      <div className="flex items-center justify-between gap-1 border-t pt-1" style={{ borderColor: `${mutedColor}55` }}>
-        <span className="truncate text-badge" style={{ color: onDark ? colors.white : accent }}>
+      <div className="flex items-center justify-between gap-1 border-t pt-1" style={{ borderColor: alpha(mutedColor, 0.33) }}>
+        <span className="truncate text-badge" style={{ color: onDark ? colors.onIndigo : accent }}>
           {footerText(slot, state, mine, nowMs)}
         </span>
         {state === 'AVAILABLE' && !selected && <Icon name="plus-circle-outline" size={16} color={accent} />}
-        {state === 'HELD' && <Icon name="timer-outline" size={16} color={onDark ? colors.white : accent} />}
+        {state === 'HELD' && <Icon name="timer-outline" size={16} color={onDark ? colors.onIndigo : accent} />}
       </div>
     </button>
   );

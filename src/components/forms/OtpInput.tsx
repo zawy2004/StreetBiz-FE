@@ -55,7 +55,7 @@ export function OtpInput({ length = 6, value, onChangeText }: Props) {
           autoComplete={index === 0 ? 'one-time-code' : 'off'}
           inputMode="numeric"
           maxLength={1}
-          className="h-14 w-12 rounded-sm border border-border bg-card text-center text-headline-lg text-text"
+          className="input-shell h-14 w-12 rounded-sm border border-border bg-card text-center text-headline-lg font-tabular text-text focus:border-primary focus:shadow-[0_0_0_3px_rgb(var(--c-primary)/0.16)]"
         />
       ))}
     </div>

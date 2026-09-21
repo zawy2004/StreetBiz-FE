@@ -15,9 +15,10 @@ export function StatusChip(props: Props) {
 
   return (
     <span
-      style={{ backgroundColor: colorsForTone.bg, borderColor: colorsForTone.border, color: colorsForTone.fg }}
-      className="inline-flex h-6 w-fit items-center justify-center truncate rounded-full border px-xs text-badge"
+      style={{ backgroundColor: colorsForTone.bg, color: colorsForTone.fg }}
+      className="inline-flex h-6 w-fit shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full pl-2 pr-2.5 text-badge"
     >
+      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'currentColor' }} />
       {label.toUpperCase()}
     </span>
   );

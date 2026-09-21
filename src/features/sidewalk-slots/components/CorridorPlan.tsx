@@ -104,12 +104,12 @@ function Footpath() {
 
 function Roadway({ roadName, coordinates }: { roadName: string; coordinates: string | null }) {
   return (
-    <div className="relative flex h-24 flex-col justify-between overflow-hidden rounded-sm bg-indigo p-sm text-white">
+    <div className="relative flex h-24 flex-col justify-between overflow-hidden rounded-sm bg-indigo p-sm text-on-indigo">
       {/* At the left edge: the plan scrolls sideways, so a label at the far right is mostly off-screen. */}
-      <span className="w-fit rounded-sm bg-white/15 px-xs text-badge">{roadName.toUpperCase()}</span>
+      <span className="w-fit rounded-sm bg-on-indigo/15 px-xs text-badge">{roadName.toUpperCase()}</span>
       <div className="pointer-events-none absolute inset-x-0 top-1/2 border-t-2 border-dashed border-secondary" />
       {coordinates && (
-        <span className="relative w-fit rounded-sm bg-white/15 px-xs text-body-sm">● {coordinates}</span>
+        <span className="relative w-fit rounded-sm bg-on-indigo/15 px-xs text-body-sm">● {coordinates}</span>
       )}
     </div>
   );

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Avatar, Button, Card, Divider, Icon, ListRow } from '@/components/common';
-import { AppHeader, Screen, Section } from '@/components/layout';
+import { AppHeader, Screen, Section, ThemeToggle } from '@/components/layout';
 import { ConfirmDialog } from '@/components/feedback';
 import { isDev, isLiveApi } from '@/core/config/env';
 import { ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
@@ -29,7 +29,7 @@ export function AccountScreen() {
   };
 
   return (
-    <Screen>
+    <Screen width="narrow">
       <AppHeader title="Tài khoản" />
       <Card>
         <div className="flex items-center gap-3">
@@ -42,6 +42,12 @@ export function AccountScreen() {
           </div>
         </div>
       </Card>
+
+      <Section title="Giao diện" description="Chế độ tối dịu mắt hơn khi bán hàng buổi tối.">
+        <Card>
+          <ThemeToggle />
+        </Card>
+      </Section>
 
       <Section title="Bảo mật">
         <Card padded={false}>

@@ -6,7 +6,7 @@ import { AppHeader, Screen, Section } from '@/components/layout';
 import { SegmentedControl } from '@/components/forms';
 import { StatusChip } from '@/components/status';
 import { EmptyState } from '@/components/feedback';
-import { colors } from '@/theme';
+import { alpha, colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -29,12 +29,12 @@ export function FinanceHomeScreen() {
   return (
     <Screen>
       <AppHeader title="Tài chính" />
-      <Card style={{ backgroundColor: colors.indigo }}>
+      <Card className="!border-transparent !bg-indigo">
         <div className="flex flex-col gap-2xs">
-          <span className="text-body-md" style={{ color: '#C7CCDB' }}>
+          <span className="text-body-md" style={{ color: alpha(colors.onIndigo, 0.72) }}>
             Tổng cần thanh toán
           </span>
-          <Money amountVnd={totalDue} size="lg" color={colors.white} />
+          <Money amountVnd={totalDue} size="lg" color={colors.onIndigo} />
         </div>
       </Card>
 
