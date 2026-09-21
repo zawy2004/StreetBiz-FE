@@ -26,14 +26,14 @@ export function NewRegistrationDetailsScreen() {
   const submit = () => {
     const next: Record<string, string | undefined> = {};
     if (!draft.displayName.trim()) next.displayName = 'Vui lòng nhập tên hộ kinh doanh.';
-    if (draft.wardUnitId === null) next.ward = 'Vui lòng chọn phường/xã.';
+    if (!draft.wardUnitId) next.ward = 'Vui lòng chọn phường/xã.';
     if (needsAddress && !draft.declaredAddress.trim()) {
       next.address = 'Cửa hàng cố định cần nhập địa chỉ kinh doanh.';
     }
 
     setErrors(next);
     if (Object.values(next).some(Boolean)) return;
-    navigate('/vendor/registrations/new/evidence');
+    navigate('/vendor/registrations/new/owner');
   };
 
   return (
@@ -48,7 +48,7 @@ export function NewRegistrationDetailsScreen() {
         title={draft.registrationId ? 'Cập nhật hồ sơ' : 'Đăng ký kinh doanh'}
         back
       />
-      <Stepper step={2} total={3} label="Thông tin hộ kinh doanh" />
+      <Stepper step={2} total={4} label="Thông tin hộ kinh doanh" />
 
       <TextField
         label="Tên hộ kinh doanh"

@@ -62,6 +62,11 @@ export function NewRegistrationEvidenceScreen() {
   });
 
   const submit = () => {
+    if (!isEditing && (!draft.displayName.trim() || !draft.wardUnitId)) {
+      setError('Thông tin bước 1 và 2 chưa đầy đủ (tên hộ kinh doanh, phường/xã). Vui lòng quay lại kiểm tra.');
+      return;
+    }
+
     const absent = isEditing ? [] : required.filter((type) => !uriFor(type));
     setMissing(absent);
     if (absent.length > 0) {
@@ -124,7 +129,7 @@ export function NewRegistrationEvidenceScreen() {
       }
     >
       <AppHeader title={isEditing ? 'Cập nhật hồ sơ' : 'Đăng ký kinh doanh'} back />
-      <Stepper step={3} total={3} label="Giấy tờ minh chứng" />
+      <Stepper step={4} total={4} label="Giấy tờ minh chứng" />
 
       {env.enableAiCompliance ? (
         <AiHint title="Tự động điền từ giấy tờ">
@@ -158,6 +163,23 @@ export function NewRegistrationEvidenceScreen() {
           />
         ))}
       </div>
+
+      {slots.includes(EVIDENCE_TYPE.identityDocument) ? (
+        <label className="flex items-start gap-sm rounded-sm border border-border bg-card p-md">
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 shrink-0"
+            checked={draft.biometricConsent}
+            onChange={(e) => draft.setField('biometricConsent', e.target.checked)}
+          />
+          <span className="text-body-sm text-text">
+            Tôi đồng ý <strong>riêng biệt</strong> để hệ thống dùng công nghệ nhận diện quang học
+            (OCR) đối soát ảnh CCCD/CMND theo Luật Bảo vệ dữ liệu cá nhân 2025 (Nghị định
+            356/2025/NĐ-CP). Không đồng ý vẫn nộp hồ sơ được — cán bộ phường sẽ đối chiếu giấy tờ
+            thủ công thay vì tự động.
+          </span>
+        </label>
+      ) : null}
 
       {error ? (
         <span role="alert" className="text-body-sm text-error">

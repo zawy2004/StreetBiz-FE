@@ -1,6 +1,9 @@
-import { apiGet, apiGetBlob, apiPathFromFileUrl, apiPost, apiPut } from '@/core/api';
+import { apiGet, apiGetBlob, apiPathFromFileUrl, apiPost, apiPut, apiUpload } from '@/core/api';
 
-export type CaseKind = 'registrations' | 'proposals' | 'conflicts' | 'transfers';
+// Business-registration review ("registrations") is NOT a CaseKind: it goes through
+// WardComplianceController's dedicated /ward/enrollments endpoints below (complianceApi),
+// which enforce the BR-41 identity-verification gate. See RegistrationReviewScreen.
+export type CaseKind = 'proposals' | 'conflicts' | 'transfers';
 export const wardReviewRoot = '/ward/inbox/reviews';
 export type GeoPoint = { latitude: number; longitude: number };
 export type GeoResult = { inside: boolean; wardId: number; boundaryVersion: string };
@@ -44,7 +47,9 @@ export type CasePage = { items: WardCase[]; page: number; hasMore: boolean };
  * an expired access token is refreshed once and the call retried, a revoked
  * session clears the app session and redirects to sign-in, and every failure
  * arrives as an `ApiError` carrying the backend's own Vietnamese message
- * (`code: 'conflict'` for the 409 stale-status case the reviewer sees).
+ * (`code: 'conflict'` for the 409 stale-status case the reviewer sees). complianceApi
+ * below (WARD-04/05/06, 11..13) was migrated onto the same client for the same reason --
+ * it used to share the old private fetch client and the same paste-a-JWT problem.
  */
 export const wardApi = {
   me: () => apiGet<WardProfile>('/ward/me'),
@@ -85,8 +90,301 @@ export function parsePoint(latitude: string, longitude: string): GeoPoint | null
     : null;
 }
 
+// ---- Ward Review, Permit & Compliance (WARD-04..08, 11..13) ----
+
+export type WardEvidence = { evidenceId: number; type: string; label: string; fileUrl: string };
+export type AiDocumentCheck = {
+  matchPercentage: number;
+  isMatch: boolean;
+  needsManualVerification: boolean;
+  summary: string;
+  discrepancies: string[];
+  isAiGenerated: boolean;
+};
+export type WardEnrollmentItem = {
+  id: string;
+  displayName: string;
+  ownerName: string;
+  idNumber: string | null;
+  vendorType: string;
+  status: string;
+  address: string;
+  createdAt: string;
+  fastTrack: boolean;
+};
+/** Mẫu số 01 Phụ lục II, Thông tư 68/2025/TT-BTC -- chủ hộ kinh doanh. */
+export type WardOwnerProfile = {
+  dateOfBirth: string | null;
+  gender: string | null;
+  ethnicity: string | null;
+  nationality: string | null;
+  idType: string | null;
+  idIssuedDate: string | null;
+  idIssuedPlace: string | null;
+  permanentAddress: string | null;
+  contactAddress: string | null;
+};
+export type WardBusinessProfile = {
+  businessLine: string | null;
+  businessLineCode: string | null;
+  capitalAmount: number | null;
+  laborCount: number | null;
+  plannedStartDate: string | null;
+};
+export type WardHouseholdMember = {
+  fullName: string;
+  dateOfBirth: string | null;
+  idNumber: string | null;
+  relationshipToOwner: string | null;
+  capitalContribution: number | null;
+};
+/** A server-recorded eKYC check. Scores are written where they are computed, never sent by
+ * the applicant's browser, so a client cannot claim a similarity it did not get. */
+export type WardKycCheck = {
+  checkType: 'ID_CARD_OCR' | 'FACE_MATCH';
+  provider: string;
+  isMatch: boolean | null;
+  similarityPercent: number | null;
+  confidencePercent: number | null;
+  warnings: string | null;
+  createdAt: string;
+};
+export type WardEnrollmentDetail = WardEnrollmentItem & {
+  latitude: number | null;
+  longitude: number | null;
+  reviewReason: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  evidence: WardEvidence[];
+  aiCheck: AiDocumentCheck | null;
+  ownerProfile: WardOwnerProfile;
+  businessProfile: WardBusinessProfile;
+  foodSafetyCommitmentAt: string | null;
+  householdMembers: WardHouseholdMember[];
+  /** BR-41 KYC gate: true only after an officer called confirmIdentity -- AI-OCR alone never
+   * sets this, since it only reads/self-compares a photo and never queries the national
+   * population database. decideEnrollment's APPROVE is refused server-side until this is true. */
+  identityVerified: boolean;
+  identityVerifiedAt: string | null;
+  identityVerifiedByName: string | null;
+  identityVerificationNote: string | null;
+  kycChecks: WardKycCheck[];
+};
+
+export type WardRentalApplicationItem = {
+  id: string;
+  applicationMethod: string;
+  requestedTermDays: number;
+  status: string;
+  vendorName: string;
+  slotCode: string;
+  slotStreet: string;
+  pricePerDay: number;
+  createdAt: string;
+};
+export type WardRentalApplicationDetail = WardRentalApplicationItem & {
+  registrationId: number;
+  registrationStatus: string;
+  vendorPhone: string;
+  slotId: number;
+  slotWidth: number;
+  slotLength: number;
+  reviewReason: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  canApprove: boolean;
+  blockers: string[];
+};
+
+export type AiEncroachment = {
+  detectedEncroachment: boolean;
+  encroachmentDistanceCm: number;
+  analysis: string;
+  visualCues: string[];
+  isAiGenerated: boolean;
+};
+export type InspectPermitResult = {
+  found: boolean;
+  isValid: boolean;
+  effectiveStatus: string;
+  permitId: number | null;
+  contractId: number | null;
+  vendorId: number | null;
+  vendorName: string | null;
+  slotId: number | null;
+  slotCode: string | null;
+  slotStreet: string | null;
+  width: number | null;
+  length: number | null;
+  startDate: string | null;
+  endDate: string | null;
+  distanceMeters: number | null;
+  isLocationMatched: boolean;
+  locationWarning: string | null;
+  aiVisionResult: AiEncroachment | null;
+};
+
+export type PenaltyScheduleItem = {
+  scheduleId: number;
+  violationType: string;
+  violationTypeName: string;
+  penaltyAmount: number;
+  legalBasis: string | null;
+};
+/** Fields mirror Mau MBB01 (Nghi dinh 118/2021/NĐ-CP). legalBasis is always copied verbatim
+ * from the ward's own PenaltyFeeSchedules row on the backend -- never AI-authored text. */
+export type AiLegalSuggestion = {
+  violationType: string;
+  penaltyScheduleId: number | null;
+  legalBasis: string | null;
+  suggestedPenaltyAmount: number | null;
+  hanhViViPham: string;
+  bienPhapKhacPhuc: string;
+  isAiGenerated: boolean;
+};
+export type WardViolationItem = {
+  violationId: number;
+  contractId: number | null;
+  slotCode: string | null;
+  vendorName: string | null;
+  violationType: string;
+  violationTypeName: string;
+  status: string;
+  penaltyAmount: number | null;
+  recordedAt: string;
+  recordedByName: string;
+};
+export type WardViolationDetail = WardViolationItem & {
+  slotId: number | null;
+  vendorId: number | null;
+  description: string | null;
+  evidenceUrl: string | null;
+  sanctionDecisionNumber: string | null;
+  signerName: string | null;
+  signerTitle: string | null;
+  sanctionedAt: string | null;
+  recentViolationCount90Days: number;
+  aiSuggestion: AiLegalSuggestion | null;
+};
+
+export type WardRiskQueueItem = {
+  registrationId: string;
+  displayName: string;
+  score: number;
+  breakdown: { reason: string; points: number }[];
+};
+export type WardPatrolHeatmapPoint = {
+  zoneId: number | null;
+  zoneName: string | null;
+  dayOfWeek: number;
+  hourOfDay: number;
+  violationCount: number;
+};
+
+export const complianceApi = {
+  listEnrollments: (status?: string, page = 1) =>
+    apiGet<WardEnrollmentItem[]>(
+      `/ward/enrollments?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page) })}`,
+    ),
+  getEnrollment: (id: string) => apiGet<WardEnrollmentDetail>(`/ward/enrollments/${id}`),
+  decideEnrollment: (id: string, decision: string, reason: string, expectedStatus: string) =>
+    apiPost<WardEnrollmentDetail>(`/ward/enrollments/${id}/decision`, { decision, reason, expectedStatus }),
+  /** BR-41 KYC gate: officer confirms they compared the vendor against their physical/chip
+   * CCCD. The backend refuses decideEnrollment's APPROVE until this has been called. */
+  confirmIdentity: (id: string, note: string) =>
+    apiPost<WardEnrollmentDetail>(`/ward/enrollments/${id}/confirm-identity`, { note }),
+
+  listRentalApplications: (status?: string, page = 1) =>
+    apiGet<WardRentalApplicationItem[]>(
+      `/ward/rental-applications?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page) })}`,
+    ),
+  getRentalApplication: (id: string) =>
+    apiGet<WardRentalApplicationDetail>(`/ward/rental-applications/${id}`),
+  decideRentalApplication: (id: string, decision: string, reason: string, expectedStatus: string) =>
+    apiPost<WardRentalApplicationDetail>(`/ward/rental-applications/${id}/decision`, {
+      decision,
+      reason,
+      expectedStatus,
+    }),
+
+  inspectPermit: (
+    permitCodeOrPayload: string,
+    latitude?: number,
+    longitude?: number,
+    inspectionPhotoUrl?: string,
+  ) =>
+    apiPost<InspectPermitResult>('/ward/permits/inspect', {
+      permitCodeOrPayload,
+      latitude,
+      longitude,
+      inspectionPhotoUrl,
+    }),
+  permitAction: (permitId: number, action: 'SUSPEND' | 'REVOKE', reason: string) =>
+    apiPost<boolean>(`/ward/permits/${permitId}/action`, { action, reason }),
+
+  listPenaltySchedules: () => apiGet<PenaltyScheduleItem[]>('/ward/penalty-schedules'),
+  listViolations: (status?: string, page = 1) =>
+    apiGet<WardViolationItem[]>(
+      `/ward/violations?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page) })}`,
+    ),
+  getViolation: (id: number) => apiGet<WardViolationDetail>(`/ward/violations/${id}`),
+  recordViolation: (request: {
+    contractId?: number;
+    slotId?: number;
+    vendorId?: number;
+    violationType: string;
+    description: string;
+    evidenceUrl?: string;
+  }) => apiPost<WardViolationDetail>('/ward/violations', request),
+  sanctionViolation: (
+    id: number,
+    penaltyScheduleId: number,
+    decisionNumber: string,
+    signerName: string,
+    signerTitle: string,
+    notes?: string,
+  ) =>
+    apiPost<WardViolationDetail>(`/ward/violations/${id}/sanction`, {
+      penaltyScheduleId,
+      decisionNumber,
+      signerName,
+      signerTitle,
+      notes,
+    }),
+
+  riskQueue: () => apiGet<WardRiskQueueItem[]>('/ward/insights/risk-queue'),
+  patrolHeatmap: () => apiGet<WardPatrolHeatmapPoint[]>('/ward/insights/patrol-heatmap'),
+
+  /** Server-authoritative: loads this registration's own stored evidence + declared profile and
+   * checks biometric consent server-side. Never send an evidence list / declared name-address
+   * from the client -- an earlier draft did, and its shape drifted out of sync with the backend
+   * (which only ever needed the registration id). */
+  aiDocumentExtract: (registrationId: string) =>
+    apiPost<AiDocumentCheck>('/ward/ai/document-extract', { registrationId: Number(registrationId) }),
+
+  aiEncroachmentCheck: (photoUrl: string, slotWidth?: number, slotLength?: number) =>
+    apiPost<AiEncroachment>('/ward/ai/encroachment-check', { photoUrl, slotWidth, slotLength }),
+
+  askVendorAssistant: (question: string, context?: string) =>
+    apiPost<{ answer: string; isAiGenerated: boolean }>('/ward/ai/vendor-assistant', { question, context }),
+
+  /** Shared with REG-02; UploadsController also authorizes WARD_AUTHORITY for WARD-11/12 evidence. */
+  uploadEvidence: (file: File): Promise<{ fileUrl: string }> => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiUpload<{ fileUrl: string }>('/uploads/evidence', form);
+  },
+};
+
+export const violationTypeLabels: Record<string, string> = {
+  UNAUTHORIZED_BUSINESS_USE: 'Sử dụng trái phép vỉa hè để kinh doanh',
+  EXPIRED_OR_INVALID_PERMIT: 'Giấy phép hết hạn / sai nội dung',
+  STREET_VENDING_RESTRICTED: 'Bán hàng rong tại tuyến phố cấm',
+  HYGIENE_LITTERING: 'Vứt rác, mất vệ sinh vỉa hè',
+  OBSTRUCT_PUBLIC_ORDER: 'Cản trở an ninh trật tự công cộng',
+};
+
 export const caseLabels: Record<CaseKind, string> = {
-  registrations: 'Hồ sơ đăng ký',
   proposals: 'Đề xuất vị trí',
   conflicts: 'Xung đột địa chỉ',
   transfers: 'Chuyển nhượng ô',

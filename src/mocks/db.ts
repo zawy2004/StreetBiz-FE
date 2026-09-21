@@ -67,6 +67,11 @@ type State = {
   ) => BusinessRegistration;
   updateRegistration: (id: string, patch: Partial<BusinessRegistration>) => void;
   withdrawRegistration: (id: string) => void;
+  /** RegistrationReviewScreen's mock-mode decisions (WARD-04/05/06). Live mode decides through
+   * WardComplianceController's /ward/enrollments endpoints instead (complianceApi). */
+  approveRegistration: (id: string) => void;
+  rejectRegistration: (id: string, note: string) => void;
+  requestRegistrationEvidence: (id: string, note: string) => void;
 
   submitRentalApplication: (
     a: Omit<RentalApplication, 'id' | 'application_status' | 'submitted_at'>,
@@ -203,9 +208,24 @@ export const useMockDb = create<State>((set, get) => ({
         r.id === id ? { ...r, registration_status: 'WITHDRAWN' } : r,
       ),
     })),
-  // The ward's approve/reject/request-info actions used to live here, driving a
-  // mock-only review screen. That screen is gone: the ward queue now decides
-  // through the API (WardCaseScreen), so there is nothing left to fake.
+  approveRegistration: (id) =>
+    set((s) => ({
+      registrations: s.registrations.map((r) =>
+        r.id === id ? { ...r, registration_status: 'APPROVED' } : r,
+      ),
+    })),
+  rejectRegistration: (id, note) =>
+    set((s) => ({
+      registrations: s.registrations.map((r) =>
+        r.id === id ? { ...r, registration_status: 'REJECTED', review_note: note } : r,
+      ),
+    })),
+  requestRegistrationEvidence: (id, note) =>
+    set((s) => ({
+      registrations: s.registrations.map((r) =>
+        r.id === id ? { ...r, registration_status: 'MORE_INFORMATION_REQUIRED', review_note: note } : r,
+      ),
+    })),
 
   submitRentalApplication: (a) => {
     const application: RentalApplication = {

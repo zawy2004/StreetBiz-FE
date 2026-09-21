@@ -82,8 +82,12 @@ export function WardDashboardScreen() {
           <p className="text-body-sm text-muted">Theo dõi trạng thái từng ô</p>
         </Card>
         <Card onPress={() => navigate('/ward/patrol')}>
-          <h3 className="text-headline-sm text-text">Tuần tra hiện trường</h3>
-          <p className="text-body-sm text-muted">Quét QR &amp; lập biên bản</p>
+          <h3 className="text-headline-sm text-text">Tuần tra hiện trường &amp; Quét QR</h3>
+          <p className="text-body-sm text-muted">Kiểm tra Giấy phép số và phân tích AI Vision</p>
+        </Card>
+        <Card onPress={() => navigate('/ward/patrol/violations/new')}>
+          <h3 className="text-headline-sm text-text">Lập biên bản vi phạm &amp; Xử phạt</h3>
+          <p className="text-body-sm text-muted">Biên bản hiện trường và Quyết định xử phạt (NĐ 168/2024)</p>
         </Card>
       </Section>
     </Screen>

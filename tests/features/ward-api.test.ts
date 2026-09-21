@@ -102,7 +102,7 @@ describe('ward API', () => {
     await wardApi.decide(
       {
         id: '7',
-        kind: 'registrations',
+        kind: 'proposals',
         status: 'UNDER_REVIEW',
       } as Parameters<typeof wardApi.decide>[0],
       'REQUEST_INFO',

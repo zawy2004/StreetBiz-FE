@@ -36,6 +36,24 @@ const created: ApiRegistration = {
   reviewedAt: null,
   createdAt: '2026-09-16T00:00:00Z',
   updatedAt: null,
+  ownerDateOfBirth: null,
+  ownerGender: null,
+  ownerEthnicity: null,
+  ownerNationality: null,
+  idType: null,
+  idIssuedDate: null,
+  idIssuedPlace: null,
+  permanentAddress: null,
+  contactAddress: null,
+  businessLine: null,
+  businessLineCode: null,
+  capitalAmount: null,
+  laborCount: null,
+  plannedStartDate: null,
+  foodSafetyCommitmentAt: null,
+  identityVerifiedAt: null,
+  identityVerificationNote: null,
+  householdMembers: [],
 };
 
 function file(name: string) {
@@ -75,6 +93,7 @@ describe('submitRegistrationDraft', () => {
       evidenceType: 'IDENTITY_DOCUMENT',
       fileUrl: '/api/uploads/evidence/1/id.jpg',
       ocrExtractedData: null,
+      biometricConsent: false,
     });
     // Never the browser-only preview URL.
     for (const [, payload] of api.submitEvidence.mock.calls) {

@@ -1,5 +1,5 @@
-import { vendorRegistrationApi, type ApiRegistration, type RegistrationPayload } from '@/core/api';
-import { useNewRegistrationStore } from './new-registration-store';
+import { EVIDENCE_TYPE, vendorRegistrationApi, type ApiRegistration, type RegistrationPayload } from '@/core/api';
+import { parseVndAmount, useNewRegistrationStore } from './new-registration-store';
 
 /**
  * REG-01/02/04 submission against StreetBiz-BE, in three resumable steps:
@@ -22,13 +22,41 @@ export async function submitRegistrationDraft(): Promise<ApiRegistration> {
   }
 
   const draft = store();
+  if (!draft.displayName.trim() || !draft.wardUnitId) {
+    throw new Error('Vui lòng hoàn thành thông tin hộ kinh doanh và chọn phường/xã ở các bước trước.');
+  }
+
   const payload: RegistrationPayload = {
     vendorType: draft.vendorType,
     displayName: draft.displayName.trim(),
     declaredAddress: draft.declaredAddress.trim() || null,
     addressLatitude: draft.addressLatitude,
     addressLongitude: draft.addressLongitude,
-    wardUnitId: draft.wardUnitId!,
+    wardUnitId: draft.wardUnitId,
+    ownerDateOfBirth: draft.ownerDateOfBirth || null,
+    ownerGender: draft.ownerGender || null,
+    ownerEthnicity: draft.ownerEthnicity.trim() || null,
+    ownerNationality: draft.ownerNationality.trim() || null,
+    idType: draft.idType || null,
+    idIssuedDate: draft.idIssuedDate || null,
+    idIssuedPlace: draft.idIssuedPlace.trim() || null,
+    permanentAddress: draft.permanentAddress.trim() || null,
+    contactAddress: draft.contactAddress.trim() || null,
+    businessLine: draft.businessLine.trim() || null,
+    businessLineCode: draft.businessLineCode.trim() || null,
+    capitalAmount: parseVndAmount(draft.capitalAmount),
+    laborCount: draft.laborCount.trim() ? Number(draft.laborCount) : null,
+    plannedStartDate: draft.plannedStartDate || null,
+    foodSafetyCommitment: draft.foodSafetyCommitment,
+    householdMembers: draft.householdMembers
+      .filter((m) => m.fullName.trim())
+      .map((m) => ({
+        fullName: m.fullName.trim(),
+        dateOfBirth: m.dateOfBirth || null,
+        idNumber: m.idNumber.trim() || null,
+        relationshipToOwner: m.relationshipToOwner.trim() || null,
+        capitalContribution: parseVndAmount(m.capitalContribution),
+      })),
   };
 
   // Editing, or retrying after this wizard already created the application: update
@@ -49,6 +77,9 @@ export async function submitRegistrationDraft(): Promise<ApiRegistration> {
       evidenceType: item.evidenceType,
       fileUrl: item.uploadedUrl,
       ocrExtractedData: null,
+      // Only meaningful for the ID photo -- ward's AI-OCR document check reads this,
+      // never inferred from other checkboxes.
+      biometricConsent: item.evidenceType === EVIDENCE_TYPE.identityDocument && draft.biometricConsent,
     });
     store().patchEvidence(item.evidenceType, { attached: true });
   }
