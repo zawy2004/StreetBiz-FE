@@ -10,15 +10,61 @@ body,
 
 body {
   margin: 0;
-  background-color: #f8fafc;
-  color: #1a2238;
+  background-color: #fbf9f5;
+  color: #181f28;
   font-family:
     'Be Vietnam Pro',
     system-ui,
     sans-serif;
   -webkit-font-smoothing: antialiased;
+  background-image: radial-gradient(#e8e2d5 0.75px, transparent 0.75px);
+  background-size: 24px 24px;
 }
 
 .font-tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Indochine Modern gradients & luxury glass styles */
+.gold-gradient {
+  background: linear-gradient(135deg, #d99b26 0%, #f5c065 100%);
+}
+
+.terracotta-gradient {
+  background: linear-gradient(135deg, #b84a39 0%, #cf5d4b 100%);
+}
+
+.emerald-gradient {
+  background: linear-gradient(135deg, #235347 0%, #357564 100%);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(232, 226, 213, 0.9);
+}
+
+.indochine-border {
+  border: 1px solid #e8e2d5;
+  box-shadow: 0 1px 3px 0 rgba(28, 35, 46, 0.04), 0 6px 16px -2px rgba(184, 74, 57, 0.05);
+}
+
+/* Elegant warm scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #fbf9f5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4ccbd;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b84a39;
 }

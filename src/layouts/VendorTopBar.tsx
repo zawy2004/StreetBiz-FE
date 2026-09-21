@@ -30,7 +30,7 @@ export function VendorTopBar() {
   const onWorkspace = zones.length > 0;
 
   return (
-    <header className="flex shrink-0 flex-col border-b border-border bg-card">
+    <header className="flex shrink-0 flex-col border-b border-border bg-card/95 backdrop-blur-md shadow-sm">
       <div className="flex h-16 items-center gap-sm px-md">
         {onWorkspace && <RouteSelect />}
         {onWorkspace && isDesktop && <SlotSearch />}
@@ -40,16 +40,16 @@ export function VendorTopBar() {
           <Link
             to="/account/notifications"
             aria-label="Thông báo"
-            className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-bg"
+            className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-gold-light/40"
           >
             <Icon name="bell-outline" size={22} color={colors.text} />
           </Link>
           <div className="ml-xs flex items-center gap-xs">
             {isDesktop && (
               <div className="text-right">
-                <p className="max-w-[180px] truncate text-label text-text">{user?.fullName ?? 'Hộ kinh doanh'}</p>
+                <p className="max-w-[180px] truncate text-label font-medium text-text">{user?.fullName ?? 'Hộ kinh doanh'}</p>
                 {registration && (
-                  <p className="text-body-sm text-muted">{hkdCode(registration.registrationId)}</p>
+                  <p className="text-body-sm font-semibold text-primary">{hkdCode(registration.registrationId)}</p>
                 )}
               </div>
             )}
@@ -72,7 +72,7 @@ function RouteSelect() {
   const selectZone = useWorkspaceStore((s) => s.selectZone);
 
   return (
-    <label className="flex h-10 min-w-0 max-w-[280px] items-center gap-xs rounded-full border border-border bg-bg px-sm text-label text-text">
+    <label className="flex h-10 min-w-0 max-w-[280px] items-center gap-xs rounded-full border border-border bg-card px-sm text-label text-text shadow-sm transition-all hover:border-gold/50">
       <Icon name="map-marker-outline" size={18} color={colors.muted} />
       <span className="sr-only">Tuyến</span>
       <select
