@@ -281,6 +281,74 @@ export type WardPatrolHeatmapPoint = {
   violationCount: number;
 };
 
+// -- Renewal Review (WARD-09) --
+export type WardRenewalItem = {
+  id: string;
+  contractId: number;
+  slotCode: string;
+  slotStreet: string;
+  vendorName: string;
+  status: string;
+  requestedTermDays: number;
+  currentEndDate: string;
+  proposedEndDate: string;
+  pricePerDay: number;
+  totalFee: number;
+  isFastTrackEligible: boolean;
+  violationCount: number;
+  createdAt: string;
+  /** NĐ 241/2026 Điều 21: hạn xử lý 3 ngày làm việc, tính gần đúng bằng ngày lịch. */
+  slaDueAt: string;
+  isOverdue: boolean;
+};
+export type WardVendorComplianceScorecard = {
+  totalInspections: number;
+  violationCount: number;
+  unpaidPenaltyCount: number;
+  totalPenaltyAmount: number;
+  reportCount: number;
+  currentPermitStatus: string;
+  isCleanRecord: boolean;
+};
+/** Idea 4 (WARD-09): batch fast-approval for the Fast-track filtered renewal queue. Each item
+ * runs through the exact same precondition checks as a single decision -- a batch call never
+ * skips a check a single approval would run, it just lets an officer fire many at once. */
+export type WardRenewalBatchDecisionItemResult = {
+  renewalId: number;
+  success: boolean;
+  errorMessage: string | null;
+  newEndDate: string | null;
+};
+export type WardRenewalBatchDecisionResult = {
+  totalRequested: number;
+  successCount: number;
+  failureCount: number;
+  results: WardRenewalBatchDecisionItemResult[];
+};
+export type WardRenewalDetail = WardRenewalItem & {
+  requestedTermDays: number;
+  currentEndDate: string;
+  proposedEndDate: string;
+  remainingDaysOnCurrentContract: number;
+  slotId: number;
+  slotWidth: number;
+  slotLength: number;
+  pricePerDay: number;
+  totalEstimatedFee: number;
+  vendorId: number;
+  vendorPhone: string;
+  vendorType: string;
+  registrationId: number;
+  registrationStatus: string;
+  reviewReason: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  canApprove: boolean;
+  isFastTrackEligible: boolean;
+  blockers: string[];
+  scorecard: WardVendorComplianceScorecard;
+};
+
 export const complianceApi = {
   listEnrollments: (status?: string, page = 1) =>
     apiGet<WardEnrollmentItem[]>(
@@ -305,6 +373,30 @@ export const complianceApi = {
       decision,
       reason,
       expectedStatus,
+    }),
+
+  // -- Renewal Applications (WARD-09) --
+  listRenewals: (status?: string, page = 1) =>
+    apiGet<WardRenewalItem[]>(
+      `/ward/renewals?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page) })}`,
+    ),
+  getRenewal: (id: string) => apiGet<WardRenewalDetail>(`/ward/renewals/${id}`),
+  decideRenewal: (id: string, decision: string, reason: string, expectedStatus: string) =>
+    apiPost<WardRenewalDetail>(`/ward/renewals/${id}/decision`, {
+      decision,
+      reason,
+      expectedStatus,
+    }),
+  /** Idea 4: batch-approve renewals an officer has selected from the Fast-track filtered queue. */
+  batchDecideRenewals: (
+    items: { renewalId: number; expectedStatus: string }[],
+    decision: string,
+    reason: string,
+  ) =>
+    apiPost<WardRenewalBatchDecisionResult>('/ward/renewals/batch-decision', {
+      items: items.map((i) => ({ renewalId: i.renewalId, expectedStatus: i.expectedStatus })),
+      decision,
+      reason,
     }),
 
   inspectPermit: (

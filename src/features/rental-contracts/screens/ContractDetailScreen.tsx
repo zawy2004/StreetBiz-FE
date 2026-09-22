@@ -1,11 +1,11 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { Card, Money } from '@/components/common';
+import { Button, Card, Money } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { ErrorState, LoadingState } from '@/components/feedback';
-import { sideApi } from '@/core/api/side-api';
+import { ErrorState, LoadingState, showToast } from '@/components/feedback';
+import { sideApi, SideApiError } from '@/core/api/side-api';
 import { ActionRow } from '@/features/sidewalk-slots/components/ActionRow';
 import { Callout } from '@/features/sidewalk-slots/components/Callout';
 import { ContractTerm } from '@/features/sidewalk-slots/components/ContractTerm';
@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store/auth-store';
 export function ContractDetailScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.user?.id);
   const contractId = Number(id);
   const validId = Number.isFinite(contractId);
@@ -31,6 +32,24 @@ export function ContractDetailScreen() {
     queryKey: ['side', 'slot', contract.data?.slotId],
     queryFn: () => sideApi.getSlot(contract.data!.slotId),
     enabled: !!contract.data,
+  });
+
+  const renewals = useQuery({
+    queryKey: ['side', userId, 'contract', contractId, 'renewals'],
+    queryFn: () => sideApi.listRenewals(contractId),
+    enabled: validId,
+  });
+  const openRenewal = renewals.data?.find(
+    (r) => r.renewalStatus === 'PENDING' || r.renewalStatus === 'UNDER_REVIEW',
+  );
+
+  const withdrawRenewal = useMutation({
+    mutationFn: () => sideApi.withdrawRenewal(contractId, openRenewal!.renewalId),
+    onSuccess: (result) => {
+      showToast(result.message);
+      void queryClient.invalidateQueries({ queryKey: ['side', userId, 'contract', contractId, 'renewals'] });
+    },
+    onError: (err) => showToast(err instanceof SideApiError ? err.message : 'Không rút được đơn gia hạn.'),
   });
 
   if (!validId) return <ErrorState message="Mã hợp đồng không hợp lệ." />;
@@ -84,7 +103,26 @@ export function ContractDetailScreen() {
               ]}
             />
 
-            {expiringSoon && <Callout tone="pending">Hợp đồng sắp hết hạn. Gia hạn để tiếp tục thuê ô này.</Callout>}
+            {expiringSoon && !openRenewal && (
+              <Callout tone="pending">Hợp đồng sắp hết hạn. Gia hạn để tiếp tục thuê ô này.</Callout>
+            )}
+            {openRenewal && (
+              <Callout tone="pending">
+                <div className="flex flex-col gap-xs">
+                  <span>
+                    Đơn xin gia hạn thêm {openRenewal.requestedTermDays} ngày đang{' '}
+                    {openRenewal.renewalStatus === 'UNDER_REVIEW' ? 'được xét duyệt' : 'chờ xử lý'}. Phường sẽ xử lý
+                    trong thời hạn quy định.
+                  </span>
+                  <Button
+                    label="Rút đơn gia hạn"
+                    variant="outline"
+                    loading={withdrawRenewal.isPending}
+                    onPress={() => withdrawRenewal.mutate()}
+                  />
+                </div>
+              </Callout>
+            )}
             {data.cancellationReason && (
               <Callout tone="neutral">
                 <strong>Lý do huỷ:</strong> {data.cancellationReason}
