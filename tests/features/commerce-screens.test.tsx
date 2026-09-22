@@ -42,6 +42,7 @@ vi.mock('@/core/config/env', async (importOriginal) => {
   return { ...actual, isLiveApi: true };
 });
 
+const { CartScreen } = await import('@/features/cart/screens/CartScreen');
 const { CheckoutScreen } = await import('@/features/cart/screens/CheckoutScreen');
 const { OrderDetailScreen } = await import('@/features/orders/screens/OrderDetailScreen');
 const { OrderPaymentScreen } = await import('@/features/orders/screens/OrderPaymentScreen');
@@ -181,6 +182,36 @@ describe('order UI contracts', () => {
     expect(submit).toBeDisabled();
     await user.click(submit);
     expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('shows the empty state when the customer has no cart', async () => {
+    legacyApi.cart.mockResolvedValue(null);
+    renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
+    expect(await screen.findByText('Giỏ hàng trống')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Thanh toán/ })).not.toBeInTheDocument();
+  });
+
+  it('lists cart lines and offers checkout when the storefront is open', async () => {
+    legacyApi.cart.mockResolvedValue(cart);
+    renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
+    expect(await screen.findByText('Bánh mì')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Thanh toán · 50.000 đ/ })).toBeEnabled();
+  });
+
+  it('blocks checkout while the storefront is closed', async () => {
+    legacyApi.cart.mockResolvedValue({ ...cart, storefrontStatus: 'CLOSED' });
+    renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
+    expect(await screen.findByRole('button', { name: /Thanh toán · 50.000 đ/ })).toBeDisabled();
+  });
+
+  it('blocks checkout when a line is no longer available', async () => {
+    legacyApi.cart.mockResolvedValue({
+      ...cart,
+      items: [{ ...cart.items[0]!, availabilityStatus: 'UNAVAILABLE' }],
+    });
+    renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
+    expect(await screen.findByText('Món hiện không còn bán.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Thanh toán · 50.000 đ/ })).toBeDisabled();
   });
 
   it('prevents a double-click checkout from sending a second request', async () => {

@@ -73,7 +73,14 @@ async function refreshTokens(): Promise<AuthTokens> {
 }
 
 http.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // ASP.NET renders a null result as 204 No Content, and axios surfaces that empty
+    // body as "". An empty string is not nullish, so `data?.field` walks straight past
+    // the optional chain and throws on the next property access. Normalising to null
+    // keeps every `T | null` endpoint honest at the one place they all pass through.
+    if (response.data === '') response.data = null;
+    return response;
+  },
   async (error: AxiosError) => {
     const config = error.config as RetriableConfig | undefined;
     const status = error.response?.status;

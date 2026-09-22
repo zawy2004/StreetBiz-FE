@@ -73,9 +73,6 @@ function LiveCartScreen() {
   }
 
   const data = cart.data;
-  // `items` isn't guaranteed present on every response shape the API can return
-  // (e.g. once a cart is abandoned server-side) - default to [] so nothing below
-  // ever reads .length/.map off undefined.
   const items = data?.items ?? [];
   const canCheckout =
     data?.storefrontStatus === 'OPEN' &&

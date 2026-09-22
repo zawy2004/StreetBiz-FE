@@ -6,6 +6,7 @@ import { SelectField, TextField } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ErrorState, showToast } from '@/components/feedback';
+import { errorMessage } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
 import { complianceApi } from '../ward-api';
@@ -50,8 +51,8 @@ export function PermitActionScreen() {
         );
         navigate(-1);
         return;
-      } catch (err: any) {
-        showToast(err.message || 'Lỗi cập nhật trạng thái giấy phép');
+      } catch (err) {
+        showToast(errorMessage(err));
       } finally {
         setLoading(false);
       }

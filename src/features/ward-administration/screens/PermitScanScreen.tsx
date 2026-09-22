@@ -6,6 +6,7 @@ import { TextField } from '@/components/forms';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { AiHint, StatusChip } from '@/components/status';
 import { EmptyState, showToast } from '@/components/feedback';
+import { errorMessage } from '@/core/api';
 import { env, isLiveApi } from '@/core/config/env';
 import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
@@ -80,8 +81,8 @@ export function PermitScanScreen() {
           photoUrl.trim() || undefined,
         );
         setLiveResult(res);
-      } catch (err: any) {
-        showToast(err.message || 'Lỗi tra cứu giấy phép');
+      } catch (err) {
+        showToast(errorMessage(err));
       } finally {
         setLoading(false);
       }
