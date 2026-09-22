@@ -74,7 +74,7 @@ export function VendorAssistantScreen() {
           { id: `${Date.now()}-bot`, from: 'BOT', text: answer, isAi: true },
         ]);
       }
-    } catch (err: any) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         {
