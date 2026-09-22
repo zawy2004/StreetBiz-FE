@@ -353,6 +353,11 @@ export const sideApi = {
     ),
   listRenewals: (contractId: number) =>
     sideRequest<RenewalRequest[]>(`/vendor/rental-contracts/${contractId}/renewals`),
+  withdrawRenewal: (contractId: number, renewalId: number) =>
+    sideRequest<{ message: string }>(
+      `/vendor/rental-contracts/${contractId}/renewals/${renewalId}/withdraw`,
+      { method: 'POST' },
+    ),
   cancelContract: (contractId: number, reason: string | null) =>
     sideRequest<{ message: string }>(`/vendor/rental-contracts/${contractId}/cancel`, {
       method: 'POST',

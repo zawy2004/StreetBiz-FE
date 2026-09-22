@@ -3,7 +3,7 @@ import axios, { type AxiosAdapter } from 'axios';
 
 import { ApiError, http } from '@/core/api';
 import { clearTokens, setTokens } from '@/core/api/token-storage';
-import { parsePoint, wardApi } from '@/features/ward-administration/ward-api';
+import { complianceApi, parsePoint, wardApi } from '@/features/ward-administration/ward-api';
 
 // ward-api reads the base URL through the shared client, and WardGate reads
 // isLiveApi; both come from this module.
@@ -110,6 +110,26 @@ describe('ward API', () => {
     );
 
     expect(JSON.parse(String(adapter.mock.calls[0]![0].data)).expectedStatus).toBe('UNDER_REVIEW');
+  });
+
+  it('uses the ward renewal endpoints with status filters and stale-status protection', async () => {
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'r',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({ status: 200, data: [] }));
+
+    await complianceApi.listRenewals('PENDING', 2);
+    await complianceApi.decideRenewal('9', 'APPROVE', 'Đủ điều kiện gia hạn', 'UNDER_REVIEW');
+
+    expect(adapter.mock.calls[0]![0].url).toBe('/ward/renewals?status=PENDING&page=2');
+    expect(adapter.mock.calls[1]![0].url).toBe('/ward/renewals/9/decision');
+    expect(JSON.parse(String(adapter.mock.calls[1]![0].data))).toEqual({
+      decision: 'APPROVE',
+      reason: 'Đủ điều kiện gia hạn',
+      expectedStatus: 'UNDER_REVIEW',
+    });
   });
 
   it('surfaces a 409 conflict as ApiError rather than showing a successful decision', async () => {

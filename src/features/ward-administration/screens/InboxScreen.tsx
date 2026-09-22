@@ -9,7 +9,131 @@ import { StatusChip } from '@/components/status';
 import { FilterChips } from '@/components/forms';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
-import { complianceApi, type WardEnrollmentItem, type WardRiskQueueItem } from '../ward-api';
+import {
+  complianceApi,
+  type WardEnrollmentItem,
+  type WardRentalApplicationItem,
+  type WardRenewalItem,
+  type WardRiskQueueItem,
+} from '../ward-api';
+
+/**
+ * Idea 4 (WARD-09): lets an officer select several Fast-track-eligible renewals from the
+ * queue and approve them in one call. Every selected item still runs through
+ * DecideRenewalAsync's own preconditions on the backend -- this panel is a shortcut for
+ * "click Approve N times with the same reason", never a way to skip a check.
+ */
+function FastTrackBatchPanel({
+  candidates,
+  onDone,
+}: {
+  candidates: WardRenewalItem[];
+  onDone: () => void;
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{ successCount: number; failureCount: number } | null>(null);
+
+  useEffect(() => {
+    setSelected((prev) => new Set([...prev].filter((id) => candidates.some((c) => c.id === id))));
+  }, [candidates]);
+
+  if (candidates.length === 0) return null;
+
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleAll = () =>
+    setSelected((prev) => (prev.size === candidates.length ? new Set() : new Set(candidates.map((c) => c.id))));
+
+  const submit = async () => {
+    if (selected.size === 0 || !reason.trim()) return;
+    setSubmitting(true);
+    setResult(null);
+    try {
+      const items = candidates
+        .filter((c) => selected.has(c.id))
+        .map((c) => ({ renewalId: Number(c.id), expectedStatus: c.status }));
+      const res = await complianceApi.batchDecideRenewals(items, 'APPROVE', reason.trim());
+      setResult({ successCount: res.successCount, failureCount: res.failureCount });
+      setSelected(new Set());
+      setReason('');
+      onDone();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between gap-sm">
+        <div>
+          <h2 className="text-headline-sm text-text">[AI] Duyệt nhanh hàng loạt</h2>
+          <p className="text-body-sm text-muted">
+            Chọn các hồ sơ gia hạn đủ điều kiện xét nhanh để phê duyệt cùng một lý do. Từng hồ sơ vẫn được kiểm tra điều
+            kiện riêng như duyệt thủ công.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={toggleAll}
+          className="whitespace-nowrap text-body-sm font-semibold text-on-secondary"
+        >
+          {selected.size === candidates.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+        </button>
+      </div>
+
+      <ul className="mt-sm divide-y divide-border">
+        {candidates.map((c) => (
+          <li key={c.id} className="flex items-center gap-sm py-xs">
+            <input
+              type="checkbox"
+              checked={selected.has(c.id)}
+              onChange={() => toggle(c.id)}
+              aria-label={`Chọn gia hạn ${c.vendorName} - ô ${c.slotCode}`}
+              className="h-4 w-4"
+            />
+            <span className="min-w-0 flex-1 truncate text-body-sm text-text">
+              {c.vendorName} - Gia hạn ô {c.slotCode} · +{c.requestedTermDays} ngày ·{' '}
+              {c.totalFee.toLocaleString('vi-VN')} đ
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <textarea
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="Lý do phê duyệt chung (bắt buộc)"
+        rows={2}
+        className="mt-sm w-full rounded-md border border-border bg-sunken/40 p-sm text-body-sm text-text"
+      />
+
+      {result ? (
+        <p className="mt-xs text-body-sm text-muted">
+          Đã xử lý: {result.successCount} thành công, {result.failureCount} thất bại.
+        </p>
+      ) : null}
+
+      <div className="mt-sm flex justify-end">
+        <button
+          type="button"
+          disabled={selected.size === 0 || !reason.trim() || submitting}
+          onClick={submit}
+          className="rounded-md bg-primary px-md py-xs text-body-sm font-semibold text-on-primary disabled:opacity-40"
+        >
+          {submitting ? 'Đang xử lý...' : `Duyệt ${selected.size || ''} hồ sơ`.trim()}
+        </button>
+      </div>
+    </Card>
+  );
+}
 
 /**
  * The ward's work queue.
@@ -36,6 +160,7 @@ type QueueItem = {
   subtitle: string;
   status: string;
   riskScore: number;
+  fastTrack?: boolean;
   riskBreakdown: (string | { reason: string; points: number })[];
   onPress: () => void;
 };
@@ -115,38 +240,108 @@ function QueueTable({ items, loading, emptyTitle, toolbar }: QueueTableProps) {
 function LiveInboxScreen() {
   const navigate = useNavigate();
   const [enrollments, setEnrollments] = useState<WardEnrollmentItem[]>([]);
+  const [rentalApplications, setRentalApplications] = useState<WardRentalApplicationItem[]>([]);
+  const [renewals, setRenewals] = useState<WardRenewalItem[]>([]);
   const [riskQueue, setRiskQueue] = useState<WardRiskQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [category, setCategory] = useState<'ALL' | 'REG' | 'RENTAL' | 'RENEWAL' | 'FAST_RENEWAL'>('ALL');
 
-  useEffect(() => {
+  const reload = () => {
     setLoading(true);
-    Promise.allSettled([complianceApi.listEnrollments(), complianceApi.riskQueue()])
-      .then(([enrollRes, riskRes]) => {
+    return Promise.allSettled([
+      complianceApi.listEnrollments(),
+      complianceApi.listRentalApplications('PENDING'),
+      complianceApi.listRentalApplications('UNDER_REVIEW'),
+      complianceApi.listRentalApplications('MORE_INFORMATION_REQUIRED'),
+      complianceApi.listRenewals('PENDING'),
+      complianceApi.listRenewals('UNDER_REVIEW'),
+      complianceApi.riskQueue(),
+    ])
+      .then(([enrollRes, pendingAppRes, reviewingAppRes, moreInfoAppRes, pendingRenewalRes, reviewingRenewalRes, riskRes]) => {
         if (enrollRes.status === 'fulfilled') setEnrollments(enrollRes.value);
+        const mergedApps = [
+          ...(pendingAppRes.status === 'fulfilled' ? pendingAppRes.value : []),
+          ...(reviewingAppRes.status === 'fulfilled' ? reviewingAppRes.value : []),
+          ...(moreInfoAppRes.status === 'fulfilled' ? moreInfoAppRes.value : []),
+        ];
+        setRentalApplications([...new Map(mergedApps.map((item) => [item.id, item])).values()]);
+        const mergedRenewals = [
+          ...(pendingRenewalRes.status === 'fulfilled' ? pendingRenewalRes.value : []),
+          ...(reviewingRenewalRes.status === 'fulfilled' ? reviewingRenewalRes.value : []),
+        ];
+        setRenewals([...new Map(mergedRenewals.map((item) => [item.id, item])).values()]);
         if (riskRes.status === 'fulfilled') setRiskQueue(riskRes.value);
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    reload();
   }, []);
 
-  const items: QueueItem[] = useMemo(
-    () =>
-      enrollments
-        .map((r) => {
-          const risk = riskQueue.find((q) => q.registrationId === r.id);
-          return {
-            key: `REG-${r.id}`,
-            category: 'REG',
-            title: r.displayName || r.ownerName || `Hồ sơ #${r.id}`,
-            subtitle: `Đăng ký điểm bán · ${r.vendorType === 'FIXED_STOREFRONT' ? 'Cửa hàng cố định' : 'Hàng rong lưu động'}${r.fastTrack ? ' · Ưu tiên xét nhanh' : ''}`,
-            status: r.status,
-            riskScore: risk?.score ?? 0,
-            riskBreakdown: risk?.breakdown ?? [],
-            onPress: () => navigate(`/ward/inbox/registrations/${r.id}`),
-          };
-        })
-        .sort((a, b) => b.riskScore - a.riskScore),
-    [enrollments, riskQueue, navigate],
-  );
+  const items: QueueItem[] = useMemo(() => {
+    const regItems: QueueItem[] = enrollments.map((r) => {
+      const risk = riskQueue.find((q) => q.registrationId === r.id);
+      return {
+        key: `REG-${r.id}`,
+        category: 'REG',
+        title: r.displayName || r.ownerName || `Hồ sơ #${r.id}`,
+        subtitle: `Đăng ký điểm bán · ${r.vendorType === 'FIXED_STOREFRONT' ? 'Cửa hàng cố định' : 'Hàng rong lưu động'}${r.fastTrack ? ' · Ưu tiên xét nhanh' : ''}`,
+        status: r.status,
+        riskScore: risk?.score ?? 0,
+        riskBreakdown: risk?.breakdown ?? [],
+        onPress: () => navigate(`/ward/inbox/registrations/${r.id}`),
+      };
+    });
+
+    const rentalAppItems: QueueItem[] = rentalApplications.map((a) => ({
+      key: `RENTAL-${a.id}`,
+      category: 'RENTAL',
+      title: `${a.vendorName} - Xin thuê ô ${a.slotCode}`,
+      subtitle: `${a.slotStreet} · +${a.requestedTermDays} ngày · ${a.pricePerDay.toLocaleString('vi-VN')} đ/ngày`,
+      status: a.status,
+      riskScore: 0,
+      riskBreakdown: [],
+      onPress: () => navigate(`/ward/inbox/rental-applications/${a.id}`),
+    }));
+
+    const renewalItems: QueueItem[] = renewals.map((rn) => {
+      const riskBreakdown: string[] = [];
+      let riskScore = 0;
+      if (rn.violationCount > 0) {
+        riskScore += rn.violationCount * 20;
+        riskBreakdown.push(`${rn.violationCount} vi phạm trong hợp đồng (+${rn.violationCount * 20}đ)`);
+      }
+      if (rn.isOverdue) {
+        riskScore += 100;
+        riskBreakdown.push('Quá hạn xử lý theo NĐ 241/2026 (≤3 ngày làm việc) (+100đ)');
+      }
+      return {
+        key: `REN-${rn.id}`,
+        category: 'RENEWAL',
+        title: `${rn.vendorName} - Gia hạn ô ${rn.slotCode}`,
+        subtitle: `Hợp đồng #${rn.contractId} · +${rn.requestedTermDays} ngày · ${rn.totalFee.toLocaleString('vi-VN')} đ${rn.isFastTrackEligible ? ' · [AI] Xét nhanh' : ''}${rn.isOverdue ? ' · Quá hạn xử lý' : ''}`,
+        status: rn.status,
+        riskScore,
+        fastTrack: rn.isFastTrackEligible,
+        riskBreakdown,
+        onPress: () => navigate(`/ward/inbox/renewals/${rn.id}`),
+      };
+    });
+
+    return [...regItems, ...rentalAppItems, ...renewalItems].sort((a, b) => b.riskScore - a.riskScore);
+  }, [enrollments, rentalApplications, renewals, riskQueue, navigate]);
+
+  const visible = category === 'ALL'
+    ? items
+    : category === 'FAST_RENEWAL'
+      ? items.filter((i) => i.category === 'RENEWAL' && i.fastTrack)
+      : items.filter((i) => i.category === category);
+  const regCount = items.filter((i) => i.category === 'REG').length;
+  const rentalCount = items.filter((i) => i.category === 'RENTAL').length;
+  const renewalCount = items.filter((i) => i.category === 'RENEWAL').length;
+  const fastTrackRenewals = renewals.filter((r) => r.isFastTrackEligible);
+  const fastRenewalCount = fastTrackRenewals.length;
 
   return (
     <Screen width="wide">
@@ -162,8 +357,29 @@ function LiveInboxScreen() {
         </div>
       </Card>
 
-      <Section title="Hồ sơ đăng ký điểm bán vỉa hè" description="Hồ sơ cần xem kỹ được xếp lên đầu.">
-        <QueueTable items={items} loading={loading} emptyTitle="Không có hồ sơ đăng ký cần xử lý" />
+      {category === 'FAST_RENEWAL' ? (
+        <FastTrackBatchPanel candidates={fastTrackRenewals} onDone={reload} />
+      ) : null}
+
+      <Section title="Hồ sơ đăng ký, cấp phép & gia hạn" description="Hồ sơ cần xem kỹ được xếp lên đầu.">
+        <QueueTable
+          items={visible}
+          loading={loading}
+          emptyTitle="Không có hồ sơ cần xử lý"
+          toolbar={
+            <FilterChips
+              value={category}
+              onChange={setCategory}
+              options={[
+                { value: 'ALL', label: 'Tất cả' },
+                { value: 'REG', label: 'Đăng ký điểm bán', count: regCount },
+                { value: 'RENTAL', label: 'Cấp phép hè phố', count: rentalCount },
+                { value: 'RENEWAL', label: 'Gia hạn', count: renewalCount },
+                { value: 'FAST_RENEWAL', label: '[AI] Xét nhanh', count: fastRenewalCount },
+              ]}
+            />
+          }
+        />
       </Section>
     </Screen>
   );
