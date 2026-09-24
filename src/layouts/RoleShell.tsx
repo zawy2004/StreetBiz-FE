@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { Outlet } from 'react-router-dom';
 
 import { RoleTabBar, type RoleTabItem } from '@/components/layout/RoleTabBar';
 import { RoleGuard } from '@/core/auth/RoleGuard';
+import { ScreenFallback } from '@/core/routing/ScreenFallback';
 import type { RoleCode } from '@/core/types/role';
 import { useIsDesktop } from '@/hooks/useBreakpoint';
 import { ConsumerTopNav } from './ConsumerTopNav';
@@ -22,7 +23,14 @@ type Props = {
 };
 
 /** Wraps a role's route subtree with its access guard and responsive navigation. */
-export function RoleShell({ role, allowGuest, roleLabel, items, header, navigation = 'sidebar' }: Props) {
+export function RoleShell({
+  role,
+  allowGuest,
+  roleLabel,
+  items,
+  header,
+  navigation = 'sidebar',
+}: Props) {
   const isDesktop = useIsDesktop();
   const topNav = isDesktop && navigation === 'topnav';
   const sideNav = isDesktop && navigation === 'sidebar';
@@ -35,7 +43,10 @@ export function RoleShell({ role, allowGuest, roleLabel, items, header, navigati
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           {header}
           <main className="min-h-0 flex-1 overflow-hidden">
-            <Outlet />
+            {/* Screens are lazy chunks; only the content area waits, the navigation stays. */}
+            <Suspense fallback={<ScreenFallback />}>
+              <Outlet />
+            </Suspense>
           </main>
         </div>
         {!isDesktop ? <RoleTabBar roleLabel={roleLabel} items={items} /> : null}

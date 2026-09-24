@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button, Card, Icon } from '@/components/common';
 import { FilterChips, PhotoPicker, TextField } from '@/components/forms';
@@ -81,6 +81,7 @@ export function SlotProposalScreen() {
   const [photoUri, setPhotoUri] = useState<string>();
   const [error, setError] = useState<string>();
 
+  const queryClient = useQueryClient();
   const submit = useMutation({
     mutationFn: async () => {
       const { fileUrl } = await vendorRegistrationApi.uploadEvidenceFile(photoFile!);
@@ -95,6 +96,8 @@ export function SlotProposalScreen() {
       });
     },
     onSuccess: (result) => {
+      // The proposal appears as a new pending slot on the zone map and in My slots.
+      void queryClient.invalidateQueries({ queryKey: ['side'] });
       showToast(result.message);
       navigate(-1);
     },
