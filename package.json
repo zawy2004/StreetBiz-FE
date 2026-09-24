@@ -27,6 +27,7 @@
     "react-icons": "^5.5.0",
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.1.5",
+    "three": "^0.180.0",
     "zod": "^4.5.4",
     "zustand": "^5.0.15"
   },
@@ -38,6 +39,7 @@
     "@types/node": "^22.20.3",
     "@types/react": "~19.2.2",
     "@types/react-dom": "~19.2.2",
+    "@types/three": "^0.180.0",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.39.5",

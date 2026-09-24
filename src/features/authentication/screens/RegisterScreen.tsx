@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { AuthShell } from '../components/AuthShell';
 import { PasswordChecklist } from '../components/PasswordChecklist';
@@ -23,8 +23,10 @@ type SelfRegisterRole = 'CUSTOMER' | 'VENDOR';
 export function RegisterScreen() {
   const navigate = useNavigate();
   const startRegistration = usePendingAuthStore((s) => s.startRegistration);
+  // The landing page's "sell on StreetBiz" call to action opens this form as a vendor.
+  const requestedRole = (useLocation().state as { role?: SelfRegisterRole } | null)?.role;
 
-  const [role, setRole] = useState<SelfRegisterRole>('CUSTOMER');
+  const [role, setRole] = useState<SelfRegisterRole>(requestedRole === 'VENDOR' ? 'VENDOR' : 'CUSTOMER');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [wardUnitId, setWardUnitId] = useState<number>();
