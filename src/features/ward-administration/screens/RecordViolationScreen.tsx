@@ -14,6 +14,7 @@ import {
   type PenaltyScheduleItem,
   type WardViolationDetail,
 } from '../ward-api';
+import { vnDateOf } from '../ward-config-api';
 
 export function RecordViolationScreen() {
   const [searchParams] = useSearchParams();
@@ -57,13 +58,15 @@ export function RecordViolationScreen() {
         setSchedules(data);
         if (data.length > 0 && data[0]) {
           setTypeCode(data[0].violationType);
-          setSanctionScheduleId(data[0].scheduleId);
         }
       })
       .catch((err) => console.warn('Could not load penalty schedules:', err));
   }, []);
 
   const selectedSchedule = schedules.find((s) => s.violationType === typeCode);
+  const sanctionOptions = createdViolation
+    ? schedules.filter((s) => s.violationType === createdViolation.violationType)
+    : [];
 
   // Step 1: Record Violation (PENDING_SANCTION)
   const submitRecord = async () => {
@@ -90,10 +93,14 @@ export function RecordViolationScreen() {
           evidenceUrl: photoFileUrl,
         });
         setCreatedViolation(res);
-        if (res.aiSuggestion?.penaltyScheduleId) {
-          setSanctionScheduleId(res.aiSuggestion.penaltyScheduleId);
-        }
-        showToast('Đã lập biên bản vi phạm (Bước 1/2). Tiếp tục ra Quyết định xử phạt nếu có thẩm quyền.');
+        // The rate that applies is the one in force on the violation date, for this violation's own type.
+        const inForce = await complianceApi.listPenaltySchedules(vnDateOf(res.recordedAt));
+        setSchedules(inForce);
+        const own = inForce.find((s) => s.violationType === res.violationType && s.legalBasis);
+        setSanctionScheduleId(own?.scheduleId ?? null);
+        showToast(
+          'Đã lập biên bản vi phạm (Bước 1/2). Tiếp tục ra Quyết định xử phạt nếu có thẩm quyền.',
+        );
       } catch (err) {
         showToast(err instanceof Error ? err.message : 'Lỗi lập biên bản vi phạm');
       } finally {
@@ -107,11 +114,12 @@ export function RecordViolationScreen() {
     const mockViolId = Date.now();
     const mockAiSuggestion = {
       violationType: typeCode,
-      penaltyScheduleId: selectedSchedule?.scheduleId ?? 1,
+      penaltyScheduleId: selectedSchedule?.scheduleId ?? null,
       legalBasis: selectedSchedule?.legalBasis ?? 'Nghị định 168/2024/NĐ-CP',
       suggestedPenaltyAmount: selectedSchedule?.penaltyAmount ?? 2500000,
       hanhViViPham: `Hành vi: ${violationTypeLabels[typeCode] || typeCode}.`,
-      bienPhapKhacPhuc: 'Buộc khôi phục lại tình trạng ban đầu, thu dọn vật dụng lấn chiếm trong thời hạn cán bộ ấn định.',
+      bienPhapKhacPhuc:
+        'Buộc khôi phục lại tình trạng ban đầu, thu dọn vật dụng lấn chiếm trong thời hạn cán bộ ấn định.',
       isAiGenerated: false,
     };
 
@@ -152,14 +160,21 @@ export function RecordViolationScreen() {
       showToast('Vui lòng nhập số Quyết định xử phạt hành chính');
       return;
     }
-    const schedId = sanctionScheduleId ?? selectedSchedule?.scheduleId ?? schedules[0]?.scheduleId;
-    if (!schedId) {
-      showToast('Vui lòng chọn khung phạt áp dụng');
+    // Never fall back to another schedule: a fine must use this violation type's own rate with a legal basis.
+    const schedId = sanctionOptions.find(
+      (s) => s.scheduleId === sanctionScheduleId && s.legalBasis,
+    )?.scheduleId;
+    if (isLiveApi && !schedId) {
+      showToast(
+        'Vi phạm này chưa có căn cứ pháp lý hoặc mức phạt hiệu lực. Vui lòng cấu hình Bảng phạt trước.',
+      );
       return;
     }
 
     if (!signerName.trim() || !signerTitle.trim()) {
-      showToast('Vui lòng nhập tên và chức danh người ký quyết định (Chủ tịch/Phó Chủ tịch UBND Phường)');
+      showToast(
+        'Vui lòng nhập tên và chức danh người ký quyết định (Chủ tịch/Phó Chủ tịch UBND Phường)',
+      );
       return;
     }
 
@@ -168,7 +183,7 @@ export function RecordViolationScreen() {
       if (isLiveApi) {
         await complianceApi.sanctionViolation(
           createdViolation.violationId,
-          schedId,
+          schedId!,
           decisionNumber.trim(),
           signerName.trim(),
           signerTitle.trim(),
@@ -203,7 +218,13 @@ export function RecordViolationScreen() {
         <StickyActions>
           {!createdViolation ? (
             <Button
-              label={photoUploading ? 'Đang tải ảnh lên...' : loading ? 'Đang lập biên bản...' : 'Lập biên bản vi phạm (Bước 1)'}
+              label={
+                photoUploading
+                  ? 'Đang tải ảnh lên...'
+                  : loading
+                    ? 'Đang lập biên bản...'
+                    : 'Lập biên bản vi phạm (Bước 1)'
+              }
               variant="danger"
               disabled={loading || photoUploading || !description.trim()}
               onPress={submitRecord}
@@ -211,7 +232,11 @@ export function RecordViolationScreen() {
           ) : (
             <div className="flex w-full gap-sm">
               <div className="flex-1">
-                <Button label="Hoàn tất (Chờ xử phạt sau)" variant="outline" onPress={() => navigate(-1)} />
+                <Button
+                  label="Hoàn tất (Chờ xử phạt sau)"
+                  variant="outline"
+                  onPress={() => navigate(-1)}
+                />
               </div>
               <div className="flex-1">
                 <Button
@@ -240,7 +265,10 @@ export function RecordViolationScreen() {
               <SelectField
                 value={vendorId}
                 onChange={setVendorId}
-                options={vendors.map((v) => ({ value: v.id, label: `${v.business_name} (${v.phone})` }))}
+                options={vendors.map((v) => ({
+                  value: v.id,
+                  label: `${v.business_name} (${v.phone})`,
+                }))}
               />
             </Section>
           ) : null}
@@ -254,7 +282,9 @@ export function RecordViolationScreen() {
                   ? schedules.map((s) => ({
                       value: s.violationType,
                       label: s.violationTypeName,
-                      description: `${s.penaltyAmount.toLocaleString('vi-VN')} đ · ${s.legalBasis || 'Nghị định 168/2024/NĐ-CP'}`,
+                      description: s.legalBasis
+                        ? `${s.penaltyAmount.toLocaleString('vi-VN')} đ · ${s.legalBasis}`
+                        : '⚠️ Thiếu căn cứ pháp lý: lập được biên bản nhưng chưa thể ra quyết định xử phạt tiền',
                     }))
                   : Object.keys(violationTypeLabels).map((key) => ({
                       value: key,
@@ -270,7 +300,8 @@ export function RecordViolationScreen() {
               <p className="text-body-xs font-semibold text-muted">CĂN CỨ PHÁP LÝ ÁP DỤNG:</p>
               <p className="mt-1 text-body-sm text-foreground">{selectedSchedule.legalBasis}</p>
               <p className="mt-1 text-headline-sm font-bold text-danger">
-                Khung phạt: {selectedSchedule.penaltyAmount.toLocaleString('vi-VN')} đ
+                Mức phạt (trung bình khung):{' '}
+                {selectedSchedule.penaltyAmount.toLocaleString('vi-VN')} đ
               </p>
             </Card>
           ) : null}
@@ -283,7 +314,9 @@ export function RecordViolationScreen() {
                 className="text-body-xs font-medium text-primary hover:underline"
                 onClick={() => {
                   setTypeCode('UNAUTHORIZED_BUSINESS_USE');
-                  setDescription('Hộ kinh doanh kê 3 bộ bàn ghế nhựa và 1 biển hiệu đứng lấn ra ngoài vạch sơn 45cm trên vỉa hè đường Nguyễn Văn Linh, cản trở lối đi của người đi bộ.');
+                  setDescription(
+                    'Hộ kinh doanh kê 3 bộ bàn ghế nhựa và 1 biển hiệu đứng lấn ra ngoài vạch sơn 45cm trên vỉa hè đường Nguyễn Văn Linh, cản trở lối đi của người đi bộ.',
+                  );
                 }}
               >
                 + Điền mô tả mẫu để thử nghiệm AI Co-pilot
@@ -298,7 +331,9 @@ export function RecordViolationScreen() {
             />
 
             <PhotoPicker
-              label={photoUploading ? 'Đang tải ảnh lên...' : 'Ảnh chụp hiện trường / Tang vật vi phạm'}
+              label={
+                photoUploading ? 'Đang tải ảnh lên...' : 'Ảnh chụp hiện trường / Tang vật vi phạm'
+              }
               uri={photoUri}
               onChange={(uri, file) => {
                 // uri is a browser-local blob: URL for preview only -- the server can never
@@ -311,7 +346,9 @@ export function RecordViolationScreen() {
                   complianceApi
                     .uploadEvidence(file)
                     .then((res) => setPhotoFileUrl(res.fileUrl))
-                    .catch((err: unknown) => showToast(err instanceof Error ? err.message : 'Tải ảnh lên thất bại'))
+                    .catch((err: unknown) =>
+                      showToast(err instanceof Error ? err.message : 'Tải ảnh lên thất bại'),
+                    )
                     .finally(() => setPhotoUploading(false));
                 }
               }}
@@ -324,7 +361,11 @@ export function RecordViolationScreen() {
 
           <Card>
             <p className="text-body-sm text-muted">
-              * Quy trình 2 bước: Cán bộ tuần tra lập biên bản xác nhận hành vi vi phạm tại hiện trường (`PENDING_SANCTION`). Sau đó, <strong>Chủ tịch/Phó Chủ tịch UBND Phường</strong> (hoặc người được uỷ quyền bằng văn bản — cán bộ lập biên bản không có thẩm quyền này) ký Quyết định xử phạt (`SANCTIONED`) với số tiền lấy từ khung do Phường cấu hình (`PenaltyFeeSchedules`).
+              * Quy trình 2 bước: Cán bộ tuần tra lập biên bản xác nhận hành vi vi phạm tại hiện
+              trường (`PENDING_SANCTION`). Sau đó,{' '}
+              <strong>Chủ tịch/Phó Chủ tịch UBND Phường</strong> (hoặc người được uỷ quyền bằng văn
+              bản — cán bộ lập biên bản không có thẩm quyền này) ký Quyết định xử phạt
+              (`SANCTIONED`) với số tiền lấy từ khung do Phường cấu hình (`PenaltyFeeSchedules`).
             </p>
           </Card>
         </>
@@ -344,7 +385,13 @@ export function RecordViolationScreen() {
               LegalBasis and SuggestedPenaltyAmount always come from the ward's own
               PenaltyFeeSchedules row on the backend, never AI-authored text. */}
           {createdViolation.aiSuggestion ? (
-            <AiHint title={createdViolation.aiSuggestion.isAiGenerated ? 'Trợ lý Pháp lý [AI]' : 'Trợ lý Pháp lý [Hệ thống — chưa xác minh bằng AI]'}>
+            <AiHint
+              title={
+                createdViolation.aiSuggestion.isAiGenerated
+                  ? 'Trợ lý Pháp lý [AI]'
+                  : 'Trợ lý Pháp lý [Hệ thống — chưa xác minh bằng AI]'
+              }
+            >
               <p className="font-medium text-text">{createdViolation.aiSuggestion.hanhViViPham}</p>
               <p className="mt-1 text-body-sm text-text">
                 Biện pháp khắc phục: {createdViolation.aiSuggestion.bienPhapKhacPhuc}
@@ -355,7 +402,8 @@ export function RecordViolationScreen() {
               {createdViolation.aiSuggestion.suggestedPenaltyAmount ? (
                 <div className="mt-3 flex items-center justify-between border-t border-border pt-2">
                   <span className="text-body-sm font-bold text-danger">
-                    Mức phạt: {createdViolation.aiSuggestion.suggestedPenaltyAmount.toLocaleString('vi-VN')} đ
+                    Mức phạt:{' '}
+                    {createdViolation.aiSuggestion.suggestedPenaltyAmount.toLocaleString('vi-VN')} đ
                   </span>
                   <Button
                     label="Áp dụng khung này"
@@ -385,17 +433,34 @@ export function RecordViolationScreen() {
               label="Khung xử phạt áp dụng"
               value={String(sanctionScheduleId || '')}
               onChange={(val) => setSanctionScheduleId(Number(val))}
-              options={schedules.map((s) => ({
-                value: String(s.scheduleId),
-                label: `${s.violationTypeName} (${s.penaltyAmount.toLocaleString('vi-VN')} đ)`,
-                description: s.legalBasis || 'Nghị định 168/2024/NĐ-CP',
-              }))}
+              options={sanctionOptions
+                .filter((s) => s.legalBasis)
+                .map((s) => ({
+                  value: String(s.scheduleId),
+                  label: `${s.violationTypeName} (${s.penaltyAmount.toLocaleString('vi-VN')} đ)`,
+                  description: s.legalBasis ?? '',
+                }))}
             />
+            {isLiveApi && !sanctionOptions.some((s) => s.legalBasis) && (
+              <p role="alert" className="text-body-sm text-error">
+                ⚠️ Hành vi này chưa có căn cứ pháp lý hoặc mức phạt hiệu lực vào ngày vi phạm. Cấu
+                hình Biểu mức phạt trước khi ra quyết định.
+              </p>
+            )}
+            <p className="text-body-xs text-muted">
+              Mức áp dụng khi không có tình tiết giảm nhẹ/tăng nặng (Luật XLVPHC Điều 23 khoản 4).
+            </p>
 
             <p className="mt-3 text-body-xs font-semibold text-muted">
-              Người ký quyết định (Chủ tịch/Phó Chủ tịch UBND Phường hoặc người được uỷ quyền — không phải cán bộ lập biên bản) *
+              Người ký quyết định (Chủ tịch/Phó Chủ tịch UBND Phường hoặc người được uỷ quyền —
+              không phải cán bộ lập biên bản) *
             </p>
-            <TextField label="Họ tên người ký *" value={signerName} onChangeText={setSignerName} placeholder="Nguyễn Văn A" />
+            <TextField
+              label="Họ tên người ký *"
+              value={signerName}
+              onChangeText={setSignerName}
+              placeholder="Nguyễn Văn A"
+            />
             <TextField
               label="Chức danh *"
               value={signerTitle}
