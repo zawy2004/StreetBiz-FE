@@ -133,7 +133,10 @@ export function SlotApplyForm({ slot }: Props) {
           <ul className="divide-y divide-border">
             {quote.data.lines.map((line, i) => (
               <li key={`${line.kind}-${i}`} className="flex items-baseline justify-between gap-sm px-sm py-xs">
-                <span className="text-body-sm text-text">{quoteLineLabel(line)}</span>
+                <span className="text-body-sm text-text">
+                  {quoteLineLabel(line)}
+                  {line.kind === 'FEE' ? ' (tham khảo)' : ''}
+                </span>
                 <Money amountVnd={line.amount} />
               </li>
             ))}
@@ -149,6 +152,16 @@ export function SlotApplyForm({ slot }: Props) {
             <p className="text-headline-sm text-text">Tạm tính</p>
             <Money amountVnd={quote.data.total} size="lg" color={colors.tertiary} className="whitespace-nowrap" />
           </div>
+          <div className="flex items-baseline justify-between gap-sm">
+            <p className="text-body-sm text-text">Tiền thuê tính vào hợp đồng</p>
+            <Money amountVnd={quote.data.baseFee} />
+          </div>
+          {quote.data.isReferenceOnly && (
+            <p className="text-body-sm text-muted">
+              Phụ phí tham khảo {quote.data.referenceFees.toLocaleString('vi-VN')}đ chưa tính vào hợp đồng;
+              tiền hợp đồng chính thức là giá thuê mỗi ngày × số ngày, chốt theo giá khu vực tại thời điểm duyệt.
+            </p>
+          )}
           <p className="text-body-sm text-muted">Ước tính, chưa phải phí chính thức.</p>
         </div>
       )}

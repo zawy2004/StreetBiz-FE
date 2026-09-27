@@ -39,6 +39,9 @@ const quote: FeeQuote = {
   slotId: 10,
   termDays: 90,
   total: 3_620_000,
+  baseFee: 2_700_000,
+  referenceFees: 770_000,
+  isReferenceOnly: true,
   lines: [
     { kind: 'RENT', label: null, calcBasis: 'PER_DAY', unitAmount: 30000, quantity: 90, amount: 2_700_000 },
     { kind: 'FEE', label: 'Phí vệ sinh', calcBasis: 'PER_DAY', unitAmount: 3000, quantity: 90, amount: 270_000 },
