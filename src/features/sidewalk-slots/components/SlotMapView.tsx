@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import {
   MapContainer,
   Marker,
@@ -63,15 +63,18 @@ function ResizeFix() {
  * vendor panning or zooming afterward.
  */
 function BoundsWatcher({ onChange }: { onChange: (bounds: Bounds) => void }) {
-  const report = (map: L.Map) => {
-    const b = map.getBounds();
-    onChange({ minLat: b.getSouth(), maxLat: b.getNorth(), minLng: b.getWest(), maxLng: b.getEast() });
-  };
+  const report = useCallback(
+    (map: L.Map) => {
+      const b = map.getBounds();
+      onChange({ minLat: b.getSouth(), maxLat: b.getNorth(), minLng: b.getWest(), maxLng: b.getEast() });
+    },
+    [onChange],
+  );
   const map = useMapEvents({
     moveend: () => report(map),
     resize: () => report(map),
   });
-  useEffect(() => report(map), [map]);
+  useEffect(() => report(map), [map, report]);
   return null;
 }
 
