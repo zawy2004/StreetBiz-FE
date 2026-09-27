@@ -1,9 +1,10 @@
-import { CircleMarker, MapContainer, ZoomControl, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import MapGL, { Marker, type MapEvent } from '@goongmaps/goong-map-react';
+import '@goongmaps/goong-js/dist/goong-js.css';
 
+import { env } from '@/core/config/env';
 import { palette } from '@/theme';
 import { DEFAULT_CENTER } from '../map-constants';
-import { MapBaseLayers } from './MapBaseLayers';
+import { GOONG_MAP_DEFAULT_PROPS, GOONG_MARKER_DEFAULT_PROPS, useMapBaseLayer } from './GoongMapBaseLayers';
 
 export type PickedPosition = { latitude: number; longitude: number };
 
@@ -17,35 +18,46 @@ type Props = {
 // Six decimals is about 10 cm, which is all the database column keeps.
 const round = (value: number) => Math.round(value * 1e6) / 1e6;
 
-function TapToPick({ onPick }: Pick<Props, 'onPick'>) {
-  useMapEvents({
-    click: (event) => onPick({ latitude: round(event.latlng.lat), longitude: round(event.latlng.lng) }),
-  });
-  return null;
-}
-
 /** A map where a tap places the pin; it starts on the pilot area until there is a position. */
 export function LocationPicker({ position, viewKey, onPick }: Props) {
+  const [mapStyle, layerSwitcher] = useMapBaseLayer();
+
   return (
-    <div className="h-60 overflow-hidden rounded-sm border border-border">
-      <MapContainer
+    <div className="location-picker-map h-60 overflow-hidden rounded-sm border border-border">
+      <MapGL
+        {...GOONG_MAP_DEFAULT_PROPS}
         key={viewKey}
-        center={position ? [position.latitude, position.longitude] : DEFAULT_CENTER}
+        latitude={position ? position.latitude : DEFAULT_CENTER[0]}
+        longitude={position ? position.longitude : DEFAULT_CENTER[1]}
         zoom={position ? 18 : 15}
-        zoomControl={false}
-        style={{ height: '100%', width: '100%', cursor: 'crosshair' }}
+        width="100%"
+        height="100%"
+        mapStyle={mapStyle}
+        goongApiAccessToken={env.goongMaptilesKey}
+        onClick={(event: MapEvent) => onPick({ latitude: round(event.lngLat[1]), longitude: round(event.lngLat[0]) })}
       >
-        <ZoomControl position="bottomright" />
-        <MapBaseLayers />
-        <TapToPick onPick={onPick} />
+        {layerSwitcher}
         {position && (
-          <CircleMarker
-            center={[position.latitude, position.longitude]}
-            radius={9}
-            pathOptions={{ color: '#fff', weight: 3, fillColor: palette.light.primary, fillOpacity: 1 }}
-          />
+          <Marker
+            {...GOONG_MARKER_DEFAULT_PROPS}
+            latitude={position.latitude}
+            longitude={position.longitude}
+            offsetLeft={-9}
+            offsetTop={-9}
+          >
+            <div
+              style={{
+                width: 18,
+                height: 18,
+                borderRadius: 9999,
+                background: palette.light.primary,
+                border: '3px solid #fff',
+                boxShadow: '0 1px 4px rgba(0,0,0,.4)',
+              }}
+            />
+          </Marker>
         )}
-      </MapContainer>
+      </MapGL>
     </div>
   );
 }

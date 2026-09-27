@@ -1,87 +1,39 @@
-import { useCallback, useEffect, useMemo } from 'react';
-import {
-  MapContainer,
-  Marker,
-  Popup,
-  ZoomControl,
-  useMap,
-  useMapEvents,
-} from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import MapGL, { Marker, NavigationControl, Popup, type MapRef } from '@goongmaps/goong-map-react';
+import '@goongmaps/goong-js/dist/goong-js.css';
 
 import { Button } from '@/components/common';
+import { env } from '@/core/config/env';
 import { colors } from '@/theme';
 import { SideApiError, type SidewalkSlot } from '@/core/api/side-api';
 import { DEFAULT_CENTER } from '../map-constants';
-import { MapBaseLayers } from './MapBaseLayers';
+import {
+  GOONG_MAP_DEFAULT_PROPS,
+  GOONG_MARKER_DEFAULT_PROPS,
+  GOONG_NAV_CONTROL_DEFAULT_PROPS,
+  GOONG_POPUP_DEFAULT_PROPS,
+  useMapBaseLayer,
+} from './GoongMapBaseLayers';
 
 export type Bounds = { minLat: number; maxLat: number; minLng: number; maxLng: number };
 
-// The corridor plan (SIDE-01) already shows every slot in a zone at
-// full detail -- one pin per slot on the map itself was redundant and, at
-// city zoom, an unreadable cluster. One badge per zone (total count, green
-// once any slot in it is AVAILABLE) says "there's rentable kerb here";
-// the popup's "Xem sơ đồ" button is where a vendor actually picks a slot.
-function zoneMarkerIcon(count: number, hasAvailable: boolean) {
-  const color = hasAvailable ? colors.tertiary : colors.muted;
-  return L.divIcon({
-    className: '',
-    html: `<div style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9999px;background:${color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.35);color:white;font-weight:700;font-size:13px;font-family:sans-serif;">${count}</div>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
-  });
-}
+/** The subset of the underlying goong-js/Mapbox GL map instance this file actually calls. */
+type GoongMap = {
+  getBounds(): { getNorth(): number; getSouth(): number; getEast(): number; getWest(): number };
+  getContainer(): HTMLElement;
+  on(type: 'moveend', handler: () => void): void;
+  off(type: 'moveend', handler: () => void): void;
+  resize(): void;
+};
 
-/**
- * Leaflet measures its container's size once, at mount. Inside a flex layout
- * the container is still 0-height at that instant (the flex pass hasn't run
- * yet), so tiles never load until something nudges Leaflet to remeasure --
- * this watches the container and does that on every resize.
- */
-function ResizeFix() {
-  const map = useMap();
-  useEffect(() => {
-    const container = map.getContainer();
-    const observer = new ResizeObserver(() => map.invalidateSize());
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, [map]);
-  return null;
-}
-
-/**
- * The parent's `bounds` state starts as a guessed window around DEFAULT_CENTER,
- * not the map's real viewport -- Leaflet only knows its true size after the
- * container has been laid out and measured (see ResizeFix above). `moveend`
- * alone leaves that guess in place until the vendor manually pans or zooms,
- * because ResizeFix's `invalidateSize()` only fires `moveend` when correcting
- * the size also has to re-pan to keep the center anchored -- it fires plain
- * `resize` unconditionally, and neither fires at all if Leaflet's first
- * measurement already happens to be correct. Reading the real bounds once on
- * mount, and again on `resize`, closes both gaps; `moveend` still covers the
- * vendor panning or zooming afterward.
- */
-function BoundsWatcher({ onChange }: { onChange: (bounds: Bounds) => void }) {
-  const report = useCallback(
-    (map: L.Map) => {
-      const b = map.getBounds();
-      onChange({ minLat: b.getSouth(), maxLat: b.getNorth(), minLng: b.getWest(), maxLng: b.getEast() });
-    },
-    [onChange],
-  );
-  const map = useMapEvents({
-    moveend: () => report(map),
-    resize: () => report(map),
-  });
-  useEffect(() => report(map), [map, report]);
-  return null;
-}
+/** onViewportChange's prop type is a bare `Function` in goong-map-react's own types. */
+type Viewport = { latitude: number; longitude: number; zoom: number };
 
 type ZoneGroup = {
   zoneId: number;
   zoneName: string;
-  center: [number, number];
+  latitude: number;
+  longitude: number;
   totalCount: number;
   availableCount: number;
 };
@@ -95,6 +47,38 @@ type Props = {
 };
 
 export function SlotMapView({ slots, onBoundsChange, error, onRetry, onViewZoneDiagram }: Props) {
+  const mapRef = useRef<MapRef>(null);
+  const [mapStyle, layerSwitcher] = useMapBaseLayer();
+  const [viewport, setViewport] = useState<Viewport>({
+    latitude: DEFAULT_CENTER[0],
+    longitude: DEFAULT_CENTER[1],
+    zoom: 17,
+  });
+  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
+
+  // goong-js/Mapbox GL fires onViewportChange continuously while panning, unlike
+  // Leaflet's dedicated "moveend" event -- go through the native map instead so
+  // onBoundsChange only fires once the pan/zoom settles. It also measures its
+  // container's size once, at mount; inside a flex layout the container is still
+  // 0-height at that instant, so tiles never load until something nudges it to
+  // resize -- this watches the container and does that on every resize.
+  useEffect(() => {
+    const map = mapRef.current?.getMap() as GoongMap | undefined;
+    if (!map) return;
+    const handleMoveEnd = () => {
+      const b = map.getBounds();
+      onBoundsChange({ minLat: b.getSouth(), maxLat: b.getNorth(), minLng: b.getWest(), maxLng: b.getEast() });
+    };
+    map.on('moveend', handleMoveEnd);
+    const observer = new ResizeObserver(() => map.resize());
+    observer.observe(map.getContainer());
+    return () => {
+      map.off('moveend', handleMoveEnd);
+      observer.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const zoneGroups = useMemo<ZoneGroup[]>(() => {
     const byZone = new Map<number, { zoneName: string; slots: SidewalkSlot[] }>();
     for (const s of slots) {
@@ -105,45 +89,87 @@ export function SlotMapView({ slots, onBoundsChange, error, onRetry, onViewZoneD
     return [...byZone.entries()].map(([zoneId, { zoneName, slots: zoneSlots }]) => ({
       zoneId,
       zoneName,
-      center: [
-        zoneSlots.reduce((sum, s) => sum + s.latitude, 0) / zoneSlots.length,
-        zoneSlots.reduce((sum, s) => sum + s.longitude, 0) / zoneSlots.length,
-      ],
+      latitude: zoneSlots.reduce((sum, s) => sum + s.latitude, 0) / zoneSlots.length,
+      longitude: zoneSlots.reduce((sum, s) => sum + s.longitude, 0) / zoneSlots.length,
       totalCount: zoneSlots.length,
       availableCount: zoneSlots.filter((s) => s.slotStatus === 'AVAILABLE').length,
     }));
   }, [slots]);
 
+  const selectedZone = zoneGroups.find((z) => z.zoneId === selectedZoneId) ?? null;
+
   return (
     <div className="relative h-full min-h-0 w-full">
-      <MapContainer
-        center={DEFAULT_CENTER}
-        zoom={17}
-        zoomControl={false}
-        style={{ height: '100%', width: '100%' }}
+      <MapGL
+        {...GOONG_MAP_DEFAULT_PROPS}
+        ref={mapRef}
+        {...viewport}
+        width="100%"
+        height="100%"
+        mapStyle={mapStyle}
+        goongApiAccessToken={env.goongMaptilesKey}
+        onViewportChange={(v: Viewport) => setViewport({ latitude: v.latitude, longitude: v.longitude, zoom: v.zoom })}
       >
-        <ResizeFix />
-        <ZoomControl position="bottomright" />
-        <BoundsWatcher onChange={onBoundsChange} />
-        <MapBaseLayers />
+        <NavigationControl
+          {...GOONG_NAV_CONTROL_DEFAULT_PROPS}
+          style={{ position: 'absolute', bottom: 46, right: 10 }}
+          showCompass={false}
+        />
+        {layerSwitcher}
         {zoneGroups.map((zone) => (
           <Marker
+            {...GOONG_MARKER_DEFAULT_PROPS}
             key={zone.zoneId}
-            position={zone.center}
-            icon={zoneMarkerIcon(zone.totalCount, zone.availableCount > 0)}
+            latitude={zone.latitude}
+            longitude={zone.longitude}
+            offsetLeft={-18}
+            offsetTop={-18}
           >
-            <Popup>
-              <div className="flex flex-col gap-1">
-                <strong>{zone.zoneName}</strong>
-                <span>
-                  {zone.totalCount} ô · {zone.availableCount} còn trống
-                </span>
-                <Button label="Xem sơ đồ" onPress={() => onViewZoneDiagram(zone.zoneId)} />
-              </div>
-            </Popup>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedZoneId(zone.zoneId)}
+              onKeyDown={(e) => e.key === 'Enter' && setSelectedZoneId(zone.zoneId)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 36,
+                height: 36,
+                borderRadius: 9999,
+                background: zone.availableCount > 0 ? colors.tertiary : colors.muted,
+                border: '3px solid white',
+                boxShadow: '0 2px 6px rgba(0,0,0,.35)',
+                color: 'white',
+                fontWeight: 700,
+                fontSize: 13,
+                fontFamily: 'sans-serif',
+                cursor: 'pointer',
+              }}
+            >
+              {zone.totalCount}
+            </div>
           </Marker>
         ))}
-      </MapContainer>
+        {selectedZone && (
+          <Popup
+            {...GOONG_POPUP_DEFAULT_PROPS}
+            latitude={selectedZone.latitude}
+            longitude={selectedZone.longitude}
+            closeButton
+            closeOnClick={false}
+            onClose={() => setSelectedZoneId(null)}
+          >
+            <div className="flex flex-col gap-1">
+              <strong>{selectedZone.zoneName}</strong>
+              <span>
+                {selectedZone.totalCount} ô · {selectedZone.availableCount} còn trống
+              </span>
+              <Button label="Xem sơ đồ" onPress={() => onViewZoneDiagram(selectedZone.zoneId)} />
+            </div>
+          </Popup>
+        )}
+      </MapGL>
 
       {error !== null && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 z-[1000] flex justify-center">

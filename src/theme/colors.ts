@@ -5,7 +5,7 @@
  * same `colors.primary` paints correctly in both light and dark mode, whether it
  * lands in a Tailwind class or an inline style. The raw hex values live in
  * `palette` for the few consumers that cannot read CSS variables (Leaflet path
- * options, the QR code renderer).
+ * options, the Goong map markers, the QR code renderer).
  */
 const v = (name: string) => `rgb(var(--c-${name}))`;
 
