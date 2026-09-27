@@ -194,9 +194,10 @@ select:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
-/* Maps: keep street tiles readable in dark mode. */
-.dark .leaflet-tile-pane {
-  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88);
+/* The location picker places the pin on tap; goong-js/Mapbox GL's own "grab" cursor
+   would suggest dragging the map instead. */
+.location-picker-map .mapboxgl-canvas-container.mapboxgl-interactive {
+  cursor: crosshair;
 }
 
 .no-scrollbar {
