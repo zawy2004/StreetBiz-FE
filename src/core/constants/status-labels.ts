@@ -24,6 +24,8 @@ export const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> 
   PENDING_APPLICATION: { label: 'Đang có đơn', tone: 'pending' },
   OPEN: { label: 'Đang mở', tone: 'ok' },
   PAID: { label: 'Đã thanh toán', tone: 'ok' },
+  UNPAID: { label: 'Chưa thanh toán', tone: 'danger' },
+  WAIVED: { label: 'Đã miễn', tone: 'neutral' },
   RESOLVED: { label: 'Đã xử lý', tone: 'ok' },
   ACCEPTED: { label: 'Đã chấp nhận', tone: 'ok' },
   ACCEPTED_BY_RECEIVER: { label: 'Bên nhận đã đồng ý', tone: 'pending' },
