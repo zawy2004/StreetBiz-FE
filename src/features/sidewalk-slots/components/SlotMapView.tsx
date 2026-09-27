@@ -50,13 +50,28 @@ function ResizeFix() {
   return null;
 }
 
+/**
+ * The parent's `bounds` state starts as a guessed window around DEFAULT_CENTER,
+ * not the map's real viewport -- Leaflet only knows its true size after the
+ * container has been laid out and measured (see ResizeFix above). `moveend`
+ * alone leaves that guess in place until the vendor manually pans or zooms,
+ * because ResizeFix's `invalidateSize()` only fires `moveend` when correcting
+ * the size also has to re-pan to keep the center anchored -- it fires plain
+ * `resize` unconditionally, and neither fires at all if Leaflet's first
+ * measurement already happens to be correct. Reading the real bounds once on
+ * mount, and again on `resize`, closes both gaps; `moveend` still covers the
+ * vendor panning or zooming afterward.
+ */
 function BoundsWatcher({ onChange }: { onChange: (bounds: Bounds) => void }) {
+  const report = (map: L.Map) => {
+    const b = map.getBounds();
+    onChange({ minLat: b.getSouth(), maxLat: b.getNorth(), minLng: b.getWest(), maxLng: b.getEast() });
+  };
   const map = useMapEvents({
-    moveend: () => {
-      const b = map.getBounds();
-      onChange({ minLat: b.getSouth(), maxLat: b.getNorth(), minLng: b.getWest(), maxLng: b.getEast() });
-    },
+    moveend: () => report(map),
+    resize: () => report(map),
   });
+  useEffect(() => report(map), [map]);
   return null;
 }
 

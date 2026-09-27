@@ -356,7 +356,11 @@ export const complianceApi = {
     ),
   getEnrollment: (id: string) => apiGet<WardEnrollmentDetail>(`/ward/enrollments/${id}`),
   decideEnrollment: (id: string, decision: string, reason: string, expectedStatus: string) =>
-    apiPost<WardEnrollmentDetail>(`/ward/enrollments/${id}/decision`, { decision, reason, expectedStatus }),
+    apiPost<WardEnrollmentDetail>(`/ward/enrollments/${id}/decision`, {
+      decision,
+      reason,
+      expectedStatus,
+    }),
   /** BR-41 KYC gate: officer confirms they compared the vendor against their physical/chip
    * CCCD. The backend refuses decideEnrollment's APPROVE until this has been called. */
   confirmIdentity: (id: string, note: string) =>
@@ -414,7 +418,9 @@ export const complianceApi = {
   permitAction: (permitId: number, action: 'SUSPEND' | 'REVOKE', reason: string) =>
     apiPost<boolean>(`/ward/permits/${permitId}/action`, { action, reason }),
 
-  listPenaltySchedules: () => apiGet<PenaltyScheduleItem[]>('/ward/penalty-schedules'),
+  /** Rates in force on `asOf` (yyyy-MM-dd, Vietnam date); default today. Sanctioning must use the violation date. */
+  listPenaltySchedules: (asOf?: string) =>
+    apiGet<PenaltyScheduleItem[]>(`/ward/penalty-schedules${asOf ? `?asOf=${asOf}` : ''}`),
   listViolations: (status?: string, page = 1) =>
     apiGet<WardViolationItem[]>(
       `/ward/violations?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page) })}`,
@@ -452,13 +458,18 @@ export const complianceApi = {
    * from the client -- an earlier draft did, and its shape drifted out of sync with the backend
    * (which only ever needed the registration id). */
   aiDocumentExtract: (registrationId: string) =>
-    apiPost<AiDocumentCheck>('/ward/ai/document-extract', { registrationId: Number(registrationId) }),
+    apiPost<AiDocumentCheck>('/ward/ai/document-extract', {
+      registrationId: Number(registrationId),
+    }),
 
   aiEncroachmentCheck: (photoUrl: string, slotWidth?: number, slotLength?: number) =>
     apiPost<AiEncroachment>('/ward/ai/encroachment-check', { photoUrl, slotWidth, slotLength }),
 
   askVendorAssistant: (question: string, context?: string) =>
-    apiPost<{ answer: string; isAiGenerated: boolean }>('/ward/ai/vendor-assistant', { question, context }),
+    apiPost<{ answer: string; isAiGenerated: boolean }>('/ward/ai/vendor-assistant', {
+      question,
+      context,
+    }),
 
   /** Shared with REG-02; UploadsController also authorizes WARD_AUTHORITY for WARD-11/12 evidence. */
   uploadEvidence: (file: File): Promise<{ fileUrl: string }> => {

@@ -100,6 +100,11 @@ export type FeeQuote = {
   termDays: number;
   lines: FeeQuoteLine[];
   total: number;
+  /** price_per_day x days: what the contract is billed at approval. */
+  baseFee: number;
+  /** Zone fee components, shown for transparency; not yet charged on the contract. */
+  referenceFees: number;
+  isReferenceOnly: boolean;
 };
 
 export type SlotHold = {
