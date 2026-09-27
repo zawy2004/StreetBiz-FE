@@ -10,7 +10,10 @@ import { errorMessage } from '@/core/api';
 import { env, isLiveApi } from '@/core/config/env';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useMockDb } from '@/mocks/db';
+import { colors } from '@/theme';
+import { categoryIcon } from '../category-icons';
 import { FilterBar } from '../components/FilterBar';
+import { FoodImage } from '../components/FoodImage';
 import { LocationBar } from '../components/LocationBar';
 import { StorefrontCard } from '../components/StorefrontCard';
 import {
@@ -22,6 +25,7 @@ import {
   type SearchSort,
 } from '../discovery-filters';
 import { useDiscoveryStore } from '../discovery-store';
+import { menuItemPhotos } from '../food-photos';
 import { useMenuItemSearch, useStorefronts } from '../useDiscovery';
 
 export function SearchScreen() {
@@ -88,6 +92,13 @@ function LiveSearchScreen() {
           {items.data.map((item) => (
             <Card key={item.menuItemId} onPress={() => navigate(`/customer/explore/items/${item.menuItemId}`)}>
               <div className="flex items-center justify-between gap-sm">
+                <FoodImage
+                  photos={menuItemPhotos(item)}
+                  icon={categoryIcon(item.categoryName)}
+                  iconSize={24}
+                  iconColor={colors.muted}
+                  className="size-16 shrink-0 rounded-sm"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-headline-sm text-text">{item.itemName}</p>
                   <p className="text-body-sm text-muted">

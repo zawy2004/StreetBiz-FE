@@ -1,15 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Avatar, Button, Card, Icon, Money } from '@/components/common';
+import { Button, Card, Icon, Money } from '@/components/common';
 import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { commerceApi, errorMessage } from '@/core/api';
 import { colors } from '@/theme';
+import { categoryIcon } from '../category-icons';
+import { FoodImage } from '../components/FoodImage';
 import { OpenBadge } from '../components/StorefrontCard';
 import { directionsUrl, formatDistance, ratingText, vietnamWeekday, weeklySchedule } from '../discovery-format';
 import { useDiscoveryStore } from '../discovery-store';
+import { menuItemPhotos, storefrontPhotos } from '../food-photos';
 
 /** One storefront in full: where it is, when it opens and what it sells (DISC-06). */
 export function StorefrontDetailScreen() {
@@ -35,17 +38,24 @@ export function StorefrontDetailScreen() {
   return (
     <Screen>
       <AppHeader title={storefront.storefrontName} back />
+      <FoodImage
+        photos={storefrontPhotos(storefront)}
+        icon={categoryIcon(storefront.categories[0])}
+        iconSize={56}
+        iconColor={colors.primary}
+        placeholderClassName="bg-tint-primary"
+        className="aspect-[16/9] w-full rounded-md md:aspect-[21/8]"
+        imgClassName={storefront.isOpenNow ? '' : 'grayscale-[60%]'}
+        showIllustrativeTag
+      />
       <Card>
         <div className="flex flex-col gap-sm">
-          <div className="flex gap-sm">
-            <Avatar uri={storefront.imageUrl ?? undefined} name={storefront.storefrontName} size={64} />
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <OpenBadge isOpen={storefront.isOpenNow} />
-              <span className="flex items-center gap-1 text-body-md text-text">
-                <Icon name="star" size={16} color={colors.secondary} />
-                {ratingText(storefront.communityRating, storefront.communityCount)}
-              </span>
-            </div>
+          <div className="flex flex-wrap items-center gap-sm">
+            <OpenBadge isOpen={storefront.isOpenNow} />
+            <span className="flex items-center gap-1 text-body-md text-text">
+              <Icon name="star" size={16} color={colors.secondary} />
+              {ratingText(storefront.communityRating, storefront.communityCount)}
+            </span>
           </div>
           {storefront.description ? <p className="text-body-md text-text">{storefront.description}</p> : null}
           <div className="flex items-start gap-xs text-body-md text-muted">
@@ -103,10 +113,18 @@ export function StorefrontDetailScreen() {
             {category.items.map((item) => (
               <Card key={item.menuItemId} onPress={() => navigate(`/customer/explore/items/${item.menuItemId}`)}>
                 <div className="flex items-center justify-between gap-sm">
+                  <FoodImage
+                    photos={menuItemPhotos(item)}
+                    icon={categoryIcon(item.categoryName)}
+                    iconSize={28}
+                    iconColor={colors.muted}
+                    className="size-20 shrink-0 rounded-sm"
+                    imgClassName={item.availabilityStatus === 'SOLD_OUT' ? 'grayscale' : ''}
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-headline-sm text-text">{item.itemName}</p>
                     {item.description ? (
-                      <p className="truncate text-body-sm text-muted">{item.description}</p>
+                      <p className="line-clamp-2 text-body-sm text-muted">{item.description}</p>
                     ) : null}
                   </div>
                   <div className="flex flex-col items-end gap-1">

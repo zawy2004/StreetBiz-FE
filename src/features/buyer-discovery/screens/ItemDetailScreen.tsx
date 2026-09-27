@@ -12,6 +12,10 @@ import { isLiveApi } from '@/core/config/env';
 import { useCartStore } from '@/features/cart/cart-store';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
+import { colors } from '@/theme';
+import { categoryIcon } from '../category-icons';
+import { FoodImage } from '../components/FoodImage';
+import { menuItemPhotos } from '../food-photos';
 
 export function ItemDetailScreen() {
   return isLiveApi ? <LiveItemDetailScreen /> : <MockItemDetailScreen />;
@@ -76,6 +80,16 @@ function LiveItemDetailScreen() {
       }
     >
       <AppHeader title={item.data.itemName} back subtitle={item.data.storefrontName} />
+      <FoodImage
+        photos={menuItemPhotos(item.data)}
+        icon={categoryIcon(item.data.categoryName)}
+        iconSize={56}
+        iconColor={colors.primary}
+        placeholderClassName="bg-tint-primary"
+        className="aspect-[4/3] w-full rounded-md md:aspect-[16/7]"
+        imgClassName={soldOut ? 'grayscale' : ''}
+        showIllustrativeTag
+      />
       <Card>
         <div className="flex items-center justify-between">
           <Money amountVnd={item.data.unitPrice} size="lg" />
