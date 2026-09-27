@@ -134,7 +134,13 @@ function mockPaymentHistory(
 }
 
 function fromMockViolation(
-  v: { id: string; violation_type: string; note: string; recorded_at: string; reportedBy: 'WARD' | 'CUSTOMER' },
+  v: {
+    id: string;
+    violation_type: string;
+    note: string;
+    recorded_at: string;
+    reportedBy: 'WARD' | 'CUSTOMER';
+  },
   penalties: Penalty[],
 ): VendorViolationDto {
   const penalty = penalties.find((p) => p.violationId === v.id);

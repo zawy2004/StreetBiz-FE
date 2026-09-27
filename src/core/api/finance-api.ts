@@ -119,8 +119,7 @@ export const financeApi = {
   summary: () => apiGet<FinanceSummaryDto>('/vendor/finance/summary'),
 
   /** FinanceHome's "Phí thuê ô" tab, optionally filtered by status. */
-  fees: (status?: string) =>
-    apiGet<FeeItemDto[]>(`/vendor/finance/fees${queryString({ status })}`),
+  fees: (status?: string) => apiGet<FeeItemDto[]>(`/vendor/finance/fees${queryString({ status })}`),
 
   /** FEE-01. */
   payFeeCheckout: (feeItemId: number, provider: PaymentProvider, idempotencyKey: string) =>
@@ -152,6 +151,12 @@ export const financeApi = {
       `/vendor/finance/payments/${transactionId}/sandbox-confirm`,
     ),
 
+  /** Back from MoMo: the backend asks MoMo for the real state and applies it. */
+  syncPayment: (transactionId: number) =>
+    apiPost<{ transactionId: number; status: 'PENDING' | 'SUCCESS' | 'FAILED' }>(
+      `/vendor/finance/payments/${transactionId}/sync`,
+    ),
+
   /** FEE-05: the caller's fee/penalty payment attempts, most recent first. */
   payments: () => apiGet<PaymentTransactionDto[]>('/vendor/finance/payments'),
 
@@ -162,8 +167,7 @@ export const financeApi = {
   invoices: () => apiGet<InvoiceDto[]>('/vendor/finance/invoices'),
 
   /** FEE-03: one invoice's full detail. */
-  invoice: (invoiceId: number) =>
-    apiGet<InvoiceDetailDto>(`/vendor/finance/invoices/${invoiceId}`),
+  invoice: (invoiceId: number) => apiGet<InvoiceDetailDto>(`/vendor/finance/invoices/${invoiceId}`),
 };
 
 /** WARD-14. */

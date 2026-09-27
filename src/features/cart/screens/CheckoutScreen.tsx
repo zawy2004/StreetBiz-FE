@@ -13,7 +13,7 @@ import { colors } from '@/theme';
 import { useCartStore } from '../cart-store';
 import { useCheckoutOrder } from '@/features/orders/hooks/useOrders';
 import { PaymentProviderSelector } from '@/features/orders/components';
-import { redirectToPayment } from '@/features/orders/payment-redirect';
+import { isSandboxPaymentUrl, redirectToPayment } from '@/features/orders/payment-redirect';
 
 type Provider = 'MOMO' | 'ZALOPAY';
 
@@ -55,6 +55,10 @@ function LiveCheckoutScreen() {
             queryClient.invalidateQueries({ queryKey: ['commerce', 'cart'] }),
             queryClient.invalidateQueries({ queryKey: ['orders', 'customer', 'list'] }),
           ]);
+          if (isSandboxPaymentUrl(checkout.paymentUrl)) {
+            navigate(`/customer/orders/${checkout.orderId}/payment`, { replace: true });
+            return;
+          }
           showToast('Đang chuyển đến cổng thanh toán.');
           redirectToPayment(checkout.paymentUrl);
         },
@@ -91,14 +95,30 @@ function LiveCheckoutScreen() {
   }
 
   const data = cart.data;
+  if (data.pendingOrderId) {
+    const pendingOrderId = data.pendingOrderId;
+    return (
+      <Screen>
+        <AppHeader title="Thanh toán" back />
+        <EmptyState
+          icon="clock-outline"
+          title="Bạn có một đơn đang chờ thanh toán"
+          action={
+            <Button
+              label="Tiếp tục thanh toán"
+              onPress={() => navigate(`/customer/orders/${pendingOrderId}/payment`)}
+            />
+          }
+        />
+      </Screen>
+    );
+  }
   return (
     <Screen
       footer={
         <StickyActions>
           <Button
-            label={
-              place.isPending ? 'Đang khởi tạo thanh toán…' : 'Thanh toán và đặt món'
-            }
+            label={place.isPending ? 'Đang khởi tạo thanh toán…' : 'Thanh toán và đặt món'}
             loading={place.isPending}
             disabled={
               place.isPending ||
@@ -232,7 +252,12 @@ function MockCheckoutScreen() {
         </div>
       </Card>
       {failed ? (
-        <Card style={{ backgroundColor: 'rgb(var(--c-error) / 0.06)', borderColor: 'rgb(var(--c-error) / 0.25)' }}>
+        <Card
+          style={{
+            backgroundColor: 'rgb(var(--c-error) / 0.06)',
+            borderColor: 'rgb(var(--c-error) / 0.25)',
+          }}
+        >
           <p className="text-body-md" style={{ color: colors.error }}>
             Thanh toán thất bại. Vui lòng thử lại.
           </p>

@@ -121,6 +121,8 @@ export type CommerceCart = {
   storefrontStatus: string;
   items: CommerceCartItem[];
   subtotal: number;
+  /** Set while an order from this cart awaits payment; the cart is read-only until it is paid or cancelled. */
+  pendingOrderId?: number | null;
 };
 
 export type CommerceOrderItem = {
@@ -178,7 +180,8 @@ export type SalesSummary = {
 };
 
 export type PaymentOptions = {
-  mode: 'SANDBOX' | 'UNAVAILABLE';
+  /** LIVE = MoMo's own (test) gateway is configured; SANDBOX = in-app simulated payment. */
+  mode: 'LIVE' | 'SANDBOX' | 'UNAVAILABLE';
   providers: ('MOMO' | 'ZALOPAY')[];
   message: string;
 };
@@ -213,9 +216,7 @@ export const commerceApi = {
   ) => apiPost<CustomerComplaint>(`/orders/${orderId}/complaints`, input),
   menuItems: (query?: string | MenuItemQuery) => {
     const filters = typeof query === 'string' ? { query } : (query ?? {});
-    return apiGet<MarketplaceMenuItem[]>(
-      `/marketplace/menu-items${queryString({ ...filters })}`,
-    );
+    return apiGet<MarketplaceMenuItem[]>(`/marketplace/menu-items${queryString({ ...filters })}`);
   },
   menuItem: (menuItemId: string | number) =>
     apiGet<MarketplaceMenuItem>(`/marketplace/menu-items/${menuItemId}`),

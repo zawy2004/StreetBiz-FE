@@ -29,7 +29,10 @@ export function VendorViolationsScreen() {
             ) : null}
             <div className="mt-xs flex items-center justify-between">
               <span className="text-body-sm text-muted">
-                {[v.slotCode ? `Ô ${v.slotCode}` : null, new Date(v.recordedAt).toLocaleString('vi-VN')]
+                {[
+                  v.slotCode ? `Ô ${v.slotCode}` : null,
+                  new Date(v.recordedAt).toLocaleString('vi-VN'),
+                ]
                   .filter(Boolean)
                   .join(' · ')}
               </span>

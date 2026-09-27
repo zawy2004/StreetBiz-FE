@@ -3,11 +3,7 @@ import { useRef } from 'react';
 
 import { ApiError } from '@/core/api/problem';
 import { orderApi } from '../api/orderApi';
-import {
-  TERMINAL_ORDER_STATUSES,
-  type Order,
-  type OrderListFilters,
-} from '../types/order.types';
+import { TERMINAL_ORDER_STATUSES, type Order, type OrderListFilters } from '../types/order.types';
 import { useOrderRealtime } from '../realtime/useOrderRealtime';
 
 export const orderKeys = {
@@ -80,9 +76,7 @@ export function useRefreshAfterOrderMutation(scope: 'customer' | 'vendor', order
   const cache = useQueryClient();
   const listKey = scope === 'customer' ? orderKeys.customerLists : orderKeys.vendorLists;
   const detailKey =
-    scope === 'customer'
-      ? orderKeys.customerDetail(orderId)
-      : orderKeys.vendorDetail(orderId);
+    scope === 'customer' ? orderKeys.customerDetail(orderId) : orderKeys.vendorDetail(orderId);
   return {
     update: async (order: Order) => {
       cache.setQueryData(detailKey, order);

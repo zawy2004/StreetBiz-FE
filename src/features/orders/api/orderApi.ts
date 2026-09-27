@@ -24,8 +24,7 @@ function normalizeUtc(value?: string | null): string | null {
   if (/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)) {
     return new Date(value).toISOString();
   }
-  const match =
-    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,7}))?$/.exec(value);
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,7}))?$/.exec(value);
   if (!match) return value;
   const [, year, month, day, hour, minute, second, fraction = '0'] = match;
   return new Date(
@@ -48,12 +47,10 @@ export function mapOrder(input: BackendOrder): Order {
     imageUrl: input.storefrontImageUrl ?? null,
     address: input.storefrontAddress ?? null,
   };
-  const items = (input.items ?? []).map(
-    (item): OrderItem => ({
-      ...item,
-      lineTotal: item.lineTotal ?? item.unitPrice * item.quantity,
-    }),
-  );
+  const items = (input.items ?? []).map((item): OrderItem => ({
+    ...item,
+    lineTotal: item.lineTotal ?? item.unitPrice * item.quantity,
+  }));
   const statusHistory = (input.statusHistory ?? input.history ?? []).map(
     (history): OrderStatusHistory => ({
       ...history,
@@ -111,6 +108,14 @@ export const orderApi = {
     mapOrder(await apiGet<BackendOrder>(`/orders/${orderId}`)),
   cancel: async (orderId: number) =>
     mapOrder(await apiPost<BackendOrder>(`/orders/${orderId}/cancel`)),
+  /** Backend asks the payment provider (MoMo) for the real state and applies it. */
+  syncPayment: async (orderId: number) =>
+    mapOrder(await apiPost<BackendOrder>(`/orders/${orderId}/payment/sync`)),
+  /** Development sandbox only: the backend 404s these outside Development. */
+  confirmSandboxPayment: async (orderId: number) =>
+    mapOrder(await apiPost<BackendOrder>(`/orders/${orderId}/payment/sandbox-confirm`)),
+  failSandboxPayment: async (orderId: number) =>
+    mapOrder(await apiPost<BackendOrder>(`/orders/${orderId}/payment/sandbox-fail`)),
   confirmPickup: async (orderId: number) =>
     mapOrder(await apiPost<BackendOrder>(`/orders/${orderId}/confirm-pickup`)),
 

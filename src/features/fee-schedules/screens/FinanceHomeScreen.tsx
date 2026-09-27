@@ -114,7 +114,10 @@ export function FinanceHomeScreen() {
           {penalties.isLoading ? (
             <LoadingState />
           ) : penalties.isError ? (
-            <ErrorState message={errorMessage(penalties.error)} onRetry={() => penalties.refetch()} />
+            <ErrorState
+              message={errorMessage(penalties.error)}
+              onRetry={() => penalties.refetch()}
+            />
           ) : penalties.penalties.length === 0 ? (
             <EmptyState icon="alert-octagon-outline" title="Không có biên bản phạt" />
           ) : (

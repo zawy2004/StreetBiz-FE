@@ -16,7 +16,10 @@ vi.mock('@/core/api/client', async (importOriginal) => ({
   apiGet: client.apiGet,
   apiPost: client.apiPost,
 }));
-vi.mock('@/features/orders/payment-redirect', () => ({ redirectToPayment: redirect }));
+vi.mock('@/features/orders/payment-redirect', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/orders/payment-redirect')>()),
+  redirectToPayment: redirect,
+}));
 vi.mock('@/core/config/env', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/core/config/env')>()),
   isLiveApi: true,
@@ -127,6 +130,39 @@ describe('fee payment (live API)', () => {
     await userEvent.click(await payButton());
 
     await waitFor(() => expect(redirect).toHaveBeenCalledWith(checkout.paymentUrl));
+  });
+
+  it('goes to the MoMo page instead of the simulator when MoMo is configured', async () => {
+    const momo = { ...checkout, paymentUrl: 'https://test-payment.momo.vn/v2/gateway/pay?t=abc' };
+    client.apiPost.mockResolvedValue(momo);
+    renderFeePayment();
+
+    await userEvent.click(await payButton());
+
+    await waitFor(() => expect(redirect).toHaveBeenCalledWith(momo.paymentUrl));
+    expect(client.apiPost).not.toHaveBeenCalledWith('/vendor/finance/payments/9/sandbox-confirm');
+  });
+
+  it('checks with MoMo on return and goes to FinanceHome once MoMo confirms', async () => {
+    client.apiPost.mockResolvedValue({ transactionId: 9, status: 'SUCCESS' });
+    renderAt(
+      '/vendor/finance/fees/3/payment?partnerCode=MOMO&orderId=SB-T9&resultCode=0',
+      <Route path="/vendor/finance/fees/:id/payment" element={<FeePaymentScreen />} />,
+    );
+
+    expect(await screen.findByText('FINANCE HOME')).toBeInTheDocument();
+    expect(client.apiPost).toHaveBeenCalledWith('/vendor/finance/payments/9/sync');
+  });
+
+  it('keeps the vendor on the page with a retry while MoMo has not confirmed yet', async () => {
+    client.apiPost.mockResolvedValue({ transactionId: 9, status: 'PENDING' });
+    renderAt(
+      '/vendor/finance/fees/3/payment?orderId=SB-T9&resultCode=1000',
+      <Route path="/vendor/finance/fees/:id/payment" element={<FeePaymentScreen />} />,
+    );
+
+    expect(await screen.findByText('MoMo chưa xác nhận thanh toán')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Kiểm tra lại' })).toBeInTheDocument();
   });
 
   it('retries a failed checkout with the same Idempotency-Key so the server can replay it', async () => {
