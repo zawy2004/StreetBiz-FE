@@ -5,26 +5,33 @@ import { Button, Card, Money } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { SegmentedControl } from '@/components/forms';
 import { StatusChip } from '@/components/status';
-import { EmptyState } from '@/components/feedback';
+import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
+import { errorMessage } from '@/core/api';
 import { alpha, colors } from '@/theme';
-import { useMockDb } from '@/mocks/db';
-import { useAuthStore } from '@/store/auth-store';
+import { useFeeItems, useFinanceSummary, useInvoices, usePenalties } from '../useFinance';
 
 type Tab = 'FEES' | 'PENALTIES' | 'INVOICES';
 
 export function FinanceHomeScreen() {
   const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
-  const feeItems = useMockDb((s) => s.feeItems).filter((f) => f.vendorId === user?.vendorId);
-  const penalties = useMockDb((s) => s.penalties).filter((p) => p.vendorId === user?.vendorId);
-  const invoices = useMockDb((s) => s.invoices).filter((i) => i.vendorId === user?.vendorId);
   const [tab, setTab] = useState<Tab>('FEES');
 
-  const pendingFees = feeItems.filter((f) => f.item_status === 'PENDING');
-  const pendingPenalties = penalties.filter((p) => p.penalty_status === 'PENDING');
-  const totalDue =
-    pendingFees.reduce((sum, f) => sum + f.amount, 0) +
-    pendingPenalties.reduce((sum, p) => sum + p.amount, 0);
+  const summary = useFinanceSummary();
+  const fees = useFeeItems();
+  const penalties = usePenalties();
+  const invoices = useInvoices();
+
+  const totals = summary.summary;
+  const summaryHint = totals
+    ? [
+        totals.overdueCount > 0 ? `${totals.overdueCount} khoản quá hạn` : null,
+        totals.nextDueDate
+          ? `Hạn kế tiếp ${new Date(totals.nextDueDate).toLocaleDateString('vi-VN')}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
 
   return (
     <Screen>
@@ -34,7 +41,25 @@ export function FinanceHomeScreen() {
           <span className="text-body-md" style={{ color: alpha(colors.onIndigo, 0.72) }}>
             Tổng cần thanh toán
           </span>
-          <Money amountVnd={totalDue} size="lg" color={colors.onIndigo} />
+          {/* A debt figure must never flash "0 đ" while it is still loading or failed to load. */}
+          {summary.isLoading ? (
+            <span className="text-money-lg" style={{ color: alpha(colors.onIndigo, 0.5) }}>
+              …
+            </span>
+          ) : summary.isError || !totals ? (
+            <span className="text-body-md" style={{ color: colors.onIndigo }}>
+              Chưa tải được tổng số tiền cần thanh toán.
+            </span>
+          ) : (
+            <>
+              <Money amountVnd={totals.totalDue} size="lg" color={colors.onIndigo} />
+              {summaryHint ? (
+                <span className="text-body-sm" style={{ color: alpha(colors.onIndigo, 0.72) }}>
+                  {summaryHint}
+                </span>
+              ) : null}
+            </>
+          )}
         </div>
       </Card>
 
@@ -50,28 +75,32 @@ export function FinanceHomeScreen() {
 
       {tab === 'FEES' ? (
         <Section>
-          {feeItems.length === 0 ? (
+          {fees.isLoading ? (
+            <LoadingState />
+          ) : fees.isError ? (
+            <ErrorState message={errorMessage(fees.error)} onRetry={() => fees.refetch()} />
+          ) : fees.feeItems.length === 0 ? (
             <EmptyState icon="cash-multiple" title="Chưa có khoản phí nào" />
           ) : (
-            feeItems.map((f) => (
+            fees.feeItems.map((f) => (
               <Card
-                key={f.id}
+                key={f.feeItemId}
                 onPress={
-                  f.item_status === 'PENDING'
-                    ? () => navigate(`/vendor/finance/fees/${f.id}/payment`)
+                  f.itemStatus === 'PENDING' || f.itemStatus === 'OVERDUE'
+                    ? () => navigate(`/vendor/finance/fees/${f.feeItemId}/payment`)
                     : undefined
                 }
               >
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-2xs">
-                    <span className="text-headline-sm text-text">{f.period_label}</span>
+                    <span className="text-headline-sm text-text">{f.periodLabel}</span>
                     <span className="text-body-sm text-muted">
-                      Hạn {new Date(f.due_date).toLocaleDateString('vi-VN')}
+                      Hạn {new Date(f.dueDate).toLocaleDateString('vi-VN')}
                     </span>
                   </div>
                   <div className="flex flex-col items-end gap-2xs">
                     <Money amountVnd={f.amount} />
-                    <StatusChip code={f.item_status} />
+                    <StatusChip code={f.itemStatus} />
                   </div>
                 </div>
               </Card>
@@ -82,28 +111,37 @@ export function FinanceHomeScreen() {
 
       {tab === 'PENALTIES' ? (
         <Section>
-          {penalties.length === 0 ? (
+          {penalties.isLoading ? (
+            <LoadingState />
+          ) : penalties.isError ? (
+            <ErrorState
+              message={errorMessage(penalties.error)}
+              onRetry={() => penalties.refetch()}
+            />
+          ) : penalties.penalties.length === 0 ? (
             <EmptyState icon="alert-octagon-outline" title="Không có biên bản phạt" />
           ) : (
-            penalties.map((p) => (
+            penalties.penalties.map((p) => (
               <Card
-                key={p.id}
+                key={p.penaltyId}
                 onPress={
-                  p.penalty_status === 'PENDING'
-                    ? () => navigate(`/vendor/finance/penalties/${p.id}/payment`)
+                  p.penaltyStatus === 'UNPAID'
+                    ? () => navigate(`/vendor/finance/penalties/${p.penaltyId}/payment`)
                     : undefined
                 }
               >
                 <div className="flex items-center justify-between">
                   <div className="flex flex-1 flex-col gap-2xs pr-sm">
-                    <span className="line-clamp-2 text-headline-sm text-text">{p.reason}</span>
+                    <span className="line-clamp-2 text-headline-sm text-text">
+                      {p.violationLabel}
+                    </span>
                     <span className="text-body-sm text-muted">
-                      {new Date(p.issued_at).toLocaleDateString('vi-VN')}
+                      {new Date(p.issuedAt).toLocaleDateString('vi-VN')}
                     </span>
                   </div>
                   <div className="flex flex-col items-end gap-2xs">
                     <Money amountVnd={p.amount} />
-                    <StatusChip code={p.penalty_status} />
+                    <StatusChip code={p.penaltyStatus} />
                   </div>
                 </div>
               </Card>
@@ -114,16 +152,23 @@ export function FinanceHomeScreen() {
 
       {tab === 'INVOICES' ? (
         <Section>
-          {invoices.length === 0 ? (
+          {invoices.isLoading ? (
+            <LoadingState />
+          ) : invoices.isError ? (
+            <ErrorState message={errorMessage(invoices.error)} onRetry={() => invoices.refetch()} />
+          ) : invoices.invoices.length === 0 ? (
             <EmptyState icon="receipt" title="Chưa có hoá đơn nào" />
           ) : (
-            invoices.map((inv) => (
-              <Card key={inv.id} onPress={() => navigate(`/vendor/finance/invoices/${inv.id}`)}>
+            invoices.invoices.map((inv) => (
+              <Card
+                key={inv.invoiceId}
+                onPress={() => navigate(`/vendor/finance/invoices/${inv.invoiceId}`)}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-2xs">
-                    <span className="text-headline-sm text-text">{inv.invoice_number}</span>
+                    <span className="text-headline-sm text-text">{inv.invoiceNumber}</span>
                     <span className="text-body-sm text-muted">
-                      {new Date(inv.issued_at).toLocaleDateString('vi-VN')}
+                      {new Date(inv.issuedAt).toLocaleDateString('vi-VN')}
                     </span>
                   </div>
                   <Money amountVnd={inv.amount} />

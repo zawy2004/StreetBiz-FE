@@ -10,12 +10,16 @@ import type { Order } from '@/features/orders/types/order.types';
 
 const legacyApi = vi.hoisted(() => ({
   cart: vi.fn(),
+  paymentOptions: vi.fn(),
 }));
 const ordersApi = vi.hoisted(() => ({
   checkout: vi.fn(),
   customerOrders: vi.fn(),
   customerOrder: vi.fn(),
   cancel: vi.fn(),
+  syncPayment: vi.fn(),
+  confirmSandboxPayment: vi.fn(),
+  failSandboxPayment: vi.fn(),
   confirmPickup: vi.fn(),
   vendorOrders: vi.fn(),
   vendorOrder: vi.fn(),
@@ -36,25 +40,29 @@ vi.mock('@/features/orders/api/orderApi', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/features/orders/api/orderApi')>();
   return { ...actual, orderApi: ordersApi };
 });
-vi.mock('@/features/orders/payment-redirect', () => ({ redirectToPayment: redirect }));
+vi.mock('@/features/orders/payment-redirect', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/orders/payment-redirect')>();
+  return { ...actual, redirectToPayment: redirect };
+});
 vi.mock('@/core/config/env', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/core/config/env')>();
-  return { ...actual, isLiveApi: true };
+  // Development with the payment sandbox on, as in a local .env.
+  return {
+    ...actual,
+    isLiveApi: true,
+    isDev: true,
+    env: { ...actual.env, enablePaymentSandbox: true },
+  };
 });
 
 const { CartScreen } = await import('@/features/cart/screens/CartScreen');
 const { CheckoutScreen } = await import('@/features/cart/screens/CheckoutScreen');
 const { OrderDetailScreen } = await import('@/features/orders/screens/OrderDetailScreen');
 const { OrderPaymentScreen } = await import('@/features/orders/screens/OrderPaymentScreen');
-const { VendorOrderDetailScreen } = await import(
-  '@/features/orders/screens/VendorOrderDetailScreen'
-);
-const {
-  OrderStatusBadge,
-  OrderSummary,
-  RejectOrderDialog,
-  vendorActionsFor,
-} = await import('@/features/orders/components');
+const { VendorOrderDetailScreen } =
+  await import('@/features/orders/screens/VendorOrderDetailScreen');
+const { OrderStatusBadge, OrderSummary, RejectOrderDialog, vendorActionsFor } =
+  await import('@/features/orders/components');
 const { orderPollingInterval } = await import('@/features/orders/hooks/useOrders');
 const { useAuthStore } = await import('@/store/auth-store');
 
@@ -121,6 +129,10 @@ function renderAt(path: string, route: string, element: React.ReactNode) {
         <Routes>
           <Route path={route} element={element} />
           <Route path="/customer/orders/:orderId" element={<div>order detail destination</div>} />
+          <Route
+            path="/customer/orders/:orderId/payment"
+            element={<div>payment screen destination</div>}
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -130,6 +142,13 @@ function renderAt(path: string, route: string, element: React.ReactNode) {
 describe('order UI contracts', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    // Defaults: the in-app simulator, and MoMo still waiting when the payment screen syncs.
+    legacyApi.paymentOptions.mockResolvedValue({
+      mode: 'SANDBOX',
+      providers: ['MOMO'],
+      message: '',
+    });
+    ordersApi.syncPayment.mockImplementation(async () => order('PENDING_PAYMENT'));
     vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'uuid-checkout-1') });
     useAuthStore.setState({
       user: {
@@ -228,6 +247,63 @@ describe('order UI contracts', () => {
     );
   });
 
+  it('locks the cart and offers the pending payment instead of failing on every tap', async () => {
+    legacyApi.cart.mockResolvedValue({ ...cart, pendingOrderId: 19 });
+    const user = userEvent.setup();
+    renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
+    expect(await screen.findByText('Đơn hàng đang chờ thanh toán')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tăng số lượng' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Giảm số lượng' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Xoá toàn bộ giỏ hàng' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục thanh toán đơn đang chờ' }));
+    expect(await screen.findByText('payment screen destination')).toBeInTheDocument();
+  });
+
+  it('opens the in-app payment screen for a sandbox payment link', async () => {
+    legacyApi.cart.mockResolvedValue(cart);
+    ordersApi.checkout.mockResolvedValue({
+      orderId: 19,
+      orderCode: 'SB-000019',
+      orderStatus: 'PENDING_PAYMENT',
+      paymentUrl: 'streetbiz://payment/sandbox/momo?referenceId=19&transactionId=4',
+    });
+    const user = userEvent.setup();
+    renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Thanh toán và đặt món' }));
+    expect(await screen.findByText('payment screen destination')).toBeInTheDocument();
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it('asks the backend to check with MoMo on return and hides the simulator for MoMo', async () => {
+    legacyApi.paymentOptions.mockResolvedValue({ mode: 'LIVE', providers: ['MOMO'], message: '' });
+    ordersApi.customerOrder.mockResolvedValue(order('PENDING_PAYMENT'));
+    ordersApi.syncPayment.mockResolvedValue(order('PLACED'));
+    renderAt(
+      '/customer/orders/19/payment?partnerCode=MOMO&resultCode=0',
+      '/customer/orders/:orderId/payment',
+      <OrderPaymentScreen />,
+    );
+    expect(await screen.findByText('Đặt món thành công')).toBeInTheDocument();
+    expect(ordersApi.syncPayment).toHaveBeenCalledWith(19);
+    expect(
+      screen.queryByRole('button', { name: 'Thanh toán thử (thành công)' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('lets a tester settle a sandbox payment from the payment screen', async () => {
+    ordersApi.customerOrder.mockResolvedValue(order('PENDING_PAYMENT'));
+    ordersApi.confirmSandboxPayment.mockResolvedValue(order('PLACED'));
+    const user = userEvent.setup();
+    renderAt(
+      '/customer/orders/19/payment',
+      '/customer/orders/:orderId/payment',
+      <OrderPaymentScreen />,
+    );
+    await user.click(await screen.findByRole('button', { name: 'Thanh toán thử (thành công)' }));
+    expect(ordersApi.confirmSandboxPayment).toHaveBeenCalledWith(19);
+    expect(await screen.findByText('Đặt món thành công')).toBeInTheDocument();
+  });
+
   it('does not treat a successful payment return query as proof of payment', async () => {
     ordersApi.customerOrder.mockResolvedValue(order('PENDING_PAYMENT'));
     renderAt(
@@ -280,8 +356,6 @@ describe('order UI contracts', () => {
     const user = userEvent.setup();
     renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
     await user.click(await screen.findByRole('button', { name: 'Thanh toán và đặt món' }));
-    await waitFor(() =>
-      expect(redirect).toHaveBeenCalledWith('https://gateway.example/pay/22'),
-    );
+    await waitFor(() => expect(redirect).toHaveBeenCalledWith('https://gateway.example/pay/22'));
   });
 });

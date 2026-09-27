@@ -13,7 +13,7 @@ import {
   GOONG_NAV_CONTROL_DEFAULT_PROPS,
   GOONG_POPUP_DEFAULT_PROPS,
   useMapBaseLayer,
-} from './MapBaseLayers';
+} from './GoongMapBaseLayers';
 
 export type Bounds = { minLat: number; maxLat: number; minLng: number; maxLng: number };
 

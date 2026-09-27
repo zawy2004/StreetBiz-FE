@@ -29,7 +29,13 @@ export function VendorOrderDetailScreen() {
   const [reason, setReason] = useState('');
 
   const transition = useMutation({
-    mutationFn: ({ action, reason: rejectReason }: { action: VendorOrderAction; reason?: string }) => {
+    mutationFn: ({
+      action,
+      reason: rejectReason,
+    }: {
+      action: VendorOrderAction;
+      reason?: string;
+    }) => {
       const id = order.data!.orderId;
       if (action === 'accept') return orderApi.accept(id);
       if (action === 'reject') return orderApi.reject(id, rejectReason!.trim());
@@ -142,7 +148,9 @@ export function VendorOrderDetailScreen() {
         </Card>
       ) : null}
       {transition.isError ? (
-        <p role="alert" className="text-body-md text-error">{errorMessage(transition.error)}</p>
+        <p role="alert" className="text-body-md text-error">
+          {errorMessage(transition.error)}
+        </p>
       ) : null}
       <RejectOrderDialog
         visible={rejectOpen}

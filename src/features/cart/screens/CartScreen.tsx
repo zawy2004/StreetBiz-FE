@@ -74,7 +74,12 @@ function LiveCartScreen() {
 
   const data = cart.data;
   const items = data?.items ?? [];
+  // An order from this cart is awaiting payment: the backend refuses every edit until
+  // it is paid or cancelled, so say so and offer the way out instead of failing on tap.
+  const pendingOrderId = data?.pendingOrderId ?? null;
+  const locked = pendingOrderId !== null;
   const canCheckout =
+    !locked &&
     data?.storefrontStatus === 'OPEN' &&
     items.length > 0 &&
     items.every((item) => item.availabilityStatus === 'AVAILABLE');
@@ -83,16 +88,35 @@ function LiveCartScreen() {
       footer={
         items.length ? (
           <StickyActions>
-            <Button
-              label={`Thanh toán · ${(data?.subtotal ?? 0).toLocaleString('vi-VN')} đ`}
-              disabled={!canCheckout || update.isPending}
-              onPress={() => navigate('/customer/checkout')}
-            />
+            {locked ? (
+              <Button
+                label="Tiếp tục thanh toán đơn đang chờ"
+                onPress={() => navigate(`/customer/orders/${pendingOrderId}/payment`)}
+              />
+            ) : (
+              <Button
+                label={`Thanh toán · ${(data?.subtotal ?? 0).toLocaleString('vi-VN')} đ`}
+                disabled={!canCheckout || update.isPending}
+                onPress={() => navigate('/customer/checkout')}
+              />
+            )}
           </StickyActions>
         ) : undefined
       }
     >
       <AppHeader title="Giỏ hàng" back subtitle={data?.storefrontName} />
+      {locked ? (
+        <div
+          role="status"
+          className="rounded-md border border-border bg-tint-secondary p-md text-body-md text-text"
+        >
+          <p className="text-headline-sm">Đơn hàng đang chờ thanh toán</p>
+          <p className="mt-2xs text-muted">
+            Giỏ hàng đã khoá để giữ đúng các món trong đơn. Hãy thanh toán hoặc huỷ đơn đó để sửa
+            giỏ.
+          </p>
+        </div>
+      ) : null}
       {items.length === 0 ? (
         <EmptyState icon="cart-outline" title="Giỏ hàng trống" />
       ) : (
@@ -111,7 +135,7 @@ function LiveCartScreen() {
                 <IconButton
                   icon="minus"
                   accessibilityLabel="Giảm số lượng"
-                  disabled={update.isPending}
+                  disabled={locked || update.isPending}
                   onPress={() =>
                     update.mutate({
                       menuItemId: item.menuItemId,
@@ -124,7 +148,7 @@ function LiveCartScreen() {
                 <IconButton
                   icon="plus"
                   accessibilityLabel="Tăng số lượng"
-                  disabled={update.isPending || item.quantity >= 99}
+                  disabled={locked || update.isPending || item.quantity >= 99}
                   onPress={() =>
                     update.mutate({
                       menuItemId: item.menuItemId,
@@ -138,7 +162,7 @@ function LiveCartScreen() {
           </Card>
         ))
       )}
-      {items.length ? (
+      {items.length && !locked ? (
         <Button
           label="Xoá toàn bộ giỏ hàng"
           variant="ghost"

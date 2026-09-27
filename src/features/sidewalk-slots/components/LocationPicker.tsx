@@ -4,7 +4,7 @@ import '@goongmaps/goong-js/dist/goong-js.css';
 import { env } from '@/core/config/env';
 import { palette } from '@/theme';
 import { DEFAULT_CENTER } from '../map-constants';
-import { GOONG_MAP_DEFAULT_PROPS, GOONG_MARKER_DEFAULT_PROPS, useMapBaseLayer } from './MapBaseLayers';
+import { GOONG_MAP_DEFAULT_PROPS, GOONG_MARKER_DEFAULT_PROPS, useMapBaseLayer } from './GoongMapBaseLayers';
 
 export type PickedPosition = { latitude: number; longitude: number };
 

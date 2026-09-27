@@ -11,5 +11,11 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    watch: {
+      // Visual Studio's IntelliSense index (.vs/) locks its files on Windows;
+      // letting chokidar watch it races with VS and crashes the dev server
+      // with EBUSY.
+      ignored: ['**/.vs/**'],
+    },
   },
 });
