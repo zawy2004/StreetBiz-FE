@@ -238,3 +238,258 @@ select:focus-visible {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Landing + auth effects. Patterns adapted from ThreeUI Community (MIT,
+ * github.com/MengTo/threeui): Lumen CTA, Spinning Border button, spotlight
+ * cards. Recoloured to the chili / turmeric palette.
+ * ------------------------------------------------------------------------- */
+
+/* Glow CTA: a rotating conic edge behind a gradient pill. */
+.sb-glow {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 1.5px;
+  box-shadow:
+    0 10px 30px -8px rgb(228 68 31 / 0.55),
+    0 0 0 1px rgb(255 255 255 / 0.06);
+  transition:
+    box-shadow 250ms ease,
+    transform 250ms ease;
+}
+
+.sb-glow:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 16px 40px -8px rgb(228 68 31 / 0.7),
+    0 0 0 1px rgb(255 255 255 / 0.1);
+}
+
+.sb-glow:active {
+  transform: translateY(0);
+}
+
+.sb-glow__edge {
+  position: absolute;
+  inset: -150%;
+  z-index: -1;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 250deg,
+    rgb(255 214 140) 300deg,
+    rgb(255 255 255) 330deg,
+    transparent 360deg
+  );
+  animation: sb-spin 3.6s linear infinite;
+}
+
+.sb-glow__fill {
+  position: relative;
+  color: #fff;
+  background: linear-gradient(95deg, #9e2a10 0%, #c7371a 30%, #e4441f 62%, #f28a2e 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    inset 0 -8px 16px rgb(120 25 5 / 0.25);
+  white-space: nowrap;
+}
+
+.sb-glow__ring {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border: 1.4px solid rgb(255 255 255 / 0.9);
+  border-radius: 50%;
+}
+
+/* Glass pill for the secondary action on dark surfaces. */
+.sb-glass {
+  color: #fff;
+  background: rgb(255 255 255 / 0.04);
+  outline: 1px solid rgb(255 255 255 / 0.18);
+  outline-offset: -1px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition:
+    background 250ms ease,
+    outline-color 250ms ease;
+}
+
+.sb-glass:hover {
+  background: rgb(255 255 255 / 0.1);
+  outline-color: rgb(255 255 255 / 0.32);
+}
+
+@keyframes sb-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* Spotlight card: the border and surface brighten under the pointer. */
+.sb-spotlight {
+  --sx: 50%;
+  --sy: -20%;
+  --rx: 0deg;
+  --ry: 0deg;
+  transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry));
+  position: relative;
+  isolation: isolate;
+  border: 1px solid rgb(var(--c-border));
+  background: rgb(var(--c-card));
+  transition:
+    transform 250ms ease,
+    box-shadow 250ms ease;
+}
+
+.sb-spotlight::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  background: radial-gradient(260px circle at var(--sx) var(--sy), rgb(var(--c-primary) / 0.7), transparent 70%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 250ms ease;
+}
+
+.sb-spotlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(320px circle at var(--sx) var(--sy), rgb(var(--c-primary) / 0.07), transparent 70%);
+  opacity: 0;
+  transition: opacity 250ms ease;
+}
+
+.sb-spotlight:hover {
+  transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(-4px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.sb-spotlight:hover::before,
+.sb-spotlight:hover::after {
+  opacity: 1;
+}
+
+/* Scroll reveal (useReveal). Hidden only once JS has marked the root. */
+[data-reveal] .sb-reveal {
+  transition:
+    opacity 700ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: var(--delay, 0ms);
+}
+
+[data-reveal] .sb-reveal:not([data-shown]) {
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+/* Hero entrance. */
+.sb-rise {
+  animation: sb-rise 800ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes sb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+/* Gentle float for decorative hero cards. */
+.sb-float {
+  animation: sb-float 7s ease-in-out infinite;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes sb-float {
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* A free slot waiting for a vendor: a soft outward pulse. */
+.sb-slot-free {
+  animation: sb-slot 2.8s ease-in-out infinite;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes sb-slot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(255 190 70 / 0);
+    border-color: rgb(255 255 255 / 0.28);
+  }
+  50% {
+    box-shadow: 0 0 22px 0 rgb(255 190 70 / 0.35);
+    border-color: rgb(255 190 70 / 0.8);
+  }
+}
+
+/* Headline accent: warm gradient text. */
+.sb-gradient-text {
+  background: linear-gradient(92deg, #ff7a45 0%, #ffb547 55%, #ffd88a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Faint dot grid for sections that do not need a live canvas. */
+.sb-dot-grid {
+  background-image: radial-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-glow__edge,
+  .sb-float,
+  .sb-slot-free {
+    animation: none !important;
+  }
+
+  [data-reveal] .sb-reveal:not([data-shown]) {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Mouse-wheel hint under the 3D hero. */
+.sb-scroll-dot {
+  animation: sb-scroll 1.8s ease-in-out infinite;
+}
+
+@keyframes sb-scroll {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  70% {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-scroll-dot {
+    animation: none !important;
+  }
+
+  .sb-spotlight,
+  .sb-spotlight:hover {
+    transform: none;
+  }
+}

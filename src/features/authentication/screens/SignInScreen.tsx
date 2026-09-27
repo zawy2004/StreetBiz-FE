@@ -13,12 +13,15 @@ import { useAuthStore } from '@/store/auth-store';
 
 const DEMO_ROLES: RoleCode[] = ['CUSTOMER', 'VENDOR', 'WARD_AUTHORITY', 'PLATFORM_ADMIN'];
 
+/** Accounts from StreetBiz-BE `db/StreetBiz_Demo_Seed.sql` (see its docs/database.md). */
 const DEMO_PHONE_BY_ROLE: Record<RoleCode, string> = {
-  CUSTOMER: '0905000001',
-  VENDOR: '0905000002',
-  WARD_AUTHORITY: '0905000004',
-  PLATFORM_ADMIN: '0905000005',
+  CUSTOMER: '0905000201',
+  VENDOR: '0905000101',
+  WARD_AUTHORITY: '0983000001',
+  PLATFORM_ADMIN: '0900000001',
 };
+
+const DEMO_PASSWORD = 'Password123!';
 
 /** AUTH-03: sign in with phone + password. */
 export function SignInScreen() {
@@ -139,7 +142,7 @@ export function SignInScreen() {
                     navigate(ROLE_HOME_ROUTE[role], { replace: true });
                   } else {
                     setPhone(DEMO_PHONE_BY_ROLE[role]);
-                    setPassword('123456');
+                    setPassword(DEMO_PASSWORD);
                   }
                 }}
                 className="flex h-10 items-center justify-center rounded-sm bg-sunken hover:bg-border"
