@@ -33,7 +33,9 @@ export function OrderCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-xs">
             <div>
-              <p className="truncate text-headline-sm text-text">{order.storefront.storefrontName}</p>
+              <p className="truncate text-headline-sm text-text">
+                {order.storefront.storefrontName}
+              </p>
               <p className="text-body-sm text-muted">#{order.orderCode}</p>
             </div>
             <OrderStatusBadge status={order.orderStatus} />

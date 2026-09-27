@@ -15,13 +15,7 @@ import { useCustomerOrders } from '../hooks/useOrders';
 import type { OrderStatus } from '../types/order.types';
 
 type CustomerTab =
-  | 'ALL'
-  | 'PENDING_PAYMENT'
-  | 'PLACED'
-  | 'PROCESSING'
-  | 'READY_FOR_PICKUP'
-  | 'COMPLETED'
-  | 'CLOSED';
+  'ALL' | 'PENDING_PAYMENT' | 'PLACED' | 'PROCESSING' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'CLOSED';
 
 const CUSTOMER_FILTERS: { value: CustomerTab; label: string }[] = [
   { value: 'ALL', label: 'Tất cả' },

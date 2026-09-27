@@ -1,50 +1,63 @@
 import { Card, Divider, ListRow, Money } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { EmptyState } from '@/components/feedback';
-import { useMockDb } from '@/mocks/db';
-import { useAuthStore } from '@/store/auth-store';
+import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
+import { errorMessage, type PaymentTransactionDto } from '@/core/api';
+import { usePaymentHistory } from '../useFinance';
+
+const PURPOSE_LABEL: Record<string, string> = {
+  RENTAL_FEE: 'Phí thuê ô',
+  PENALTY: 'Biên bản phạt',
+};
+
+const PROVIDER_LABEL: Record<string, string> = {
+  MOMO: 'MoMo',
+  ZALOPAY: 'ZaloPay',
+};
+
+/** "Phí thuê ô · NVL-01 · MoMo · 14:05 20/09/2026" */
+function describe(row: PaymentTransactionDto): string {
+  return [
+    PURPOSE_LABEL[row.purpose] ?? row.purpose,
+    row.slotCode,
+    PROVIDER_LABEL[row.provider] ?? row.provider,
+    new Date(row.createdAt).toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
 
 export function PaymentHistoryScreen() {
-  const user = useAuthStore((s) => s.user);
-  const feeItems = useMockDb((s) => s.feeItems).filter((f) => f.vendorId === user?.vendorId);
-  const penalties = useMockDb((s) => s.penalties).filter((p) => p.vendorId === user?.vendorId);
-
-  const rows = [
-    ...feeItems.map((f) => ({
-      id: f.id,
-      title: f.period_label,
-      amount: f.amount,
-      status: f.item_status,
-      kind: 'Phí thuê ô',
-    })),
-    ...penalties.map((p) => ({
-      id: p.id,
-      title: p.reason,
-      amount: p.amount,
-      status: p.penalty_status,
-      kind: 'Biên bản phạt',
-    })),
-  ];
+  const { payments, isLoading, isError, error, refetch } = usePaymentHistory();
 
   return (
     <Screen>
       <AppHeader title="Lịch sử thanh toán" back />
-      {rows.length === 0 ? (
+      {isLoading ? (
+        <LoadingState />
+      ) : isError ? (
+        <ErrorState message={errorMessage(error)} onRetry={() => refetch()} />
+      ) : payments.length === 0 ? (
         <EmptyState icon="history" title="Chưa có giao dịch nào" />
       ) : (
         <Card padded={false}>
           <div className="px-md">
-            {rows.map((row, i) => (
-              <div key={row.id}>
+            {payments.map((row, i) => (
+              <div key={row.transactionId}>
                 {i > 0 ? <Divider /> : null}
                 <ListRow
-                  title={row.title}
-                  subtitle={row.kind}
+                  title={row.referenceLabel}
+                  subtitle={describe(row)}
                   trailing={
                     <div className="flex flex-col items-end gap-2xs">
                       <Money amountVnd={row.amount} />
-                      <StatusChip code={row.status} />
+                      <StatusChip code={row.transactionStatus} />
                     </div>
                   }
                 />
