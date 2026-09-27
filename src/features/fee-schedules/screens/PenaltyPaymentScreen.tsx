@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { ErrorState, LoadingState, showToast } from '@/components/feedback';
-import { ApiError, errorMessage, financeApi } from '@/core/api';
+import { errorMessage, financeApi } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
 import { PaymentProviderSelector } from '@/features/orders/components';
@@ -44,9 +44,15 @@ function LivePenaltyPaymentScreen() {
       { penaltyId, provider, idempotencyKey: idempotencyKey.current },
       {
         onSuccess: async (result) => {
+          // Only our own dev-only fake link uses this scheme. A real provider — MoMo once
+          // Payments:Momo:* is configured, or the CheckoutUrlTemplate fallback — always
+          // returns a normal https:// URL, so it is never sandbox-confirmed, only redirected to.
+          if (!result.paymentUrl.startsWith('streetbiz://')) {
+            showToast('Đang chuyển đến cổng thanh toán.');
+            redirectToPayment(result.paymentUrl);
+            return;
+          }
           try {
-            // Development-only: no real MoMo/ZaloPay sandbox account is wired up, so
-            // confirm here instead of letting the redirect below hit a dead custom-scheme URL.
             await financeApi.sandboxConfirmPayment(result.transactionId);
             await Promise.all([
               queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.penalties() }),
@@ -57,11 +63,6 @@ function LivePenaltyPaymentScreen() {
             showToast('Thanh toán thành công');
             navigate(-1);
           } catch (err) {
-            if (err instanceof ApiError && err.status === 404) {
-              showToast('Đang chuyển đến cổng thanh toán.');
-              redirectToPayment(result.paymentUrl);
-              return;
-            }
             // e.g. already paid from another tab: refresh so the penalty stops looking payable.
             await Promise.all([
               queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.penalties() }),

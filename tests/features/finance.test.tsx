@@ -49,6 +49,12 @@ const checkout: FinanceCheckoutDto = {
   paymentUrl: 'streetbiz://payment/sandbox/momo?referenceId=3&transactionId=9',
 };
 
+/** What a real, configured provider (MoMo with Payments:Momo:* set) returns instead. */
+const realCheckout: FinanceCheckoutDto = {
+  ...checkout,
+  paymentUrl: 'https://test-payment.momo.vn/v2/gateway/pay/abc123',
+};
+
 function renderAt(path: string, routes: ReactNode) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -117,16 +123,16 @@ describe('fee payment (live API)', () => {
     expect(redirect).not.toHaveBeenCalled();
   });
 
-  it('falls back to the payment gateway when there is no sandbox (404)', async () => {
-    client.apiPost.mockImplementation(async (url: string) => {
-      if (url.endsWith('/checkout')) return checkout;
-      throw new ApiError('not_found', 404, 'Not found');
-    });
+  it('redirects straight to a real provider URL, never attempting sandbox-confirm', async () => {
+    client.apiPost.mockResolvedValue(realCheckout);
     renderFeePayment();
 
     await userEvent.click(await payButton());
 
-    await waitFor(() => expect(redirect).toHaveBeenCalledWith(checkout.paymentUrl));
+    await waitFor(() => expect(redirect).toHaveBeenCalledWith(realCheckout.paymentUrl));
+    expect(client.apiPost).not.toHaveBeenCalledWith(
+      expect.stringContaining('sandbox-confirm'),
+    );
   });
 
   it('retries a failed checkout with the same Idempotency-Key so the server can replay it', async () => {
