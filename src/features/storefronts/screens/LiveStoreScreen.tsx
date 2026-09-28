@@ -93,6 +93,11 @@ export function LiveStoreScreen() {
               onPress={() => navigate(`/vendor/store/menu?storefrontId=${store.storefrontId}`)}
             />
             <Button
+              label="Giấy ATTP"
+              variant="outline"
+              onPress={() => navigate(`/vendor/store/food-safety?storefrontId=${store.storefrontId}`)}
+            />
+            <Button
               label="Sửa gian hàng"
               variant="outline"
               onPress={() => {

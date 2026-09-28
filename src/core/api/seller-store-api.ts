@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost, apiPut } from './client';
+import { apiDelete, apiGet, apiPost, apiPut, apiUpload } from './client';
 
 export type SellerStore = {
   storefrontId: number;
@@ -9,6 +9,8 @@ export type SellerStore = {
   availabilityStatus: string;
 };
 export type StoreInput = Omit<SellerStore, 'storefrontId'>;
+/** Where a dish stands with ATTP; MISSING and PENDING dishes are not shown to buyers. */
+export type DishFoodSafetyStatus = 'NOT_REQUIRED' | 'MISSING' | 'PENDING' | 'APPROVED';
 export type SellerMenuItem = {
   menuItemId: number;
   storefrontId: number;
@@ -17,8 +19,24 @@ export type SellerMenuItem = {
   description: string | null;
   unitPrice: number;
   availabilityStatus: string;
+  imageUrl: string | null;
+  categoryName: string;
+  requiresFoodSafety: boolean;
+  foodSafetyStatus: DishFoodSafetyStatus;
+  foodSafetyExpiresOn: string | null;
 };
-export type MenuInput = Omit<SellerMenuItem, 'menuItemId' | 'storefrontId'>;
+/** The stall's dishes plus how many it may sell at once. */
+export type SellerMenu = { items: SellerMenuItem[]; maxItems: number };
+export type MenuInput = {
+  categoryId: number;
+  name: string;
+  description: string | null;
+  unitPrice: number;
+  availabilityStatus: string;
+  /** From `uploadMenuImage`; required for a new dish, omit to keep the current photo. */
+  imageUrl?: string | null;
+};
+export type SellerCategory = { categoryId: number; name: string; requiresFoodSafety: boolean };
 export type RentalChoice = {
   contractId: number;
   applicationId: number;
@@ -35,9 +53,14 @@ export const sellerStoreApi = {
     id === null
       ? apiPost<SellerStore>('/seller/storefronts', input)
       : apiPut<SellerStore>(`/seller/storefronts/${id}`, input),
-  categories: () =>
-    apiGet<{ categoryId: number; name: string }[]>('/seller/storefronts/food-categories'),
-  menu: (id: number) => apiGet<SellerMenuItem[]>(`/seller/storefronts/${id}/menu-items`),
+  categories: () => apiGet<SellerCategory[]>('/seller/storefronts/food-categories'),
+  menu: (id: number) => apiGet<SellerMenu>(`/seller/storefronts/${id}/menu-items`),
+  /** Stores a dish photo (public) and returns the URL to send as `imageUrl`. */
+  uploadMenuImage: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiUpload<{ fileUrl: string }>('/uploads/menu-images', form);
+  },
   saveItem: (storeId: number, id: number | null, input: MenuInput) =>
     id === null
       ? apiPost<SellerMenuItem>(`/seller/storefronts/${storeId}/menu-items`, input)

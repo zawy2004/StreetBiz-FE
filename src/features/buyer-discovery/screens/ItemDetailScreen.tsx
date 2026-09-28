@@ -13,6 +13,7 @@ import { useCartStore } from '@/features/cart/cart-store';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme';
+import { FoodSafetyBadge } from '@/features/food-safety/components/FoodSafetyBits';
 import { categoryIcon } from '../category-icons';
 import { FoodImage } from '../components/FoodImage';
 import { menuItemPhotos } from '../food-photos';
@@ -96,6 +97,11 @@ function LiveItemDetailScreen() {
           <StatusChip code={item.data.availabilityStatus} />
         </div>
         <p className="mt-sm text-body-md text-muted">{item.data.description}</p>
+        {item.data.foodSafetyCertified ? (
+          <div className="mt-sm">
+            <FoodSafetyBadge />
+          </div>
+        ) : null}
       </Card>
       <Button
         label="Xem quán"

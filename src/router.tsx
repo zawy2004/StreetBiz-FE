@@ -208,6 +208,22 @@ const StorefrontDetailScreen = lazyScreen(
   () => import('@/features/buyer-discovery/screens'),
   'StorefrontDetailScreen',
 );
+const FoodSafetyListScreen = lazyScreen(
+  () => import('@/features/food-safety/screens'),
+  'FoodSafetyListScreen',
+);
+const FoodSafetyApplyScreen = lazyScreen(
+  () => import('@/features/food-safety/screens'),
+  'FoodSafetyApplyScreen',
+);
+const WardFoodSafetyListScreen = lazyScreen(
+  () => import('@/features/food-safety/screens'),
+  'WardFoodSafetyListScreen',
+);
+const WardFoodSafetyReviewScreen = lazyScreen(
+  () => import('@/features/food-safety/screens'),
+  'WardFoodSafetyReviewScreen',
+);
 const CartScreen = lazyScreen(() => import('@/features/cart/screens'), 'CartScreen');
 const CheckoutScreen = lazyScreen(() => import('@/features/cart/screens'), 'CheckoutScreen');
 const ConversationsScreen = lazyScreen(
@@ -499,6 +515,9 @@ export function AppRouter() {
           <Route path="chat/:conversationId" element={<ChatThreadScreen />} />
           <Route path="store" element={<StoreScreen />} />
           <Route path="store/menu" element={<MenuScreen />} />
+          <Route path="store/food-safety" element={<FoodSafetyListScreen />} />
+          <Route path="store/food-safety/new" element={<FoodSafetyApplyScreen />} />
+          <Route path="store/food-safety/:id/edit" element={<FoodSafetyApplyScreen />} />
           <Route path="store/orders" element={<VendorOrdersScreen />} />
           <Route path="store/sales" element={<SalesSummaryScreen />} />
           <Route path="orders" element={<VendorOrdersScreen />} />
@@ -516,6 +535,8 @@ export function AppRouter() {
           <Route path="inbox/reviews" element={<WardCasesScreen />} />
           <Route path="inbox/reviews/:kind/:id" element={<WardCaseScreen />} />
           <Route path="inbox/registrations/:id" element={<RegistrationReviewScreen />} />
+          <Route path="inbox/food-safety" element={<WardFoodSafetyListScreen />} />
+          <Route path="inbox/food-safety/:id" element={<WardFoodSafetyReviewScreen />} />
           <Route path="inbox/rental-applications/:id" element={<RentalApplicationReviewScreen />} />
           <Route path="inbox/renewals/:id" element={<RenewalReviewScreen />} />
           <Route path="inbox/slot-proposals/:id" element={<SlotProposalReviewScreen />} />

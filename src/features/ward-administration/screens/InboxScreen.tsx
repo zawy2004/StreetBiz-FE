@@ -357,6 +357,18 @@ function LiveInboxScreen() {
         </div>
       </Card>
 
+      {isLiveApi ? (
+        <Card onPress={() => navigate('/ward/inbox/food-safety')}>
+          <div className="flex items-center justify-between gap-sm">
+            <div className="min-w-0">
+              <h2 className="text-headline-sm text-text">Hồ sơ an toàn thực phẩm (ATTP)</h2>
+              <p className="text-body-sm text-muted">Xét hồ sơ, chuyển Chi cục ATTP kiểm tra và cập nhật kết quả</p>
+            </div>
+            <Icon name="chevron-right" size={20} color={colors.muted} />
+          </div>
+        </Card>
+      ) : null}
+
       {category === 'FAST_RENEWAL' ? (
         <FastTrackBatchPanel candidates={fastTrackRenewals} onDone={reload} />
       ) : null}

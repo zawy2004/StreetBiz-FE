@@ -8,6 +8,7 @@ import { StatusChip } from '@/components/status';
 import { commerceApi, errorMessage } from '@/core/api';
 import { useCanStartChat, useStartChat } from '@/features/chat/hooks/useChat';
 import { colors } from '@/theme';
+import { FoodSafetyBadge } from '@/features/food-safety/components/FoodSafetyBits';
 import { categoryIcon } from '../category-icons';
 import { FoodImage } from '../components/FoodImage';
 import { OpenBadge } from '../components/StorefrontCard';
@@ -145,6 +146,11 @@ export function StorefrontDetailScreen() {
                     <p className="truncate text-headline-sm text-text">{item.itemName}</p>
                     {item.description ? (
                       <p className="line-clamp-2 text-body-sm text-muted">{item.description}</p>
+                    ) : null}
+                    {item.foodSafetyCertified ? (
+                      <div className="mt-1">
+                        <FoodSafetyBadge />
+                      </div>
                     ) : null}
                   </div>
                   <div className="flex flex-col items-end gap-1">

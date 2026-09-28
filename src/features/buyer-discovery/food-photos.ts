@@ -1,3 +1,5 @@
+import { apiAssetUrl } from '@/core/api/asset-url';
+
 /**
  * Stock photos (public/images/food, credits in CREDITS.md there) shown when a
  * stall or dish has no photo of its own, so the discovery screens are not a
@@ -89,7 +91,7 @@ function matchKey(texts: (string | null | undefined)[]): PhotoKey | null {
 
 function candidates(imageUrl: string | null | undefined, key: PhotoKey | null): FoodPhoto[] {
   const photos: FoodPhoto[] = [];
-  if (imageUrl) photos.push({ src: imageUrl, illustrative: false });
+  if (imageUrl) photos.push({ src: apiAssetUrl(imageUrl), illustrative: false });
   if (key) photos.push({ src: photoUrl(key), illustrative: true });
   return photos;
 }
