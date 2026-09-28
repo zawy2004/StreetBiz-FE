@@ -4,6 +4,7 @@ export const CUSTOMER_TABS: RoleTabItem[] = [
   { to: '/customer/explore', label: 'Khám phá', icon: 'compass-outline' },
   { to: '/customer/scan', label: 'Quét QR', icon: 'qrcode-scan' },
   { to: '/customer/orders', label: 'Đơn hàng', icon: 'receipt-text-outline' },
+  { to: '/customer/chat', label: 'Tin nhắn', icon: 'chat-outline' },
   { to: '/customer/account', label: 'Tài khoản', icon: 'account-circle-outline' },
 ];
 
@@ -12,6 +13,7 @@ export const VENDOR_TABS: RoleTabItem[] = [
   { to: '/vendor/slots', label: 'Ô thuê', icon: 'map-marker-radius-outline' },
   { to: '/vendor/finance', label: 'Tài chính', icon: 'cash-multiple' },
   { to: '/vendor/store', label: 'Cửa hàng', icon: 'silverware-fork-knife' },
+  { to: '/vendor/chat', label: 'Tin nhắn', icon: 'chat-outline' },
   { to: '/vendor/account', label: 'Tài khoản', icon: 'account-circle-outline' },
 ];
 
