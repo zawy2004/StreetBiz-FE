@@ -52,6 +52,7 @@ const ICON_MAP: Record<string, IconType> = {
   'silverware-fork-knife': Md.MdOutlineRestaurant,
   'flag-outline': Md.MdOutlineFlag,
   'chat-alert-outline': Md.MdOutlineChat,
+  'chat-outline': Md.MdOutlineChatBubbleOutline,
   login: Md.MdOutlineLogin,
   'cog-outline': Md.MdOutlineSettings,
   'camera-plus-outline': Md.MdOutlineAddAPhoto,

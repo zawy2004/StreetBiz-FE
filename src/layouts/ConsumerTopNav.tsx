@@ -1,7 +1,7 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 
 import { Avatar, BrandLogo, Icon } from '@/components/common';
-import type { RoleTabItem } from '@/components/layout/RoleTabBar';
+import { NavBadge, type RoleTabItem } from '@/components/layout/RoleTabBar';
 import { ThemeSwitchButton } from '@/components/layout/ThemeToggle';
 import { useCartStore } from '@/features/cart/cart-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -36,12 +36,13 @@ export function ConsumerTopNav({ items }: Props) {
               to={item.to}
               className={({ isActive }) =>
                 [
-                  'flex h-10 items-center rounded-full px-md text-body-md transition-colors',
+                  'flex h-10 items-center gap-xs rounded-full px-md text-body-md transition-colors',
                   isActive ? 'bg-tint-primary font-semibold text-primary' : 'text-text hover:bg-sunken',
                 ].join(' ')
               }
             >
               {item.label}
+              <NavBadge count={item.badge} />
             </NavLink>
           ))}
         </nav>

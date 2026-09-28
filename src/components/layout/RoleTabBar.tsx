@@ -13,7 +13,21 @@ export type RoleTabItem = {
   to: string;
   label: string;
   icon: IconName;
+  /** Unread count shown on the tab; omitted or 0 renders nothing. */
+  badge?: number;
 };
+
+/** Shared with the cart badge in ConsumerTopNav so every count looks the same. */
+export function NavBadge({ count, className = '' }: { count?: number; className?: string }) {
+  if (!count) return null;
+  return (
+    <span
+      className={`flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-badge font-tabular text-on-primary ${className}`}
+    >
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
 
 type Props = {
   roleLabel: string;
@@ -68,6 +82,7 @@ function Sidebar({ roleLabel, items }: Props) {
                 ) : null}
                 <Icon name={item.icon} size={20} color={isActive ? colors.primary : colors.muted} />
                 <span className="truncate">{item.label}</span>
+                <NavBadge count={item.badge} className="ml-auto" />
               </>
             )}
           </NavLink>
@@ -109,9 +124,10 @@ function BottomTabBar({ items }: { items: RoleTabItem[] }) {
           {({ isActive }) => (
             <>
               <span
-                className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${isActive ? 'bg-tint-primary' : ''}`}
+                className={`relative flex h-7 w-12 items-center justify-center rounded-full transition-colors ${isActive ? 'bg-tint-primary' : ''}`}
               >
                 <Icon name={item.icon} size={22} color={isActive ? colors.primary : colors.muted} />
+                <NavBadge count={item.badge} className="absolute right-0 top-0 -mr-1 -mt-1" />
               </span>
               <span
                 className={`max-w-full truncate px-1 text-body-xs ${isActive ? 'font-semibold text-primary' : 'text-muted'}`}
