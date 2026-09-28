@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { commerceApi, errorMessage } from '@/core/api';
+import { useCanStartChat, useStartChat } from '@/features/chat/hooks/useChat';
 import { colors } from '@/theme';
 import { OpenBadge } from '../components/StorefrontCard';
 import { directionsUrl, formatDistance, ratingText, vietnamWeekday, weeklySchedule } from '../discovery-format';
@@ -16,6 +17,8 @@ export function StorefrontDetailScreen() {
   const { storefrontId } = useParams<{ storefrontId: string }>();
   const navigate = useNavigate();
   const position = useDiscoveryStore((s) => s.position);
+  const canChat = useCanStartChat();
+  const startChat = useStartChat();
   const detail = useQuery({
     queryKey: ['commerce', 'storefront', storefrontId, position],
     queryFn: () => commerceApi.storefront(storefrontId!, position ?? undefined),
@@ -71,7 +74,24 @@ export function StorefrontDetailScreen() {
               fullWidth={false}
               onPress={() => navigate(`/customer/explore/vendors/${storefront.vendorId}`)}
             />
+            {canChat ? (
+              <Button
+                label="Nhắn tin cho người bán"
+                variant="outline"
+                fullWidth={false}
+                loading={startChat.isPending}
+                onPress={() =>
+                  startChat.mutate(storefront.storefrontId, {
+                    onSuccess: (conversation) =>
+                      navigate(`/customer/chat/${conversation.conversationId}`),
+                  })
+                }
+              />
+            ) : null}
           </div>
+          {startChat.isError ? (
+            <p className="text-body-md text-error">{errorMessage(startChat.error)}</p>
+          ) : null}
         </div>
       </Card>
 

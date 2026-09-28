@@ -9,73 +9,78 @@ import { useEffect, useState } from 'react';
 
 import { getAccessToken } from '@/core/api/token-storage';
 import { env, isLiveApi } from '@/core/config/env';
-import type { OrderStatus } from '../types/order.types';
+import { chatKeys } from '../hooks/useChat';
 
-type OrderScope = 'customer' | 'vendor';
-
-type OrderUpdatedMessage = {
-  orderId: number;
-  orderStatus: OrderStatus;
-  changedAtUtc: string;
+type ChatMessageReceived = {
+  conversationId: number;
+  messageId: number;
+  senderUserId: number;
+  body: string;
+  sentAtUtc: string;
 };
 
-export function getOrderHubUrl(apiBaseUrl = env.apiBaseUrl): string {
+export function getChatHubUrl(apiBaseUrl = env.apiBaseUrl): string {
   const url = new URL(apiBaseUrl, window.location.origin);
-  url.pathname = `${url.pathname.replace(/\/$/, '').replace(/\/api$/, '')}/hubs/orders`;
+  url.pathname = `${url.pathname.replace(/\/$/, '').replace(/\/api$/, '')}/hubs/chat`;
   url.search = '';
   url.hash = '';
   return url.toString().replace(/\/$/, '');
 }
 
-export function useOrderRealtime(
-  orderId: string | number | undefined,
-  scope: OrderScope,
+/**
+ * Keeps one open thread live. The hub only says "something arrived"; the thread
+ * is refetched over HTTP so read receipts and ordering stay server-authoritative.
+ * Returns whether the socket is up, so the caller can fall back to polling.
+ */
+export function useChatRealtime(
+  conversationId: string | number | undefined,
   enabled: boolean,
 ): boolean {
   const cache = useQueryClient();
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    if (!enabled || !orderId || !isLiveApi || import.meta.env.MODE === 'test') {
+    if (!enabled || !conversationId || !isLiveApi || import.meta.env.MODE === 'test') {
       setConnected(false);
       return;
     }
 
     let disposed = false;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
-    const numericOrderId = Number(orderId);
-    const detailKey = ['orders', scope, 'detail', String(orderId)] as const;
-    const listKey = ['orders', scope, 'list'] as const;
+    const numericId = Number(conversationId);
 
-    const onOrderUpdated = (message: OrderUpdatedMessage) => {
-      if (message.orderId !== numericOrderId) return;
+    const onMessage = (message: ChatMessageReceived) => {
+      if (message.conversationId !== numericId) return;
       void Promise.all([
-        cache.invalidateQueries({ queryKey: detailKey }),
-        cache.invalidateQueries({ queryKey: listKey }),
-        ...(scope === 'vendor'
-          ? [cache.invalidateQueries({ queryKey: ['orders', 'vendor', 'sales'] })]
-          : []),
+        cache.invalidateQueries({ queryKey: chatKeys.thread(numericId) }),
+        cache.invalidateQueries({ queryKey: chatKeys.conversations }),
+        cache.invalidateQueries({ queryKey: chatKeys.unread }),
       ]);
     };
 
     const connection: HubConnection = new HubConnectionBuilder()
-      .withUrl(getOrderHubUrl(), {
+      .withUrl(getChatHubUrl(), {
         accessTokenFactory: () => getAccessToken() ?? '',
-        // See useChatRealtime: the API sends no Access-Control-Allow-Credentials,
-        // so a credentialed negotiate is blocked by CORS before it reaches the hub.
+        // SignalR sends its negotiate request with credentials by default, and the
+        // browser then demands Access-Control-Allow-Credentials from the API. The
+        // API deliberately does not send it (auth is a bearer token, not a cookie),
+        // so without this the handshake is blocked by CORS and chat silently falls
+        // back to polling.
         withCredentials: false,
       })
       .withAutomaticReconnect([0, 2_000, 5_000, 10_000])
       .configureLogging(LogLevel.Warning)
       .build();
 
-    connection.on('OrderUpdated', onOrderUpdated);
+    connection.on('ChatMessageReceived', onMessage);
     connection.onreconnecting(() => setConnected(false));
     connection.onreconnected(async () => {
       if (disposed) return;
       try {
-        await connection.invoke('SubscribeOrder', numericOrderId);
+        await connection.invoke('SubscribeConversation', numericId);
         setConnected(true);
+        // Anything that arrived while the socket was down is only in the database.
+        await cache.invalidateQueries({ queryKey: chatKeys.thread(numericId) });
       } catch {
         setConnected(false);
       }
@@ -89,7 +94,7 @@ export function useOrderRealtime(
           await connection.stop();
           return;
         }
-        await connection.invoke('SubscribeOrder', numericOrderId);
+        await connection.invoke('SubscribeConversation', numericId);
         setConnected(true);
       } catch {
         setConnected(false);
@@ -105,17 +110,17 @@ export function useOrderRealtime(
       disposed = true;
       setConnected(false);
       if (retryTimer) clearTimeout(retryTimer);
-      connection.off('OrderUpdated', onOrderUpdated);
+      connection.off('ChatMessageReceived', onMessage);
       if (connection.state === HubConnectionState.Connected) {
         void connection
-          .invoke('UnsubscribeOrder', numericOrderId)
+          .invoke('UnsubscribeConversation', numericId)
           .catch(() => undefined)
           .finally(() => connection.stop());
       } else {
         void connection.stop();
       }
     };
-  }, [cache, enabled, orderId, scope]);
+  }, [cache, conversationId, enabled]);
 
   return connected;
 }

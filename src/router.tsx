@@ -210,6 +210,11 @@ const StorefrontDetailScreen = lazyScreen(
 );
 const CartScreen = lazyScreen(() => import('@/features/cart/screens'), 'CartScreen');
 const CheckoutScreen = lazyScreen(() => import('@/features/cart/screens'), 'CheckoutScreen');
+const ConversationsScreen = lazyScreen(
+  () => import('@/features/chat/screens'),
+  'ConversationsScreen',
+);
+const ChatThreadScreen = lazyScreen(() => import('@/features/chat/screens'), 'ChatThreadScreen');
 const OrderPaymentScreen = lazyScreen(
   () => import('@/features/orders/screens/OrderPaymentScreen'),
   'OrderPaymentScreen',
@@ -436,6 +441,8 @@ export function AppRouter() {
           <Route path="explore/items/:itemId" element={<ItemDetailScreen />} />
           <Route path="explore/stores/:storefrontId" element={<StorefrontDetailScreen />} />
           <Route path="scan" element={<PublicScanScreen />} />
+          <Route path="chat" element={<ConversationsScreen />} />
+          <Route path="chat/:conversationId" element={<ChatThreadScreen />} />
           <Route path="checkout" element={<CheckoutScreen />} />
           <Route path="account" element={<AccountScreen />} />
           <Route path="orders" element={<CustomerOrdersScreen />} />
@@ -488,6 +495,8 @@ export function AppRouter() {
           <Route path="finance/invoices/:id" element={<InvoiceDetailScreen />} />
           <Route path="finance/payments" element={<PaymentHistoryScreen />} />
           <Route path="finance/violations" element={<VendorViolationsScreen />} />
+          <Route path="chat" element={<ConversationsScreen />} />
+          <Route path="chat/:conversationId" element={<ChatThreadScreen />} />
           <Route path="store" element={<StoreScreen />} />
           <Route path="store/menu" element={<MenuScreen />} />
           <Route path="store/orders" element={<VendorOrdersScreen />} />
