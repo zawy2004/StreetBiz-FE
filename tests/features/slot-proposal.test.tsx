@@ -102,7 +102,7 @@ describe('Đề xuất ô mới: choosing the position', () => {
     renderScreen();
 
     expect(await screen.findByText('Chưa chọn vị trí')).toBeInTheDocument();
-    expect(screen.getByTestId('pin')).toHaveTextContent('no pin');
+    expect(await screen.findByTestId('pin')).toHaveTextContent('no pin');
     await user.click(screen.getByRole('button', { name: 'Gửi đề xuất' }));
 
     expect(await screen.findByText('Vui lòng chọn vị trí trên bản đồ hoặc lấy vị trí hiện tại.')).toBeInTheDocument();

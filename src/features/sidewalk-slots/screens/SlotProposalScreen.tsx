@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -13,8 +13,13 @@ import { useRegistrations } from '@/features/business-registrations/useRegistrat
 import { colors } from '@/theme';
 import { AddressSearch } from '../components/AddressSearch';
 import { Callout } from '../components/Callout';
-import { LocationPicker } from '../components/LocationPicker';
 import { MySlotsTabs } from '../components/MySlotsTabs';
+
+// The Goong/mapbox bundle (~885 kB) loads with this screen only, not with every
+// screen of this feature's lazy chunk.
+const LocationPicker = lazy(() =>
+  import('../components/LocationPicker').then((m) => ({ default: m.LocationPicker })),
+);
 
 // No zones-list endpoint exists -- a zone only shows up here once it has at
 // least one slot to search for. Cast a wide, citywide net (not just the
@@ -175,7 +180,9 @@ export function SlotProposalScreen() {
                 setViewKey((key) => key + 1);
               }}
             />
-            <LocationPicker position={position} viewKey={viewKey} onPick={setPosition} />
+            <Suspense fallback={<LoadingState label="Đang tải bản đồ" />}>
+              <LocationPicker position={position} viewKey={viewKey} onPick={setPosition} />
+            </Suspense>
             <p className="text-body-sm text-muted">Hoặc chạm vào bản đồ để đặt và chỉnh lại vị trí ô.</p>
             <Button
               label="Lấy vị trí hiện tại"
