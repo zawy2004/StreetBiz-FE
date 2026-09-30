@@ -13,6 +13,7 @@ import { colors } from '@/theme';
 import { orderApi } from '../api/orderApi';
 import {
   OrderItemsList,
+  OrderPickupQr,
   OrderStatusBadge,
   OrderSummary,
   OrderTimeline,
@@ -50,23 +51,14 @@ function LiveOrderDetailScreen() {
   const navigate = useNavigate();
   const { orderId } = useParams<{ orderId: string }>();
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const [confirmPickup, setConfirmPickup] = useState(false);
   const order = useCustomerOrder(orderId);
   const refresh = useRefreshAfterOrderMutation('customer', Number(orderId));
   const transition = useMutation({
-    mutationFn: (action: 'cancel' | 'pickup') =>
-      action === 'cancel'
-        ? orderApi.cancel(order.data!.orderId)
-        : orderApi.confirmPickup(order.data!.orderId),
-    onSuccess: async (next, action) => {
+    mutationFn: () => orderApi.cancel(order.data!.orderId),
+    onSuccess: async (next) => {
       setConfirmCancel(false);
-      setConfirmPickup(false);
       await refresh.update(next);
-      showToast(
-        action === 'cancel'
-          ? 'Đã huỷ đơn; yêu cầu hoàn tiền đang được xử lý nếu đã thanh toán'
-          : 'Đã xác nhận nhận món',
-      );
+      showToast('Đã huỷ đơn; yêu cầu hoàn tiền đang được xử lý nếu đã thanh toán');
     },
     onError: refresh.handleError,
   });
@@ -77,12 +69,11 @@ function LiveOrderDetailScreen() {
 
   const data = order.data;
   const canCancel = data.orderStatus === 'PLACED';
-  const canConfirmPickup = data.orderStatus === 'READY_FOR_PICKUP';
   const refund = data.refundStatus ? refundPresentation(data.refundStatus) : null;
   return (
     <Screen
       footer={
-        canCancel || canConfirmPickup ? (
+        canCancel ? (
           <StickyActions>
             {canCancel ? (
               <Button
@@ -90,13 +81,6 @@ function LiveOrderDetailScreen() {
                 variant="outline"
                 disabled={transition.isPending}
                 onPress={() => setConfirmCancel(true)}
-              />
-            ) : null}
-            {canConfirmPickup ? (
-              <Button
-                label="Đã nhận món"
-                loading={transition.isPending}
-                onPress={() => setConfirmPickup(true)}
               />
             ) : null}
           </StickyActions>
@@ -108,6 +92,7 @@ function LiveOrderDetailScreen() {
         <OrderStatusBadge status={data.orderStatus} />
         {data.paymentStatus ? <StatusChip code={data.paymentStatus} /> : null}
       </div>
+      <OrderPickupQr order={data} />
       {data.orderStatus === 'PENDING_PAYMENT' ? (
         <Card
           style={{
@@ -118,15 +103,6 @@ function LiveOrderDetailScreen() {
           <p className="text-headline-sm text-text">Đang chờ xác nhận thanh toán</p>
           <p className="mt-2xs text-body-md text-muted">
             Trạng thái chỉ thay đổi sau khi backend nhận callback hợp lệ từ cổng thanh toán.
-          </p>
-        </Card>
-      ) : null}
-      {data.orderStatus === 'READY_FOR_PICKUP' ? (
-        <Card style={{ borderColor: colors.tertiary }}>
-          <p className="text-center text-body-sm text-muted">Mã nhận món</p>
-          <p className="mt-xs break-all text-center text-display-sm text-text">{data.orderCode}</p>
-          <p className="mt-xs text-center text-body-sm text-muted">
-            Đưa mã này cho người bán tại điểm bán.
           </p>
         </Card>
       ) : null}
@@ -221,16 +197,8 @@ function LiveOrderDetailScreen() {
         description="Chỉ đơn chưa được người bán nhận mới có thể huỷ. Nếu đã thanh toán, Backend sẽ tạo yêu cầu hoàn tiền."
         confirmLabel="Huỷ đơn"
         confirmVariant="danger"
-        onConfirm={() => transition.mutate('cancel')}
+        onConfirm={() => transition.mutate()}
         onCancel={() => setConfirmCancel(false)}
-      />
-      <ConfirmDialog
-        visible={confirmPickup}
-        title="Xác nhận đã nhận món?"
-        description="Bạn xác nhận đã nhận đủ món tại điểm bán?"
-        confirmLabel="Đã nhận đủ món"
-        onConfirm={() => transition.mutate('pickup')}
-        onCancel={() => setConfirmPickup(false)}
       />
     </Screen>
   );

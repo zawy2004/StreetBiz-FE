@@ -250,8 +250,6 @@ export const commerceApi = {
   customerOrder: (orderId: string | number) => apiGet<CommerceOrder>(`/orders/${orderId}`),
   cancelOrder: (orderId: number, expectedStatus: string) =>
     apiPost<CommerceOrder>(`/orders/${orderId}/cancel`, { expectedStatus }),
-  confirmPickup: (orderId: number, expectedStatus: string) =>
-    apiPost<CommerceOrder>(`/orders/${orderId}/confirm-pickup`, { expectedStatus }),
 
   sellerOrders: (status?: string) =>
     apiGet<CommerceOrder[]>(
@@ -278,8 +276,6 @@ export const commerceApi = {
       targetStatus,
       expectedStatus,
     }),
-  confirmHandover: (orderId: number, expectedStatus: string) =>
-    apiPost<CommerceOrder>(`/seller/orders/${orderId}/handover`, { expectedStatus }),
   salesSummary: (period: 'DAY' | 'WEEK' | 'MONTH') =>
     apiGet<SalesSummary>(`/seller/orders/sales-summary?period=${period}`),
 };

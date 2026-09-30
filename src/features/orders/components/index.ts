@@ -8,5 +8,7 @@ export * from './OrderSummary';
 export * from './OrderTimeline';
 export * from './PaymentProviderSelector';
 export * from './RejectOrderDialog';
+export * from './HandoverWithoutCodeDialog';
 export * from './order-format';
 export * from './vendor-actions';
+export * from './OrderPickupQr';

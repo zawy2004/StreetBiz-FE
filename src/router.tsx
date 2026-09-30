@@ -235,6 +235,10 @@ const OrderReviewScreen = lazyScreen(
   () => import('@/features/orders/screens'),
   'OrderReviewScreen',
 );
+const VendorPickupScanScreen = lazyScreen(
+  () => import('@/features/orders/screens'),
+  'VendorPickupScanScreen',
+);
 const VendorOrderDetailScreen = lazyScreen(
   () => import('@/features/orders/screens'),
   'VendorOrderDetailScreen',
@@ -503,6 +507,7 @@ export function AppRouter() {
           <Route path="store/sales" element={<SalesSummaryScreen />} />
           <Route path="orders" element={<VendorOrdersScreen />} />
           <Route path="orders/sales-summary" element={<SalesSummaryScreen />} />
+          <Route path="orders/scan" element={<VendorPickupScanScreen />} />
           <Route path="orders/:orderId" element={<VendorOrderDetailScreen />} />
         </Route>
 

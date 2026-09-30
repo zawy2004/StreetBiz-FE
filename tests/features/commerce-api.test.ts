@@ -136,7 +136,6 @@ describe('commerce API contracts', () => {
 
     await commerceApi.decideSellerOrder(19, 'REJECT', 'Món đã hết', 'PLACED');
     await commerceApi.updateSellerOrderStatus(20, 'PREPARING', 'ACCEPTED');
-    await commerceApi.confirmHandover(20, 'READY_FOR_PICKUP');
 
     expect(client.apiPost).toHaveBeenNthCalledWith(1, '/seller/orders/19/decision', {
       decision: 'REJECT',
@@ -146,9 +145,6 @@ describe('commerce API contracts', () => {
     expect(client.apiPost).toHaveBeenNthCalledWith(2, '/seller/orders/20/status', {
       targetStatus: 'PREPARING',
       expectedStatus: 'ACCEPTED',
-    });
-    expect(client.apiPost).toHaveBeenNthCalledWith(3, '/seller/orders/20/handover', {
-      expectedStatus: 'READY_FOR_PICKUP',
     });
   });
 

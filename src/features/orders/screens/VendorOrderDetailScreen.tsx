@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Card } from '@/components/common';
-import { ConfirmDialog, ErrorState, LoadingState, showToast } from '@/components/feedback';
+import { ErrorState, LoadingState, showToast } from '@/components/feedback';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { errorMessage } from '@/core/api';
 import { orderApi } from '../api/orderApi';
 import {
+  HandoverWithoutCodeDialog,
   OrderActionPanel,
   OrderItemsList,
   OrderStatusBadge,
@@ -22,30 +23,32 @@ import { useRefreshAfterOrderMutation, useVendorOrder } from '../hooks/useOrders
 
 export function VendorOrderDetailScreen() {
   const { orderId } = useParams();
+  const navigate = useNavigate();
   const order = useVendorOrder(orderId);
   const refresh = useRefreshAfterOrderMutation('vendor', Number(orderId));
   const [rejectOpen, setRejectOpen] = useState(false);
-  const [handoverOpen, setHandoverOpen] = useState(false);
   const [reason, setReason] = useState('');
+  const [handoverOpen, setHandoverOpen] = useState(false);
+  const [handoverReason, setHandoverReason] = useState('');
 
   const transition = useMutation({
     mutationFn: ({
       action,
       reason: rejectReason,
     }: {
-      action: VendorOrderAction;
+      // Handover is not a status change the seller can press: it goes through
+      // the scanner or the no-code dialog, never this mutation.
+      action: Exclude<VendorOrderAction, 'handover'>;
       reason?: string;
     }) => {
       const id = order.data!.orderId;
       if (action === 'accept') return orderApi.accept(id);
       if (action === 'reject') return orderApi.reject(id, rejectReason!.trim());
       if (action === 'preparing') return orderApi.preparing(id);
-      if (action === 'ready') return orderApi.readyForPickup(id);
-      return orderApi.confirmHandover(id);
+      return orderApi.readyForPickup(id);
     },
     onSuccess: async (updated, variables) => {
       setRejectOpen(false);
-      setHandoverOpen(false);
       setReason('');
       await refresh.update(updated);
       showToast(
@@ -53,6 +56,21 @@ export function VendorOrderDetailScreen() {
           ? 'Đã từ chối đơn và tạo yêu cầu hoàn tiền'
           : 'Đã cập nhật trạng thái đơn hàng',
       );
+    },
+    onError: refresh.handleError,
+  });
+
+  // ORD-06: kept apart from the status transitions above because it is not one.
+  // This is the exception route - no code was read - and it only goes through
+  // because the seller writes down why, which the buyer then sees.
+  const manualHandover = useMutation({
+    mutationFn: (written: string) =>
+      orderApi.handoverWithoutCode(order.data!.orderId, written.trim()),
+    onSuccess: async (updated) => {
+      setHandoverOpen(false);
+      setHandoverReason('');
+      await refresh.update(updated);
+      showToast('Đã giao đơn; lý do không có mã được lưu vào lịch sử đơn');
     },
     onError: refresh.handleError,
   });
@@ -101,9 +119,21 @@ export function VendorOrderDetailScreen() {
                 />
               ) : null}
               {actions.includes('handover') ? (
+                // ORD-06: an order is handed over by reading the buyer's code,
+                // never by the seller asserting it, so this leads to the scanner
+                // rather than completing the order on the spot.
                 <Button
-                  label="Xác nhận đã giao khách"
-                  disabled={transition.isPending}
+                  label="Quét mã nhận hàng của khách"
+                  onPress={() => navigate('/vendor/orders/scan')}
+                />
+              ) : null}
+              {actions.includes('handover') ? (
+                // Deliberately the plainer button: the stall needs a way out
+                // when the buyer has no code at all, not a second normal route.
+                <Button
+                  label="Khách không có mã"
+                  variant="outline"
+                  disabled={manualHandover.isPending}
                   onPress={() => setHandoverOpen(true)}
                 />
               ) : null}
@@ -147,9 +177,9 @@ export function VendorOrderDetailScreen() {
           <OrderTimeline history={data.statusHistory} />
         </Card>
       ) : null}
-      {transition.isError ? (
+      {transition.isError || manualHandover.isError ? (
         <p role="alert" className="text-body-md text-error">
-          {errorMessage(transition.error)}
+          {errorMessage(transition.isError ? transition.error : manualHandover.error)}
         </p>
       ) : null}
       <RejectOrderDialog
@@ -165,13 +195,16 @@ export function VendorOrderDetailScreen() {
           if (reason.trim()) transition.mutate({ action: 'reject', reason });
         }}
       />
-      <ConfirmDialog
+      <HandoverWithoutCodeDialog
         visible={handoverOpen}
-        title="Xác nhận đã bàn giao?"
-        description="Đơn sẽ chuyển sang hoàn tất và được tính vào doanh thu."
-        confirmLabel="Đã giao khách"
-        onConfirm={() => transition.mutate({ action: 'handover' })}
-        onCancel={() => setHandoverOpen(false)}
+        reason={handoverReason}
+        pending={manualHandover.isPending}
+        onReasonChange={setHandoverReason}
+        onClose={() => {
+          setHandoverOpen(false);
+          setHandoverReason('');
+        }}
+        onConfirm={() => manualHandover.mutate(handoverReason)}
       />
     </Screen>
   );

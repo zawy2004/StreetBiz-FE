@@ -27,7 +27,6 @@ const ordersApi = vi.hoisted(() => ({
   reject: vi.fn(),
   preparing: vi.fn(),
   readyForPickup: vi.fn(),
-  confirmHandover: vi.fn(),
   salesSummary: vi.fn(),
 }));
 const redirect = vi.hoisted(() => vi.fn());

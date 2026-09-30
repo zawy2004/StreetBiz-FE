@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
-import { Button } from '@/components/common';
-import { ConfirmDialog, ErrorState, showToast } from '@/components/feedback';
+import { Button, Icon } from '@/components/common';
+import { ErrorState, showToast } from '@/components/feedback';
 import { SegmentedControl } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
 import { errorMessage } from '@/core/api';
@@ -38,7 +38,8 @@ const TABS: { value: VendorTab; label: string }[] = [
   { value: 'CLOSED', label: 'Từ chối / hủy' },
 ];
 
-type Action = { kind: VendorOrderAction; order: Order; reason?: string };
+// Handover goes through the scanner, never through a list-row mutation.
+type Action = { kind: Exclude<VendorOrderAction, 'handover'>; order: Order; reason?: string };
 
 export function VendorOrdersScreen() {
   const navigate = useNavigate();
@@ -46,7 +47,6 @@ export function VendorOrdersScreen() {
   const [tab, setTab] = useState<VendorTab>('PLACED');
   const [page, setPage] = useState(1);
   const [rejecting, setRejecting] = useState<Order | null>(null);
-  const [handover, setHandover] = useState<Order | null>(null);
   const [reason, setReason] = useState('');
   const status = tab === 'CLOSED' ? undefined : (tab as OrderStatus);
   const orders = useVendorOrders({ status, page, pageSize: 10 });
@@ -56,8 +56,7 @@ export function VendorOrdersScreen() {
       if (kind === 'accept') return orderApi.accept(order.orderId);
       if (kind === 'reject') return orderApi.reject(order.orderId, rejectionReason!.trim());
       if (kind === 'preparing') return orderApi.preparing(order.orderId);
-      if (kind === 'ready') return orderApi.readyForPickup(order.orderId);
-      return orderApi.confirmHandover(order.orderId);
+      return orderApi.readyForPickup(order.orderId);
     },
     onSuccess: async (updated, action) => {
       cache.setQueryData(orderKeys.vendorDetail(updated.orderId), updated);
@@ -66,7 +65,6 @@ export function VendorOrdersScreen() {
         cache.invalidateQueries({ queryKey: ['orders', 'vendor', 'sales'] }),
       ]);
       setRejecting(null);
-      setHandover(null);
       setReason('');
       showToast(
         action.kind === 'reject'
@@ -132,11 +130,12 @@ export function VendorOrdersScreen() {
         />
       ) : null}
       {vendorActionsFor(order.orderStatus).includes('handover') ? (
+        // ORD-06: handing over needs the buyer's code, so this opens the scanner
+        // instead of completing the order from a list row.
         <Button
-          label="Xác nhận đã giao khách"
+          label="Quét mã để giao"
           fullWidth={false}
-          disabled={transition.isPending}
-          onPress={() => setHandover(order)}
+          onPress={() => navigate('/vendor/orders/scan')}
         />
       ) : null}
     </OrderActionPanel>
@@ -146,7 +145,6 @@ export function VendorOrdersScreen() {
     <Screen>
       <AppHeader
         title="Đơn hàng"
-        back
         subtitle="Chỉ hiển thị đơn đã được backend xác nhận thanh toán"
         right={
           <Button
@@ -156,6 +154,13 @@ export function VendorOrdersScreen() {
             onPress={() => void orders.refetch()}
           />
         }
+      />
+      {/* Handing an order over is what the seller opens this screen to do, so the
+          scanner is a full-width action rather than a link tucked in the header. */}
+      <Button
+        label="Quét mã nhận hàng của khách"
+        icon={<Icon name="qrcode-scan" size={20} />}
+        onPress={() => navigate('/vendor/orders/scan')}
       />
       <div className="overflow-x-auto pb-2xs">
         <div className="min-w-[720px]">
@@ -221,16 +226,6 @@ export function VendorOrdersScreen() {
             transition.mutate({ kind: 'reject', order: rejecting, reason });
           }
         }}
-      />
-      <ConfirmDialog
-        visible={Boolean(handover)}
-        title="Xác nhận đã bàn giao?"
-        description="Đơn sẽ hoàn tất và được tính vào doanh thu. Thao tác này không thể hoàn tác."
-        confirmLabel="Đã giao khách"
-        onConfirm={() => {
-          if (handover) transition.mutate({ kind: 'handover', order: handover });
-        }}
-        onCancel={() => setHandover(null)}
       />
     </Screen>
   );

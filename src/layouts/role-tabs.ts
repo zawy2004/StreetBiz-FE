@@ -12,7 +12,11 @@ export const VENDOR_TABS: RoleTabItem[] = [
   { to: '/vendor/home', label: 'Trang chủ', icon: 'home-outline' },
   { to: '/vendor/slots', label: 'Ô thuê', icon: 'map-marker-radius-outline' },
   { to: '/vendor/finance', label: 'Tài chính', icon: 'cash-multiple' },
-  { to: '/vendor/store', label: 'Cửa hàng', icon: 'silverware-fork-knife' },
+  // Orders take the tab that used to hold the storefront: taking orders and
+  // handing them over is the daily job, while setting up a menu is occasional
+  // configuration, so it moves to a shortcut on the home screen like the other
+  // occasional tasks. A seventh tab would truncate every label on a phone.
+  { to: '/vendor/orders', label: 'Đơn hàng', icon: 'receipt-text-outline' },
   { to: '/vendor/chat', label: 'Tin nhắn', icon: 'chat-outline' },
   { to: '/vendor/account', label: 'Tài khoản', icon: 'account-circle-outline' },
 ];
