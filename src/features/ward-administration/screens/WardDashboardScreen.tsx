@@ -5,8 +5,9 @@ import { ResponsiveGrid, StatCard } from '@/components/data';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { AiHint } from '@/components/status';
 import { LoadingState } from '@/components/feedback';
+import { useWards } from '@/core/auth/useWards';
 import { env } from '@/core/config/env';
-import { WARD } from '@/mocks/seed';
+import { useAuthStore } from '@/store/auth-store';
 import { colors } from '@/theme';
 import { useWardDashboard } from '../useWardReports';
 
@@ -37,6 +38,7 @@ const SHORTCUTS: Shortcut[] = [
 export function WardDashboardScreen() {
   const navigate = useNavigate();
   const { dashboard, isLoading } = useWardDashboard();
+  const wardName = useWardName();
   const pendingCount = dashboard
     ? dashboard.pendingRegistrations + dashboard.pendingApplications
     : 0;
@@ -45,7 +47,7 @@ export function WardDashboardScreen() {
     <Screen width="wide">
       <AppHeader
         title="Tổng quan"
-        subtitle={WARD.unit_type}
+        subtitle={wardName}
         right={
           <>
             <IconButton
@@ -142,4 +144,15 @@ export function WardDashboardScreen() {
       </Section>
     </Screen>
   );
+}
+
+/**
+ * The signed-in officer's ward name. The account already carries its ward id,
+ * and useWards (cached reference data) covers both live and mock mode.
+ */
+function useWardName(): string | undefined {
+  const user = useAuthStore((state) => state.user);
+  const { wards } = useWards();
+  // Mock accounts carry the ward name directly instead of an id.
+  return wards.find((ward) => ward.unitId === user?.wardUnitId)?.unitName ?? user?.wardUnitType;
 }

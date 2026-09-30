@@ -1,3 +1,4 @@
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import { Button, Card, Icon, ListRow, type IconName } from '@/components/common';
@@ -5,9 +6,18 @@ import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { EmptyState } from '@/components/feedback';
 import { colors } from '@/theme';
+import { sideApi } from '@/core/api/side-api';
+import { isLiveApi } from '@/core/config/env';
 import { useRegistrations } from '@/features/business-registrations/useRegistrations';
+import { useFeeItems, usePenalties } from '@/features/fee-schedules/useFinance';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
+
+// Same payable rules as FinanceHomeScreen. Mock penalties are PENDING, live ones UNPAID.
+const PAYABLE_FEE = new Set(['PENDING', 'OVERDUE']);
+const PAYABLE_PENALTY = new Set(['UNPAID', 'PENDING']);
+
+type PermitCard = { contractId: number | string; label: string; status: string };
 
 export function VendorHomeScreen() {
   const navigate = useNavigate();
@@ -15,40 +25,35 @@ export function VendorHomeScreen() {
   // Shared with the registrations list/detail screens, so this stays correct
   // against StreetBiz-BE instead of always reporting "no registration yet".
   const { registrations, isLoading: registrationsLoading } = useRegistrations();
-  const contracts = useMockDb((s) => s.contracts).filter(
-    (c) => c.vendorId === user?.vendorId && c.contract_status === 'ACTIVE',
-  );
-  const feeItems = useMockDb((s) => s.feeItems).filter(
-    (f) => f.vendorId === user?.vendorId && f.item_status === 'PENDING',
-  );
-  const penalties = useMockDb((s) => s.penalties).filter(
-    (p) => p.vendorId === user?.vendorId && p.penalty_status === 'PENDING',
-  );
-  const permits = useMockDb((s) => s.permits).filter((p) =>
-    contracts.some((c) => c.id === p.contractId),
-  );
+  // Unfiltered, so they share their cache with FinanceHomeScreen; both hooks
+  // already switch between StreetBiz-BE and the mock store.
+  const { feeItems } = useFeeItems();
+  const { penalties } = usePenalties();
+  const permit = useCurrentPermit();
 
   const todos = [
     ...registrations
       .filter((r) => r.registrationStatus === 'MORE_INFORMATION_REQUIRED')
       .map((r) => ({
-        key: r.registrationId,
+        key: `registration-${r.registrationId}`,
         title: `Bổ sung hồ sơ: ${r.displayName}`,
         onPress: () => navigate(`/vendor/registrations/${r.registrationId}`),
       })),
-    ...feeItems.map((f) => ({
-      key: f.id,
-      title: `Thanh toán phí ${f.period_label}`,
-      onPress: () => navigate(`/vendor/finance/fees/${f.id}/payment`),
-    })),
-    ...penalties.map((p) => ({
-      key: p.id,
-      title: `Thanh toán biên bản phạt`,
-      onPress: () => navigate(`/vendor/finance/penalties/${p.id}/payment`),
-    })),
+    ...feeItems
+      .filter((f) => PAYABLE_FEE.has(f.itemStatus))
+      .map((f) => ({
+        key: `fee-${f.feeItemId}`,
+        title: `Thanh toán phí ${f.periodLabel}`,
+        onPress: () => navigate(`/vendor/finance/fees/${f.feeItemId}/payment`),
+      })),
+    ...penalties
+      .filter((p) => PAYABLE_PENALTY.has(p.penaltyStatus))
+      .map((p) => ({
+        key: `penalty-${p.penaltyId}`,
+        title: `Thanh toán biên bản phạt`,
+        onPress: () => navigate(`/vendor/finance/penalties/${p.penaltyId}/payment`),
+      })),
   ];
-
-  const permit = permits[0];
 
   return (
     <Screen width="wide">
@@ -113,9 +118,9 @@ export function VendorHomeScreen() {
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col gap-2xs">
                   <span className="truncate text-headline-sm text-text">Giấy phép số</span>
-                  <span className="truncate text-body-md font-tabular text-muted">{permit.permit_code}</span>
+                  <span className="truncate text-body-md font-tabular text-muted">{permit.label}</span>
                 </div>
-                <StatusChip code={permit.permit_status} />
+                <StatusChip code={permit.status} />
               </div>
             </Card>
           ) : null}
@@ -134,6 +139,54 @@ export function VendorHomeScreen() {
       </div>
     </Screen>
   );
+}
+
+/**
+ * The permit of the vendor's first ACTIVE contract that has one (a just-approved
+ * contract can be ACTIVE before its permit is issued). Live, it uses the same
+ * query keys as ContractsListScreen and DigitalPermitScreen, so opening the
+ * permit from here reuses the cache.
+ */
+function useCurrentPermit(): PermitCard | null {
+  const user = useAuthStore((s) => s.user);
+
+  const contracts = useQuery({
+    queryKey: ['side', user?.id, 'contracts'],
+    queryFn: () => sideApi.listContracts(),
+    enabled: isLiveApi,
+  });
+  const active = (contracts.data ?? []).filter((c) => c.contractStatus === 'ACTIVE');
+  const permits = useQueries({
+    queries: active.map((contract) => ({
+      queryKey: ['side', user?.id, 'permit', contract.contractId],
+      queryFn: () => sideApi.getPermit(contract.contractId),
+      enabled: isLiveApi,
+      retry: false,
+    })),
+  });
+  const withPermit = active
+    .map((contract, i) => ({ contract, permit: permits[i]?.data }))
+    .find((row) => row.permit);
+
+  const mockContracts = useMockDb((s) => s.contracts).filter(
+    (c) => c.vendorId === user?.vendorId && c.contract_status === 'ACTIVE',
+  );
+  const mockPermit = useMockDb((s) => s.permits).find((p) =>
+    mockContracts.some((c) => c.id === p.contractId),
+  );
+
+  if (!isLiveApi) {
+    return mockPermit
+      ? { contractId: mockPermit.contractId, label: mockPermit.permit_code, status: mockPermit.permit_status }
+      : null;
+  }
+  return withPermit?.permit
+    ? {
+        contractId: withPermit.contract.contractId,
+        label: `Ô ${withPermit.contract.slotCode}`,
+        status: withPermit.permit.effectiveStatus,
+      }
+    : null;
 }
 
 function Shortcut({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
