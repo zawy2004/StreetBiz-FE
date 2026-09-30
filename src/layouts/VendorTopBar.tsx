@@ -4,6 +4,7 @@ import { useQueries } from '@tanstack/react-query';
 
 import { Avatar, Icon } from '@/components/common';
 import { sideApi, type SidewalkSlot, type SlotHold } from '@/core/api/side-api';
+import { useNotificationUnreadCount } from '@/features/account-management/notifications-api';
 import { formatCountdown, hkdCode, secondsUntil } from '@/features/sidewalk-slots/slot-format';
 import { slotMatchesSearch } from '@/features/sidewalk-slots/slot-stats';
 import { useHolds } from '@/features/sidewalk-slots/useHolds';
@@ -37,13 +38,7 @@ export function VendorTopBar() {
         <div className="ml-auto flex items-center gap-xs">
           {onWorkspace && <LayersToggle />}
           <HoldBasket />
-          <Link
-            to="/account/notifications"
-            aria-label="Thông báo"
-            className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-sunken"
-          >
-            <Icon name="bell-outline" size={22} color={colors.text} />
-          </Link>
+          <NotificationBell />
           <div className="ml-xs flex items-center gap-xs">
             {isDesktop && (
               <div className="text-right">
@@ -63,6 +58,23 @@ export function VendorTopBar() {
         </div>
       )}
     </header>
+  );
+}
+
+function NotificationBell() {
+  const unread = useNotificationUnreadCount();
+
+  return (
+    <Link
+      to="/account/notifications"
+      aria-label={unread > 0 ? `Thông báo, ${unread} chưa đọc` : 'Thông báo'}
+      className="relative flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-sunken"
+    >
+      <Icon name="bell-outline" size={22} color={colors.text} />
+      {unread > 0 && (
+        <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-primary" />
+      )}
+    </Link>
   );
 }
 

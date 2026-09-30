@@ -24,6 +24,7 @@ const ICON_MAP: Record<string, IconType> = {
   'close-circle-outline': Md.MdOutlineCancel,
   close: Md.MdClose,
   'bell-outline': Md.MdOutlineNotifications,
+  'bell-ring': Md.MdNotificationsActive,
   'shield-check-outline': Md.MdOutlineVerifiedUser,
   'shield-alert-outline': Md.MdOutlineGppMaybe,
   'lock-outline': Md.MdOutlineLock,
