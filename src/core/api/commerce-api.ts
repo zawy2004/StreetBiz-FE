@@ -11,6 +11,8 @@ export type MarketplaceMenuItem = {
   availabilityStatus: string;
   categoryId: number;
   categoryName: string;
+  /** Covered by an approved, in-date ATTP certificate. */
+  foodSafetyCertified?: boolean;
 };
 
 export type GeoPoint = { latitude: number; longitude: number };

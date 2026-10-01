@@ -1,11 +1,11 @@
-import { useState } from 'react';
-
 import { formatVnd, Icon, KerbTag } from '@/components/common';
 import { StatusChip } from '@/components/status';
 import type { StorefrontSummary } from '@/core/api/commerce-api';
 import { colors } from '@/theme';
 import { categoryIcon } from '../category-icons';
 import { formatDistance, ratingText, todayHoursText } from '../discovery-format';
+import { storefrontPhotos } from '../food-photos';
+import { FoodImage } from './FoodImage';
 
 type Props = { storefront: StorefrontSummary; onPress: () => void };
 
@@ -29,9 +29,6 @@ export function StorefrontCard({ storefront, onPress }: Props) {
   const distance = formatDistance(storefront.distanceMeters);
   const hours = todayHoursText(storefront);
   const placeholder = PLACEHOLDERS[storefront.storefrontId % PLACEHOLDERS.length]!;
-  // A dead photo link falls back to the placeholder tile rather than a broken-image icon.
-  const [photoFailed, setPhotoFailed] = useState(false);
-  const photo = photoFailed ? null : storefront.imageUrl;
 
   return (
     <button
@@ -39,20 +36,17 @@ export function StorefrontCard({ storefront, onPress }: Props) {
       onClick={onPress}
       className="group flex w-full flex-col overflow-hidden rounded-md border border-border bg-card text-left shadow-card transition-[box-shadow,border-color] duration-150 hover:border-muted/40 hover:shadow-card-hover"
     >
-      <div className={`relative aspect-[16/10] w-full overflow-hidden ${photo ? 'bg-sunken' : placeholder.bg}`}>
-        {photo ? (
-          <img
-            src={photo}
-            onError={() => setPhotoFailed(true)}
-            alt=""
-            loading="lazy"
-            className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] ${storefront.isOpenNow ? '' : 'grayscale-[60%]'}`}
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Icon name={categoryIcon(storefront.categories[0])} size={44} color={placeholder.color} />
-          </div>
-        )}
+      <div className="relative aspect-[16/10] w-full">
+        <FoodImage
+          photos={storefrontPhotos(storefront)}
+          icon={categoryIcon(storefront.categories[0])}
+          iconSize={44}
+          iconColor={placeholder.color}
+          placeholderClassName={placeholder.bg}
+          className="h-full w-full"
+          imgClassName={`transition-transform duration-300 group-hover:scale-[1.03] ${storefront.isOpenNow ? '' : 'grayscale-[60%]'}`}
+          showIllustrativeTag
+        />
         <div className="absolute left-xs top-xs">
           <OpenBadge isOpen={storefront.isOpenNow} />
         </div>

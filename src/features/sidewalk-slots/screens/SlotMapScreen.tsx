@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { IconButton } from '@/components/common';
@@ -8,7 +8,7 @@ import { sideApi, SideApiError } from '@/core/api/side-api';
 import { useAuthStore } from '@/store/auth-store';
 import { SlotDetailPanel } from '../components/SlotDetailPanel';
 import { SlotFilterBar } from '../components/SlotFilterBar';
-import { SlotMapView, type Bounds } from '../components/SlotMapView';
+import type { Bounds } from '../components/SlotMapView';
 import { ZoneHeader } from '../components/ZoneHeader';
 import { ZonePlan } from '../components/ZonePlan';
 import { DEFAULT_CENTER, DEFAULT_SPAN } from '../map-constants';
@@ -16,6 +16,12 @@ import { countSlots, slotMatchesFilters } from '../slot-stats';
 import { useHolds } from '../useHolds';
 import { useNow } from '../useNow';
 import { useWorkspaceStore, type SlotSearchEntry, type ZoneOption } from '../workspace-store';
+
+// The Goong/mapbox bundle (~885 kB) loads only when the map view is shown, not
+// with every screen of this feature's lazy chunk.
+const SlotMapView = lazy(() =>
+  import('../components/SlotMapView').then((m) => ({ default: m.SlotMapView })),
+);
 
 const CARD_WIDTHS_PX = [112, 136, 160, 192];
 const DEFAULT_CARD_WIDTH_INDEX = 1;
@@ -196,16 +202,18 @@ export function SlotMapScreen() {
 
           {effectiveView === 'MAP' && (
             <div className="h-[520px] overflow-hidden rounded-md border border-border">
-              <SlotMapView
-                slots={nearby.data ?? []}
-                onBoundsChange={setBounds}
-                error={nearby.error}
-                onRetry={() => void nearby.refetch()}
-                onViewZoneDiagram={(id) => {
-                  selectZone(id);
-                  setView('PLAN');
-                }}
-              />
+              <Suspense fallback={<LoadingState label="Đang tải bản đồ" />}>
+                <SlotMapView
+                  slots={nearby.data ?? []}
+                  onBoundsChange={setBounds}
+                  error={nearby.error}
+                  onRetry={() => void nearby.refetch()}
+                  onViewZoneDiagram={(id) => {
+                    selectZone(id);
+                    setView('PLAN');
+                  }}
+                />
+              </Suspense>
             </div>
           )}
         </section>

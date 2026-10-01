@@ -6,7 +6,11 @@ import { isLiveApi } from '@/core/config/env';
 import { colors } from '@/theme';
 import { EVIDENCE_LABELS } from '../new-registration-store';
 
-type Props = { evidence: ApiEvidence };
+type Props = {
+  evidence: Pick<ApiEvidence, 'fileUrl'> & { evidenceType: string };
+  /** Overrides the registration evidence label (e.g. for ATTP documents). */
+  label?: string;
+};
 
 const SIZE = 96;
 
@@ -15,8 +19,11 @@ const SIZE = 96;
  * reviewers, so the file is fetched with the bearer token and shown through an
  * object URL rather than linked directly.
  */
-export function EvidencePreview({ evidence }: Props) {
-  const label = EVIDENCE_LABELS[evidence.evidenceType] ?? evidence.evidenceType;
+export function EvidencePreview({ evidence, label: labelOverride }: Props) {
+  const label =
+    labelOverride ??
+    (EVIDENCE_LABELS as Record<string, string | undefined>)[evidence.evidenceType] ??
+    evidence.evidenceType;
   const [objectUrl, setObjectUrl] = useState<string>();
   const [isPdf, setIsPdf] = useState(false);
   const [failed, setFailed] = useState(false);

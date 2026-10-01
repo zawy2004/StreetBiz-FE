@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button, Card } from '@/components/common';
-import { ConfirmDialog, showToast } from '@/components/feedback';
+import { ConfirmDialog, LoadingState, showToast } from '@/components/feedback';
 import { SegmentedControl, SelectField, TextField } from '@/components/forms';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { useAuthStore } from '@/store/auth-store';
 import { Checkbox } from '../components/ConfigFields';
-import { SlotGridMap, type MapPoint } from '../components/SlotGridMap';
+import type { MapPoint } from '../components/SlotGridMap';
 import { WardGate } from '../components/WardGate';
 import {
   businessCategoryLabels,
@@ -26,6 +26,12 @@ import {
   type WardStreetFeature,
   type WardZone,
 } from '../ward-config-api';
+
+// The Goong/mapbox bundle (~885 kB) loads with this screen only, not with every
+// ward screen (the dashboard is the ward's home page).
+const SlotGridMap = lazy(() =>
+  import('../components/SlotGridMap').then((m) => ({ default: m.SlotGridMap })),
+);
 
 type Mode = 'slot' | 'batch' | 'feature';
 
@@ -141,20 +147,22 @@ function SlotGridContent() {
         Điểm đỏ: chướng ngại vật cấm kinh doanh; điểm vàng: chướng ngại vật khác.
       </p>
 
-      <SlotGridMap
-        slots={data.slots}
-        features={data.features}
-        selectedSlotId={selected?.slotId ?? null}
-        pins={pins}
-        candidates={preview?.candidates ?? []}
-        onMapClick={onMapClick}
-        onSelectSlot={(slot) => {
-          if (mode === 'slot') {
-            setSelected(slot);
-            setPins([]);
-          }
-        }}
-      />
+      <Suspense fallback={<LoadingState label="Đang tải bản đồ" />}>
+        <SlotGridMap
+          slots={data.slots}
+          features={data.features}
+          selectedSlotId={selected?.slotId ?? null}
+          pins={pins}
+          candidates={preview?.candidates ?? []}
+          onMapClick={onMapClick}
+          onSelectSlot={(slot) => {
+            if (mode === 'slot') {
+              setSelected(slot);
+              setPins([]);
+            }
+          }}
+        />
+      </Suspense>
 
       {mode === 'slot' && selected && (
         <SlotPanel

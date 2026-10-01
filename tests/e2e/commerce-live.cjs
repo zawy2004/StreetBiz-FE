@@ -1,4 +1,4 @@
-/* global require, process, console, fetch, localStorage */
+/* global require, process, console, fetch, localStorage, Buffer */
 /* eslint-disable @typescript-eslint/no-require-imports */
 // Opt-in destructive smoke test: use disposable accounts and a test database only.
 const assert = require('node:assert/strict');
@@ -113,6 +113,21 @@ async function login(phone) {
     await seller.getByLabel('Tên món', { exact: true }).fill(itemName);
     await seller.getByLabel('Giá (đ)', { exact: true }).fill('25000');
     await seller.getByLabel('Mô tả món', { exact: true }).fill('Món phục vụ kiểm thử.');
+    // A category that needs no ATTP certificate, so the dish goes on sale at once.
+    await seller.getByRole('radio', { name: 'Ăn vặt', exact: true }).click();
+    // New dishes need a photo: a 1x1 PNG is enough for the upload's type check.
+    const photoUpload = seller.waitForResponse(
+      (r) => r.url().endsWith('/uploads/menu-images') && r.request().method() === 'POST',
+    );
+    await seller.getByLabel('Ảnh món *', { exact: true }).setInputFiles({
+      name: 'dish.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        'base64',
+      ),
+    });
+    assert.equal((await photoUpload).status(), 200);
     const menuResponse = seller.waitForResponse(
       (r) => r.url().endsWith('/menu-items') && r.request().method() === 'POST',
     );
