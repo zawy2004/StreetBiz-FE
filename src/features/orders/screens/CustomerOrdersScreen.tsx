@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Button, Card, Money } from '@/components/common';
+import { Button, Card, Money, Pagination, rangeCaption } from '@/components/common';
 import { EmptyState, ErrorState } from '@/components/feedback';
 import { SegmentedControl } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
@@ -27,6 +27,20 @@ const CUSTOMER_FILTERS: { value: CustomerTab; label: string }[] = [
   { value: 'CLOSED', label: 'Đã hủy / từ chối' },
 ];
 
+// What each tab asks the API for. Grouped tabs are filtered on the server, so
+// the page count is about that tab rather than about every order.
+const TAB_STATUSES: Record<CustomerTab, OrderStatus | readonly OrderStatus[] | undefined> = {
+  ALL: undefined,
+  PENDING_PAYMENT: 'PENDING_PAYMENT',
+  PLACED: 'PLACED',
+  PROCESSING: ['ACCEPTED', 'PREPARING'],
+  READY_FOR_PICKUP: 'READY_FOR_PICKUP',
+  COMPLETED: 'COMPLETED',
+  CLOSED: ['CANCELLED', 'REJECTED'],
+};
+
+const PAGE_SIZE = 10;
+
 export function CustomerOrdersScreen() {
   return isLiveApi ? <LiveCustomerOrdersScreen /> : <MockCustomerOrdersScreen />;
 }
@@ -36,13 +50,14 @@ function LiveCustomerOrdersScreen() {
   const user = useAuthStore((state) => state.user);
   const [tab, setTab] = useState<CustomerTab>('ALL');
   const [page, setPage] = useState(1);
-  const directStatus = ['PENDING_PAYMENT', 'PLACED', 'READY_FOR_PICKUP', 'COMPLETED'].includes(tab)
-    ? (tab as OrderStatus)
-    : undefined;
   const orders = useCustomerOrders(
-    { status: directStatus, page, pageSize: 10 },
+    { status: TAB_STATUSES[tab], page, pageSize: PAGE_SIZE },
     user?.role_code === 'CUSTOMER',
   );
+  const totalPages = orders.data?.totalPages ?? 0;
+  useEffect(() => {
+    if (totalPages > 0 && page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
   if (user?.role_code !== 'CUSTOMER') {
     return (
       <Screen>
@@ -55,11 +70,7 @@ function LiveCustomerOrdersScreen() {
       </Screen>
     );
   }
-  const visible = (orders.data?.items ?? []).filter((order) => {
-    if (tab === 'PROCESSING') return ['ACCEPTED', 'PREPARING'].includes(order.orderStatus);
-    if (tab === 'CLOSED') return ['CANCELLED', 'REJECTED'].includes(order.orderStatus);
-    return true;
-  });
+  const visible = orders.data?.items ?? [];
 
   return (
     <Screen>
@@ -101,24 +112,14 @@ function LiveCustomerOrdersScreen() {
           />
         ))
       )}
-      {orders.data && orders.data.totalPages > 1 ? (
-        <div className="flex items-center justify-between gap-sm">
-          <Button
-            label="Trang trước"
-            variant="outline"
-            disabled={page <= 1}
-            onPress={() => setPage((current) => current - 1)}
-          />
-          <span className="whitespace-nowrap text-body-sm text-muted">
-            {page}/{orders.data.totalPages}
-          </span>
-          <Button
-            label="Trang sau"
-            variant="outline"
-            disabled={page >= orders.data.totalPages}
-            onPress={() => setPage((current) => current + 1)}
-          />
-        </div>
+      {orders.data && totalPages > 1 ? (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          busy={orders.isPlaceholderData}
+          onChange={setPage}
+          caption={rangeCaption('Đơn', page, PAGE_SIZE, orders.data.totalItems, visible.length)}
+        />
       ) : null}
     </Screen>
   );

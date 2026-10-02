@@ -32,13 +32,19 @@ export function OrderCard({
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-xs">
-            <div>
+            {/* min-w-0 lets the name truncate; without it a long stall name
+                pushed the status chip out past the card's edge on a phone. */}
+            <div className="min-w-0 flex-1">
               <p className="truncate text-headline-sm text-text">
                 {order.storefront.storefrontName}
               </p>
-              <p className="text-body-sm text-muted">#{order.orderCode}</p>
+              <p className="truncate text-body-sm text-muted" title={`#${order.orderCode}`}>
+                #{order.orderCode}
+              </p>
             </div>
-            <OrderStatusBadge status={order.orderStatus} />
+            <div className="shrink-0">
+              <OrderStatusBadge status={order.orderStatus} />
+            </div>
           </div>
           <p className="mt-2xs text-body-sm text-muted">
             {itemCount} món · {formatOrderDate(order.placedAt ?? order.createdAt)}

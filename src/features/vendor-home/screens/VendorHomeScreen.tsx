@@ -126,13 +126,25 @@ export function VendorHomeScreen() {
           ) : null}
 
           <Section title="Lối tắt">
-            <div className="grid grid-cols-2 gap-sm lg:grid-cols-1">
+            {/* One per row on a phone: two columns leave ~100px for the label and
+                cut every one of them short. */}
+            <div className="grid grid-cols-1 gap-sm sm:grid-cols-2 lg:grid-cols-1">
               <Shortcut
                 icon="file-document-outline"
                 label="Đăng ký kinh doanh"
                 onPress={() => navigate('/vendor/registrations')}
               />
               <Shortcut icon="map-marker-radius-outline" label="Thuê ô vỉa hè" onPress={() => navigate('/vendor/slots')} />
+              <Shortcut
+                icon="qrcode-scan"
+                label="Quét mã nhận hàng"
+                onPress={() => navigate('/vendor/orders/scan')}
+              />
+              <Shortcut
+                icon="silverware-fork-knife"
+                label="Cửa hàng & thực đơn"
+                onPress={() => navigate('/vendor/store')}
+              />
             </div>
           </Section>
         </div>

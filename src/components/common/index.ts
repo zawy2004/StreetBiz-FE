@@ -11,3 +11,5 @@ export * from './QrCode';
 export * from './Icon';
 export * from './Spinner';
 export * from './KerbTag';
+export * from './Pagination';
+export * from './pagination-slots';

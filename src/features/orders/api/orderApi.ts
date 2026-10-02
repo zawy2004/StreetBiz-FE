@@ -4,6 +4,7 @@ import type {
   CheckoutResponse,
   Order,
   OrderItem,
+  OrderPickupCode,
   OrderListFilters,
   OrderStatusHistory,
   PagedResult,
@@ -84,7 +85,10 @@ export function mapOrder(input: BackendOrder): Order {
 
 function query(filters: OrderListFilters): string {
   const params = new URLSearchParams();
-  if (filters.status) params.set('status', filters.status);
+  // A list is sent as one comma-separated value and filtered before paging, so
+  // the page count is about the tab rather than about every order.
+  const status = typeof filters.status === 'string' ? filters.status : filters.status?.join(',');
+  if (status) params.set('status', status);
   params.set('page', String(filters.page ?? 1));
   params.set('pageSize', String(filters.pageSize ?? 20));
   if (filters.fromDate) params.set('fromDate', filters.fromDate);
@@ -116,8 +120,9 @@ export const orderApi = {
     mapOrder(await apiPost<BackendOrder>(`/orders/${orderId}/payment/sandbox-confirm`)),
   failSandboxPayment: async (orderId: number) =>
     mapOrder(await apiPost<BackendOrder>(`/orders/${orderId}/payment/sandbox-fail`)),
-  confirmPickup: async (orderId: number) =>
-    mapOrder(await apiPost<BackendOrder>(`/orders/${orderId}/confirm-pickup`)),
+  /** ORD-06: the signed code the buyer shows at the stall. */
+  pickupCode: (orderId: number | string) =>
+    apiGet<OrderPickupCode>(`/orders/${orderId}/pickup-code`),
 
   vendorOrders: async (filters: OrderListFilters = {}) =>
     mapPage(await apiGet<PagedResult<BackendOrder>>(`/vendor/orders?${query(filters)}`)),
@@ -131,8 +136,22 @@ export const orderApi = {
     mapOrder(await apiPost<BackendOrder>(`/vendor/orders/${orderId}/preparing`)),
   readyForPickup: async (orderId: number) =>
     mapOrder(await apiPost<BackendOrder>(`/vendor/orders/${orderId}/ready-for-pickup`)),
-  confirmHandover: async (orderId: number) =>
-    mapOrder(await apiPost<BackendOrder>(`/vendor/orders/${orderId}/confirm-handover`)),
+  /** ORD-06: the code identifies the order, so no order id is sent. */
+  scanPickup: async (token: string) =>
+    mapOrder(await apiPost<BackendOrder>('/vendor/orders/pickup-scan', { token })),
+
+  /** ORD-06 fallback: the seller types the code the buyer reads out. */
+  confirmPickupByCode: async (code: string) =>
+    mapOrder(await apiPost<BackendOrder>('/vendor/orders/pickup-confirm', { code })),
+
+  /**
+   * ORD-06 last resort: no code could be read at all. The reason is required and
+   * goes into the order's status history, which the buyer sees.
+   */
+  handoverWithoutCode: async (orderId: number, reason: string) =>
+    mapOrder(
+      await apiPost<BackendOrder>(`/vendor/orders/${orderId}/handover-without-code`, { reason }),
+    ),
   salesSummary: (fromDate: string, toDate: string, groupBy: SalesGroup) => {
     const params = new URLSearchParams({ fromDate, toDate, groupBy });
     return apiGet<SalesSummary>(`/vendor/orders/sales-summary?${params.toString()}`);

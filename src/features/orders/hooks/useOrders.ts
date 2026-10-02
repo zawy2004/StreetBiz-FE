@@ -1,9 +1,14 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 
 import { ApiError } from '@/core/api/problem';
 import { orderApi } from '../api/orderApi';
-import { TERMINAL_ORDER_STATUSES, type Order, type OrderListFilters } from '../types/order.types';
+import {
+  TERMINAL_ORDER_STATUSES,
+  type Order,
+  type OrderListFilters,
+  type OrderStatus,
+} from '../types/order.types';
 import { useOrderRealtime } from '../realtime/useOrderRealtime';
 
 export const orderKeys = {
@@ -21,11 +26,24 @@ export function orderPollingInterval(order?: Order): number | false {
   return !order || TERMINAL_ORDER_STATUSES.has(order.orderStatus) ? false : 7_000;
 }
 
+/**
+ * Keeps the page on screen while the next one loads, so paging does not flash
+ * a skeleton. Only within one tab: after a tab switch the old tab's orders
+ * would be shown under the new tab's name.
+ */
+function keepWhilePaging<T>(filters: OrderListFilters) {
+  return (previous: T | undefined, previousQuery?: { queryKey: readonly unknown[] }) => {
+    const before = previousQuery?.queryKey.at(-1) as OrderListFilters | undefined;
+    return before && String(before.status) === String(filters.status) ? previous : undefined;
+  };
+}
+
 export function useCustomerOrders(filters: OrderListFilters, enabled = true) {
   return useQuery({
     queryKey: orderKeys.customerList(filters),
     queryFn: () => orderApi.customerOrders(filters),
     enabled,
+    placeholderData: keepWhilePaging(filters),
   });
 }
 
@@ -47,11 +65,42 @@ export function useCustomerOrder(orderId: string | number | undefined) {
   return query;
 }
 
+/**
+ * How often a seller's order list re-reads itself. New orders land while the
+ * seller is cooking, not while they are pressing "refresh".
+ */
+export const VENDOR_ORDERS_REFRESH_MS = 20_000;
+
 export function useVendorOrders(filters: OrderListFilters) {
   return useQuery({
     queryKey: orderKeys.vendorList(filters),
     queryFn: () => orderApi.vendorOrders(filters),
+    placeholderData: keepWhilePaging(filters),
+    refetchInterval: VENDOR_ORDERS_REFRESH_MS,
+    refetchIntervalInBackground: false,
   });
+}
+
+/**
+ * How many orders wait at each stage. A one-row page per status: the total is
+ * all that is read, and the list endpoint already filters each status in the
+ * database. Keyed under the vendor lists, so every order change recounts.
+ */
+export function useVendorOrderCounts(statuses: readonly OrderStatus[]) {
+  const results = useQueries({
+    queries: statuses.map((status) => {
+      const filters: OrderListFilters = { status, page: 1, pageSize: 1 };
+      return {
+        queryKey: orderKeys.vendorList(filters),
+        queryFn: () => orderApi.vendorOrders(filters),
+        refetchInterval: VENDOR_ORDERS_REFRESH_MS,
+        refetchIntervalInBackground: false,
+      };
+    }),
+  });
+  return Object.fromEntries(
+    statuses.map((status, index) => [status, results[index]?.data?.totalItems]),
+  ) as Partial<Record<OrderStatus, number>>;
 }
 
 export function useVendorOrder(orderId: string | number | undefined) {

@@ -36,6 +36,21 @@ async function api(auth, method, route, data, expected = 200) {
   assert.equal(r.status, expected, method + ' ' + route + ': ' + body);
   return body ? JSON.parse(body) : null;
 }
+/** Checkout is the one call that carries an Idempotency-Key header. */
+async function checkout(auth, cartId, key) {
+  const r = await fetch(base + '/orders/checkout', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + auth.accessToken,
+      'Idempotency-Key': key,
+    },
+    body: JSON.stringify({ cartId, provider: 'ZALOPAY' }),
+  });
+  const body = await r.text();
+  assert.equal(r.status, 200, 'POST /orders/checkout: ' + body);
+  return JSON.parse(body);
+}
 async function login(phone) {
   return api(null, 'POST', '/auth/login', {
     phoneNumber: phone,
@@ -160,38 +175,70 @@ async function login(phone) {
     await buyer.waitForURL('**/customer/explore/cart');
     await buyer.goto(ui + '/customer/checkout');
     const orderResponse = buyer.waitForResponse(
-      (r) => r.url().endsWith('/orders') && r.request().method() === 'POST',
+      (r) => r.url().endsWith('/orders/checkout') && r.request().method() === 'POST',
     );
-    await buyer.getByRole('button', { name: 'Tiếp tục thanh toán qua MOMO', exact: true }).click();
+    // The checkout screen now picks a provider first, then places the order
+    // with one button; the old single "pay with MOMO" button is gone.
+    await buyer.getByRole('radio', { name: 'MoMo' }).check();
+    await buyer.getByRole('button', { name: 'Thanh toán và đặt món', exact: true }).click();
     const or = await orderResponse;
     assert.equal(or.status(), 200, await or.text());
-    const order = await or.json();
-    console.log('orderId=' + order.orderId + ', itemId=' + item.menuItemId);
-    assert.equal(order.orderStatus, 'PENDING_PAYMENT');
-    assert.match(order.createdAt, /Z$/, 'Order UTC timestamp must include Z');
+    const failed = await or.json();
+    console.log('failedOrderId=' + failed.orderId + ', itemId=' + item.menuItemId);
+    assert.equal(failed.orderStatus, 'PENDING_PAYMENT');
+    // Checkout answers with the payment handoff, not the order itself, so the
+    // UTC invariant is checked where the timestamps actually live.
+    assert.match(
+      (await api(customer, 'GET', '/orders/' + failed.orderId)).createdAt,
+      /Z$/,
+      'Order UTC timestamp must include Z',
+    );
     assert.equal(
-      (await api(vendor, 'GET', '/seller/orders')).some((o) => o.orderId === order.orderId),
+      (await api(vendor, 'GET', '/seller/orders')).some((o) => o.orderId === failed.orderId),
       false,
     );
-    await buyer.getByRole('button', { name: 'Mô phỏng thanh toán thất bại', exact: true }).click();
-    await buyer.getByRole('button', { name: 'Thử lại thanh toán sandbox', exact: true }).waitFor();
-    await buyer.reload();
-    await buyer.getByRole('button', { name: 'Thử lại thanh toán sandbox', exact: true }).waitFor();
+
+    // A failed payment cancels that order and keeps the cart, so the buyer can
+    // place it again. That is the retry: there is no button to pay a dead order.
+    await buyer.getByRole('button', { name: 'Giả lập thanh toán thất bại', exact: true }).click();
+    await buyer
+      .getByText('Thanh toán thất bại hoặc đơn đã bị huỷ', { exact: true })
+      .waitFor();
     await buyer.screenshot({ path: path.join(output, '03-payment-retry.png'), fullPage: true });
-    await buyer.getByRole('button', { name: 'Thử lại thanh toán sandbox', exact: true }).click();
+    assert.equal(
+      (await api(customer, 'GET', '/orders/' + failed.orderId)).orderStatus,
+      'CANCELLED',
+    );
+    const keptCart = await api(customer, 'GET', '/cart');
+    assert.ok((keptCart.items || []).length > 0, 'A failed payment must not eat the cart.');
+
+    await buyer.goto(ui + '/customer/checkout');
+    const retryResponse = buyer.waitForResponse(
+      (r) => r.url().endsWith('/orders/checkout') && r.request().method() === 'POST',
+    );
+    await buyer.getByRole('radio', { name: 'MoMo' }).check();
+    await buyer.getByRole('button', { name: 'Thanh toán và đặt món', exact: true }).click();
+    const order = await (await retryResponse).json();
+    console.log('orderId=' + order.orderId);
+    await buyer.getByRole('button', { name: 'Thanh toán thử (thành công)', exact: true }).click();
+    await buyer.getByText('Đặt món thành công', { exact: true }).waitFor();
+    await buyer.getByRole('button', { name: 'Xem chi tiết đơn hàng', exact: true }).click();
     await buyer.waitForURL('**/customer/orders/' + order.orderId);
-    await seller.goto(ui + '/vendor/store/orders');
-    // Use the closest card ancestor containing the order code.
-    const orderCard = seller
-      .locator('div.shadow-card')
-      .filter({ has: seller.getByText('#' + order.orderCode, { exact: true }) })
-      .first();
-    await orderCard.getByRole('button', { name: 'Nhận đơn', exact: true }).click();
-    await orderCard.getByRole('button', { name: 'Bắt đầu chuẩn bị', exact: true }).click();
-    await orderCard.getByRole('button', { name: 'Sẵn sàng lấy món', exact: true }).click();
+    // Driven from the order's own screen rather than the list: accepting an
+    // order moves it out of the tab it was sitting in, so the card the next
+    // button lives on is gone by the time the seller reaches for it.
+    await seller.goto(ui + '/vendor/orders/' + order.orderId);
+    await seller.getByRole('button', { name: 'Nhận đơn', exact: true }).click();
+    await seller.getByRole('button', { name: 'Bắt đầu chuẩn bị', exact: true }).click();
+    await seller.getByRole('button', { name: 'Sẵn sàng lấy món', exact: true }).click();
+    await seller.getByRole('button', { name: 'Quét mã nhận hàng của khách', exact: true }).waitFor();
     await seller.screenshot({ path: path.join(output, '04-seller-ready.png'), fullPage: true });
+    // ORD-06: the buyer no longer closes their own order - only a seller who
+    // reads the pickup code does. That UI has its own script (pickup-live.cjs);
+    // here the handover just has to happen so review and refund can follow.
+    const pickup = await api(customer, 'GET', '/orders/' + order.orderId + '/pickup-code');
+    await api(vendor, 'POST', '/vendor/orders/pickup-confirm', { code: pickup.shortCode });
     await buyer.reload();
-    await buyer.getByRole('button', { name: 'Đã nhận món', exact: true }).click();
     await buyer.getByRole('button', { name: 'Đánh giá đơn hàng', exact: true }).waitFor();
     assert.equal((await api(customer, 'GET', '/orders/' + order.orderId)).orderStatus, 'COMPLETED');
     await buyer.screenshot({ path: path.join(output, '05-completed.png'), fullPage: true });
@@ -218,8 +265,11 @@ async function login(phone) {
       expectedStatus: 'OPEN',
       approvedRefundAmount: 5000,
     });
+    // The refund simulator is no longer a button on the buyer's screen - it is
+    // the sandbox stand-in for the gateway's callback, so it is called as one
+    // and the screen is then read for what the buyer actually sees.
+    await api(customer, 'POST', '/orders/' + order.orderId + '/refund/sandbox-confirm');
     await buyer.goto(ui + '/customer/orders/' + order.orderId);
-    await buyer.getByRole('button', { name: 'Mô phỏng hoàn tiền sandbox', exact: true }).click();
     await buyer.getByText('ĐÃ HOÀN TIỀN', { exact: true }).waitFor();
     const complaintButton = buyer.getByRole('button', {
       name: 'Khiếu nại / Yêu cầu hoàn tiền',
@@ -239,10 +289,8 @@ async function login(phone) {
       'COMPLETED',
     );
     await api(customer, 'POST', '/cart/items', { menuItemId: item.menuItemId, quantity: 1 });
-    const cancel = await api(customer, 'POST', '/orders', {
-      provider: 'ZALOPAY',
-      idempotencyKey: 'e2e-cancel-' + run,
-    });
+    const cancel = await checkout(customer, (await api(customer, 'GET', '/cart')).cartId,
+      'e2e-cancel-' + run);
     await api(customer, 'POST', '/orders/' + cancel.orderId + '/payment/sandbox-confirm');
     await api(customer, 'POST', '/orders/' + cancel.orderId + '/cancel', {
       expectedStatus: 'PLACED',

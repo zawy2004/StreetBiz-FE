@@ -76,7 +76,8 @@ export interface CheckoutResponse {
 }
 
 export interface OrderListFilters {
-  status?: OrderStatus;
+  /** Several statuses serve a tab that groups them, e.g. rejected and cancelled. */
+  status?: OrderStatus | readonly OrderStatus[];
   page?: number;
   pageSize?: number;
   fromDate?: string;
@@ -117,4 +118,26 @@ export const TERMINAL_ORDER_STATUSES: ReadonlySet<OrderStatus> = new Set([
   'COMPLETED',
   'REJECTED',
   'CANCELLED',
+]);
+
+/**
+ * ORD-06: the code a paid buyer shows at the stall. The seller scans it to prove
+ * this buyer holds this order before handing it over.
+ */
+export type OrderPickupCode = {
+  orderId: number;
+  orderCode: string;
+  orderStatus: OrderStatus;
+  storefrontName: string;
+  token: string;
+  /** The same proof, short enough for the seller to type when a camera fails. */
+  shortCode: string;
+};
+
+/** Paid and still waiting to change hands, so a pickup code is worth showing. */
+export const COLLECTABLE_ORDER_STATUSES: ReadonlySet<OrderStatus> = new Set([
+  'PLACED',
+  'ACCEPTED',
+  'PREPARING',
+  'READY_FOR_PICKUP',
 ]);
