@@ -31,4 +31,20 @@ describe('order API contract', () => {
     expect(client.apiGet).toHaveBeenNthCalledWith(1, expect.stringContaining('/orders/me?'));
     expect(client.apiGet).toHaveBeenNthCalledWith(2, expect.stringContaining('/vendor/orders?'));
   });
+
+  // A grouped tab is filtered by the server; filtering one page of every
+  // order on the client left the page count about every order.
+  it('sends a grouped tab as one comma-separated status', async () => {
+    client.apiGet.mockResolvedValue({ items: [], page: 2, pageSize: 10, totalItems: 0, totalPages: 0 });
+    await orderApi.vendorOrders({ status: ['REJECTED', 'CANCELLED'], page: 2, pageSize: 10 });
+    const url = new URL(client.apiGet.mock.calls[0]![0], 'http://x');
+    expect(url.searchParams.get('status')).toBe('REJECTED,CANCELLED');
+    expect(url.searchParams.get('page')).toBe('2');
+  });
+
+  it('sends no status at all for the "all" tab', async () => {
+    client.apiGet.mockResolvedValue({ items: [], page: 1, pageSize: 10, totalItems: 0, totalPages: 0 });
+    await orderApi.customerOrders({ status: undefined });
+    expect(new URL(client.apiGet.mock.calls[0]![0], 'http://x').searchParams.has('status')).toBe(false);
+  });
 });

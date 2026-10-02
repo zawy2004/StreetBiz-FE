@@ -76,7 +76,8 @@ export interface CheckoutResponse {
 }
 
 export interface OrderListFilters {
-  status?: OrderStatus;
+  /** Several statuses serve a tab that groups them, e.g. rejected and cancelled. */
+  status?: OrderStatus | readonly OrderStatus[];
   page?: number;
   pageSize?: number;
   fromDate?: string;

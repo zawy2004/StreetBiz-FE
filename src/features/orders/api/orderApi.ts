@@ -85,7 +85,10 @@ export function mapOrder(input: BackendOrder): Order {
 
 function query(filters: OrderListFilters): string {
   const params = new URLSearchParams();
-  if (filters.status) params.set('status', filters.status);
+  // A list is sent as one comma-separated value and filtered before paging, so
+  // the page count is about the tab rather than about every order.
+  const status = typeof filters.status === 'string' ? filters.status : filters.status?.join(',');
+  if (status) params.set('status', status);
   params.set('page', String(filters.page ?? 1));
   params.set('pageSize', String(filters.pageSize ?? 20));
   if (filters.fromDate) params.set('fromDate', filters.fromDate);

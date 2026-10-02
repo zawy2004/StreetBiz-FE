@@ -1,6 +1,6 @@
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card } from '@/components/common';
+import { Button, Card, Pagination } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { useAuthStore } from '@/store/auth-store';
 import { WardGate } from '../components/WardGate';
@@ -86,21 +86,14 @@ function CasesContent() {
           </Card>
         </Link>
       ))}
-      <div className="flex items-center gap-sm">
-        <Button
-          label="Trang trước"
-          variant="outline"
-          disabled={page <= 1 || records.isFetching}
-          onPress={() => setParams({ kind, page: String(page - 1) })}
+      {page > 1 || records.data?.hasMore ? (
+        <Pagination
+          page={page}
+          hasNext={Boolean(records.data?.hasMore)}
+          busy={records.isFetching}
+          onChange={(next) => setParams({ kind, page: String(next) })}
         />
-        <span>{page}</span>
-        <Button
-          label="Trang sau"
-          variant="outline"
-          disabled={!records.data?.hasMore || records.isFetching}
-          onPress={() => setParams({ kind, page: String(page + 1) })}
-        />
-      </div>
+      ) : null}
     </Screen>
   );
 }
