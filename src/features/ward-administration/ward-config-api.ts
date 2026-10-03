@@ -164,6 +164,30 @@ export type ConfigHistoryEntry = {
   details: string | null;
 };
 
+// -- AIC-07: zone price suggestion --
+export type ZonePriceSuggestion = {
+  zoneId: number;
+  zoneName: string;
+  currentPricePerDay: number;
+  windowDays: number;
+  slotCount: number;
+  occupiedSlotDays: number;
+  availableSlotDays: number;
+  occupancyPercent: number;
+  applicationsInWindow: number;
+  rejectedApplications: number;
+  pendingApplications: number;
+  activeHolds: number;
+  direction: 'RAISE' | 'LOWER' | 'KEEP' | 'INSUFFICIENT_DATA';
+  baselinePricePerDay: number;
+  suggestedPricePerDay: number;
+  minAllowedPricePerDay: number;
+  maxAllowedPricePerDay: number;
+  explanation: string;
+  isAiGenerated: boolean;
+  aiLogId: number | null;
+};
+
 export type PenaltyRate = {
   scheduleId: number;
   amount: number;
@@ -230,6 +254,10 @@ export const wardConfigApi = {
     }),
   zoneHistory: (zoneId: number) =>
     apiGet<ConfigHistoryEntry[]>(`/ward/pricing-zones/${zoneId}/history`),
+  /** AIC-07: a suggested price from 90 days of occupancy, within +-20% of the current price.
+   * Advisory only -- "Áp dụng" only fills the price field; saving still goes through updateZone. */
+  priceSuggestion: (zoneId: number) =>
+    apiGet<ZonePriceSuggestion>(`/ward/pricing-zones/${zoneId}/price-suggestion`),
 
   // WARD-01
   slotGrid: (zoneId?: number) =>

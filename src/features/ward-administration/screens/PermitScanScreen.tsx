@@ -10,6 +10,8 @@ import { errorMessage } from '@/core/api';
 import { env, isLiveApi } from '@/core/config/env';
 import { colors } from '@/theme';
 import { useMockDb } from '@/mocks/db';
+import { AiSuggestionCard } from '../components/AiSuggestionCard';
+import { GeofenceDriftPanel } from '../components/GeofenceDriftPanel';
 import {
   complianceApi,
   type InspectPermitResult,
@@ -191,18 +193,21 @@ export function PermitScanScreen() {
 
           {/* AI Location Matching & GPS Check */}
           {liveResult?.locationWarning ? (
-            <AiHint title="Cảnh báo toạ độ thực tế [AI]">
+            <AiHint title="Cảnh báo toạ độ thực tế [Hệ thống — chưa xác minh bằng AI]">
               {liveResult.locationWarning}
             </AiHint>
           ) : (liveResult?.isLocationMatched && liveResult.distanceMeters !== null) || (!isLiveApi && photoUrl) ? (
-            <AiHint title="Xác minh vị trí chính xác [AI]">
+            <AiHint title="Xác minh vị trí chính xác [Hệ thống — chưa xác minh bằng AI]">
               Toạ độ quét hiện trường khớp với ô cấp phép (Cách {liveResult?.distanceMeters ?? 12}m, nằm trong dung sai 25m).
             </AiHint>
           ) : null}
 
           {/* AI Vision Encroachment Check (Section 7.2 Master Prompt) */}
           {liveResult?.aiVisionResult ? (
-            <AiHint title="Trợ lý thị giác AI Vision [AI]">
+            <AiSuggestionCard
+              title="Trợ lý thị giác AI Vision [AI]"
+              aiLogId={liveResult.aiVisionResult.aiLogId}
+            >
               <p>{liveResult.aiVisionResult.analysis}</p>
               {liveResult.aiVisionResult.visualCues.length > 0 ? (
                 <ul className="mt-1 list-disc pl-4 text-body-sm">
@@ -211,7 +216,7 @@ export function PermitScanScreen() {
                   ))}
                 </ul>
               ) : null}
-            </AiHint>
+            </AiSuggestionCard>
           ) : photoUrl ? (
             <AiHint title="Trợ lý thị giác AI Vision [AI]">
               {photoUrl.includes('lan-chiem') ? (
@@ -315,6 +320,8 @@ export function PermitScanScreen() {
           </Card>
         </Section>
       ) : null}
+
+      {env.enableAiCompliance && isLiveApi ? <GeofenceDriftPanel /> : null}
     </Screen>
   );
 }

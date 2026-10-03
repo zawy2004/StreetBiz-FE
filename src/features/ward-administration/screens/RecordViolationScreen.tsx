@@ -4,10 +4,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Card } from '@/components/common';
 import { PhotoPicker, SelectField, TextField } from '@/components/forms';
 import { AppHeader, Screen, Section, StickyActions } from '@/components/layout';
-import { AiHint } from '@/components/status';
 import { showToast } from '@/components/feedback';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
+import { AiSuggestionCard } from '../components/AiSuggestionCard';
 import {
   complianceApi,
   violationTypeLabels,
@@ -385,12 +385,13 @@ export function RecordViolationScreen() {
               LegalBasis and SuggestedPenaltyAmount always come from the ward's own
               PenaltyFeeSchedules row on the backend, never AI-authored text. */}
           {createdViolation.aiSuggestion ? (
-            <AiHint
+            <AiSuggestionCard
               title={
                 createdViolation.aiSuggestion.isAiGenerated
                   ? 'Trợ lý Pháp lý [AI]'
                   : 'Trợ lý Pháp lý [Hệ thống — chưa xác minh bằng AI]'
               }
+              aiLogId={createdViolation.aiSuggestion.aiLogId}
             >
               <p className="font-medium text-text">{createdViolation.aiSuggestion.hanhViViPham}</p>
               <p className="mt-1 text-body-sm text-text">
@@ -418,7 +419,7 @@ export function RecordViolationScreen() {
                   />
                 </div>
               ) : null}
-            </AiHint>
+            </AiSuggestionCard>
           ) : null}
 
           <Section title="Thông tin Quyết định xử phạt hành chính">

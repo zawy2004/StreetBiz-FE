@@ -8,6 +8,7 @@ import { AiHint, StatusChip } from '@/components/status';
 import { ErrorState, showToast } from '@/components/feedback';
 import { env, isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
+import { AiSuggestionCard } from '../components/AiSuggestionCard';
 import { complianceApi, type WardEnrollmentDetail } from '../ward-api';
 
 export function RegistrationReviewScreen() {
@@ -60,6 +61,7 @@ export function RegistrationReviewScreen() {
         ? ['Ảnh chụp CCCD hơi mờ ở cụm số định danh', 'Cần cán bộ đối chiếu lại số CCCD tự khai: 048099000222']
         : [],
       isAiGenerated: false,
+      aiLogId: null,
     };
   }, [id, fallbackIdNumber]);
 
@@ -244,7 +246,7 @@ export function RegistrationReviewScreen() {
             </div>
           ) : null}
 
-          <AiHint title="Trợ lý bóc tách & đối chiếu CCCD [AI]">
+          <AiSuggestionCard title="Trợ lý bóc tách & đối chiếu CCCD [AI]" aiLogId={aiCheck.aiLogId}>
             <p>{aiCheck.summary}</p>
             {aiCheck.discrepancies.length > 0 ? (
               <ul className="mt-1 list-disc pl-4 text-body-sm text-danger">
@@ -253,7 +255,7 @@ export function RegistrationReviewScreen() {
                 ))}
               </ul>
             ) : null}
-          </AiHint>
+          </AiSuggestionCard>
         </div>
       ) : env.enableAiCompliance ? (
         <AiHint title="Đối chiếu dữ liệu [Hệ thống — chưa xác minh bằng AI]">

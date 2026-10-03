@@ -4,8 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Card } from '@/components/common';
 import { ConfirmDialog } from '@/components/feedback';
 import { AppHeader, Screen } from '@/components/layout';
+import { env } from '@/core/config/env';
 import { useAuthStore } from '@/store/auth-store';
 import { LocationReview } from '../components/LocationReview';
+import { ProposalAssessmentPanel } from '../components/ProposalAssessmentPanel';
 import { WardGate } from '../components/WardGate';
 import {
   actionLabels,
@@ -132,6 +134,7 @@ function CaseContent({ kind, id }: { kind: CaseKind; id: string }) {
         <CaseDocuments documents={data.documents} />
       )}
       {kind === 'proposals' && <LocationReview record={data} onSaved={refresh} />}
+      {kind === 'proposals' && env.enableAiCompliance && <ProposalAssessmentPanel record={data} />}
       {kind === 'conflicts' && (
         <Card>
           <p>Xếp hàng chỉ ghi nhận thứ tự chờ. Hợp đồng người đang thuê và ô cũ được giữ nguyên.</p>

@@ -6,7 +6,9 @@ import { ConfirmDialog, showToast } from '@/components/feedback';
 import { SelectField, TextField } from '@/components/forms';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
+import { env } from '@/core/config/env';
 import { useAuthStore } from '@/store/auth-store';
+import { AiSuggestionCard } from '../components/AiSuggestionCard';
 import { DateInput, MoneyInput, TimeInput } from '../components/ConfigFields';
 import { WardGate } from '../components/WardGate';
 import {
@@ -289,6 +291,9 @@ function ZoneEditor({
             value={draft.pricePerDay}
             onChange={(v) => set('pricePerDay', v)}
           />
+          {!isNew && env.enableAiCompliance && (
+            <PriceSuggestionBox zoneId={zone.zoneId} onApply={(price) => set('pricePerDay', price)} />
+          )}
           <div className="grid grid-cols-2 gap-sm">
             <TimeInput
               label="Giờ bắt đầu"
@@ -432,6 +437,66 @@ function ZoneEditor({
         onCancel={() => setConfirmDelete(false)}
       />
     </Section>
+  );
+}
+
+/** AIC-07: a price suggestion from 90 days of occupancy, within +-20% of the current price.
+ * "Áp dụng" only fills the price field above -- saving still requires the usual impact preview
+ * and change reason, exactly like typing a price in by hand. */
+function PriceSuggestionBox({
+  zoneId,
+  onApply,
+}: {
+  zoneId: number;
+  onApply: (pricePerDay: number) => void;
+}) {
+  const userId = useAuthStore((state) => state.user?.id);
+  const suggestion = useQuery({
+    queryKey: ['ward', userId, 'zone-price-suggestion', zoneId],
+    queryFn: () => wardConfigApi.priceSuggestion(zoneId),
+  });
+
+  if (suggestion.isPending) return <p className="text-body-sm text-muted">Đang tải gợi ý giá…</p>;
+  if (suggestion.error || !suggestion.data) return null;
+  const data = suggestion.data;
+  if (data.direction === 'INSUFFICIENT_DATA') {
+    return <p className="text-body-sm text-muted">{data.explanation}</p>;
+  }
+
+  return (
+    <AiSuggestionCard
+      title={
+        data.isAiGenerated ? 'Gợi ý giá thuê [AI]' : 'Gợi ý giá thuê [Hệ thống — chưa xác minh bằng AI]'
+      }
+      aiLogId={data.aiLogId}
+    >
+      <p>
+        Tỉ lệ lấp đầy 90 ngày qua: {data.occupancyPercent}% ({data.occupiedSlotDays}/
+        {data.availableSlotDays} ô-ngày, {data.slotCount} ô)
+      </p>
+      <p>
+        Hồ sơ trong kỳ: {data.applicationsInWindow} (từ chối {data.rejectedApplications}, đang chờ{' '}
+        {data.pendingApplications}) · đang giữ chỗ: {data.activeHolds}
+      </p>
+      <p className="mt-1">{data.explanation}</p>
+      <div className="mt-sm flex flex-wrap items-center justify-between gap-sm border-t border-border pt-sm">
+        <span className="font-bold text-text">
+          Giá gợi ý: {data.suggestedPricePerDay.toLocaleString('vi-VN')} đ (biên{' '}
+          {data.minAllowedPricePerDay.toLocaleString('vi-VN')}–
+          {data.maxAllowedPricePerDay.toLocaleString('vi-VN')} đ)
+        </span>
+        <Button
+          label="Áp dụng giá gợi ý"
+          variant="outline"
+          size="sm"
+          fullWidth={false}
+          onPress={() => {
+            onApply(data.suggestedPricePerDay);
+            showToast('Đã điền giá gợi ý. Vẫn cần xem trước tác động và lưu để áp dụng.');
+          }}
+        />
+      </div>
+    </AiSuggestionCard>
   );
 }
 

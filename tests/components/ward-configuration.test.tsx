@@ -12,6 +12,7 @@ import {
   type WardPenaltyType,
   type WardSlotGrid,
   type WardZone,
+  type ZonePriceSuggestion,
 } from '@/features/ward-administration/ward-config-api';
 import { PenaltyScheduleScreen } from '@/features/ward-administration/screens/PenaltyScheduleScreen';
 import { PricingScheduleScreen } from '@/features/ward-administration/screens/PricingScheduleScreen';
@@ -19,10 +20,33 @@ import { SlotGridEditorScreen } from '@/features/ward-administration/screens/Slo
 import { useAuthStore } from '@/store/auth-store';
 
 vi.mock('@/core/config/env', () => ({
-  env: { apiBaseUrl: 'https://api.example.test/api', useMockApi: false, appEnv: 'test' },
+  env: { apiBaseUrl: 'https://api.example.test/api', useMockApi: false, appEnv: 'test', enableAiCompliance: true },
   isDev: true,
   isLiveApi: true,
 }));
+
+const insufficientDataSuggestion: ZonePriceSuggestion = {
+  zoneId: 1,
+  zoneName: 'Đường Nguyễn Văn Linh',
+  currentPricePerDay: 30000,
+  windowDays: 90,
+  slotCount: 0,
+  occupiedSlotDays: 0,
+  availableSlotDays: 0,
+  occupancyPercent: 0,
+  applicationsInWindow: 0,
+  rejectedApplications: 0,
+  pendingApplications: 0,
+  activeHolds: 0,
+  direction: 'INSUFFICIENT_DATA',
+  baselinePricePerDay: 30000,
+  suggestedPricePerDay: 30000,
+  minAllowedPricePerDay: 30000,
+  maxAllowedPricePerDay: 30000,
+  explanation: '[Hệ thống — chưa xác minh bằng AI] Tuyến chưa có ô nào để tính tỉ lệ lấp đầy.',
+  isAiGenerated: false,
+  aiLogId: null,
+};
 
 // Leaflet does not render in jsdom; the stand-in exposes the one interaction the screen needs.
 vi.mock('@/features/ward-administration/components/SlotGridMap', () => ({
@@ -156,6 +180,12 @@ describe('WARD-03 penalty schedule', () => {
 });
 
 describe('WARD-02 pricing & hours', () => {
+  // Editing an existing zone also mounts the AIC-07 price-suggestion box; stub it by
+  // default so tests that don't care about it don't hit the network.
+  beforeEach(() => {
+    vi.spyOn(wardConfigApi, 'priceSuggestion').mockResolvedValue(insufficientDataSuggestion);
+  });
+
   it('requires an impact preview and a reason before saving a zone change', async () => {
     vi.spyOn(wardConfigApi, 'listZones').mockResolvedValue([zone]);
     const preview = vi.spyOn(wardConfigApi, 'previewZoneImpact').mockResolvedValue({
@@ -199,6 +229,35 @@ describe('WARD-02 pricing & hours', () => {
     fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '18:00' } });
     fireEvent.change(screen.getByLabelText('Giờ kết thúc'), { target: { value: '02:00' } });
     expect(screen.getByText(/CA QUA ĐÊM/)).toBeInTheDocument();
+  });
+
+  it('applies a price suggestion to the field but still requires preview + reason to save', async () => {
+    vi.spyOn(wardConfigApi, 'listZones').mockResolvedValue([zone]);
+    vi.spyOn(wardConfigApi, 'priceSuggestion').mockResolvedValue({
+      ...insufficientDataSuggestion,
+      slotCount: 3,
+      occupiedSlotDays: 243,
+      availableSlotDays: 270,
+      occupancyPercent: 90,
+      direction: 'RAISE',
+      baselinePricePerDay: 33000,
+      suggestedPricePerDay: 33000,
+      explanation: '[Hệ thống — chưa xác minh bằng AI] Tỉ lệ lấp đầy 90%, đề nghị tăng giá.',
+    });
+    const save = vi.spyOn(wardConfigApi, 'updateZone').mockResolvedValue(zone);
+    mount(<PricingScheduleScreen />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Đường Nguyễn Văn Linh/ }));
+    expect(await screen.findByText(/33.000/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Áp dụng giá gợi ý' }));
+    expect(screen.getByLabelText('Giá thuê mỗi ngày')).toHaveValue('33.000');
+
+    // Applying the suggestion only fills the field -- saving is unchanged.
+    const saveButton = screen.getByRole('button', { name: 'Lưu thay đổi' });
+    expect(saveButton).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Xem tác động trước khi lưu' }));
+    expect(save).not.toHaveBeenCalled();
   });
 });
 

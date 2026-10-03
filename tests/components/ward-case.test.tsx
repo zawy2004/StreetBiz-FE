@@ -4,13 +4,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
 import { ApiError } from '@/core/api';
 import { WardCaseScreen } from '@/features/ward-administration/screens/WardCaseScreen';
-import { wardApi, type WardCase } from '@/features/ward-administration/ward-api';
+import { wardApi, type AiProposalAssessment, type WardCase } from '@/features/ward-administration/ward-api';
 import { useAuthStore } from '@/store/auth-store';
 
 // WardGate shows a "needs a backend" notice unless the app is in live mode, so
 // these screens can only be exercised with isLiveApi forced on.
 vi.mock('@/core/config/env', () => ({
-  env: { apiBaseUrl: 'https://api.example.test/api', useMockApi: false, appEnv: 'test' },
+  env: { apiBaseUrl: 'https://api.example.test/api', useMockApi: false, appEnv: 'test', enableAiCompliance: true },
   isDev: true,
   isLiveApi: true,
 }));
@@ -35,7 +35,7 @@ const record: WardCase = {
   documents: null,
   fastTrack: false,
 };
-function mount() {
+function mount(initialPath = '/ward-reviews/transfers/1') {
   useAuthStore.setState({
     user: {
       id: '1',
@@ -53,7 +53,7 @@ function mount() {
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <MemoryRouter initialEntries={['/ward-reviews/transfers/1']}>
+      <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
           <Route path="/ward-reviews/:kind/:id" element={<WardCaseScreen />} />
         </Routes>
@@ -103,5 +103,46 @@ describe('ward review decisions', () => {
     await screen.findByText('Hồ sơ đã thay đổi');
     expect(screen.queryByText('Quyết định đã được lưu vào Backend.')).not.toBeInTheDocument();
     expect(get.mock.calls.length).toBeGreaterThan(1);
+  });
+});
+
+describe('AIC-04 proposal assessment panel', () => {
+  const proposal: WardCase = { ...record, id: '28', kind: 'proposals', status: 'PENDING' };
+  const assessment: AiProposalAssessment = {
+    estimatedSidewalkWidthMeters: 2.4,
+    remainingPedestrianWidthMeters: 0.4,
+    obstructionLevel: 'HIGH',
+    recommendation: 'NEEDS_SURVEY',
+    confidence: 58,
+    reasons: ['[AI] Vỉa hè còn hẹp.'],
+    ruleChecks: [],
+    usedSatelliteImage: true,
+    usedProposalPhoto: true,
+    isAiGenerated: true,
+    assessedAt: '2026-10-02T00:00:00Z',
+    aiLogId: 99,
+  };
+
+  it('runs a fresh assessment and shows the recommendation with its confidence', async () => {
+    vi.spyOn(wardApi, 'get').mockResolvedValue(proposal);
+    vi.spyOn(wardApi, 'proposalAssessment').mockResolvedValue({ latest: null, isStale: false });
+    const run = vi.spyOn(wardApi, 'runProposalAssessment').mockResolvedValue(assessment);
+    mount('/ward-reviews/proposals/28');
+
+    const button = await screen.findByRole('button', { name: 'Chạy đánh giá AI' });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(run).toHaveBeenCalledWith('28'));
+    expect(await screen.findByText(/Cần khảo sát thực địa/)).toBeInTheDocument();
+    expect(screen.getByText(/0.4 m/)).toBeInTheDocument();
+  });
+
+  it('warns that a logged assessment is stale once the proposal has since changed', async () => {
+    vi.spyOn(wardApi, 'get').mockResolvedValue(proposal);
+    vi.spyOn(wardApi, 'proposalAssessment').mockResolvedValue({ latest: assessment, isStale: true });
+    mount('/ward-reviews/proposals/28');
+
+    expect(await screen.findByText(/đã thay đổi/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Đánh giá lại' })).toBeInTheDocument();
   });
 });

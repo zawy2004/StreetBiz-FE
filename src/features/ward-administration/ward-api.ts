@@ -1,4 +1,5 @@
 import { apiGet, apiGetBlob, apiPathFromFileUrl, apiPost, apiPut, apiUpload } from '@/core/api';
+import type { PlacementIssue } from './ward-config-api';
 
 // Business-registration review ("registrations") is NOT a CaseKind: it goes through
 // WardComplianceController's dedicated /ward/enrollments endpoints below (complianceApi),
@@ -70,6 +71,13 @@ export const wardApi = {
   pin: (id: string, point: GeoPoint) =>
     apiPut<WardCase>(`/ward/cases/proposals/${id}/location`, point),
 
+  /** AIC-04: the latest logged assessment, if any -- never calls the AI provider itself. */
+  proposalAssessment: (id: string) =>
+    apiGet<AiProposalAssessmentView>(`/ward/cases/proposals/${id}/ai-assessment`),
+  /** AIC-04: officer explicitly asks for a fresh (or reused, if nothing changed) assessment. */
+  runProposalAssessment: (id: string) =>
+    apiPost<AiProposalAssessment>(`/ward/cases/proposals/${id}/ai-assessment`, {}),
+
   /**
    * Evidence files require the bearer token (PRI-02), so they are fetched as a blob
    * rather than linked. `fileUrl` is origin-relative and already starts with /api,
@@ -100,6 +108,8 @@ export type AiDocumentCheck = {
   summary: string;
   discrepancies: string[];
   isAiGenerated: boolean;
+  /** Set only when isAiGenerated -- BR-41's log row, for AiSuggestionCard's accept/reject. */
+  aiLogId?: number | null;
 };
 export type WardEnrollmentItem = {
   id: string;
@@ -202,6 +212,7 @@ export type AiEncroachment = {
   analysis: string;
   visualCues: string[];
   isAiGenerated: boolean;
+  aiLogId?: number | null;
 };
 export type InspectPermitResult = {
   found: boolean;
@@ -241,6 +252,7 @@ export type AiLegalSuggestion = {
   hanhViViPham: string;
   bienPhapKhacPhuc: string;
   isAiGenerated: boolean;
+  aiLogId?: number | null;
 };
 export type WardViolationItem = {
   violationId: number;
@@ -280,6 +292,57 @@ export type WardPatrolHeatmapPoint = {
   hourOfDay: number;
   violationCount: number;
 };
+
+/** BR-41: the officer's accept/reject of a previously-logged AI suggestion (AiAssistanceLogs). */
+export type AiSuggestionFeedback = { aiLogId: number; accepted: boolean; reviewedAt: string; reviewerName: string };
+
+// -- AIC-04: proposed-slot feasibility --
+export type AiProposalAssessment = {
+  estimatedSidewalkWidthMeters: number | null;
+  remainingPedestrianWidthMeters: number | null;
+  obstructionLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'UNKNOWN';
+  recommendation: 'LIKELY_FEASIBLE' | 'NEEDS_SURVEY' | 'LIKELY_INFEASIBLE';
+  confidence: number;
+  reasons: string[];
+  ruleChecks: PlacementIssue[];
+  usedSatelliteImage: boolean;
+  usedProposalPhoto: boolean;
+  isAiGenerated: boolean;
+  assessedAt: string | null;
+  aiLogId: number | null;
+};
+export type AiProposalAssessmentView = { latest: AiProposalAssessment | null; isStale: boolean };
+
+// -- AIC-06: geofence drift --
+export type GeofenceDriftScan = {
+  scanId: number;
+  scannedAt: string;
+  scanContext: string;
+  distanceMeters: number;
+  latitude: number;
+  longitude: number;
+};
+export type GeofenceDriftItem = {
+  permitId: number;
+  contractId: number;
+  slotId: number;
+  slotCode: string;
+  zoneName: string | null;
+  vendorName: string;
+  scanCount: number;
+  offSiteCount: number;
+  maxDistanceMeters: number;
+  meanOffsetMeters: number | null;
+  meanOffsetBearingDegrees: number | null;
+  level: 'WATCH' | 'DRIFT';
+  pattern: 'CONSISTENT_DIRECTION' | 'SCATTERED';
+  lastOffSiteAt: string;
+  scans: GeofenceDriftScan[];
+  explanation: string;
+  isAiGenerated: boolean;
+  aiLogId: number | null;
+};
+export type GeofenceDriftReport = { windowDays: number; toleranceMeters: number; items: GeofenceDriftItem[] };
 
 // -- Renewal Review (WARD-09) --
 export type WardRenewalItem = {
@@ -462,8 +525,16 @@ export const complianceApi = {
       registrationId: Number(registrationId),
     }),
 
-  aiEncroachmentCheck: (photoUrl: string, slotWidth?: number, slotLength?: number) =>
-    apiPost<AiEncroachment>('/ward/ai/encroachment-check', { photoUrl, slotWidth, slotLength }),
+  aiEncroachmentCheck: (photoUrl: string, slotWidth?: number, slotLength?: number, slotId?: number) =>
+    apiPost<AiEncroachment>('/ward/ai/encroachment-check', { photoUrl, slotWidth, slotLength, slotId }),
+
+  /** BR-41: accept or reject a previously-logged AI suggestion. Never the same action as
+   * approving/saving whatever the suggestion was about. */
+  aiFeedback: (aiLogId: number, accepted: boolean, note?: string) =>
+    apiPost<AiSuggestionFeedback>(`/ward/ai/suggestions/${aiLogId}/feedback`, { accepted, note }),
+
+  /** AIC-06: permits whose QR scans repeatedly land away from their licensed slot. */
+  geofenceDrift: () => apiGet<GeofenceDriftReport>('/ward/insights/geofence-drift'),
 
   askVendorAssistant: (question: string, context?: string) =>
     apiPost<{ answer: string; isAiGenerated: boolean }>('/ward/ai/vendor-assistant', {

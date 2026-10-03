@@ -4,6 +4,7 @@ import axios, { type AxiosAdapter } from 'axios';
 import { ApiError, http } from '@/core/api';
 import { clearTokens, setTokens } from '@/core/api/token-storage';
 import { complianceApi, parsePoint, wardApi } from '@/features/ward-administration/ward-api';
+import { wardConfigApi } from '@/features/ward-administration/ward-config-api';
 
 // ward-api reads the base URL through the shared client, and WardGate reads
 // isLiveApi; both come from this module.
@@ -194,6 +195,90 @@ describe('ward API', () => {
     expect(adapter.mock.calls[0]![0].url).toBe('/uploads/evidence/5/abc.jpg');
     expect(url).toBe('blob:ward-doc');
     vi.unstubAllGlobals();
+  });
+
+  it('reads the latest proposal assessment and runs a fresh one', async () => {
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'r',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({ status: 200, data: { latest: null, isStale: false } }));
+
+    await wardApi.proposalAssessment('28');
+    await wardApi.runProposalAssessment('28');
+
+    expect(adapter.mock.calls[0]![0].method).toBe('get');
+    expect(adapter.mock.calls[0]![0].url).toBe('/ward/cases/proposals/28/ai-assessment');
+    expect(adapter.mock.calls[1]![0].method).toBe('post');
+    expect(adapter.mock.calls[1]![0].url).toBe('/ward/cases/proposals/28/ai-assessment');
+  });
+
+  it('sends the slot id alongside the photo for an encroachment check', async () => {
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'r',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({ status: 200, data: {} }));
+
+    await complianceApi.aiEncroachmentCheck('https://example.test/photo.jpg', undefined, undefined, 5);
+
+    expect(adapter.mock.calls[0]![0].url).toBe('/ward/ai/encroachment-check');
+    expect(JSON.parse(String(adapter.mock.calls[0]![0].data))).toEqual({
+      photoUrl: 'https://example.test/photo.jpg',
+      slotWidth: undefined,
+      slotLength: undefined,
+      slotId: 5,
+    });
+  });
+
+  it('posts an accept/reject decision for a logged AI suggestion', async () => {
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'r',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({
+      status: 200,
+      data: { aiLogId: 99, accepted: true, reviewedAt: '2026-10-03T00:00:00Z', reviewerName: 'Ward' },
+    }));
+
+    await complianceApi.aiFeedback(99, true, 'Đạt yêu cầu');
+
+    expect(adapter.mock.calls[0]![0].url).toBe('/ward/ai/suggestions/99/feedback');
+    expect(JSON.parse(String(adapter.mock.calls[0]![0].data))).toEqual({
+      accepted: true,
+      note: 'Đạt yêu cầu',
+    });
+  });
+
+  it('reads the geofence drift report', async () => {
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'r',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({ status: 200, data: { windowDays: 30, toleranceMeters: 25, items: [] } }));
+
+    await complianceApi.geofenceDrift();
+
+    expect(adapter.mock.calls[0]![0].method).toBe('get');
+    expect(adapter.mock.calls[0]![0].url).toBe('/ward/insights/geofence-drift');
+  });
+
+  it('reads a zone price suggestion', async () => {
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'r',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({ status: 200, data: { zoneId: 2, direction: 'RAISE' } }));
+
+    await wardConfigApi.priceSuggestion(2);
+
+    expect(adapter.mock.calls[0]![0].method).toBe('get');
+    expect(adapter.mock.calls[0]![0].url).toBe('/ward/pricing-zones/2/price-suggestion');
   });
 
   it.each([
