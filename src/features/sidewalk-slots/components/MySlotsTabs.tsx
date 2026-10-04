@@ -28,7 +28,7 @@ export function MySlotsTabs() {
           className={({ isActive }) =>
             [
               'h-9 shrink-0 whitespace-nowrap rounded-full px-sm text-label leading-9 transition-colors',
-              isActive ? 'bg-primary text-on-primary' : 'text-muted hover:bg-tint-muted',
+              isActive ? 'bg-primary-solid text-on-primary' : 'text-muted hover:bg-tint-muted',
             ].join(' ')
           }
         >

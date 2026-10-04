@@ -11,6 +11,9 @@
 
   --c-primary: 228 68 31; /* chili #E4441F */
   --c-primary-pressed: 199 55 21;
+  --c-primary-ink: 191 53 20; /* chili as text: >=4.5:1 on white and on the chili tint */
+  --c-primary-solid: 199 55 21; /* chili fill under white text: 5.3:1 */
+  --c-primary-solid-pressed: 168 46 18;
   --c-on-primary: 255 255 255;
 
   --c-secondary: 245 160 0; /* turmeric */
@@ -18,6 +21,7 @@
   --c-on-secondary: 138 83 0;
 
   --c-tertiary: 11 138 75; /* banana leaf */
+  --c-tertiary-ink: 7 112 64; /* leaf as small text on its own tint: 5.3:1 */
   --c-on-tertiary: 6 53 29;
 
   --c-indigo: 29 41 57; /* ink — civic actions */
@@ -32,6 +36,7 @@
 
   --c-error: 217 45 32;
   --c-error-bg: 253 236 234;
+  --c-error-ink: 180 35 24; /* red text on the red wash: 5.7:1 */
 
   --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.04);
   --shadow-card-hover: 0 2px 4px rgb(16 24 40 / 0.05), 0 8px 20px -4px rgb(16 24 40 / 0.1);
@@ -44,6 +49,9 @@
 
   --c-primary: 242 85 47;
   --c-primary-pressed: 217 67 31;
+  --c-primary-ink: 245 107 71;
+  --c-primary-solid: 199 55 21;
+  --c-primary-solid-pressed: 168 46 18;
   --c-on-primary: 255 255 255;
 
   --c-secondary: 255 178 63;
@@ -51,6 +59,7 @@
   --c-on-secondary: 255 208 138;
 
   --c-tertiary: 60 203 127;
+  --c-tertiary-ink: 60 203 127;
   --c-on-tertiary: 214 245 228;
 
   --c-indigo: 221 227 236;
@@ -65,6 +74,7 @@
 
   --c-error: 255 107 94;
   --c-error-bg: 58 23 20;
+  --c-error-ink: 255 107 94;
 
   --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.02);
   --shadow-card-hover: 0 0 0 1px rgb(255 255 255 / 0.06), 0 8px 24px -6px rgb(0 0 0 / 0.6);

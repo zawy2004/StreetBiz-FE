@@ -253,7 +253,7 @@ export function RecordViolationScreen() {
     >
       <AppHeader
         title={createdViolation ? 'Ra Quyết định xử phạt' : 'Lập biên bản vi phạm'}
-        subtitle="Xử lý vi phạm trật tự hè phố (WARD-12)"
+        subtitle="Xử lý vi phạm trật tự hè phố"
         back
       />
 
@@ -284,7 +284,7 @@ export function RecordViolationScreen() {
                       label: s.violationTypeName,
                       description: s.legalBasis
                         ? `${s.penaltyAmount.toLocaleString('vi-VN')} đ · ${s.legalBasis}`
-                        : '⚠️ Thiếu căn cứ pháp lý: lập được biên bản nhưng chưa thể ra quyết định xử phạt tiền',
+                        : 'Thiếu căn cứ pháp lý: lập được biên bản nhưng chưa thể ra quyết định xử phạt tiền',
                     }))
                   : Object.keys(violationTypeLabels).map((key) => ({
                       value: key,
@@ -298,8 +298,8 @@ export function RecordViolationScreen() {
           {selectedSchedule?.legalBasis ? (
             <Card>
               <p className="text-body-xs font-semibold text-muted">CĂN CỨ PHÁP LÝ ÁP DỤNG:</p>
-              <p className="mt-1 text-body-sm text-foreground">{selectedSchedule.legalBasis}</p>
-              <p className="mt-1 text-headline-sm font-bold text-danger">
+              <p className="mt-1 text-body-sm text-text">{selectedSchedule.legalBasis}</p>
+              <p className="mt-1 text-headline-sm font-bold text-error-ink">
                 Mức phạt (trung bình khung):{' '}
                 {selectedSchedule.penaltyAmount.toLocaleString('vi-VN')} đ
               </p>
@@ -311,7 +311,7 @@ export function RecordViolationScreen() {
               <span className="text-body-xs text-muted">Mô tả vi phạm:</span>
               <button
                 type="button"
-                className="text-body-xs font-medium text-primary hover:underline"
+                className="text-body-xs font-medium text-primary-ink hover:underline"
                 onClick={() => {
                   setTypeCode('UNAUTHORIZED_BUSINESS_USE');
                   setDescription(
@@ -372,11 +372,11 @@ export function RecordViolationScreen() {
       ) : (
         /* STEP 2: SANCTION DECISION */
         <div className="space-y-4">
-          <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-700/60 dark:bg-emerald-950/30">
-            <p className="font-semibold text-emerald-800 dark:text-emerald-200">
-              ✓ Đã lập biên bản vi phạm #{createdViolation.violationId}
+          <div className="rounded-md border border-tertiary/30 bg-tint-tertiary p-4">
+            <p className="font-semibold text-tertiary-ink">
+              Đã lập biên bản vi phạm #{createdViolation.violationId}
             </p>
-            <p className="text-body-sm text-emerald-700 dark:text-emerald-300">
+            <p className="text-body-sm text-tertiary-ink">
               Trạng thái hiện tại: <strong>Chờ ra quyết định xử phạt (PENDING_SANCTION)</strong>
             </p>
           </div>
@@ -388,7 +388,7 @@ export function RecordViolationScreen() {
             <AiHint
               title={
                 createdViolation.aiSuggestion.isAiGenerated
-                  ? 'Trợ lý Pháp lý [AI]'
+                  ? 'Trợ lý Pháp lý'
                   : 'Trợ lý Pháp lý [Hệ thống — chưa xác minh bằng AI]'
               }
             >
@@ -401,7 +401,7 @@ export function RecordViolationScreen() {
               </p>
               {createdViolation.aiSuggestion.suggestedPenaltyAmount ? (
                 <div className="mt-3 flex items-center justify-between border-t border-border pt-2">
-                  <span className="text-body-sm font-bold text-danger">
+                  <span className="text-body-sm font-bold text-error-ink">
                     Mức phạt:{' '}
                     {createdViolation.aiSuggestion.suggestedPenaltyAmount.toLocaleString('vi-VN')} đ
                   </span>
@@ -443,7 +443,7 @@ export function RecordViolationScreen() {
             />
             {isLiveApi && !sanctionOptions.some((s) => s.legalBasis) && (
               <p role="alert" className="text-body-sm text-error">
-                ⚠️ Hành vi này chưa có căn cứ pháp lý hoặc mức phạt hiệu lực vào ngày vi phạm. Cấu
+                Hành vi này chưa có căn cứ pháp lý hoặc mức phạt hiệu lực vào ngày vi phạm. Cấu
                 hình Biểu mức phạt trước khi ra quyết định.
               </p>
             )}

@@ -34,7 +34,7 @@ export function ZoneHeader({ zoneName, zone, counts, nowMs }: Props) {
             {zone?.zoneCode && <Pill tone="neutral">{zone.zoneCode}</Pill>}
             {segment && <Pill icon="map-marker-outline">{segment}</Pill>}
           </div>
-          {deadline && <p className="text-body-sm font-semibold text-primary">{deadline}</p>}
+          {deadline && <p className="text-body-sm font-semibold text-primary-ink">{deadline}</p>}
           <h1 className="text-headline-lg text-text">{zoneName}</h1>
         </div>
 

@@ -4,20 +4,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { isLiveApi } from '@/core/config/env';
 import { useAuthStore } from '@/store/auth-store';
 import { chatApi } from '../api/chatApi';
+import { chatKeys, useCanChat } from './chat-unread';
 import { useChatRealtime } from '../realtime/useChatRealtime';
+
+export { chatKeys, useCanChat, useChatUnreadCount } from './chat-unread';
 import type { ChatMessage } from '../types/chat.types';
-
-export const chatKeys = {
-  conversations: ['chat', 'conversations'] as const,
-  thread: (id: string | number) => ['chat', 'thread', String(id)] as const,
-  unread: ['chat', 'unread'] as const,
-};
-
-/** Chat is for buyers and sellers only; nobody else has a thread to show. */
-export function useCanChat(): boolean {
-  const role = useAuthStore((state) => state.user?.role_code);
-  return isLiveApi && (role === 'CUSTOMER' || role === 'VENDOR');
-}
 
 /**
  * Only a buyer may open a thread, so only a buyer is offered the button. A
@@ -36,17 +27,6 @@ export function useChatConversations() {
     enabled,
     // The inbox has no socket of its own, so it polls while it is on screen.
     refetchInterval: enabled ? 20_000 : false,
-    refetchIntervalInBackground: false,
-  });
-}
-
-export function useChatUnreadCount() {
-  const enabled = useCanChat();
-  return useQuery({
-    queryKey: chatKeys.unread,
-    queryFn: async () => (await chatApi.unreadCount()).unreadCount,
-    enabled,
-    refetchInterval: enabled ? 30_000 : false,
     refetchIntervalInBackground: false,
   });
 }

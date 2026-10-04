@@ -7,14 +7,14 @@ import { ConfirmDialog, ErrorState, showToast } from '@/components/feedback';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
 import { colors } from '@/theme';
-import { PlatformConnection } from '../components/PlatformConnection';
+import { PlatformGate } from '../components/PlatformGate';
 import { platformApi, PlatformApiError, type FoodCategory } from '../platform-api';
 
 export function CategoriesScreen() {
   return (
-    <PlatformConnection>
+    <PlatformGate title="Danh mục món ăn">
       <CategoriesContent />
-    </PlatformConnection>
+    </PlatformGate>
   );
 }
 

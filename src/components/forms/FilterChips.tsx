@@ -19,9 +19,10 @@ export function FilterChips<T extends string>({ options, value, onChange }: Prop
             role="tab"
             aria-selected={active}
             className={[
-              'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-md text-label transition-colors',
+              // 44px for a thumb on phones, the compact 36px where there is a pointer.
+              'inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-md text-label transition-colors lg:h-9',
               active
-                ? 'border-primary bg-tint-primary font-semibold text-primary'
+                ? 'border-primary bg-tint-primary font-semibold text-primary-ink'
                 : 'border-border bg-card text-text hover:border-muted/50',
             ].join(' ')}
           >
@@ -33,7 +34,7 @@ export function FilterChips<T extends string>({ options, value, onChange }: Prop
                   aria-hidden="true"
                   className={[
                     'min-w-5 rounded-full px-1.5 py-0.5 text-center text-badge font-tabular',
-                    active ? 'bg-primary text-on-primary' : 'bg-sunken text-muted',
+                    active ? 'bg-primary-solid text-on-primary' : 'bg-sunken text-muted',
                   ].join(' ')}
                 >
                   {opt.count}

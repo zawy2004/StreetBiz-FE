@@ -56,7 +56,7 @@ export function TransfersListScreen() {
           title="Yêu cầu gửi đến bạn"
           action={
             actionableIncoming.length > 0 ? (
-              <span className="rounded-full bg-tint-primary px-xs text-badge uppercase text-primary">
+              <span className="rounded-full bg-tint-primary px-xs text-badge uppercase text-primary-ink">
                 {actionableIncoming.length} cần xử lý
               </span>
             ) : undefined
@@ -69,7 +69,7 @@ export function TransfersListScreen() {
           )}
           <div className="grid gap-sm md:grid-cols-2">
             {actionableIncoming.map((t) => (
-              <Card key={t.transferId} style={{ borderLeft: `4px solid ${colors.primary}` }}>
+              <Card key={t.transferId}>
                 <div className="flex flex-col gap-sm">
                   <div className="flex items-start justify-between gap-sm">
                     <div className="flex min-w-0 items-center gap-sm">
@@ -134,7 +134,7 @@ function OutgoingCard({ transfer }: { transfer: SlotTransferRequest }) {
   const rejected = transfer.transferStatus === 'REJECTED';
 
   return (
-    <Card style={rejected ? { borderLeft: `4px solid ${colors.error}` } : undefined}>
+    <Card>
       <div className="flex flex-col gap-sm">
         <div className="flex items-start justify-between gap-sm">
           <div className="min-w-0">

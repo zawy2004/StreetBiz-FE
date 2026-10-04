@@ -27,7 +27,8 @@ export const SCREEN_WIDTH: Record<Width, string> = {
 export function Screen({ children, scroll = true, padded = true, footer, width = 'default' }: Props) {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-bg">
-      <div className={['min-h-0 flex-1', scroll ? 'overflow-y-auto' : 'overflow-hidden'].join(' ')}>
+      {/* scroll-padding keeps a focused control's outline clear of the clipped edge. */}
+      <div className={['min-h-0 flex-1 scroll-py-md', scroll ? 'overflow-y-auto' : 'overflow-hidden'].join(' ')}>
         {padded ? (
           <div
             className={[

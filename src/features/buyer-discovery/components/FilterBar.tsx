@@ -108,7 +108,7 @@ function CategoryRail({
               />
             </span>
             <span
-              className={`line-clamp-2 px-1 text-center text-body-xs ${active ? 'font-semibold text-primary' : 'text-text'}`}
+              className={`line-clamp-2 px-1 text-center text-body-xs ${active ? 'font-semibold text-primary-ink' : 'text-text'}`}
             >
               {opt.label}
             </span>

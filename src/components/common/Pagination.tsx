@@ -82,7 +82,7 @@ export function Pagination({ page, totalPages, hasNext, onChange, busy, caption 
                       className={[
                         'inline-flex h-10 min-w-10 items-center justify-center rounded-sm px-xs text-label font-semibold tabular-nums transition-colors',
                         slot === page
-                          ? 'bg-primary text-on-primary'
+                          ? 'bg-primary-solid text-on-primary'
                           : 'text-text hover:bg-sunken disabled:opacity-40',
                       ].join(' ')}
                     >

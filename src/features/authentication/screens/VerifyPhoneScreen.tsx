@@ -165,7 +165,7 @@ export function VerifyPhoneScreen() {
         onClick={resend}
         className="disabled:cursor-not-allowed"
       >
-        <span className={`block text-center text-label ${isRunning ? 'text-muted' : 'text-primary'}`}>
+        <span className={`block text-center text-label ${isRunning ? 'text-muted' : 'text-primary-ink'}`}>
           {isRunning ? `Gửi lại mã sau ${seconds}s` : 'Gửi lại mã'}
         </span>
       </button>

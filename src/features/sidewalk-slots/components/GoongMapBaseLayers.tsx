@@ -118,7 +118,7 @@ export function useMapBaseLayer(): [mapStyle: object | string, layerSwitcher: Re
           key={value}
           type="button"
           onClick={() => setMode(value)}
-          className={`block w-full px-sm py-xs text-left ${mode === value ? 'bg-tint-primary font-semibold text-primary' : 'text-text'}`}
+          className={`block w-full px-sm py-xs text-left ${mode === value ? 'bg-tint-primary font-semibold text-primary-ink' : 'text-text'}`}
         >
           {label}
         </button>

@@ -115,7 +115,7 @@ export function SignInScreen() {
         />
         <Link
           to="/auth/password/reset-request"
-          className="block text-right text-label text-primary"
+          className="block text-right text-label text-primary-ink"
         >
           Quên mật khẩu?
         </Link>
@@ -123,7 +123,7 @@ export function SignInScreen() {
       </form>
 
       <Link to="/auth/register" className="block text-center text-body-md text-muted">
-        Chưa có tài khoản? <span className="text-primary">Đăng ký ngay</span>
+        Chưa có tài khoản? <span className="text-primary-ink">Đăng ký ngay</span>
       </Link>
 
       {isDev ? (

@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 
 import { getAccessToken } from '@/core/api/token-storage';
 import { env, isLiveApi } from '@/core/config/env';
-import { chatKeys } from '../hooks/useChat';
+import { chatKeys } from '../hooks/chat-unread';
 
 type ChatMessageReceived = {
   conversationId: number;

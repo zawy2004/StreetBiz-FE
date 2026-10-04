@@ -123,7 +123,7 @@ export function VendorAssistantScreen() {
               <button
                 key={q}
                 type="button"
-                className="rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-left text-body-xs font-medium text-primary hover:bg-primary/15"
+                className="rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-left text-body-xs font-medium text-primary-ink hover:bg-primary/15"
                 onClick={() => sendQuestion(q)}
               >
                 💬 {q}
@@ -140,12 +140,12 @@ export function VendorAssistantScreen() {
               className={[
                 'max-w-[90%] rounded-2xl p-sm shadow-sm',
                 m.from === 'ME'
-                  ? 'self-end bg-primary text-white'
+                  ? 'self-end bg-primary-solid text-white'
                   : 'self-start border border-border bg-card text-text',
               ].join(' ')}
             >
               {m.isAi ? (
-                <span className="mb-1 block text-body-xs font-semibold text-primary dark:text-primary-light">
+                <span className="mb-1 block text-body-xs font-semibold text-primary-ink">
                   ✦ Trợ lý Groq AI
                 </span>
               ) : null}

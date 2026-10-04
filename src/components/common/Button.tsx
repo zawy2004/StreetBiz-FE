@@ -19,11 +19,11 @@ type Props = {
 };
 
 const variantClass: Record<ButtonVariant, string> = {
-  primary: 'bg-primary text-on-primary hover:bg-primary-pressed',
+  primary: 'bg-primary-solid text-on-primary hover:bg-primary-solid-pressed',
   civic: 'bg-indigo text-on-indigo hover:opacity-90',
   approve: 'bg-tertiary text-white hover:brightness-95 dark:text-[#06140C]',
   outline: 'border border-border bg-card text-text hover:border-muted/50 hover:bg-sunken',
-  ghost: 'bg-transparent text-primary hover:bg-tint-primary',
+  ghost: 'bg-transparent text-primary-ink hover:bg-tint-primary',
   danger: 'bg-error text-white hover:brightness-95 dark:text-[#1A0604]',
 };
 

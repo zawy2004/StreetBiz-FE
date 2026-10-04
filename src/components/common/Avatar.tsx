@@ -25,7 +25,7 @@ export function Avatar({ uri, name, size = 40, shape = 'circle' }: Props) {
     <div
       aria-hidden="true"
       style={{ width: size, height: size, borderRadius, fontSize: Math.max(12, Math.round(size * 0.4)) }}
-      className="flex shrink-0 items-center justify-center bg-tint-primary font-bold text-primary"
+      className="flex shrink-0 items-center justify-center bg-tint-primary font-bold text-primary-ink"
     >
       {initial}
     </div>

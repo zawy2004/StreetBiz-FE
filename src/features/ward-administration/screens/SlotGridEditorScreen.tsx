@@ -38,7 +38,7 @@ type Mode = 'slot' | 'batch' | 'feature';
 /** WARD-01: the ward's slot grid on the map, plus the street features slots must keep clear of. */
 export function SlotGridEditorScreen() {
   return (
-    <WardGate>
+    <WardGate title="Lưới ô sạp">
       <SlotGridContent />
     </WardGate>
   );
@@ -108,7 +108,7 @@ function SlotGridContent() {
 
   return (
     <Screen>
-      <AppHeader title="Lưới ô sạp" back subtitle="WARD-01 · Vẽ và quản lý ô trên bản đồ" />
+      <AppHeader title="Lưới ô sạp" back subtitle="Vẽ và quản lý ô trên bản đồ" />
       {!data.boundaryConfigured && (
         <Card>
           <p className="text-body-sm text-text">

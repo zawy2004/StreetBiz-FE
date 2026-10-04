@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { Card, QrCode } from '@/components/common';
+import { Card } from '@/components/common';
+import { QrCode } from '@/components/common/QrCode';
 import { errorMessage } from '@/core/api';
 import { orderApi } from '../api/orderApi';
 import { COLLECTABLE_ORDER_STATUSES, type Order } from '../types/order.types';

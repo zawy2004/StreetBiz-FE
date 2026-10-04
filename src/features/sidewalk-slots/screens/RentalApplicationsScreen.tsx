@@ -91,10 +91,9 @@ function ApplicationCard({ app, onOpen }: { app: RentalApplication; onOpen: () =
     staleTime: 5 * 60_000,
   });
   const attention = needsMoreInformation(app.applicationStatus);
-  const rejected = app.applicationStatus === 'REJECTED';
 
   return (
-    <Card style={attention ? { borderLeft: `4px solid ${colors.primary}` } : rejected ? { borderLeft: `4px solid ${colors.error}` } : undefined}>
+    <Card>
       <div className="flex flex-col gap-sm">
         <div className="flex items-start justify-between gap-sm">
           <div className="min-w-0">

@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button, Card } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { ApiError } from '@/core/api';
+import { useWards } from '@/core/auth/useWards';
 import { isLiveApi } from '@/core/config/env';
 import { useAuthStore } from '@/store/auth-store';
 import { wardApi } from '../ward-api';
@@ -22,8 +23,16 @@ import { wardApi } from '../ward-api';
  * This replaces WardConnection, which asked officers to paste an access token
  * into a form because the ward queue ran on a separate auth system.
  */
-export function WardGate({ children }: { children: ReactNode }) {
+export function WardGate({
+  title = 'Hàng đợi hồ sơ',
+  children,
+}: {
+  /** The wrapped screen's own title, shown while the gate stands in for it. */
+  title?: string;
+  children: ReactNode;
+}) {
   const userId = useAuthStore((state) => state.user?.id);
+  const { wards } = useWards();
 
   const profile = useQuery({
     queryKey: ['ward', userId, 'me'],
@@ -38,12 +47,11 @@ export function WardGate({ children }: { children: ReactNode }) {
   if (!isLiveApi) {
     return (
       <Screen>
-        <AppHeader title="Hàng đợi hồ sơ" back />
+        <AppHeader title={title} back />
         <Card>
           <p className="text-body-md">
-            Hàng đợi hồ sơ của phường đọc dữ liệu thật từ Backend. Đặt{' '}
-            <code>VITE_USE_MOCK_API=false</code> và <code>VITE_API_BASE_URL</code> trong{' '}
-            <code>.env</code>, sau đó tải lại trang.
+            Trang này dùng dữ liệu thật từ máy chủ StreetBiz nên không có trong bản demo ngoại
+            tuyến.
           </p>
         </Card>
       </Screen>
@@ -106,7 +114,10 @@ export function WardGate({ children }: { children: ReactNode }) {
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between gap-sm border-b border-border bg-card px-md py-xs">
         <span className="text-body-sm">
-          {profile.data?.name} · Phường #{profile.data?.wardId}
+          {/* /ward/me carries the officer's name and ward id; the ward's name comes from the unit list. */}
+          {profile.data?.name} ·{' '}
+          {wards.find((w) => w.unitId === profile.data?.wardId)?.unitName ??
+            `Phường #${profile.data?.wardId}`}
         </span>
       </div>
       {children}

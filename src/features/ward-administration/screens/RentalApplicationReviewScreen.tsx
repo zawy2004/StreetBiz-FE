@@ -52,7 +52,7 @@ export function RentalApplicationReviewScreen() {
   const mockBlockers: string[] = [];
   if (mockApplication && !mockIsRegApproved) {
     mockBlockers.push(
-      `Hồ sơ điểm kinh doanh của hộ "${mockVendor?.business_name || 'Hộ kinh doanh'}" đang ở trạng thái "${mockRegistration?.registration_status || 'CHƯA ĐĂNG KÝ'}". Theo quy định BR-16, hồ sơ điểm bán phải được xác nhận ĐỦ ĐIỀU KIỆN (APPROVED) trước khi cấp phép sử dụng hè phố.`
+      `Hồ sơ điểm kinh doanh của hộ "${mockVendor?.business_name || 'Hộ kinh doanh'}" đang ở trạng thái "${mockRegistration?.registration_status || 'CHƯA ĐĂNG KÝ'}". Theo quy định, hồ sơ điểm bán phải được xác nhận ĐỦ ĐIỀU KIỆN (APPROVED) trước khi cấp phép sử dụng hè phố.`
     );
   }
 
@@ -81,7 +81,7 @@ export function RentalApplicationReviewScreen() {
     }
 
     if (decision === 'APPROVE' && !canApprove) {
-      showToast(blockers[0] || 'Chưa đủ điều kiện cấp phép (Vi phạm quy định BR-16)');
+      showToast(blockers[0] || 'Chưa đủ điều kiện cấp phép');
       return;
     }
 
@@ -143,7 +143,7 @@ export function RentalApplicationReviewScreen() {
     >
       <AppHeader
         title={vendorName || 'Thẩm định cấp phép'}
-        subtitle="Giấy phép sử dụng tạm thời lòng đường, vỉa hè (WARD-07/08)"
+        subtitle="Giấy phép sử dụng tạm thời lòng đường, vỉa hè"
         back
       />
       <div className="flex flex-row items-center gap-xs">
@@ -157,17 +157,17 @@ export function RentalApplicationReviewScreen() {
 
       {/* Business Rule Blocker Alert (BR-16) */}
       {blockers.length > 0 ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800/50 dark:bg-red-950/30">
-          <div className="flex items-center gap-2 font-semibold text-danger">
+        <div className="rounded-md border border-error/25 bg-error-bg p-4">
+          <div className="flex items-center gap-2 font-semibold text-error-ink">
             <span>⛔</span>
-            <span>Chưa đủ điều kiện cấp phép (Ràng buộc BR-16)</span>
+            <span>Chưa đủ điều kiện cấp phép</span>
           </div>
-          <ul className="mt-1 list-disc pl-5 text-body-sm text-danger/90 space-y-1">
+          <ul className="mt-1 list-disc pl-5 text-body-sm text-error-ink space-y-1">
             {blockers.map((b, i) => (
               <li key={i}>{b}</li>
             ))}
           </ul>
-          <p className="mt-2 border-t border-red-200 pt-1 text-body-xs text-muted dark:border-red-800/40">
+          <p className="mt-2 border-t border-error/25 pt-1 text-body-xs text-muted">
             👉 <strong>Hướng xử lý:</strong> Cán bộ cần vào Hộp duyệt $\rightarrow$ Thẩm định và duyệt hồ sơ điểm kinh doanh của hộ trước, sau đó mới có thể cấp phép sử dụng hè phố.
           </p>
         </div>
@@ -185,7 +185,7 @@ export function RentalApplicationReviewScreen() {
             <Divider />
             <div className="flex items-center justify-between py-sm">
               <div>
-                <p className="text-body-sm font-medium text-foreground">Hồ sơ điểm kinh doanh liên kết (BR-16)</p>
+                <p className="text-body-sm font-medium text-text">Hồ sơ điểm kinh doanh liên kết</p>
                 <p className="text-body-xs text-muted">
                   {mockRegistration ? `Mã hồ sơ: ${mockRegistration.id}` : 'Chưa có hồ sơ'}
                 </p>
@@ -223,23 +223,23 @@ export function RentalApplicationReviewScreen() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-body-sm text-muted">Mức thu theo ngày:</span>
-              <span className="text-body-md font-semibold text-foreground">
+              <span className="text-body-md font-semibold text-text">
                 {pricePerDay.toLocaleString('vi-VN')} đ / ngày
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-body-sm text-muted">Mức thu theo tháng ({requestedTermDays} ngày):</span>
-              <span className="text-body-md font-semibold text-foreground">
+              <span className="text-body-md font-semibold text-text">
                 {monthlyFee.toLocaleString('vi-VN')} đ / tháng
               </span>
             </div>
             <Divider />
             <div className="flex items-center justify-between pt-1">
               <div>
-                <p className="text-body-sm font-semibold text-foreground">Tổng phí dự kiến thu:</p>
+                <p className="text-body-sm font-semibold text-text">Tổng phí dự kiến thu:</p>
                 <p className="text-body-xs text-muted">Mức thu theo biểu giá khu vực Phường đã cấu hình (PricingZones)</p>
               </div>
-              <span className="text-headline-lg font-bold text-primary">
+              <span className="text-headline-lg font-bold text-primary-ink">
                 {totalFee.toLocaleString('vi-VN')} đ
               </span>
             </div>

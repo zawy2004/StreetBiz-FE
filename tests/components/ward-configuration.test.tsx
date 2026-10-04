@@ -112,7 +112,7 @@ describe('WARD-03 penalty schedule', () => {
   it('flags types without a legal basis', async () => {
     vi.spyOn(wardConfigApi, 'penaltyOverview').mockResolvedValue(types);
     mount(<PenaltyScheduleScreen />);
-    expect(await screen.findByText('⚠️ THIẾU CĂN CỨ PHÁP LÝ')).toBeInTheDocument();
+    expect(await screen.findByText('THIẾU CĂN CỨ')).toBeInTheDocument();
     expect(screen.getByText(/1 hành vi chưa có căn cứ pháp lý/)).toBeInTheDocument();
   });
 

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button, Card, Divider, ListRow } from '@/components/common';
+import { Button, Card, Divider, Icon, ListRow } from '@/components/common';
+import { colors } from '@/theme';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen, Section, StickyActions } from '@/components/layout';
 import { AiHint, StatusChip } from '@/components/status';
@@ -213,7 +214,7 @@ export function RegistrationReviewScreen() {
     >
       <AppHeader
         title={displayName}
-        subtitle="Thẩm định điểm kinh doanh vỉa hè (WARD-04/05/06)"
+        subtitle="Thẩm định điểm kinh doanh vỉa hè"
         back
       />
       <div className="flex flex-row flex-wrap items-center justify-between gap-xs">
@@ -222,7 +223,7 @@ export function RegistrationReviewScreen() {
           {fastTrack ? <StatusChip label="Ưu tiên xét nhanh" tone="ok" /> : null}
         </div>
         <Button
-          label={ocrRunning ? 'Đang đọc CCCD...' : '🔍 Quét lại CCCD [AI]'}
+          label={ocrRunning ? 'Đang đọc CCCD...' : 'Quét lại CCCD bằng AI'}
           variant="outline"
           fullWidth={false}
           onPress={handleRunOcr}
@@ -233,21 +234,21 @@ export function RegistrationReviewScreen() {
       {aiCheck ? (
         <div className="mt-sm space-y-2">
           {aiCheck.needsManualVerification || aiCheck.matchPercentage < 85 ? (
-            <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-700/60 dark:bg-amber-950/30">
-              <div className="flex items-center gap-2 font-semibold text-amber-800 dark:text-amber-300">
-                <span>⚠️</span>
+            <div className="rounded-md border border-secondary/30 bg-tint-secondary p-4">
+              <div className="flex items-center gap-2 font-semibold text-on-secondary">
+                <Icon name="alert-circle-outline" size={18} color={colors.onSecondary} />
                 <span>[AI] Cần cán bộ kiểm tra kỹ đối chiếu CCCD gốc</span>
               </div>
-              <p className="mt-1 text-body-sm text-amber-900/90 dark:text-amber-200/90">
+              <p className="mt-1 text-body-sm text-on-secondary">
                 Độ tin cậy trích xuất OCR ({aiCheck.matchPercentage}%) thấp hơn ngưỡng 85% hoặc phát hiện sai lệch. Cán bộ vui lòng trực tiếp đối chiếu ảnh CCCD bên dưới với thông tin tự khai.
               </p>
             </div>
           ) : null}
 
-          <AiHint title="Trợ lý bóc tách & đối chiếu CCCD [AI]">
+          <AiHint title="Trợ lý bóc tách & đối chiếu CCCD">
             <p>{aiCheck.summary}</p>
             {aiCheck.discrepancies.length > 0 ? (
-              <ul className="mt-1 list-disc pl-4 text-body-sm text-danger">
+              <ul className="mt-1 list-disc pl-4 text-body-sm text-error-ink">
                 {aiCheck.discrepancies.map((d: string, i: number) => (
                   <li key={i}>{d}</li>
                 ))}
@@ -296,12 +297,12 @@ export function RegistrationReviewScreen() {
                     title={check.checkType === 'FACE_MATCH' ? 'Đối chiếu khuôn mặt ↔ ảnh CCCD' : 'Đọc dữ liệu CCCD (OCR)'}
                     subtitle={
                       check.checkType === 'FACE_MATCH'
-                        ? `${check.isMatch ? '✅ Khớp' : '⚠️ Chưa khớp'} · độ tương đồng ${check.similarityPercent ?? 0}% (ngưỡng 80%)`
+                        ? `${check.isMatch ? 'Khớp' : 'Chưa khớp'} · độ tương đồng ${check.similarityPercent ?? 0}% (ngưỡng 80%)`
                         : `Độ tin cậy ${check.confidencePercent ?? 0}%`
                     }
                   />
                   {check.warnings ? (
-                    <p className="pb-sm text-body-sm text-danger">{check.warnings}</p>
+                    <p className="pb-sm text-body-sm text-error-ink">{check.warnings}</p>
                   ) : null}
                 </div>
               ))}
@@ -315,7 +316,7 @@ export function RegistrationReviewScreen() {
         </Section>
       ) : null}
 
-      <Section title="Xác minh danh tính (bắt buộc trước khi duyệt — BR-41)">
+      <Section title="Xác minh danh tính (bắt buộc trước khi duyệt)">
         <Card>
           {identityVerified && liveDetail?.identityVerifiedAt ? (
             <p className="text-body-sm text-tertiary">

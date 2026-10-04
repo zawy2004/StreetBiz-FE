@@ -8,7 +8,7 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
       <div className={`flex max-w-[78%] flex-col ${mine ? 'items-end' : 'items-start'}`}>
         <div
           className={`whitespace-pre-wrap break-words rounded-2xl px-md py-sm text-body-md ${
-            mine ? 'bg-primary text-on-primary' : 'bg-sunken text-text'
+            mine ? 'bg-primary-solid text-on-primary' : 'bg-sunken text-text'
           }`}
         >
           {message.body}

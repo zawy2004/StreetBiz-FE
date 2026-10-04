@@ -136,7 +136,7 @@ function LiveCheckoutScreen() {
         <p className="mt-2xs text-body-md text-muted">
           {data.storefrontAddress || 'Địa chỉ điểm bán chưa được cập nhật'}
         </p>
-        <p className="mt-xs text-body-sm text-primary">Nhận món trực tiếp tại điểm bán</p>
+        <p className="mt-xs text-body-sm text-primary-ink">Nhận món trực tiếp tại điểm bán</p>
       </Card>
       <Card padded={false}>
         <div className="px-md">

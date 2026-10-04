@@ -35,7 +35,7 @@ export function PermitActionScreen() {
   const submit = async () => {
     const trimmed = reason.trim();
     if (!trimmed || trimmed.length < 5 || trimmed.length > 500) {
-      showToast('Vui lòng nhập lý do xử lý cụ thể (từ 5 đến 500 ký tự — BR-35)');
+      showToast('Vui lòng nhập lý do xử lý cụ thể');
       return;
     }
 
@@ -83,7 +83,7 @@ export function PermitActionScreen() {
     >
       <AppHeader
         title="Đình chỉ / Thu hồi giấy phép"
-        subtitle={vendor?.business_name ?? `Giấy phép #${permitId} (WARD-13)`}
+        subtitle={vendor?.business_name ?? `Giấy phép #${permitId}`}
         back
       />
 
@@ -114,7 +114,7 @@ export function PermitActionScreen() {
       />
 
       <TextField
-        label="Lý do xử lý bắt buộc (BR-35: 5 - 500 ký tự)"
+        label="Lý do xử lý bắt buộc (5 - 500 ký tự)"
         value={reason}
         onChangeText={setReason}
         multiline
@@ -123,7 +123,9 @@ export function PermitActionScreen() {
 
       <Card>
         <p className="text-body-sm text-muted">
-          * Căn cứ BR-19 &amp; BR-35: Ngay sau khi quyết định có hiệu lực, Giấy phép số QR sẽ lập tức chuyển sang trạng thái tương ứng trên máy chủ, người dân và lực lượng tuần tra quét mã sẽ thấy cảnh báo không hợp lệ.
+          * Căn cứ BR-19 &amp; BR-35: Ngay sau khi quyết định có hiệu lực, Giấy phép số QR sẽ lập
+          tức chuyển sang trạng thái tương ứng trên máy chủ, người dân và lực lượng tuần tra quét mã
+          sẽ thấy cảnh báo không hợp lệ.
         </p>
       </Card>
     </Screen>

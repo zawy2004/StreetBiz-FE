@@ -48,7 +48,7 @@ export function SelectField<T extends string>({
               ].join(' ')}
             >
               <div className="min-w-0 flex-1">
-                <div className={`text-headline-sm ${selected ? 'text-primary' : 'text-text'}`}>{opt.label}</div>
+                <div className={`text-headline-sm ${selected ? 'text-primary-ink' : 'text-text'}`}>{opt.label}</div>
                 {opt.description ? <div className="mt-0.5 text-body-sm text-muted">{opt.description}</div> : null}
               </div>
               {layout === 'cards' ? (

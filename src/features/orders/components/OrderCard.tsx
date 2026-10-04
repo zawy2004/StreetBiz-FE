@@ -25,7 +25,7 @@ export function OrderCard({
         ) : (
           <div
             aria-hidden="true"
-            className="flex h-14 w-14 items-center justify-center rounded-sm bg-bg text-headline-md text-primary"
+            className="flex h-14 w-14 items-center justify-center rounded-sm bg-bg text-headline-md text-primary-ink"
           >
             SB
           </div>
@@ -55,7 +55,7 @@ export function OrderCard({
               <button
                 type="button"
                 onClick={onPress}
-                className="min-h-11 px-xs text-label text-primary"
+                className="min-h-11 px-xs text-label text-primary-ink"
               >
                 Xem chi tiết
               </button>

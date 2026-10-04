@@ -7,7 +7,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
 import { SegmentedControl } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { PlatformConnection } from '../components/PlatformConnection';
+import { PlatformGate } from '../components/PlatformGate';
 import { platformApi, PlatformApiError } from '../platform-api';
 
 type Tab = 'CONTENT' | 'COMPLAINTS';
@@ -25,9 +25,9 @@ const COMPLAINT_LABEL: Record<string, string> = {
 
 export function ModerationScreen() {
   return (
-    <PlatformConnection>
+    <PlatformGate title="Kiểm duyệt">
       <ModerationContent />
-    </PlatformConnection>
+    </PlatformGate>
   );
 }
 
@@ -48,7 +48,7 @@ function ModerationContent() {
 
   return (
     <Screen>
-      <AppHeader title="Kiểm duyệt" subtitle="ADM-03 · ADM-04 · ADM-05" />
+      <AppHeader title="Kiểm duyệt" subtitle="Nội dung bị báo cáo và khiếu nại đơn hàng chờ xử lý." />
       <SegmentedControl
         value={tab}
         onChange={setTab}

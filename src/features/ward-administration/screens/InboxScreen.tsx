@@ -126,7 +126,7 @@ function FastTrackBatchPanel({
           type="button"
           disabled={selected.size === 0 || !reason.trim() || submitting}
           onClick={submit}
-          className="rounded-md bg-primary px-md py-xs text-body-sm font-semibold text-on-primary disabled:opacity-40"
+          className="rounded-md bg-primary-solid px-md py-xs text-body-sm font-semibold text-on-primary disabled:opacity-40"
         >
           {submitting ? 'Đang xử lý...' : `Duyệt ${selected.size || ''} hồ sơ`.trim()}
         </button>
@@ -314,7 +314,7 @@ function LiveInboxScreen() {
       }
       if (rn.isOverdue) {
         riskScore += 100;
-        riskBreakdown.push('Quá hạn xử lý theo NĐ 241/2026 (≤3 ngày làm việc) (+100đ)');
+        riskBreakdown.push('Quá hạn xử lý (quá 3 ngày làm việc) (+100đ)');
       }
       return {
         key: `REN-${rn.id}`,
@@ -434,7 +434,7 @@ function MockInboxScreen() {
           key: `APP-${a.id}`,
           category: 'RENTAL',
           title: a.slotIds.map((id) => slots.find((s) => s.id === id)?.slot_code).join(', ') || 'Đề nghị cấp phép',
-          subtitle: 'Giấy phép sử dụng tạm thời hè phố (WARD-07/08)',
+          subtitle: 'Giấy phép sử dụng tạm thời hè phố',
           status: a.application_status,
           riskScore: 0,
           riskBreakdown: [],

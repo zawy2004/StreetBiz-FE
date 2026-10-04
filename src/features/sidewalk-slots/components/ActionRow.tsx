@@ -19,7 +19,7 @@ export function ActionRow({ icon, title, subtitle, onPress, tone = 'default', at
   const iconColor = filled ? colors.onPrimary : tone === 'danger' ? colors.primary : colors.indigo;
 
   return (
-    <Card onPress={onPress} style={filled ? { backgroundColor: colors.primary, borderColor: colors.primary } : undefined}>
+    <Card onPress={onPress} style={filled ? { backgroundColor: colors.primarySolid, borderColor: colors.primarySolid } : undefined}>
       <div className="flex items-center gap-sm">
         <span
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${filled ? 'bg-white/20' : tone === 'danger' ? 'bg-tint-primary' : 'bg-bg'}`}
@@ -27,11 +27,11 @@ export function ActionRow({ icon, title, subtitle, onPress, tone = 'default', at
           <Icon name={icon} size={22} color={iconColor} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className={`text-headline-sm ${filled ? 'text-on-primary' : tone === 'danger' ? 'text-primary' : 'text-text'}`}>
+          <p className={`text-headline-sm ${filled ? 'text-on-primary' : tone === 'danger' ? 'text-primary-ink' : 'text-text'}`}>
             {title}
           </p>
           <p
-            className={`truncate text-body-sm ${filled ? 'text-on-primary opacity-90' : attention ? 'font-semibold text-primary' : 'text-muted'}`}
+            className={`truncate text-body-sm ${filled ? 'text-on-primary opacity-90' : attention ? 'font-semibold text-primary-ink' : 'text-muted'}`}
           >
             {subtitle}
           </p>

@@ -72,7 +72,7 @@ export function EvidencePreview({ evidence, label: labelOverride }: Props) {
   if (!objectUrl) return frame(<Spinner size={18} color={colors.muted} />);
   if (isPdf) {
     return frame(
-      <a href={objectUrl} target="_blank" rel="noreferrer" className="text-label text-primary">
+      <a href={objectUrl} target="_blank" rel="noreferrer" className="text-label text-primary-ink">
         Mở PDF
       </a>,
     );

@@ -206,7 +206,7 @@ export function IdCardScanner() {
           <AiHint title="Kết quả đọc CCCD [AI - FPT.AI]">
             <p>{extraction.summary}</p>
             {extraction.warnings.length > 0 ? (
-              <ul className="mt-1 list-disc pl-4 text-body-sm text-danger">
+              <ul className="mt-1 list-disc pl-4 text-body-sm text-error-ink">
                 {extraction.warnings.map((w, i) => (
                   <li key={i}>{w}</li>
                 ))}
@@ -219,7 +219,7 @@ export function IdCardScanner() {
           <AiHint title="Đối chiếu khuôn mặt [AI - FPT.AI]">
             <p>{faceMatch.summary}</p>
             {faceMatch.warnings.length > 0 ? (
-              <ul className="mt-1 list-disc pl-4 text-body-sm text-danger">
+              <ul className="mt-1 list-disc pl-4 text-body-sm text-error-ink">
                 {faceMatch.warnings.map((w, i) => (
                   <li key={i}>{w}</li>
                 ))}

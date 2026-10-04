@@ -12,6 +12,11 @@ const v = (name: string) => `rgb(var(--c-${name}))`;
 export const colors = {
   primary: v('primary'),
   primaryPressed: v('primary-pressed'),
+  /** Chili for text and small labels; plain `primary` is for fills, icons and borders. */
+  primaryInk: v('primary-ink'),
+  /** Chili fill under white text (buttons, badges, bubbles); plain `primary` fails 4.5:1 there. */
+  primarySolid: v('primary-solid'),
+  primarySolidPressed: v('primary-solid-pressed'),
   onPrimary: v('on-primary'),
 
   secondary: v('secondary'),
@@ -19,6 +24,7 @@ export const colors = {
   onSecondary: v('on-secondary'),
 
   tertiary: v('tertiary'),
+  tertiaryInk: v('tertiary-ink'),
   onTertiary: v('on-tertiary'),
 
   indigo: v('indigo'),
@@ -37,6 +43,8 @@ export const colors = {
 
   error: v('error'),
   errorBg: v('error-bg'),
+  /** Red text on the red wash (error-bg); plain `error` is for text on white and for marks. */
+  errorInk: v('error-ink'),
 
   white: '#FFFFFF',
   black: '#000000',
@@ -72,7 +80,7 @@ export const tints = {
 
 /** Semantic status roles used by StatusChip and friends. */
 export const statusTones = {
-  ok: { fg: colors.tertiary, bg: tints.tertiary, border: alpha(colors.tertiary, 0.25) },
+  ok: { fg: colors.tertiaryInk, bg: tints.tertiary, border: alpha(colors.tertiary, 0.25) },
   pending: { fg: colors.onSecondary, bg: tints.secondary, border: alpha(colors.secondary, 0.35) },
   danger: { fg: colors.error, bg: alpha(colors.error, 0.1), border: alpha(colors.error, 0.25) },
   neutral: { fg: colors.muted, bg: tints.muted, border: colors.border },

@@ -172,7 +172,7 @@ export function RenewalReviewScreen() {
     >
       <AppHeader
         title={`Gia hạn · Ô ${slotCode}`}
-        subtitle={`Hợp đồng #${contractId} · WARD-09`}
+        subtitle={`Hợp đồng #${contractId}`}
         back
       />
 
@@ -191,8 +191,8 @@ export function RenewalReviewScreen() {
 
       {/* Decided review reason */}
       {isDecided && reviewReason ? (
-        <div className="rounded-xl border border-border bg-surface-variant p-4">
-          <p className="text-body-sm font-semibold text-foreground">Quyết định của cán bộ</p>
+        <div className="rounded-md border border-border bg-surface-variant p-4">
+          <p className="text-body-sm font-semibold text-text">Quyết định của cán bộ</p>
           <p className="mt-1 text-body-md text-text">{reviewReason}</p>
           <p className="mt-1 text-body-xs text-muted">
             Cán bộ: {reviewedBy ?? '-'} · {fmtDateTime(reviewedAt)}
@@ -202,11 +202,11 @@ export function RenewalReviewScreen() {
 
       {/* Blocker alerts */}
       {blockers.length > 0 ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800/50 dark:bg-red-950/30">
-          <div className="flex items-center gap-2 font-semibold text-danger">
+        <div className="rounded-md border border-error/25 bg-error-bg p-4">
+          <div className="flex items-center gap-2 font-semibold text-error-ink">
             <span>Chưa đủ điều kiện gia hạn</span>
           </div>
-          <ul className="mt-1 list-disc pl-5 text-body-sm text-danger/90 space-y-1">
+          <ul className="mt-1 list-disc pl-5 text-body-sm text-error-ink space-y-1">
             {blockers.map((b, i) => (
               <li key={i}>{b}</li>
             ))}
@@ -226,7 +226,7 @@ export function RenewalReviewScreen() {
             <Divider />
             <div className="flex items-center justify-between py-sm">
               <div>
-                <p className="text-body-sm font-medium text-foreground">Hồ sơ điểm kinh doanh (BR-16)</p>
+                <p className="text-body-sm font-medium text-text">Hồ sơ điểm kinh doanh</p>
                 <p className="text-body-xs text-muted">
                   Mã hồ sơ: {detail?.registrationId ?? '-'}
                 </p>
@@ -263,18 +263,18 @@ export function RenewalReviewScreen() {
             </div>
             <div>
               <p className="text-body-sm text-muted">Hết hạn mới (đề nghị)</p>
-              <p className="text-headline-sm text-primary font-semibold">{fmtDate(proposedEndDate)}</p>
+              <p className="text-headline-sm text-primary-ink font-semibold">{fmtDate(proposedEndDate)}</p>
             </div>
           </div>
           <Divider />
           <div className="flex items-center justify-between pt-sm">
             <span className="text-body-sm text-muted">Thời hạn gia hạn thêm</span>
-            <span className="text-headline-sm font-bold text-primary">+{requestedTermDays} ngày</span>
+            <span className="text-headline-sm font-bold text-primary-ink">+{requestedTermDays} ngày</span>
           </div>
           {remainingDays > 0 ? (
             <div className="flex items-center justify-between">
               <span className="text-body-sm text-muted">Còn lại trên hợp đồng hiện tại</span>
-              <span className={`text-body-md font-semibold ${remainingDays <= 7 ? 'text-danger' : 'text-foreground'}`}>
+              <span className={`text-body-md font-semibold ${remainingDays <= 7 ? 'text-error-ink' : 'text-text'}`}>
                 {remainingDays} ngày
               </span>
             </div>
@@ -292,12 +292,12 @@ export function RenewalReviewScreen() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-body-sm text-muted">Thời hạn gia hạn:</span>
-              <span className="text-body-md font-semibold text-foreground">{requestedTermDays} ngày</span>
+              <span className="text-body-md font-semibold text-text">{requestedTermDays} ngày</span>
             </div>
             <Divider />
             <div className="flex items-center justify-between pt-1">
               <div>
-                <p className="text-body-sm font-semibold text-foreground">Tổng phí gia hạn dự kiến:</p>
+                <p className="text-body-sm font-semibold text-text">Tổng phí gia hạn dự kiến:</p>
                 <p className="text-body-xs text-muted">Theo biểu giá khu vực Phường</p>
               </div>
               <Money amountVnd={totalEstimatedFee} size="lg" color="var(--color-primary)" />
@@ -312,15 +312,15 @@ export function RenewalReviewScreen() {
           <Card>
             <div className="space-y-2">
               {scorecard.isCleanRecord ? (
-                <div className="flex items-center justify-between gap-2 rounded-lg bg-green-50 px-3 py-2 dark:bg-green-950/30">
-                  <span className="text-body-sm font-semibold text-green-700 dark:text-green-400">
+                <div className="flex items-center justify-between gap-2 rounded-lg bg-tint-tertiary px-3 py-2">
+                  <span className="text-body-sm font-semibold text-tertiary-ink">
                     Hồ sơ sạch, chưa có vi phạm
                   </span>
                   <StatusChip label="[AI] Đề xuất: Phê duyệt nhanh" tone="ok" />
                 </div>
               ) : (
-                <div className="flex items-center justify-between gap-2 rounded-lg bg-amber-50 px-3 py-2 dark:bg-amber-950/30">
-                  <span className="text-body-sm font-semibold text-amber-700 dark:text-amber-400">
+                <div className="flex items-center justify-between gap-2 rounded-lg bg-tint-secondary px-3 py-2">
+                  <span className="text-body-sm font-semibold text-on-secondary">
                     Có lịch sử cần rà soát trước khi quyết định
                   </span>
                   <StatusChip label="Cần xem xét kỹ" tone="pending" />
@@ -329,29 +329,29 @@ export function RenewalReviewScreen() {
               <div className="grid grid-cols-2 gap-x-md gap-y-sm text-body-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted">Lần kiểm tra:</span>
-                  <span className="font-semibold text-foreground">{scorecard.totalInspections}</span>
+                  <span className="font-semibold text-text">{scorecard.totalInspections}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted">Vi phạm:</span>
-                  <span className={`font-semibold ${scorecard.violationCount > 0 ? 'text-danger' : 'text-foreground'}`}>
+                  <span className={`font-semibold ${scorecard.violationCount > 0 ? 'text-error-ink' : 'text-text'}`}>
                     {scorecard.violationCount}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted">Phạt chưa nộp:</span>
-                  <span className={`font-semibold ${scorecard.unpaidPenaltyCount > 0 ? 'text-danger' : 'text-foreground'}`}>
+                  <span className={`font-semibold ${scorecard.unpaidPenaltyCount > 0 ? 'text-error-ink' : 'text-text'}`}>
                     {scorecard.unpaidPenaltyCount}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted">Tổng tiền phạt:</span>
-                  <span className="font-semibold text-foreground">
+                  <span className="font-semibold text-text">
                     {scorecard.totalPenaltyAmount > 0 ? `${scorecard.totalPenaltyAmount.toLocaleString('vi-VN')} đ` : '0 đ'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted">Phản ánh cộng đồng:</span>
-                  <span className="font-semibold text-foreground">{scorecard.reportCount}</span>
+                  <span className="font-semibold text-text">{scorecard.reportCount}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted">Trạng thái giấy phép:</span>

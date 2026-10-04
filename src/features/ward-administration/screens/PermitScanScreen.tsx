@@ -109,7 +109,7 @@ export function PermitScanScreen() {
     <Screen>
       <AppHeader
         title="Tuần tra & Kiểm tra hiện trường"
-        subtitle="Quét / nhập mã Giấy phép số QR (WARD-11)"
+        subtitle="Quét / nhập mã Giấy phép số QR"
       />
 
       {/* Quick Test Demo Helpers */}
@@ -117,30 +117,33 @@ export function PermitScanScreen() {
         <span className="text-body-xs text-muted">Dữ liệu mẫu:</span>
         <button
           type="button"
-          className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-body-xs font-medium text-primary hover:bg-primary/20"
+          className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-body-xs font-medium text-primary-ink hover:bg-primary/20"
           onClick={() => setCode('SB-HC1-2026-0815')}
         >
-          🏷️ Mã giấy phép: SB-HC1-2026-0815
+          <Icon name="tag-outline" size={14} color={colors.primaryInk} />
+          Mã giấy phép: SB-HC1-2026-0815
         </button>
         <button
           type="button"
-          className="rounded-full border border-danger/40 bg-danger/10 px-2.5 py-1 text-body-xs font-medium text-danger hover:bg-danger/20"
+          className="inline-flex items-center gap-1 rounded-full border border-error/40 bg-error/10 px-2.5 py-1 text-body-xs font-medium text-error-ink hover:bg-error/20"
           onClick={() => {
             setCode('SB-HC1-2026-0815');
             setPhotoUrl('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80#lan-chiem-35cm');
           }}
         >
-          📸 Ảnh mẫu: Lấn chiếm 35cm
+          <Icon name="camera-plus-outline" size={14} color={colors.errorInk} />
+          Ảnh mẫu: Lấn chiếm 35cm
         </button>
         <button
           type="button"
-          className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-body-xs font-medium text-emerald-600 hover:bg-emerald-500/20"
+          className="inline-flex items-center gap-1 rounded-full border border-tertiary/40 bg-tertiary/10 px-2.5 py-1 text-body-xs font-medium text-tertiary-ink hover:bg-tertiary/20"
           onClick={() => {
             setCode('SB-HC1-2026-0815');
             setPhotoUrl('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80#chuan-ranh-gioi');
           }}
         >
-          ✅ Ảnh mẫu: Đúng ranh giới
+          <Icon name="check-circle-outline" size={14} color={colors.tertiaryInk} />
+          Ảnh mẫu: Đúng ranh giới
         </button>
       </div>
 
@@ -191,18 +194,18 @@ export function PermitScanScreen() {
 
           {/* AI Location Matching & GPS Check */}
           {liveResult?.locationWarning ? (
-            <AiHint title="Cảnh báo toạ độ thực tế [AI]">
+            <AiHint title="Cảnh báo toạ độ thực tế">
               {liveResult.locationWarning}
             </AiHint>
           ) : (liveResult?.isLocationMatched && liveResult.distanceMeters !== null) || (!isLiveApi && photoUrl) ? (
-            <AiHint title="Xác minh vị trí chính xác [AI]">
+            <AiHint title="Xác minh vị trí chính xác">
               Toạ độ quét hiện trường khớp với ô cấp phép (Cách {liveResult?.distanceMeters ?? 12}m, nằm trong dung sai 25m).
             </AiHint>
           ) : null}
 
           {/* AI Vision Encroachment Check (Section 7.2 Master Prompt) */}
           {liveResult?.aiVisionResult ? (
-            <AiHint title="Trợ lý thị giác AI Vision [AI]">
+            <AiHint title="Trợ lý thị giác AI Vision">
               <p>{liveResult.aiVisionResult.analysis}</p>
               {liveResult.aiVisionResult.visualCues.length > 0 ? (
                 <ul className="mt-1 list-disc pl-4 text-body-sm">
@@ -213,11 +216,11 @@ export function PermitScanScreen() {
               ) : null}
             </AiHint>
           ) : photoUrl ? (
-            <AiHint title="Trợ lý thị giác AI Vision [AI]">
+            <AiHint title="Trợ lý thị giác AI Vision">
               {photoUrl.includes('lan-chiem') ? (
                 <div>
-                  <p className="font-medium text-danger">
-                    ⚠️ Phát hiện lấn chiếm: Bàn ghế và biển hiệu vượt quá vạch sơn vàng giới hạn ô khoảng 35cm.
+                  <p className="font-medium text-error-ink">
+                    Phát hiện lấn chiếm: Bàn ghế và biển hiệu vượt quá vạch sơn vàng giới hạn ô khoảng 35cm.
                   </p>
                   <p className="mt-1 text-body-sm">
                     Lối đi bộ cho người tàn tật và người đi bộ bị thu hẹp còn ~1.15m (vi phạm quy chuẩn tối thiểu 1.5m theo Nghị định 165/2024/NĐ-CP và Luật Đường bộ 2024).
@@ -229,8 +232,8 @@ export function PermitScanScreen() {
                 </div>
               ) : (
                 <div>
-                  <p className="font-medium text-ok">
-                    ✅ Đạt tiêu chuẩn: Vật dụng kinh doanh nằm gọn trong phạm vi ô được cấp phép (2m x 3m).
+                  <p className="font-medium text-tertiary-ink">
+                    Đạt tiêu chuẩn: Vật dụng kinh doanh nằm gọn trong phạm vi ô được cấp phép (2m x 3m).
                   </p>
                   <p className="mt-1 text-body-sm">
                     Lối đi bộ thông thoáng đạt 1.8m, đảm bảo an toàn giao thông và mỹ quan đô thị.
@@ -298,14 +301,14 @@ export function PermitScanScreen() {
                     className="flex items-center justify-between rounded-lg border border-border bg-card p-3"
                   >
                     <div>
-                      <p className="text-body-sm font-semibold text-foreground">
+                      <p className="text-body-sm font-semibold text-text">
                         {pt.zoneName || 'Tuyến phố chính'}
                       </p>
                       <p className="text-body-xs text-muted">
                         {DAY_NAMES[pt.dayOfWeek % 7]} · {pt.hourOfDay}:00 - {pt.hourOfDay + 1}:00
                       </p>
                     </div>
-                    <span className="rounded-full bg-danger/10 px-2 py-0.5 text-body-xs font-semibold text-danger">
+                    <span className="rounded-full bg-error/10 px-2 py-0.5 text-body-xs font-semibold text-error-ink">
                       {pt.violationCount} vi phạm
                     </span>
                   </div>

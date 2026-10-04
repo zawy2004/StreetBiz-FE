@@ -22,7 +22,7 @@ const SELECTED: Record<StageTone, string> = {
   quiet: 'border-muted bg-sunken',
 };
 const COUNT: Record<StageTone, string> = {
-  chili: 'text-primary',
+  chili: 'text-primary-ink',
   ink: 'text-indigo',
   turmeric: 'text-on-secondary',
   leaf: 'text-tertiary',

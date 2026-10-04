@@ -70,7 +70,7 @@ export function StorefrontCard({ storefront, onPress }: Props) {
           <div className="mt-auto flex items-center justify-between gap-sm pt-xs">
             <span className="truncate text-body-xs text-muted">{storefront.categories.join(', ')}</span>
             {storefront.minPrice != null ? (
-              <span className="shrink-0 text-label font-semibold font-tabular text-primary">
+              <span className="shrink-0 text-label font-semibold font-tabular text-primary-ink">
                 Từ {formatVnd(storefront.minPrice)}
               </span>
             ) : null}

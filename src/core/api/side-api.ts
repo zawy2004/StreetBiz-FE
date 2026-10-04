@@ -262,7 +262,8 @@ export async function sideRequest<T>(
     // opposed to a handler's own 401), the same signal core/api/client.ts
     // treats as a dead session -- drop it the same way, so RoleGuard sends
     // the vendor back to sign-in instead of every subsequent call failing.
-    if (response.status === 401 && token === (getAccessToken() ?? '')) {
+    // A request sent with no token at all (mock mode) has no session to drop.
+    if (response.status === 401 && token && token === (getAccessToken() ?? '')) {
       clearTokens();
       useAuthStore.setState({ user: null, sessionExpired: true });
     }

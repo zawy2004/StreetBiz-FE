@@ -22,7 +22,7 @@ export function NavBadge({ count, className = '' }: { count?: number; className?
   if (!count) return null;
   return (
     <span
-      className={`flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-badge font-tabular text-on-primary ${className}`}
+      className={`flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary-solid px-1 text-badge font-tabular text-on-primary ${className}`}
     >
       {count > 99 ? '99+' : count}
     </span>
@@ -71,7 +71,7 @@ function Sidebar({ roleLabel, items }: Props) {
             className={({ isActive }) =>
               [
                 'relative flex h-10 items-center gap-sm rounded-sm px-sm text-body-md transition-colors',
-                isActive ? 'bg-tint-primary font-semibold text-primary' : 'text-text hover:bg-sunken',
+                isActive ? 'bg-tint-primary font-semibold text-primary-ink' : 'text-text hover:bg-sunken',
               ].join(' ')
             }
           >
@@ -130,7 +130,7 @@ function BottomTabBar({ items }: { items: RoleTabItem[] }) {
                 <NavBadge count={item.badge} className="absolute right-0 top-0 -mr-1 -mt-1" />
               </span>
               <span
-                className={`max-w-full truncate px-1 text-body-xs ${isActive ? 'font-semibold text-primary' : 'text-muted'}`}
+                className={`max-w-full truncate px-1 text-body-xs ${isActive ? 'font-semibold text-primary-ink' : 'text-muted'}`}
               >
                 {item.label}
               </span>

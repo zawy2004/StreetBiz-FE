@@ -198,7 +198,7 @@ export function SlotProposalScreen() {
         <Card>
           <div className="flex flex-col gap-sm">
             <p className="text-headline-sm text-text">
-              Khu vực <span className="text-primary">*</span>
+              Khu vực <span className="text-primary-ink">*</span>
             </p>
             {zones.length > 0 ? (
               <>
@@ -246,9 +246,9 @@ export function SlotProposalScreen() {
           <div className="flex flex-col gap-sm">
             <p className="flex items-center justify-between text-headline-sm text-text">
               <span>
-                Ảnh vị trí <span className="text-primary">*</span>
+                Ảnh vị trí <span className="text-primary-ink">*</span>
               </span>
-              <span className="rounded-full bg-tint-primary px-xs text-badge uppercase text-primary">Bắt buộc</span>
+              <span className="rounded-full bg-tint-primary px-xs text-badge uppercase text-primary-ink">Bắt buộc</span>
             </p>
             <p className="text-body-sm text-muted">Chụp rõ vỉa hè và mặt tiền nhà liền kề (JPG, PNG hoặc WEBP, tối đa 5 MB).</p>
             <PhotoPicker

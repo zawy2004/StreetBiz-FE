@@ -37,7 +37,7 @@ export function ConsumerTopNav({ items }: Props) {
               className={({ isActive }) =>
                 [
                   'flex h-10 items-center gap-xs rounded-full px-md text-body-md transition-colors',
-                  isActive ? 'bg-tint-primary font-semibold text-primary' : 'text-text hover:bg-sunken',
+                  isActive ? 'bg-tint-primary font-semibold text-primary-ink' : 'text-text hover:bg-sunken',
                 ].join(' ')
               }
             >
@@ -64,7 +64,7 @@ export function ConsumerTopNav({ items }: Props) {
           >
             <Icon name="cart-outline" size={22} color={colors.text} />
             {cartCount > 0 ? (
-              <span className="absolute right-0 top-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-badge font-tabular text-on-primary">
+              <span className="absolute right-0 top-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary-solid px-1 text-badge font-tabular text-on-primary">
                 {cartCount}
               </span>
             ) : null}
@@ -77,7 +77,7 @@ export function ConsumerTopNav({ items }: Props) {
           ) : (
             <Link
               to="/auth/sign-in"
-              className="ml-1 flex h-10 items-center rounded-full bg-primary px-md text-label font-semibold text-on-primary hover:bg-primary-pressed"
+              className="ml-1 flex h-10 items-center rounded-full bg-primary-solid px-md text-label font-semibold text-on-primary hover:bg-primary-solid-pressed"
             >
               Đăng nhập
             </Link>

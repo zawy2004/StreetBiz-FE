@@ -4,22 +4,26 @@ import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
 import { AuthGuard, RoleGuard } from '@/core/auth/RoleGuard';
 import { useAuthStore } from '@/store/auth-store';
-import { LandingScreen } from '@/features/landing/screens';
 import { RoleShell } from '@/layouts/RoleShell';
-import { VendorTopBar } from '@/layouts/VendorTopBar';
 import { CUSTOMER_TABS, PLATFORM_TABS, VENDOR_TABS, WARD_TABS } from '@/layouts/role-tabs';
 import { lazyScreen } from '@/core/routing/lazy-screen';
 import { ScreenFallback } from '@/core/routing/ScreenFallback';
 
-import {
-  RegisterScreen,
-  ResetPasswordRequestScreen,
-  ResetPasswordScreen,
-  SignInScreen,
-  VerifyPhoneScreen,
-} from '@/features/authentication/screens';
+// Sign-in stays in the first load: it is the first page an officer or admin sees.
+import { SignInScreen } from '@/features/authentication/screens/SignInScreen';
 
 // Everything past sign-in is split per feature and fetched on first visit.
+// Guests only: signed-in officers and admins never need the landing page in their first load.
+const RegisterScreen = lazyScreen(() => import('@/features/authentication/screens'), 'RegisterScreen');
+const VerifyPhoneScreen = lazyScreen(() => import('@/features/authentication/screens'), 'VerifyPhoneScreen');
+const ResetPasswordRequestScreen = lazyScreen(
+  () => import('@/features/authentication/screens'),
+  'ResetPasswordRequestScreen',
+);
+const ResetPasswordScreen = lazyScreen(() => import('@/features/authentication/screens'), 'ResetPasswordScreen');
+// Only vendors see this bar; officers and admins should not download its slot and hold logic.
+const VendorTopBar = lazyScreen(() => import('@/layouts/VendorTopBar'), 'VendorTopBar');
+const LandingScreen = lazyScreen(() => import('@/features/landing/screens'), 'LandingScreen');
 const WardCasesScreen = lazyScreen(
   () => import('@/features/ward-administration/screens/WardCasesScreen'),
   'WardCasesScreen',
@@ -479,7 +483,11 @@ export function AppRouter() {
               role="VENDOR"
               roleLabel="Hộ kinh doanh"
               items={VENDOR_TABS}
-              header={<VendorTopBar />}
+              header={
+                <Suspense fallback={<div className="h-16 shrink-0 border-b border-border bg-card" />}>
+                  <VendorTopBar />
+                </Suspense>
+              }
             />
           }
         >

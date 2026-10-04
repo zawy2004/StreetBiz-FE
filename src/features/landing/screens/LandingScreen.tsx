@@ -59,7 +59,7 @@ const ROLES: {
     title: 'Người mua',
     body: 'Tìm quán có giấy phép quanh bạn, đặt món trước và trả tiền online.',
     points: ['Bản đồ quán gần bạn', 'Đặt món, không chờ lâu', 'Đánh giá từ người thật'],
-    tone: 'bg-tint-primary text-primary',
+    tone: 'bg-tint-primary text-primary-ink',
   },
   {
     icon: MdOutlineStorefront,
@@ -498,7 +498,7 @@ function SectionHeading({
   return (
     <div className="sb-reveal mx-auto max-w-[640px] text-center">
       <span
-        className={`text-label font-semibold uppercase tracking-[0.14em] ${dark ? 'text-[#FFB547]' : 'text-primary'}`}
+        className={`text-label font-semibold uppercase tracking-[0.14em] ${dark ? 'text-[#FFB547]' : 'text-primary-ink'}`}
       >
         {eyebrow}
       </span>

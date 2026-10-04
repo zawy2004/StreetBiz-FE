@@ -44,7 +44,7 @@ export function VendorTopBar() {
               <div className="text-right">
                 <p className="max-w-[180px] truncate text-label font-medium text-text">{user?.fullName ?? 'Hộ kinh doanh'}</p>
                 {registration && (
-                  <p className="text-body-sm font-semibold text-primary">{hkdCode(registration.registrationId)}</p>
+                  <p className="text-body-sm font-semibold text-primary-ink">{hkdCode(registration.registrationId)}</p>
                 )}
               </div>
             )}
@@ -68,7 +68,7 @@ function NotificationBell() {
     <Link
       to="/account/notifications"
       aria-label={unread > 0 ? `Thông báo, ${unread} chưa đọc` : 'Thông báo'}
-      className="relative flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-sunken"
+      className="relative flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-sunken"
     >
       <Icon name="bell-outline" size={22} color={colors.text} />
       {unread > 0 && (
@@ -211,11 +211,11 @@ function HoldBasket() {
         aria-label={`Giỏ giữ chỗ (${holds.length})`}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="relative flex h-10 w-10 items-center justify-center rounded-full hover:bg-sunken"
+        className="relative flex h-11 w-11 items-center justify-center rounded-full hover:bg-sunken"
       >
         <Icon name="bookmark-outline" size={22} color={colors.text} />
         {holds.length > 0 && (
-          <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-badge text-white">
+          <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-solid px-1 text-badge text-white">
             {holds.length}
           </span>
         )}
@@ -259,7 +259,7 @@ function HoldBasket() {
                         </button>
                         <button
                           type="button"
-                          className="rounded-sm border border-border bg-card px-xs py-1 text-label text-primary"
+                          className="rounded-sm border border-border bg-card px-xs py-1 text-label text-primary-ink"
                           onClick={() => release.mutate(hold.slotId)}
                         >
                           Nhả

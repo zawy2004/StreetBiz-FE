@@ -24,7 +24,7 @@ import {
 /** WARD-02: price per day, trading hours, permitting document and reference fees of each zone. */
 export function PricingScheduleScreen() {
   return (
-    <WardGate>
+    <WardGate title="Giá & khung giờ">
       <PricingContent />
     </WardGate>
   );
@@ -58,7 +58,7 @@ function PricingContent() {
 
   return (
     <Screen>
-      <AppHeader title="Giá & khung giờ" back subtitle="WARD-02 · Theo từng khu vực" />
+      <AppHeader title="Giá & khung giờ" back subtitle="Theo từng khu vực" />
       <Card>
         <p className="text-body-sm text-text">
           Giá thuê tính theo khu vực. Muốn định giá khác nhau theo vị trí (ví dụ đoạn gần ngã tư và
@@ -99,7 +99,7 @@ function PricingContent() {
               thuê
             </p>
             <p className="text-body-sm text-muted">
-              Văn bản cho phép: {z.regulationRef ?? '⚠️ chưa có'}
+              Văn bản cho phép: {z.regulationRef ?? 'chưa có'}
             </p>
           </button>
         ))}
@@ -322,7 +322,7 @@ function ZoneEditor({
           <p className="text-label text-text">Văn bản cho phép mở khu vực</p>
           {!isNew && (
             <p className="text-body-sm text-muted">
-              Hiện tại: {zone.regulationRef ?? '⚠️ chưa có'}
+              Hiện tại: {zone.regulationRef ?? 'chưa có'}
             </p>
           )}
           {!isNew && (

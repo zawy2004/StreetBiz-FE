@@ -6,7 +6,7 @@ import { Button, Card, Divider, ListRow } from '@/components/common';
 import { ConfirmDialog, ErrorState, LoadingState, showToast } from '@/components/feedback';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { PlatformConnection } from '../components/PlatformConnection';
+import { PlatformGate } from '../components/PlatformGate';
 import { platformApi, PlatformApiError } from '../platform-api';
 
 const CONTENT_LABEL: Record<string, string> = {
@@ -17,9 +17,9 @@ const CONTENT_LABEL: Record<string, string> = {
 
 export function ReportedContentReviewScreen() {
   return (
-    <PlatformConnection>
+    <PlatformGate title="Xem xét nội dung">
       <ReportedContentReviewContent />
-    </PlatformConnection>
+    </PlatformGate>
   );
 }
 

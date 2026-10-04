@@ -38,7 +38,7 @@ export function ConversationRow({ conversation, onOpen }: Props) {
                 {preview}
               </p>
               {unread ? (
-                <span className="ml-auto shrink-0 rounded-full bg-primary px-xs py-2xs text-body-sm text-on-primary">
+                <span className="ml-auto shrink-0 rounded-full bg-primary-solid px-xs py-2xs text-body-sm text-on-primary">
                   {conversation.unreadCount}
                 </span>
               ) : null}

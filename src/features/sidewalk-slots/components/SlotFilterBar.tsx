@@ -71,7 +71,7 @@ export function SlotFilterBar({ filters, onChange, matchCount }: Props) {
 
         {hasActiveFilters(filters) && (
           <>
-            <button type="button" className="text-label font-semibold text-primary" onClick={() => onChange(NO_FILTERS)}>
+            <button type="button" className="text-label font-semibold text-primary-ink" onClick={() => onChange(NO_FILTERS)}>
               Xoá lọc
             </button>
             <span className="text-body-sm text-muted">{matchCount} ô khớp</span>

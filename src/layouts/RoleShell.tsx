@@ -5,7 +5,7 @@ import { RoleTabBar, type RoleTabItem } from '@/components/layout/RoleTabBar';
 import { RoleGuard } from '@/core/auth/RoleGuard';
 import { ScreenFallback } from '@/core/routing/ScreenFallback';
 import type { RoleCode } from '@/core/types/role';
-import { useChatUnreadCount } from '@/features/chat/hooks/useChat';
+import { useChatUnreadCount } from '@/features/chat/hooks/chat-unread';
 import { useIsDesktop } from '@/hooks/useBreakpoint';
 import { ConsumerTopNav } from './ConsumerTopNav';
 

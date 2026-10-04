@@ -5,7 +5,7 @@ import { colors } from '@/theme';
 
 type Props = {
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   leading?: ReactNode;
   trailing?: ReactNode;
   onPress?: () => void;

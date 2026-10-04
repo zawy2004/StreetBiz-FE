@@ -35,7 +35,7 @@ export function ExploreScreen() {
 
   return (
     <Screen padded={false}>
-      <header className="bg-primary text-white dark:border-b dark:border-border dark:bg-card">
+      <header className="bg-primary-solid text-white dark:border-b dark:border-border dark:bg-card">
         <div className="mx-auto max-w-[1320px] px-md pb-xl pt-md md:px-lg lg:px-xl lg:pb-2xl lg:pt-xl">
           <div className="flex items-start justify-between gap-sm">
             <div className="min-w-0">

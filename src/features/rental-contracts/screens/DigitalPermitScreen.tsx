@@ -1,7 +1,8 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
-import { Card, QrCode } from '@/components/common';
+import { Card } from '@/components/common';
+import { QrCode } from '@/components/common/QrCode';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ErrorState, LoadingState } from '@/components/feedback';

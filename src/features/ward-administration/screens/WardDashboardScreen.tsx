@@ -1,47 +1,24 @@
 import { useNavigate } from 'react-router-dom';
 
-import { Card, formatVnd, Icon, IconButton, type IconName } from '@/components/common';
-import { ResponsiveGrid, StatCard } from '@/components/data';
+import { Card, formatVnd, IconButton } from '@/components/common';
+import { RatioMeter, WorkQueue } from '@/components/data';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { AiHint } from '@/components/status';
-import { LoadingState } from '@/components/feedback';
+import { ErrorState, LoadingState } from '@/components/feedback';
 import { useWards } from '@/core/auth/useWards';
 import { env } from '@/core/config/env';
 import { useAuthStore } from '@/store/auth-store';
-import { colors } from '@/theme';
 import { useWardDashboard } from '../useWardReports';
 
-type Shortcut = { to: string; icon: IconName; title: string; description: string };
-
-const SHORTCUTS: Shortcut[] = [
-  {
-    to: '/ward/inbox',
-    icon: 'inbox-outline',
-    title: 'Hộp duyệt',
-    description: 'Hồ sơ đăng ký, đề xuất ô, xung đột địa chỉ và chuyển nhượng',
-  },
-  { to: '/ward/slots', icon: 'map-marker-radius-outline', title: 'Lưới ô vỉa hè', description: 'Theo dõi trạng thái từng ô' },
-  {
-    to: '/ward/patrol',
-    icon: 'qrcode-scan',
-    title: 'Tuần tra và quét QR',
-    description: 'Kiểm tra giấy phép số, phân tích ảnh hiện trường',
-  },
-  {
-    to: '/ward/patrol/violations/new',
-    icon: 'gavel',
-    title: 'Lập biên bản vi phạm',
-    description: 'Biên bản hiện trường và quyết định xử phạt (NĐ 168/2024)',
-  },
-];
-
+/**
+ * The ward officer's desk: what is waiting on the ward first, as a worklist with
+ * the way in beside each figure, then how the ward's sidewalks are doing. The
+ * sidebar already lists every section, so the page repeats none of it.
+ */
 export function WardDashboardScreen() {
   const navigate = useNavigate();
-  const { dashboard, isLoading } = useWardDashboard();
+  const { dashboard, isLoading, isError, refetch } = useWardDashboard();
   const wardName = useWardName();
-  const pendingCount = dashboard
-    ? dashboard.pendingRegistrations + dashboard.pendingApplications
-    : 0;
 
   return (
     <Screen width="wide">
@@ -64,84 +41,103 @@ export function WardDashboardScreen() {
         }
       />
 
-      {isLoading || !dashboard ? (
+      {/* Without the error branch a failed request left the spinner running forever. */}
+      {isError ? (
+        <ErrorState
+          message="Chưa tải được số liệu của phường. Kiểm tra mạng rồi thử lại."
+          onRetry={() => void refetch()}
+        />
+      ) : isLoading || !dashboard ? (
         <LoadingState />
       ) : (
-        <>
-          <ResponsiveGrid minItemWidth={210} fit>
-            <StatCard
-              label="Ô đang thuê"
-              value={`${dashboard.slotRented}/${dashboard.slotTotal}`}
-              hint="ô trên toàn phường"
-              icon="map-marker-radius-outline"
-              tone="indigo"
-              onPress={() => navigate('/ward/slots')}
-            />
-            <StatCard
-              label="Tỷ lệ lấp đầy"
-              value={`${dashboard.occupancyPercent}%`}
-              icon="chart-bar"
-              tone="tertiary"
-            />
-            <StatCard
-              label="Hồ sơ chờ duyệt"
-              value={`${pendingCount}`}
-              hint={pendingCount > 0 ? 'Mở hộp duyệt để xử lý' : 'Đã xử lý hết'}
-              icon="inbox-outline"
-              tone="primary"
-              onPress={() => navigate('/ward/inbox')}
-            />
-            <StatCard
-              label="Đã thu"
-              value={formatVnd(dashboard.revenueCollected)}
-              hint="phí thuê ô và tiền phạt"
-              icon="cash-multiple"
-              tone="secondary"
-              onPress={() => navigate('/ward/reports')}
-            />
-            <StatCard
-              label="Còn phải thu"
-              value={formatVnd(dashboard.outstandingDebt)}
-              hint="phí và phạt chưa thanh toán"
-              icon="clock-outline"
-              tone="primary"
-              onPress={() => navigate('/ward/reports')}
-            />
-            <StatCard
-              label="Vi phạm cần xử lý"
-              value={`${dashboard.openViolations}`}
-              hint={dashboard.openViolations > 0 ? 'chưa xử phạt hoặc chưa nộp phạt' : 'Đã xử lý hết'}
-              icon="shield-alert-outline"
-              tone="indigo"
-            />
-          </ResponsiveGrid>
+        (() => {
+          const pending = dashboard.pendingRegistrations + dashboard.pendingApplications;
+          const violations = dashboard.openViolations;
+          const debt = dashboard.outstandingDebt;
+          const waiting = (pending > 0 ? 1 : 0) + (violations > 0 ? 1 : 0) + (debt > 0 ? 1 : 0);
+          return (
+            <>
+              <div className="grid gap-lg lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+                <Section
+                  title="Cần xử lý"
+                  description={
+                    waiting > 0 ? `${waiting} việc đang chờ phường` : 'Phường đã xử lý hết'
+                  }
+                >
+                  <WorkQueue
+                    // The review queue is the ward's main job, so it gets the one chili button when it has work.
+                    primaryKey={pending > 0 ? 'inbox' : violations > 0 ? 'violations' : undefined}
+                    items={[
+                      {
+                        key: 'inbox',
+                        icon: 'inbox-outline',
+                        tone: pending > 0 ? 'pending' : 'neutral',
+                        label: 'Hồ sơ chờ duyệt',
+                        value: `${pending}`,
+                        hint:
+                          pending > 0
+                            ? `${dashboard.pendingRegistrations} đăng ký · ${dashboard.pendingApplications} đơn thuê ô`
+                            : 'Đã xử lý hết',
+                        action: { label: 'Mở hộp duyệt', onPress: () => navigate('/ward/inbox') },
+                      },
+                      {
+                        key: 'violations',
+                        icon: 'gavel',
+                        tone: violations > 0 ? 'danger' : 'neutral',
+                        label: 'Vi phạm cần xử lý',
+                        value: `${violations}`,
+                        hint: violations > 0 ? 'chưa xử phạt hoặc chưa nộp phạt' : 'Đã xử lý hết',
+                        action: { label: 'Xem vi phạm', onPress: () => navigate('/ward/reports') },
+                      },
+                      {
+                        key: 'debt',
+                        icon: 'clock-outline',
+                        tone: debt > 0 ? 'pending' : 'neutral',
+                        label: 'Còn phải thu',
+                        value: formatVnd(debt),
+                        hint: 'phí thuê ô và tiền phạt chưa nộp',
+                        action: { label: 'Xem báo cáo', onPress: () => navigate('/ward/reports') },
+                      },
+                    ]}
+                  />
+                </Section>
 
-          {env.enableAiCompliance ? (
-            <AiHint title="Tóm tắt tuần này">
-              {pendingCount} hồ sơ đang chờ xử lý, tỷ lệ lấp đầy {dashboard.occupancyPercent}%. Ưu
-              tiên xét các hồ sơ cửa hàng cố định có giấy phép kinh doanh hợp lệ trước.
-            </AiHint>
-          ) : null}
-        </>
-      )}
-
-      <Section title="Lối tắt">
-        <ResponsiveGrid minItemWidth={240} gap="sm">
-          {SHORTCUTS.map((s) => (
-            <Card key={s.to} onPress={() => navigate(s.to)}>
-              <div className="flex items-start gap-sm">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-tint-indigo">
-                  <Icon name={s.icon} size={22} color={colors.indigo} />
-                </span>
-                <div className="min-w-0">
-                  <h3 className="text-headline-sm text-text">{s.title}</h3>
-                  <p className="mt-0.5 text-body-sm text-muted">{s.description}</p>
-                </div>
+                <Section title="Tình hình phường">
+                  <Card>
+                    <RatioMeter
+                      label="Tỷ lệ lấp đầy"
+                      part={dashboard.slotRented}
+                      whole={dashboard.slotTotal}
+                      unit="ô đang thuê"
+                    />
+                    <dl className="mt-md grid grid-cols-2 gap-md border-t border-border pt-md">
+                      <div>
+                        <dt className="text-body-sm text-muted">Đã thu</dt>
+                        <dd className="mt-2xs font-tabular text-headline-md text-text">
+                          {formatVnd(dashboard.revenueCollected)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-body-sm text-muted">Hợp đồng hiệu lực</dt>
+                        <dd className="mt-2xs font-tabular text-headline-md text-text">
+                          {dashboard.activeContracts}
+                        </dd>
+                      </div>
+                    </dl>
+                  </Card>
+                </Section>
               </div>
-            </Card>
-          ))}
-        </ResponsiveGrid>
-      </Section>
+
+              {env.enableAiCompliance ? (
+                <AiHint title="Tóm tắt tuần này">
+                  {pending} hồ sơ đang chờ xử lý, tỷ lệ lấp đầy {dashboard.occupancyPercent}%. Ưu
+                  tiên xét các hồ sơ cửa hàng cố định có giấy phép kinh doanh hợp lệ trước.
+                </AiHint>
+              ) : null}
+            </>
+          );
+        })()
+      )}
     </Screen>
   );
 }

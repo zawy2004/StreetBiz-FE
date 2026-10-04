@@ -7,14 +7,14 @@ import { ErrorState, LoadingState, showToast } from '@/components/feedback';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { PlatformConnection } from '../components/PlatformConnection';
+import { PlatformGate } from '../components/PlatformGate';
 import { platformApi, PlatformApiError } from '../platform-api';
 
 export function OrderComplaintReviewScreen() {
   return (
-    <PlatformConnection>
+    <PlatformGate title="Xử lý khiếu nại">
       <OrderComplaintReviewContent />
-    </PlatformConnection>
+    </PlatformGate>
   );
 }
 

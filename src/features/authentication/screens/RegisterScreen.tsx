@@ -122,7 +122,7 @@ export function RegisterScreen() {
         />
         <PhoneField value={phone} onChangeText={setPhone} error={fieldErrors.phone} />
         {phoneRegistered ? (
-          <Link to="/auth/sign-in" className="-mt-xs text-label text-primary">
+          <Link to="/auth/sign-in" className="-mt-xs text-label text-primary-ink">
             Đăng nhập bằng số này →
           </Link>
         ) : null}

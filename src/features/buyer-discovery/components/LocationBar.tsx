@@ -71,7 +71,7 @@ export function LocationBar({ showArea = true, tone = 'default' }: Props) {
           aria-busy={locateStatus === 'LOCATING' || undefined}
           className={[
             'flex h-10 items-center gap-1.5 rounded-full px-sm text-label font-medium transition-colors disabled:opacity-60',
-            onPrimary ? 'bg-white text-primary hover:bg-white/90' : 'border border-border bg-card text-text hover:bg-sunken',
+            onPrimary ? 'bg-white text-primary-ink hover:bg-white/90' : 'border border-border bg-card text-text hover:bg-sunken',
           ].join(' ')}
         >
           {locateStatus === 'LOCATING' ? (
@@ -85,7 +85,7 @@ export function LocationBar({ showArea = true, tone = 'default' }: Props) {
           <button
             type="button"
             onClick={clearPosition}
-            className={`h-10 rounded-full px-sm text-label ${onPrimary ? 'text-white/90 hover:bg-white/10' : 'text-primary hover:bg-tint-primary'}`}
+            className={`h-10 rounded-full px-sm text-label ${onPrimary ? 'text-white/90 hover:bg-white/10' : 'text-primary-ink hover:bg-tint-primary'}`}
           >
             Xoá vị trí
           </button>
@@ -98,7 +98,7 @@ export function LocationBar({ showArea = true, tone = 'default' }: Props) {
         <button
           type="button"
           onClick={() => setFilters({ wardId: nearest.wardId })}
-          className={`w-fit text-left text-body-sm underline-offset-2 hover:underline ${onPrimary ? 'text-white' : 'text-primary'}`}
+          className={`w-fit text-left text-body-sm underline-offset-2 hover:underline ${onPrimary ? 'text-white' : 'text-primary-ink'}`}
         >
           Gần bạn nhất: {nearest.wardName}
           {nearest.distanceMeters != null ? ` · ${formatDistance(nearest.distanceMeters)}` : ''} — chọn khu vực này

@@ -23,7 +23,7 @@ import {
 /** WARD-03: the ward's penalty schedule, one bracket per violation type, effective-dated. */
 export function PenaltyScheduleScreen() {
   return (
-    <WardGate>
+    <WardGate title="Biểu mức phạt">
       <PenaltyScheduleContent />
     </WardGate>
   );
@@ -57,7 +57,7 @@ function PenaltyScheduleContent() {
 
   return (
     <Screen>
-      <AppHeader title="Biểu mức phạt" back subtitle="WARD-03 · Áp dụng cho toàn phường" />
+      <AppHeader title="Biểu mức phạt" back subtitle="Áp dụng cho toàn phường" />
       <Card>
         <p className="text-body-sm text-text">
           Mức phạt áp dụng là <strong>mức trung bình của khung</strong> (Luật Xử lý vi phạm hành
@@ -66,7 +66,7 @@ function PenaltyScheduleContent() {
         </p>
         {missing > 0 && (
           <p className="mt-sm text-body-sm text-error">
-            ⚠️ {missing} hành vi chưa có căn cứ pháp lý: chưa thể ra quyết định xử phạt tiền cho các
+            {missing} hành vi chưa có căn cứ pháp lý: chưa thể ra quyết định xử phạt tiền cho các
             hành vi này.
           </p>
         )}
@@ -123,7 +123,7 @@ function PenaltyTypeCard({ type, overviewKey }: { type: WardPenaltyType; overvie
         {type.hasLegalBasis ? (
           <StatusChip label="Có căn cứ" tone="ok" />
         ) : (
-          <StatusChip label="⚠️ Thiếu căn cứ pháp lý" tone="danger" />
+          <StatusChip label="Thiếu căn cứ" tone="danger" />
         )}
       </div>
 

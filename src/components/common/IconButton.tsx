@@ -32,7 +32,7 @@ export function IconButton({
       title={accessibilityLabel}
       style={background ? { backgroundColor: background } : undefined}
       className={[
-        'flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+        'flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50',
         background ? 'hover:opacity-90' : 'bg-sunken hover:bg-border',
       ].join(' ')}
     >
