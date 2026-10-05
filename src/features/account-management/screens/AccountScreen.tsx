@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import { Avatar, Button, Card, Divider, Icon, ListRow } from '@/components/common';
@@ -17,14 +18,24 @@ export function AccountScreen() {
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
   const switchRoleDemo = useAuthStore((s) => s.switchRoleDemo);
+  const queryClient = useQueryClient();
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   if (!user) return null;
 
   const doSignOut = async () => {
-    // signOut revokes the session on the backend, then clears the local tokens.
-    await signOut();
-    setConfirmSignOut(false);
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      // signOut revokes the session on the backend, then clears the local tokens.
+      await signOut();
+    } finally {
+      // Cached lists belong to the account that just left; the next sign-in must not see them.
+      queryClient.clear();
+      setSigningOut(false);
+      setConfirmSignOut(false);
+    }
     navigate('/auth/sign-in', { replace: true });
   };
 
@@ -106,8 +117,11 @@ export function AccountScreen() {
         description="Bạn sẽ cần đăng nhập lại để tiếp tục sử dụng."
         confirmLabel="Đăng xuất"
         confirmVariant="danger"
+        loading={signingOut}
         onConfirm={doSignOut}
-        onCancel={() => setConfirmSignOut(false)}
+        onCancel={() => {
+          if (!signingOut) setConfirmSignOut(false);
+        }}
       />
     </Screen>
   );

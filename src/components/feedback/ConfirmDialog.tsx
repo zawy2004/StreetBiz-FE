@@ -10,6 +10,8 @@ type Props = {
   description?: string;
   confirmLabel?: string;
   confirmVariant?: ButtonVariant;
+  /** Keeps the dialog open and blocks a second press while the confirmed action runs. */
+  loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -20,6 +22,7 @@ export function ConfirmDialog({
   description,
   confirmLabel = 'Xác nhận',
   confirmVariant = 'primary',
+  loading = false,
   onConfirm,
   onCancel,
 }: Props) {
@@ -75,8 +78,8 @@ export function ConfirmDialog({
         <h2 id="confirm-dialog-title" className="text-headline-md text-text">{title}</h2>
         {description ? <p className="mt-xs text-body-md text-muted">{description}</p> : null}
         <div className="mt-lg flex flex-col-reverse gap-sm sm:flex-row sm:justify-end">
-          <Button label="Huỷ" variant="outline" fullWidth={false} onPress={onCancel} />
-          <Button label={confirmLabel} variant={confirmVariant} fullWidth={false} onPress={onConfirm} />
+          <Button label="Huỷ" variant="outline" fullWidth={false} disabled={loading} onPress={onCancel} />
+          <Button label={confirmLabel} variant={confirmVariant} fullWidth={false} loading={loading} onPress={onConfirm} />
         </div>
       </div>
     </div>,

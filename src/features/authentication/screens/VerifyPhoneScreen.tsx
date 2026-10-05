@@ -140,7 +140,7 @@ export function VerifyPhoneScreen() {
       back
     >
       <form className="flex flex-col gap-md" onSubmit={verify} noValidate>
-        <OtpInput value={code} onChangeText={setCode} length={OTP_LENGTH} />
+        <OtpInput value={code} onChangeText={setCode} length={OTP_LENGTH} invalid={!!error} autoFocus />
         {error ? (
           <p role="alert" className="text-center text-body-sm text-error">
             {error}

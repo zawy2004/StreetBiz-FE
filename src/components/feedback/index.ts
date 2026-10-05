@@ -5,3 +5,4 @@ export * from './ErrorState';
 export * from './ConfirmDialog';
 export * from './Toast';
 export * from './toast-store';
+export * from './FormAlert';

@@ -3,10 +3,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { AuthShell } from '../components/AuthShell';
 import { Button } from '@/components/common';
+import { FormAlert } from '@/components/feedback';
 import { PasswordField, PhoneField } from '@/components/forms';
 import { ApiError, errorMessage } from '@/core/api';
 import { isDev, isLiveApi } from '@/core/config/env';
-import { ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
+import { ROLE_HOME_ROUTE, resolveReturnTo } from '@/core/auth/role-routes';
 import { phoneError, toLocalPhone } from '@/core/utils/phone';
 import { ROLE_LABELS, type RoleCode } from '@/core/types/role';
 import { useAuthStore } from '@/store/auth-store';
@@ -33,7 +34,8 @@ export function SignInScreen() {
 
   // Set by VerifyPhoneScreen after a successful registration, so the new user is
   // told why they are here and does not have to retype the number.
-  const { registered, phone: registeredPhone } = (useLocation().state ?? {}) as {
+  const { registered, phone: registeredPhone, from } = (useLocation().state ?? {}) as {
+    from?: string;
     registered?: boolean;
     phone?: string;
   };
@@ -42,6 +44,7 @@ export function SignInScreen() {
   const [password, setPassword] = useState('');
   const [phoneMessage, setPhoneMessage] = useState<string>();
   const [error, setError] = useState<string>();
+  const [formError, setFormError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
 
   // Clear the "session expired" banner as soon as the user starts over.
@@ -65,17 +68,19 @@ export function SignInScreen() {
 
     setPhoneMessage(undefined);
     setError(undefined);
+    setFormError(undefined);
     setSubmitting(true);
     try {
       await signIn(toLocalPhone(phone), password);
       const user = useAuthStore.getState().user;
-      if (user) navigate(ROLE_HOME_ROUTE[user.role_code], { replace: true });
+      if (user) navigate(resolveReturnTo(from, user.role_code), { replace: true });
     } catch (err) {
       if (err instanceof ApiError && err.isValidation) {
         setPhoneMessage(err.fieldError('PhoneNumber'));
-        setError(err.fieldError('Password') ?? err.message);
+        setError(err.fieldError('Password'));
+        if (!err.fieldError('Password') && !err.fieldError('PhoneNumber')) setFormError(err.message);
       } else {
-        setError(errorMessage(err));
+        setFormError(errorMessage(err));
       }
     } finally {
       setSubmitting(false);
@@ -106,6 +111,7 @@ export function SignInScreen() {
       ) : null}
 
       <form className="flex flex-col gap-md" onSubmit={submit} noValidate>
+        <FormAlert message={formError} />
         <PhoneField value={phone} onChangeText={setPhone} error={phoneMessage} />
         <PasswordField
           value={password}

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/common';
 import { PasswordField } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
-import { showToast } from '@/components/feedback';
+import { FormAlert, showToast } from '@/components/feedback';
 import { PasswordChecklist } from '@/features/authentication/components/PasswordChecklist';
 import { ApiError, authApi, errorMessage } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
@@ -25,6 +25,7 @@ export function ChangePasswordScreen() {
   const [currentMessage, setCurrentMessage] = useState<string>();
   const [nextMessage, setNextMessage] = useState<string>();
   const [error, setError] = useState<string>();
+  const [formError, setFormError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
 
   if (!user) return null;
@@ -61,6 +62,7 @@ export function ChangePasswordScreen() {
     setCurrentMessage(undefined);
     setNextMessage(undefined);
     setError(undefined);
+    setFormError(undefined);
     setSubmitting(true);
     try {
       if (isLiveApi) {
@@ -77,10 +79,10 @@ export function ChangePasswordScreen() {
         setNextMessage(err.fieldError('NewPassword'));
         setCurrentMessage(err.fieldError('CurrentPassword'));
         if (!err.fieldError('NewPassword') && !err.fieldError('CurrentPassword')) {
-          setError(err.message);
+          setFormError(err.message);
         }
       } else {
-        setError(errorMessage(err));
+        setFormError(errorMessage(err));
       }
     } finally {
       setSubmitting(false);
@@ -91,6 +93,7 @@ export function ChangePasswordScreen() {
     <Screen>
       <AppHeader title="Đổi mật khẩu" back />
       <form className="flex flex-col gap-md" onSubmit={submit} noValidate>
+        <FormAlert message={formError} />
         <PasswordField
           label="Mật khẩu hiện tại"
           value={current}

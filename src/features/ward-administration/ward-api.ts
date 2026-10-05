@@ -355,6 +355,8 @@ export const complianceApi = {
       `/ward/enrollments?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page) })}`,
     ),
   getEnrollment: (id: string) => apiGet<WardEnrollmentDetail>(`/ward/enrollments/${id}`),
+  /** WARD-04: take a SUBMITTED file into review; the vendor can no longer edit it. */
+  claimEnrollment: (id: string) => apiPost<WardEnrollmentDetail>(`/ward/enrollments/${id}/claim`),
   decideEnrollment: (id: string, decision: string, reason: string, expectedStatus: string) =>
     apiPost<WardEnrollmentDetail>(`/ward/enrollments/${id}/decision`, {
       decision,

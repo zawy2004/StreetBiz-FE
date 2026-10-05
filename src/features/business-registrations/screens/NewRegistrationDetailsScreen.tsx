@@ -1,13 +1,20 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/common';
+import { LoadingState } from '@/components/feedback';
+import { AddressSearch } from '@/features/sidewalk-slots/components/AddressSearch';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { WardSelect } from '@/features/authentication/components/WardSelect';
 import { VENDOR_TYPE } from '@/core/api';
 import { Stepper } from '../components/Stepper';
-import { parseOptionalCoordinate, useNewRegistrationStore } from '../new-registration-store';
+import { useNewRegistrationStore } from '../new-registration-store';
+
+// The Goong/mapbox bundle loads only when this step needs a map.
+const LocationPicker = lazy(() =>
+  import('@/features/sidewalk-slots/components/LocationPicker').then((m) => ({ default: m.LocationPicker })),
+);
 
 /**
  * REG-01 step 2: business details.
@@ -20,6 +27,7 @@ export function NewRegistrationDetailsScreen() {
   const navigate = useNavigate();
   const draft = useNewRegistrationStore();
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+  const [viewKey, setViewKey] = useState(0);
 
   const needsAddress = draft.vendorType === VENDOR_TYPE.fixedStorefront;
 
@@ -79,31 +87,30 @@ export function NewRegistrationDetailsScreen() {
       />
 
       {needsAddress ? (
-        <div className="flex gap-sm">
-          <div className="flex-1">
-            <TextField
-              label="Vĩ độ (không bắt buộc)"
-              value={draft.addressLatitude?.toString() ?? ''}
-              onChangeText={(v) => {
-                const parsed = parseOptionalCoordinate(v);
-                if (parsed !== undefined) draft.setField('addressLatitude', parsed);
+        <div className="flex flex-col gap-xs">
+          <p className="text-label-md text-text">Vị trí trên bản đồ (không bắt buộc)</p>
+          <AddressSearch
+            onPick={(match) => {
+              draft.setField('addressLatitude', match.latitude);
+              draft.setField('addressLongitude', match.longitude);
+              setViewKey((key) => key + 1);
+            }}
+          />
+          <Suspense fallback={<LoadingState label="Đang tải bản đồ" />}>
+            <LocationPicker
+              position={
+                draft.addressLatitude !== null && draft.addressLongitude !== null
+                  ? { latitude: draft.addressLatitude, longitude: draft.addressLongitude }
+                  : null
+              }
+              viewKey={viewKey}
+              onPick={(p) => {
+                draft.setField('addressLatitude', p.latitude);
+                draft.setField('addressLongitude', p.longitude);
               }}
-              keyboardType="numeric"
-              placeholder="16.0678"
             />
-          </div>
-          <div className="flex-1">
-            <TextField
-              label="Kinh độ (không bắt buộc)"
-              value={draft.addressLongitude?.toString() ?? ''}
-              onChangeText={(v) => {
-                const parsed = parseOptionalCoordinate(v);
-                if (parsed !== undefined) draft.setField('addressLongitude', parsed);
-              }}
-              keyboardType="numeric"
-              placeholder="108.2208"
-            />
-          </div>
+          </Suspense>
+          <p className="text-body-sm text-muted">Tìm địa chỉ hoặc chạm vào bản đồ để đặt vị trí cửa hàng.</p>
         </div>
       ) : null}
     </Screen>

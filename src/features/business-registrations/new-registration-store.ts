@@ -154,20 +154,6 @@ export const EVIDENCE_LABELS: Record<ApiEvidenceType, string> = {
   OTHER: 'Giấy tờ khác',
 };
 
-/**
- * Parses an optional decimal coordinate as the user types.
- *
- * `Number('16.06.78')` or `Number('abc')` is `NaN`, and `JSON.stringify` turns a
- * `NaN` into `null` silently — so a typo would submit as "no coordinate" with no
- * feedback at all. Returning `undefined` for anything unparseable lets the caller
- * discard the keystroke instead, so the field only ever holds a valid number.
- */
-export function parseOptionalCoordinate(text: string): number | null | undefined {
-  if (text.trim() === '') return null;
-  const parsed = Number(text);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
 /** Parses a VND amount typed with or without thousands separators. Empty text -> null. */
 export function parseVndAmount(text: string): number | null {
   const digits = text.replace(/[^\d]/g, '');

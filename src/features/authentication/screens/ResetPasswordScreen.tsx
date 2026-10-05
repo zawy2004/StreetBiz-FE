@@ -6,7 +6,7 @@ import { PasswordChecklist } from '../components/PasswordChecklist';
 import { usePendingAuthStore } from '../pending-auth-store';
 import { Button } from '@/components/common';
 import { PasswordField } from '@/components/forms';
-import { showToast } from '@/components/feedback';
+import { FormAlert, showToast } from '@/components/feedback';
 import { ApiError, authApi, errorMessage, OTP_PURPOSE } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { isPasswordValid, passwordError } from '@/core/auth/password-policy';
@@ -25,6 +25,7 @@ export function ResetPasswordScreen() {
   const [confirm, setConfirm] = useState('');
   const [passwordMessage, setPasswordMessage] = useState<string>();
   const [error, setError] = useState<string>();
+  const [formError, setFormError] = useState<string>();
   /** The code itself was rejected, so the only way forward is to re-enter it. */
   const [otpRejected, setOtpRejected] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -51,6 +52,7 @@ export function ResetPasswordScreen() {
 
     setPasswordMessage(undefined);
     setError(undefined);
+    setFormError(undefined);
     setOtpRejected(false);
     setSubmitting(true);
     try {
@@ -70,10 +72,10 @@ export function ResetPasswordScreen() {
         setPasswordMessage(err.fieldError('NewPassword'));
       } else if (err instanceof ApiError && (err.code === 'unauthorized' || err.fieldError('Otp'))) {
         // Wrong, expired or locked code (OtpService answers 401 on this anonymous call).
-        setError(err.fieldError('Otp') ?? err.message);
+        setFormError(err.fieldError('Otp') ?? err.message);
         setOtpRejected(true);
       } else {
-        setError(errorMessage(err));
+        setFormError(errorMessage(err));
       }
     } finally {
       setSubmitting(false);
@@ -83,6 +85,7 @@ export function ResetPasswordScreen() {
   return (
     <AuthShell title="Đặt mật khẩu mới" subtitle={`Cho tài khoản ${formatPhone(phone)}`} back>
       <form className="flex flex-col gap-md" onSubmit={submit} noValidate>
+        <FormAlert message={formError} />
         <PasswordField
           label="Mật khẩu mới"
           value={password}

@@ -1,5 +1,6 @@
 import { env } from '@/core/config/env';
 import { getAccessToken, clearTokens } from '@/core/api/token-storage';
+import { refreshSession } from '@/core/api/client';
 import { useAuthStore } from '@/store/auth-store';
 
 // Sidewalk Slot & Rental (SIDE-01..13) client: a typed fetch wrapper reading
@@ -232,6 +233,7 @@ export async function sideRequest<T>(
   path: string,
   init: RequestInit = {},
   token = getAccessToken() ?? '',
+  retried = false,
 ): Promise<T> {
   const base = env.apiBaseUrl.replace(/\/$/, '');
   if (!base) throw new SideApiError(0, 'Chưa cấu hình VITE_API_BASE_URL cho Backend.');
@@ -263,9 +265,18 @@ export async function sideRequest<T>(
     // treats as a dead session -- drop it the same way, so RoleGuard sends
     // the vendor back to sign-in instead of every subsequent call failing.
     // A request sent with no token at all (mock mode) has no session to drop.
-    if (response.status === 401 && token && token === (getAccessToken() ?? '')) {
-      clearTokens();
-      useAuthStore.setState({ user: null, sessionExpired: true });
+    if (response.status === 401 && token && !retried) {
+      // Try one refresh, shared with the axios client, before giving up on the session.
+      let fresh: string | null = null;
+      try {
+        fresh = (await refreshSession()).accessToken;
+      } catch {
+        if (token === (getAccessToken() ?? '') || !getAccessToken()) {
+          clearTokens();
+          useAuthStore.setState({ user: null, sessionExpired: true });
+        }
+      }
+      if (fresh) return sideRequest<T>(path, init, fresh, true);
     }
     throw new SideApiError(
       response.status,

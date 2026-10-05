@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 
 import { ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
-import { AuthGuard, RoleGuard } from '@/core/auth/RoleGuard';
+import { AuthGuard, GuestOnlyGuard, RoleGuard } from '@/core/auth/RoleGuard';
 import { useAuthStore } from '@/store/auth-store';
 import { RoleShell } from '@/layouts/RoleShell';
 import { CUSTOMER_TABS, PLATFORM_TABS, VENDOR_TABS, WARD_TABS } from '@/layouts/role-tabs';
@@ -384,8 +384,22 @@ export function AppRouter() {
         <Route path="/ward-reviews" element={<LegacyWardReviewRedirect />} />
         <Route path="/ward-reviews/:kind/:id" element={<LegacyWardReviewRedirect />} />
 
-        <Route path="/auth/sign-in" element={<SignInScreen />} />
-        <Route path="/auth/register" element={<RegisterScreen />} />
+        <Route
+          path="/auth/sign-in"
+          element={
+            <GuestOnlyGuard>
+              <SignInScreen />
+            </GuestOnlyGuard>
+          }
+        />
+        <Route
+          path="/auth/register"
+          element={
+            <GuestOnlyGuard>
+              <RegisterScreen />
+            </GuestOnlyGuard>
+          }
+        />
         <Route path="/auth/verify-phone" element={<VerifyPhoneScreen />} />
         <Route path="/auth/password/reset-request" element={<ResetPasswordRequestScreen />} />
         <Route path="/auth/password/reset" element={<ResetPasswordScreen />} />

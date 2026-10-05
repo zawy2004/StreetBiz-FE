@@ -170,3 +170,14 @@ export async function apiGetBlob(url: string): Promise<Blob> {
 export function apiPathFromFileUrl(fileUrl: string): string {
   return fileUrl.startsWith('/api/') ? fileUrl.slice('/api'.length) : fileUrl;
 }
+
+/**
+ * Refreshes the access token, sharing the one in-flight refresh with the axios interceptor so a
+ * second client (side-api's fetch wrapper) never rotates the refresh token concurrently.
+ */
+export function refreshSession(): Promise<AuthTokens> {
+  refreshInFlight ??= refreshTokens().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}

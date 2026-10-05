@@ -11,6 +11,7 @@ import {
   type AuthResult,
   type RegisterPayload,
 } from '@/core/api';
+import { invalidateTokenCache, TOKEN_STORAGE_KEY } from '@/core/api/token-storage';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
 import type { MockUser } from '@/mocks/types';
@@ -166,3 +167,21 @@ else useAuthStore.persist.onFinishHydration(dropTokenlessUser);
 setSessionExpiredHandler(() => {
   useAuthStore.setState({ user: null, sessionExpired: true });
 });
+
+// Another tab signed in, signed out, or rotated the refresh token. The in-memory token copy
+// would otherwise go stale (a rotated refresh token is single-use, so using the old one would
+// look like token theft and end every session), and a tab left open after sign-out elsewhere
+// would keep showing a signed-in UI.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key !== TOKEN_STORAGE_KEY && event.key !== null) return;
+    invalidateTokenCache();
+    if (!isLiveApi) return;
+    const { user } = useAuthStore.getState();
+    if (user && !getTokens()) {
+      useAuthStore.setState({ user: null, sessionExpired: false });
+    } else if (!user && getTokens()) {
+      void useAuthStore.persist.rehydrate();
+    }
+  });
+}

@@ -50,3 +50,10 @@ export function clearTokens(): void {
 export function getAccessToken(): string | null {
   return getTokens()?.accessToken ?? null;
 }
+
+export const TOKEN_STORAGE_KEY = STORAGE_KEY;
+
+/** Forgets the in-memory copy so the next read sees what another tab wrote to localStorage. */
+export function invalidateTokenCache(): void {
+  cached = undefined;
+}
