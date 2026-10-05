@@ -1,169 +1,167 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 
-import { Button } from '@/components/common';
-import { TextField } from '@/components/forms';
-import { AppHeader, Screen, StickyActions } from '@/components/layout';
-import { isLiveApi } from '@/core/config/env';
-import { complianceApi } from '@/features/ward-administration/ward-api';
+import { AppHeader, Screen } from '@/components/layout';
+import { errorMessage } from '@/core/api';
+import { env, isLiveApi } from '@/core/config/env';
+import { MessageComposer } from '@/features/chat/components/MessageComposer';
+import { assistantApi, MAX_CONTEXT_LENGTH, MAX_QUESTION_LENGTH } from '../assistant-api';
 
-type Message = { id: string; from: 'BOT' | 'ME'; text: string; isAi?: boolean };
+type Message = { id: number; from: 'BOT' | 'ME'; text: string; isAi?: boolean; isError?: boolean };
 
 const QUICK_QUESTIONS = [
-  'Quy chuẩn chừa 1.5m lối đi bộ vỉa hè là gì?',
-  'Thủ tục cấp phép sử dụng tạm thời hè phố?',
-  'Cách tính phí sử dụng hè phố theo Luật Phí 2015?',
-  'Mức phạt vi phạm lấn chiếm theo Nghị định 168/2024?',
+  'Tôi cần chuẩn bị những giấy tờ gì để đăng ký?',
+  'Quy chuẩn chừa 1,5 m lối đi bộ trên vỉa hè là gì?',
+  'Thủ tục xin cấp phép sử dụng hè phố gồm những bước nào?',
+  'Mức phạt khi lấn chiếm hè phố là bao nhiêu?',
 ];
 
+/** Offline demo answers, clearly marked as simulated so they are never mistaken for the real service. */
 const MOCK_ANSWERS: Record<string, string> = {
-  '1.5m':
-    '[AI] Theo Điều 21 Nghị định 165/2024/NĐ-CP và Luật Đường bộ 2024, việc sử dụng tạm thời hè phố để kinh doanh chỉ được thực hiện khi chiều rộng vỉa hè đảm bảo chừa lại tối thiểu 1.5 mét thông thoáng, liên tục cho người đi bộ (bao gồm người khuyết tật). Phần diện tích còn lại mới được kẻ vạch sơn phân ô cấp phép.',
+  'giấy tờ':
+    'Cần ảnh hai mặt CCCD; cửa hàng cố định cần thêm giấy phép kinh doanh. Ảnh JPG, PNG, WEBP hoặc PDF, tối đa 5 MB mỗi tệp.',
+  '1,5':
+    'Việc sử dụng tạm thời hè phố để kinh doanh chỉ được thực hiện khi vỉa hè còn chừa tối thiểu 1,5 mét thông thoáng cho người đi bộ.',
   'thủ tục':
-    '[AI] Thủ tục xin cấp phép sử dụng tạm thời lòng đường, hè phố gồm 2 bước độc lập:\n1. Nộp hồ sơ Đăng ký điểm kinh doanh (có ảnh CCCD và giấy tờ liên quan) tại UBND Phường.\n2. Sau khi hồ sơ kinh doanh được phê duyệt (BR-16), bạn chọn ô vỉa hè phù hợp trên bản đồ và nộp Đơn xin cấp phép tạm thời. UBND Phường sẽ thẩm định và cấp Giấy phép số QR kèm Hợp đồng thuê.',
-  'phí':
-    '[AI] Mức thu phí sử dụng tạm thời lòng đường, hè phố được thực hiện theo Luật Phí và Lệ phí 2015 và Nghị quyết của HĐND thành phố Đà Nẵng. Phí được tính theo công thức: (Đơn giá ô/ngày) x (Số ngày thuê) x (Hệ số diện tích). Bạn có thể thanh toán trực tuyến qua MoMo, ZaloPay hoặc chuyển khoản ngân hàng.',
+    'Có hai bước: nộp hồ sơ đăng ký kinh doanh tại UBND phường, sau khi được duyệt thì chọn ô vỉa hè trên bản đồ và nộp đơn xin cấp phép.',
   'phạt':
-    '[AI] Theo Nghị định 168/2024/NĐ-CP (Điều 12), hành vi lấn chiếm hè phố để kinh doanh dịch vụ ngoài phạm vi được cấp phép bị phạt tiền từ 2.000.000đ đến 3.000.000đ đối với cá nhân (trung bình 2.500.000đ), đồng thời buộc di dời toàn bộ vật dụng, hàng hóa vi phạm và khôi phục lại tình trạng ban đầu của hè phố.',
+    'Mức phạt phụ thuộc vào hành vi và khung phạt của từng phường. Hãy xem bảng phạt phường công bố hoặc hỏi bộ phận một cửa.',
 };
 
+/** The last few turns, so a follow-up like "còn cửa hàng cố định thì sao?" has something to refer to. */
+function buildContext(messages: Message[], pageContext: string | undefined): string {
+  const recent = messages
+    .filter((m) => !m.isError)
+    .slice(-6)
+    .map((m) => `${m.from === 'ME' ? 'Hộ kinh doanh' : 'Trợ lý'}: ${m.text}`)
+    .join('\n');
+  return [pageContext, recent].filter(Boolean).join('\n').slice(-MAX_CONTEXT_LENGTH);
+}
+
+/** AIC-09: advisory onboarding chatbot. It never decides anything about a registration. */
 export function VendorAssistantScreen() {
+  // Switched off with VITE_ENABLE_AI_COMPLIANCE; nothing links here then, and a typed URL goes home.
+  if (!env.enableAiCompliance) return <Navigate to="/vendor/home" replace />;
+  return <Assistant />;
+}
+
+function Assistant() {
+  const location = useLocation();
+  const pageContext = (location.state as { context?: string } | null)?.context;
+
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: '0',
+      id: 0,
       from: 'BOT',
-      text: 'Xin chào! Tôi là Trợ lý AI StreetBiz (hỗ trợ bởi Groq LLM). Tôi có thể giải đáp các thắc mắc về Luật Đường bộ 2024, Nghị định 165/2024/NĐ-CP, quy chuẩn hè phố 1.5m, thủ tục cấp phép và mức phạt. Bạn cần hỏi điều gì?',
+      text: 'Xin chào! Tôi là trợ lý AI của StreetBiz. Tôi có thể giải đáp về giấy tờ đăng ký, quy chuẩn vỉa hè và thủ tục cấp phép. Câu trả lời chỉ mang tính tham khảo.',
       isAi: true,
     },
   ]);
-  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>();
+  const nextId = useRef(1);
+  const bottom = useRef<HTMLDivElement>(null);
 
-  const sendQuestion = async (q: string) => {
-    const questionText = q.trim();
-    if (!questionText || loading) return;
+  useEffect(() => {
+    bottom.current?.scrollIntoView?.({ block: 'end' });
+  }, [messages, loading]);
 
-    const userMsgId = `${Date.now()}`;
-    setMessages((prev) => [...prev, { id: userMsgId, from: 'ME', text: questionText }]);
-    setInput('');
+  const add = (message: Omit<Message, 'id'>) =>
+    setMessages((prev) => [...prev, { ...message, id: nextId.current++ }]);
+
+  const ask = async (raw: string) => {
+    const question = raw.trim();
+    if (!question || loading) return;
+    if (question.length > MAX_QUESTION_LENGTH) {
+      setError(`Câu hỏi không quá ${MAX_QUESTION_LENGTH} ký tự.`);
+      throw new Error('too long'); // keeps the draft in the composer
+    }
+
+    setError(undefined);
+    const context = buildContext(messages, pageContext);
+    add({ from: 'ME', text: question });
     setLoading(true);
-
     try {
       if (isLiveApi) {
-        const res = await complianceApi.askVendorAssistant(questionText);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `${Date.now()}-bot`,
-            from: 'BOT',
-            text: res.answer,
-            isAi: res.isAiGenerated,
-          },
-        ]);
+        const res = await assistantApi.ask(question, context);
+        add({ from: 'BOT', text: res.answer, isAi: res.isAiGenerated });
       } else {
-        // Mock response with fast simulation
-        await new Promise((r) => setTimeout(r, 600));
-        const matchedKey = Object.keys(MOCK_ANSWERS).find((k) =>
-          questionText.toLowerCase().includes(k),
-        );
-        const answer = matchedKey
-          ? MOCK_ANSWERS[matchedKey]!
-          : `[AI] Trợ lý StreetBiz: Về vấn đề "${questionText}", căn cứ theo Luật Đường bộ 2024 và Nghị định 165/2024/NĐ-CP, hộ kinh doanh phải tuân thủ nghiêm ngặt ranh giới ô được cấp phép, đảm bảo vệ sinh môi trường và chừa lối đi bộ tối thiểu 1.5m. Bạn có thể liên hệ trực tiếp Bộ phận Một cửa UBND Phường để được giải đáp cụ thể.`;
-
-        setMessages((prev) => [
-          ...prev,
-          { id: `${Date.now()}-bot`, from: 'BOT', text: answer, isAi: true },
-        ]);
-      }
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `${Date.now()}-err`,
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        const key = Object.keys(MOCK_ANSWERS).find((k) => question.toLowerCase().includes(k));
+        add({
           from: 'BOT',
-          text: 'Xin lỗi, không thể kết nối tới dịch vụ AI vào lúc này. Vui lòng thử lại sau ít phút.',
-        },
-      ]);
+          text: `(Mô phỏng, không gọi AI thật) ${key ? MOCK_ANSWERS[key] : 'Bạn có thể liên hệ bộ phận một cửa UBND phường để được giải đáp cụ thể.'}`,
+        });
+      }
+    } catch (err) {
+      add({ from: 'BOT', text: `Không nhận được câu trả lời: ${errorMessage(err)}`, isError: true });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex h-full flex-1 flex-col">
-      <Screen
-        footer={
-          <StickyActions>
-            <div className="flex-1">
-              <TextField
-                value={input}
-                onChangeText={setInput}
-                placeholder={loading ? 'Trợ lý AI đang suy nghĩ...' : 'Nhập câu hỏi pháp lý, thủ tục...'}
-              />
-            </div>
-            <Button
-              label={loading ? '...' : 'Gửi'}
-              fullWidth={false}
-              disabled={loading || !input.trim()}
-              onPress={() => sendQuestion(input)}
-            />
-          </StickyActions>
-        }
-      >
-        <AppHeader
-          title="Trợ lý AI StreetBiz"
-          subtitle="Tư vấn quy chuẩn vỉa hè & Pháp lý đô thị [AI · Groq LLM]"
-          back
-        />
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <Screen>
+          <AppHeader title="Trợ lý đăng ký" subtitle="Giải đáp giấy tờ, quy chuẩn vỉa hè và thủ tục" back />
 
-        {/* Quick Question Chips */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-body-xs font-semibold text-muted">Gợi ý câu hỏi nhanh:</span>
-          <div className="flex flex-row flex-wrap gap-1.5">
-            {QUICK_QUESTIONS.map((q) => (
-              <button
-                key={q}
-                type="button"
-                className="rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-left text-body-xs font-medium text-primary-ink hover:bg-primary/15"
-                onClick={() => sendQuestion(q)}
-              >
-                💬 {q}
-              </button>
-            ))}
+          <div className="flex flex-col gap-xs">
+            <span className="text-label text-muted">Gợi ý câu hỏi</span>
+            <div className="flex flex-row flex-wrap gap-xs">
+              {QUICK_QUESTIONS.map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => ask(q)}
+                  className="rounded-full border border-border bg-card px-sm py-xs text-left text-body-sm text-text hover:bg-bg disabled:opacity-50"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Chat Messages */}
-        <div className="mt-sm flex flex-col gap-sm">
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className={[
-                'max-w-[90%] rounded-2xl p-sm shadow-sm',
-                m.from === 'ME'
-                  ? 'self-end bg-primary-solid text-white'
-                  : 'self-start border border-border bg-card text-text',
-              ].join(' ')}
-            >
-              {m.isAi ? (
-                <span className="mb-1 block text-body-xs font-semibold text-primary-ink">
-                  ✦ Trợ lý Groq AI
-                </span>
-              ) : null}
-              <span className="whitespace-pre-line text-body-md">{m.text}</span>
-            </div>
-          ))}
+          {/* A polite live region: new answers are announced without stealing focus. */}
+          <div role="log" aria-live="polite" aria-label="Cuộc trò chuyện" className="mt-sm flex flex-col gap-sm">
+            {messages.map((m) => (
+              <div
+                key={m.id}
+                className={[
+                  'max-w-[90%] rounded-2xl p-sm',
+                  m.from === 'ME'
+                    ? 'self-end bg-primary-solid text-white'
+                    : m.isError
+                      ? 'self-start border border-error/40 bg-card text-error-ink'
+                      : 'self-start border border-border bg-card text-text',
+                ].join(' ')}
+              >
+                {m.isAi ? (
+                  <span className="mb-1 block text-label text-primary-ink">Trợ lý AI · chỉ để tham khảo</span>
+                ) : null}
+                <span className="whitespace-pre-line text-body-md">{m.text}</span>
+              </div>
+            ))}
+            {loading ? (
+              <div className="self-start rounded-2xl border border-border bg-card p-sm text-body-sm text-muted">
+                <span className="animate-pulse">Trợ lý đang soạn câu trả lời…</span>
+              </div>
+            ) : null}
+            <div ref={bottom} />
+          </div>
 
-          {loading ? (
-            <div className="self-start rounded-2xl border border-border bg-card p-sm text-body-sm text-muted">
-              <span className="animate-pulse">✦ Trợ lý Groq AI đang tra cứu quy định pháp luật...</span>
-            </div>
-          ) : null}
-        </div>
-
-        <p className="mt-4 text-center text-body-xs text-muted">
-          * Ý kiến tư vấn của AI mang tính tham khảo. Thẩm quyền cấp phép và xử phạt thuộc UBND Phường theo Luật Đường bộ 2024.
-        </p>
-      </Screen>
+          <p className="mt-md text-center text-body-sm text-muted">
+            Thẩm quyền xét duyệt hồ sơ và xử phạt thuộc UBND phường. Trợ lý không thể duyệt, từ chối hay thay đổi hồ sơ của bạn.
+          </p>
+        </Screen>
+      </div>
+      <MessageComposer
+        sending={loading}
+        error={error}
+        placeholder="Nhập câu hỏi, ví dụ: tôi cần giấy tờ gì?"
+        onSend={ask}
+      />
     </div>
   );
 }

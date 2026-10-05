@@ -6,6 +6,7 @@ import { CHAT_MESSAGE_MAX_LENGTH } from '../types/chat.types';
 
 type Props = {
   sending?: boolean;
+  placeholder?: string;
   error?: string;
   /** Rejects when the message could not be sent, so the draft survives. */
   onSend: (body: string) => Promise<unknown>;
@@ -18,7 +19,7 @@ type Props = {
  * input shell instead of `TextField`, so the label-column grid `.field` picks up
  * inside a `.cq` container can never squeeze the box either.
  */
-export function MessageComposer({ sending, error, onSend }: Props) {
+export function MessageComposer({ sending, error, onSend, placeholder = 'Nhập tin nhắn…' }: Props) {
   const [draft, setDraft] = useState('');
   const body = draft.trim();
   const canSend = Boolean(body) && !sending;
@@ -42,7 +43,7 @@ export function MessageComposer({ sending, error, onSend }: Props) {
           <input
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="Nhập tin nhắn…"
+            placeholder={placeholder}
             maxLength={CHAT_MESSAGE_MAX_LENGTH}
             aria-label="Nội dung tin nhắn"
             className={`${inputShellClass()} h-12 min-w-0 flex-1 px-sm text-body-lg text-text placeholder:text-muted/80 disabled:cursor-not-allowed disabled:bg-sunken disabled:text-muted`}

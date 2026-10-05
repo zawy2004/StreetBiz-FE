@@ -19,6 +19,13 @@ import {
   evidenceFileProblem,
   useNewRegistrationStore,
 } from '../new-registration-store';
+import {
+  SCAN_FIELD_LABELS,
+  displayScanValue,
+  planScanMerge,
+  type ScanField,
+  type ScanSuggestion,
+} from '../id-card-merge';
 
 /**
  * REG-02 eKYC capture: both sides of the CCCD (OCR pre-fills the Mẫu số 01 fields below) plus
@@ -36,6 +43,12 @@ export function IdCardScanner() {
   const [extraction, setExtraction] = useState<KycIdCardExtraction | null>(null);
   const [faceMatch, setFaceMatch] = useState<KycFaceMatchResult | null>(null);
   const [error, setError] = useState<string>();
+  // Fields the scan filled in (so they can be double-checked) and values that disagree with what
+  // the user typed (offered as a choice, never applied silently).
+  const [filled, setFilled] = useState<ScanField[]>([]);
+  const [conflicts, setConflicts] = useState<ScanSuggestion[]>([]);
+  // Files still travelling to the server; the scan needs the stored URL, not the local picture.
+  const [uploading, setUploading] = useState(0);
 
   const photo = (type: ApiEvidenceType) => draft.evidence.find((e) => e.evidenceType === type);
   const front = photo(EVIDENCE_TYPE.identityDocument);
@@ -48,22 +61,43 @@ export function IdCardScanner() {
     setError(undefined);
     if (!isLiveApi) return;
 
+    setUploading((n) => n + 1);
     try {
-      const uploaded = await vendorRegistrationApi.uploadEvidenceFile(file);
-      draft.patchEvidence(type, { uploadedUrl: uploaded.fileUrl });
+      const uploaded = await vendorRegistrationApi.uploadEvidenceFile(file, (progress) =>
+        draft.patchEvidence(type, { progress }),
+      );
+      draft.patchEvidence(type, { uploadedUrl: uploaded.fileUrl, progress: 1 });
     } catch (err) {
       setError(errorMessage(err));
+    } finally {
+      setUploading((n) => n - 1);
     }
   };
 
   const applyExtraction = (result: KycIdCardExtraction) => {
-    if (result.dateOfBirth) draft.setField('ownerDateOfBirth', result.dateOfBirth);
-    if (result.gender) draft.setField('ownerGender', result.gender);
-    if (result.nationality) draft.setField('ownerNationality', result.nationality);
-    if (result.ethnicity) draft.setField('ownerEthnicity', result.ethnicity);
-    if (result.permanentAddress) draft.setField('permanentAddress', result.permanentAddress);
-    if (result.idIssuedDate) draft.setField('idIssuedDate', result.idIssuedDate);
-    if (result.idIssuedPlace) draft.setField('idIssuedPlace', result.idIssuedPlace);
+    const { fill, conflicts: disagreements } = planScanMerge(
+      {
+        ownerDateOfBirth: draft.ownerDateOfBirth,
+        ownerGender: draft.ownerGender,
+        ownerNationality: draft.ownerNationality,
+        ownerEthnicity: draft.ownerEthnicity,
+        permanentAddress: draft.permanentAddress,
+        idIssuedDate: draft.idIssuedDate,
+        idIssuedPlace: draft.idIssuedPlace,
+      },
+      result,
+    );
+    for (const [field, value] of Object.entries(fill) as [ScanField, string][]) {
+      draft.setField(field, value as never);
+    }
+    setFilled(Object.keys(fill) as ScanField[]);
+    setConflicts(disagreements);
+  };
+
+  const acceptSuggestion = (suggestion: ScanSuggestion) => {
+    draft.setField(suggestion.field, suggestion.suggested as never);
+    setFilled((current) => [...new Set([...current, suggestion.field])]);
+    setConflicts((current) => current.filter((c) => c.field !== suggestion.field));
   };
 
   const scan = async () => {
@@ -71,8 +105,12 @@ export function IdCardScanner() {
       setError('Vui lòng đồng ý cho phép đối soát dữ liệu sinh trắc học trước khi quét CCCD.');
       return;
     }
-    if (!front?.uploadedUrl) {
+    if (!front) {
       setError('Vui lòng tải ảnh mặt trước CCCD.');
+      return;
+    }
+    if (!front.uploadedUrl) {
+      setError(uploading > 0 ? 'Ảnh đang được tải lên, vui lòng chờ vài giây rồi thử lại.' : 'Không tải được ảnh mặt trước CCCD. Vui lòng chọn lại ảnh.');
       return;
     }
 
@@ -129,7 +167,7 @@ export function IdCardScanner() {
     <Card>
       <div className="flex flex-col gap-sm">
         <div>
-          <p className="text-headline-sm text-text">Quét CCCD để tự động điền [AI]</p>
+          <p className="text-headline-sm text-text">Quét CCCD để tự động điền</p>
           <p className="mt-1 text-body-sm text-muted">
             Tải ảnh <strong>cả hai mặt</strong> CCCD: mặt trước có số, họ tên, ngày sinh, giới tính,
             quốc tịch, địa chỉ; mặt sau có dân tộc, ngày cấp và nơi cấp. Thông tin đọc được chỉ là
@@ -156,6 +194,8 @@ export function IdCardScanner() {
           <PhotoPicker
             label={EVIDENCE_LABELS[EVIDENCE_TYPE.identityDocument]}
             uri={front?.uri}
+            progress={front?.progress}
+            uploaded={Boolean(front?.uploadedUrl)}
             validate={evidenceFileProblem}
             onInvalid={setError}
             onChange={(uri, file) => pick(EVIDENCE_TYPE.identityDocument, uri, file)}
@@ -164,6 +204,8 @@ export function IdCardScanner() {
           <PhotoPicker
             label={EVIDENCE_LABELS[EVIDENCE_TYPE.identityDocumentBack]}
             uri={back?.uri}
+            progress={back?.progress}
+            uploaded={Boolean(back?.uploadedUrl)}
             validate={evidenceFileProblem}
             onInvalid={setError}
             onChange={(uri, file) => pick(EVIDENCE_TYPE.identityDocumentBack, uri, file)}
@@ -172,6 +214,8 @@ export function IdCardScanner() {
           <PhotoPicker
             label={EVIDENCE_LABELS[EVIDENCE_TYPE.portraitSelfie]}
             uri={selfie?.uri}
+            progress={selfie?.progress}
+            uploaded={Boolean(selfie?.uploadedUrl)}
             validate={evidenceFileProblem}
             onInvalid={setError}
             onChange={(uri, file) => pick(EVIDENCE_TYPE.portraitSelfie, uri, file)}
@@ -186,6 +230,7 @@ export function IdCardScanner() {
               variant="outline"
               fullWidth={false}
               loading={scanning}
+              disabled={uploading > 0}
               onPress={scan}
             />
             <Button
@@ -203,8 +248,32 @@ export function IdCardScanner() {
         )}
 
         {extraction ? (
-          <AiHint title="Kết quả đọc CCCD [AI - FPT.AI]">
+          <AiHint title="Kết quả đọc CCCD (AI, chỉ để tham khảo)">
             <p>{extraction.summary}</p>
+            <p className="mt-1 text-body-sm text-muted">
+              Độ tin cậy {Math.round(extraction.confidencePercent)}%
+              {extraction.needsManualVerification ? ' · cần kiểm tra kỹ từng trường' : ''}
+            </p>
+            {filled.length > 0 ? (
+              <p className="mt-1 text-body-sm text-text">
+                Đã điền: {filled.map((f) => SCAN_FIELD_LABELS[f]).join(', ')}. Vui lòng kiểm tra lại.
+              </p>
+            ) : null}
+            {conflicts.length > 0 ? (
+              <div className="mt-sm flex flex-col gap-xs">
+                <p className="text-body-sm text-text">Khác với nội dung bạn đã nhập, giữ nguyên cho đến khi bạn chọn:</p>
+                {conflicts.map((c) => (
+                  <div key={c.field} className="flex items-center justify-between gap-sm rounded-sm border border-border bg-card p-xs">
+                    <div className="min-w-0 text-body-sm">
+                      <p className="text-muted">{SCAN_FIELD_LABELS[c.field]}</p>
+                      <p className="text-text">Bạn nhập: {displayScanValue(c.field, c.current)}</p>
+                      <p className="text-text">Đọc được: {displayScanValue(c.field, c.suggested)}</p>
+                    </div>
+                    <Button label="Dùng giá trị đọc được" variant="outline" fullWidth={false} onPress={() => acceptSuggestion(c)} />
+                  </div>
+                ))}
+              </div>
+            ) : null}
             {extraction.warnings.length > 0 ? (
               <ul className="mt-1 list-disc pl-4 text-body-sm text-error-ink">
                 {extraction.warnings.map((w, i) => (
@@ -216,7 +285,7 @@ export function IdCardScanner() {
         ) : null}
 
         {faceMatch ? (
-          <AiHint title="Đối chiếu khuôn mặt [AI - FPT.AI]">
+          <AiHint title="Đối chiếu khuôn mặt (AI, chỉ để tham khảo)">
             <p>{faceMatch.summary}</p>
             {faceMatch.warnings.length > 0 ? (
               <ul className="mt-1 list-disc pl-4 text-body-sm text-error-ink">

@@ -474,12 +474,6 @@ export const complianceApi = {
   aiEncroachmentCheck: (photoUrl: string, slotWidth?: number, slotLength?: number) =>
     apiPost<AiEncroachment>('/ward/ai/encroachment-check', { photoUrl, slotWidth, slotLength }),
 
-  askVendorAssistant: (question: string, context?: string) =>
-    apiPost<{ answer: string; isAiGenerated: boolean }>('/ward/ai/vendor-assistant', {
-      question,
-      context,
-    }),
-
   /** Shared with REG-02; UploadsController also authorizes WARD_AUTHORITY for WARD-11/12 evidence. */
   uploadEvidence: (file: File): Promise<{ fileUrl: string }> => {
     const form = new FormData();

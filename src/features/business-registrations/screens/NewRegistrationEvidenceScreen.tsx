@@ -126,20 +126,12 @@ export function NewRegistrationEvidenceScreen() {
       </div>
 
       {slots.includes(EVIDENCE_TYPE.identityDocument) ? (
-        <label className="flex items-start gap-sm rounded-sm border border-border bg-card p-md">
-          <input
-            type="checkbox"
-            className="mt-1 h-4 w-4 shrink-0"
-            checked={draft.biometricConsent}
-            onChange={(e) => draft.setField('biometricConsent', e.target.checked)}
-          />
-          <span className="text-body-sm text-text">
-            Tôi đồng ý <strong>riêng biệt</strong> để hệ thống dùng công nghệ nhận diện quang học
-            (OCR) đối soát ảnh CCCD/CMND theo Luật Bảo vệ dữ liệu cá nhân 2025 (Nghị định
-            356/2025/NĐ-CP). Không đồng ý vẫn nộp hồ sơ được — cán bộ phường sẽ đối chiếu giấy tờ
-            thủ công thay vì tự động.
-          </span>
-        </label>
+        // The one consent checkbox lives with the ID scanner (step 3); here it is only reflected.
+        <p className="text-body-sm text-muted">
+          {draft.biometricConsent
+            ? 'Bạn đã đồng ý cho hệ thống đối soát ảnh CCCD bằng công nghệ nhận dạng (đổi ở bước 3).'
+            : 'Bạn chưa đồng ý đối soát ảnh CCCD tự động; cán bộ phường sẽ đối chiếu giấy tờ thủ công (có thể đổi ở bước 3).'}
+        </p>
       ) : null}
 
       <FormAlert message={error} />

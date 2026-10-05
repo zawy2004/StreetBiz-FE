@@ -5,6 +5,7 @@ import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
 import { errorMessage } from '@/core/api';
+import { env } from '@/core/config/env';
 import { vendorTypeLabel } from '../labels';
 import { useNewRegistrationStore } from '../new-registration-store';
 import { useRegistrations } from '../useRegistrations';
@@ -65,6 +66,13 @@ export function RegistrationsListScreen() {
     >
       <AppHeader title="Đăng ký kinh doanh" back />
       {body()}
+      {env.enableAiCompliance ? (
+        <Button
+          label="Hỏi trợ lý về hồ sơ đăng ký"
+          variant="ghost"
+          onPress={() => navigate('/vendor/assistant', { state: { context: 'Hộ kinh doanh đang xem danh sách hồ sơ đăng ký.' } })}
+        />
+      ) : null}
     </Screen>
   );
 }
