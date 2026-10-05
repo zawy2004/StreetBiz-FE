@@ -1,3 +1,4 @@
+import { vendorTypeLabel } from '@/features/business-registrations/labels';
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -161,6 +162,8 @@ type QueueItem = {
   status: string;
   riskScore: number;
   fastTrack?: boolean;
+  /** Registration files only: lets the queue be narrowed to one vendor type. */
+  vendorType?: string;
   riskBreakdown: (string | { reason: string; points: number })[];
   onPress: () => void;
 };
@@ -245,11 +248,14 @@ function LiveInboxScreen() {
   const [riskQueue, setRiskQueue] = useState<WardRiskQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState<'ALL' | 'REG' | 'RENTAL' | 'RENEWAL' | 'FAST_RENEWAL'>('ALL');
+  const [vendorType, setVendorType] = useState<'ANY' | 'FIXED_STOREFRONT' | 'ITINERANT'>('ANY');
 
   const reload = () => {
     setLoading(true);
     return Promise.allSettled([
-      complianceApi.listEnrollments(),
+      // Only files still waiting for the ward; approved and rejected ones are history, not queue.
+      complianceApi.listEnrollments('SUBMITTED'),
+      complianceApi.listEnrollments('UNDER_REVIEW'),
       complianceApi.listRentalApplications('PENDING'),
       complianceApi.listRentalApplications('UNDER_REVIEW'),
       complianceApi.listRentalApplications('MORE_INFORMATION_REQUIRED'),
@@ -257,8 +263,11 @@ function LiveInboxScreen() {
       complianceApi.listRenewals('UNDER_REVIEW'),
       complianceApi.riskQueue(),
     ])
-      .then(([enrollRes, pendingAppRes, reviewingAppRes, moreInfoAppRes, pendingRenewalRes, reviewingRenewalRes, riskRes]) => {
-        if (enrollRes.status === 'fulfilled') setEnrollments(enrollRes.value);
+      .then(([enrollRes, reviewingEnrollRes, pendingAppRes, reviewingAppRes, moreInfoAppRes, pendingRenewalRes, reviewingRenewalRes, riskRes]) => {
+        setEnrollments([
+          ...(enrollRes.status === 'fulfilled' ? enrollRes.value : []),
+          ...(reviewingEnrollRes.status === 'fulfilled' ? reviewingEnrollRes.value : []),
+        ]);
         const mergedApps = [
           ...(pendingAppRes.status === 'fulfilled' ? pendingAppRes.value : []),
           ...(reviewingAppRes.status === 'fulfilled' ? reviewingAppRes.value : []),
@@ -286,8 +295,10 @@ function LiveInboxScreen() {
         key: `REG-${r.id}`,
         category: 'REG',
         title: r.displayName || r.ownerName || `Hồ sơ #${r.id}`,
-        subtitle: `Đăng ký điểm bán · ${r.vendorType === 'FIXED_STOREFRONT' ? 'Cửa hàng cố định' : 'Hàng rong lưu động'}${r.fastTrack ? ' · Ưu tiên xét nhanh' : ''}`,
+        subtitle: `Đăng ký điểm bán · ${vendorTypeLabel(r.vendorType)}${r.status === 'UNDER_REVIEW' ? ' · Đang xem xét' : ''}${r.fastTrack ? ' · Ưu tiên' : ''}`,
         status: r.status,
+        vendorType: r.vendorType,
+        fastTrack: r.fastTrack,
         riskScore: risk?.score ?? 0,
         riskBreakdown: risk?.breakdown ?? [],
         onPress: () => navigate(`/ward/inbox/registrations/${r.id}`),
@@ -332,11 +343,16 @@ function LiveInboxScreen() {
     return [...regItems, ...rentalAppItems, ...renewalItems].sort((a, b) => b.riskScore - a.riskScore);
   }, [enrollments, rentalApplications, renewals, riskQueue, navigate]);
 
-  const visible = category === 'ALL'
-    ? items
-    : category === 'FAST_RENEWAL'
-      ? items.filter((i) => i.category === 'RENEWAL' && i.fastTrack)
-      : items.filter((i) => i.category === category);
+  // The vendor-type chips narrow registration files only; rentals and renewals are unaffected.
+  const byType = (list: QueueItem[]) =>
+    vendorType === 'ANY' ? list : list.filter((i) => i.category !== 'REG' || i.vendorType === vendorType);
+  const visible = byType(
+    category === 'ALL'
+      ? items
+      : category === 'FAST_RENEWAL'
+        ? items.filter((i) => i.category === 'RENEWAL' && i.fastTrack)
+        : items.filter((i) => i.category === category),
+  );
   const regCount = items.filter((i) => i.category === 'REG').length;
   const rentalCount = items.filter((i) => i.category === 'RENTAL').length;
   const renewalCount = items.filter((i) => i.category === 'RENEWAL').length;
@@ -379,17 +395,30 @@ function LiveInboxScreen() {
           loading={loading}
           emptyTitle="Không có hồ sơ cần xử lý"
           toolbar={
-            <FilterChips
-              value={category}
-              onChange={setCategory}
-              options={[
-                { value: 'ALL', label: 'Tất cả' },
-                { value: 'REG', label: 'Đăng ký điểm bán', count: regCount },
-                { value: 'RENTAL', label: 'Cấp phép hè phố', count: rentalCount },
-                { value: 'RENEWAL', label: 'Gia hạn', count: renewalCount },
-                { value: 'FAST_RENEWAL', label: '[AI] Xét nhanh', count: fastRenewalCount },
-              ]}
-            />
+            <div className="flex flex-col gap-xs">
+              <FilterChips
+                value={category}
+                onChange={setCategory}
+                options={[
+                  { value: 'ALL', label: 'Tất cả' },
+                  { value: 'REG', label: 'Đăng ký điểm bán', count: regCount },
+                  { value: 'RENTAL', label: 'Cấp phép hè phố', count: rentalCount },
+                  { value: 'RENEWAL', label: 'Gia hạn', count: renewalCount },
+                  { value: 'FAST_RENEWAL', label: 'Xét nhanh (gợi ý)', count: fastRenewalCount },
+                ]}
+              />
+              {category === 'REG' ? (
+                <FilterChips
+                  value={vendorType}
+                  onChange={setVendorType}
+                  options={[
+                    { value: 'ANY', label: 'Mọi loại hình' },
+                    { value: 'FIXED_STOREFRONT', label: 'Cửa hàng cố định' },
+                    { value: 'ITINERANT', label: 'Bán hàng lưu động' },
+                  ]}
+                />
+              ) : null}
+            </div>
           }
         />
       </Section>

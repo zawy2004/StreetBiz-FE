@@ -10,7 +10,8 @@ import { ConfirmDialog, ErrorState, LoadingState, showToast } from '@/components
 import { EvidencePreview } from '@/features/business-registrations/components/EvidencePreview';
 import { env, isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
-import { complianceApi, type WardEnrollmentDetail } from '../ward-api';
+import { vendorTypeLabel } from '@/features/business-registrations/labels';
+import { complianceApi, type FastTrackCheck, type WardEnrollmentDetail } from '../ward-api';
 
 type Decision = 'APPROVE' | 'REJECT' | 'MORE_INFO';
 
@@ -69,6 +70,7 @@ export function RegistrationReviewScreen() {
   const [pendingDecision, setPendingDecision] = useState<Decision | null>(null);
   const [deciding, setDeciding] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [fastTrackCheck, setFastTrackCheck] = useState<FastTrackCheck | null>(null);
   // AI Check State (Live or Mock)
   const [customAiCheck, setCustomAiCheck] = useState<WardEnrollmentDetail['aiCheck']>(null);
   const [ocrRunning, setOcrRunning] = useState(false);
@@ -93,6 +95,21 @@ export function RegistrationReviewScreen() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  // REG-06 is a hint; if it cannot be loaded the panel is simply absent and the review goes on.
+  useEffect(() => {
+    if (!isLiveApi || !id) return;
+    let cancelled = false;
+    complianceApi
+      .getFastTrackCheck(id)
+      .then((check) => {
+        if (!cancelled) setFastTrackCheck(check);
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
@@ -356,6 +373,29 @@ export function RegistrationReviewScreen() {
         </AiHint>
       ) : null}
 
+      {fastTrackCheck ? (
+        <Section
+          title="Điều kiện xét nhanh"
+          description="Gợi ý để sắp xếp hồ sơ, không thay cho quyết định của cán bộ."
+        >
+          <Card>
+            <p className="mb-xs text-body-md text-text">
+              {fastTrackCheck.eligible ? 'Hồ sơ đáp ứng đủ điều kiện xét nhanh.' : 'Hồ sơ chưa đủ điều kiện xét nhanh.'}
+            </p>
+            <ul className="flex flex-col gap-2xs">
+              {fastTrackCheck.criteria.map((c) => (
+                <li key={c.code} className="flex items-start justify-between gap-sm text-body-sm">
+                  <span className="text-text">{c.label}</span>
+                  <span className={c.passed ? 'shrink-0 text-tertiary-ink' : 'shrink-0 text-muted'}>
+                    {c.passed ? 'Đạt' : 'Chưa đạt'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </Section>
+      ) : null}
+
       <Section title="Thông tin điểm kinh doanh vỉa hè">
         <Card padded={false}>
           <div className="px-md">
@@ -366,14 +406,7 @@ export function RegistrationReviewScreen() {
               subtitle={idNumber ? `${idNumber} (CCCD 12 số)` : 'Chưa có thông tin CCCD'}
             />
             <Divider />
-            <ListRow
-              title="Loại hình kinh doanh"
-              subtitle={
-                vendorType === 'FIXED_STOREFRONT'
-                  ? 'Cửa hàng cố định (Kê khai vỉa hè liền kề)'
-                  : 'Bán hàng lưu động (Đăng ký vị trí vỉa hè mở)'
-              }
-            />
+            <ListRow title="Loại hình kinh doanh" subtitle={vendorTypeLabel(vendorType)} />
             <Divider />
             <ListRow title="Địa chỉ kinh doanh / Điểm bán" subtitle={address} />
           </div>

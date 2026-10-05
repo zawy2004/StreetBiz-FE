@@ -349,6 +349,11 @@ export type WardRenewalDetail = WardRenewalItem & {
   scorecard: WardVendorComplianceScorecard;
 };
 
+export type FastTrackCheck = {
+  eligible: boolean;
+  criteria: { code: string; label: string; passed: boolean }[];
+};
+
 export const complianceApi = {
   listEnrollments: (status?: string, page = 1) =>
     apiGet<WardEnrollmentItem[]>(
@@ -357,6 +362,8 @@ export const complianceApi = {
   getEnrollment: (id: string) => apiGet<WardEnrollmentDetail>(`/ward/enrollments/${id}`),
   /** WARD-04: take a SUBMITTED file into review; the vendor can no longer edit it. */
   claimEnrollment: (id: string) => apiPost<WardEnrollmentDetail>(`/ward/enrollments/${id}/claim`),
+  /** REG-06: which fast-track conditions a registration meets (advisory only). */
+  getFastTrackCheck: (id: string) => apiGet<FastTrackCheck>(`/ward/enrollments/${id}/fast-track-check`),
   decideEnrollment: (id: string, decision: string, reason: string, expectedStatus: string) =>
     apiPost<WardEnrollmentDetail>(`/ward/enrollments/${id}/decision`, {
       decision,
