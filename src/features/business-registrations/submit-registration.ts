@@ -2,24 +2,31 @@ import { EVIDENCE_TYPE, vendorRegistrationApi, type ApiRegistration, type Regist
 import { parseVndAmount, useNewRegistrationStore } from './new-registration-store';
 
 /**
- * REG-01/02/04 submission against StreetBiz-BE, in three resumable steps:
+ * REG-01/02/04 against StreetBiz-BE, in resumable steps:
  *
- * 1. upload every picked file (nothing is created if a file is rejected);
- * 2. create the registration — or update it when editing (REG-04);
- * 3. attach each uploaded file as evidence.
+ * 1. upload every picked file, in parallel (nothing is created if a file is rejected);
+ * 2. create the registration as a DRAFT -- or update it when editing (REG-04);
+ * 3. attach each uploaded file as evidence, replacing a document of the same type already on file;
+ * 4. file the draft with the ward (only for `submitRegistrationDraft`; `saveRegistrationDraft`
+ *    stops before this so the vendor can come back to it).
  *
- * Progress is written back to the wizard store as it happens, so if step 2 or 3
- * fails, pressing submit again skips what already succeeded. Without that a
- * retry would create a second application and hit BR-09.
+ * Progress is written back to the wizard store as it happens, so if a step fails, pressing
+ * submit again skips what already succeeded. Without that a retry would create a second
+ * application and hit BR-09.
  */
-export async function submitRegistrationDraft(): Promise<ApiRegistration> {
+async function saveRegistration(): Promise<ApiRegistration> {
   const store = useNewRegistrationStore.getState;
 
-  for (const item of store().evidence) {
-    if (item.uploadedUrl || !item.file) continue;
-    const uploaded = await vendorRegistrationApi.uploadEvidenceFile(item.file);
-    store().patchEvidence(item.evidenceType, { uploadedUrl: uploaded.fileUrl });
-  }
+  await Promise.all(
+    store()
+      .evidence.filter((item) => !item.uploadedUrl && item.file)
+      .map(async (item) => {
+        const uploaded = await vendorRegistrationApi.uploadEvidenceFile(item.file!, (progress) =>
+          store().patchEvidence(item.evidenceType, { progress }),
+        );
+        store().patchEvidence(item.evidenceType, { uploadedUrl: uploaded.fileUrl, progress: 1 });
+      }),
+  );
 
   const draft = store();
   if (!draft.displayName.trim() || !draft.wardUnitId) {
@@ -71,18 +78,39 @@ export async function submitRegistrationDraft(): Promise<ApiRegistration> {
     store().setField('createdRegistrationId', registration.registrationId);
   }
 
-  for (const item of store().evidence) {
-    if (item.attached || !item.uploadedUrl) continue;
-    await vendorRegistrationApi.submitEvidence(registration.registrationId, {
-      evidenceType: item.evidenceType,
-      fileUrl: item.uploadedUrl,
-      ocrExtractedData: null,
-      // Only meaningful for the ID photo -- ward's AI-OCR document check reads this,
-      // never inferred from other checkboxes.
-      biometricConsent: item.evidenceType === EVIDENCE_TYPE.identityDocument && draft.biometricConsent,
-    });
-    store().patchEvidence(item.evidenceType, { attached: true });
+  const pending = store().evidence.filter((item) => !item.attached && item.uploadedUrl);
+  if (pending.length > 0) {
+    // A document of the same type already on file is replaced, not duplicated.
+    const onFile =
+      existingId !== null ? (await vendorRegistrationApi.get(registration.registrationId)).evidence : [];
+    for (const item of pending) {
+      for (const old of onFile.filter((e) => e.evidenceType === item.evidenceType)) {
+        await vendorRegistrationApi.removeEvidence(registration.registrationId, old.evidenceId);
+      }
+      await vendorRegistrationApi.submitEvidence(registration.registrationId, {
+        evidenceType: item.evidenceType,
+        fileUrl: item.uploadedUrl!,
+        ocrExtractedData: null,
+        // Only meaningful for the ID photo -- ward's AI-OCR document check reads this,
+        // never inferred from other checkboxes.
+        biometricConsent: item.evidenceType === EVIDENCE_TYPE.identityDocument && draft.biometricConsent,
+      });
+      store().patchEvidence(item.evidenceType, { attached: true });
+    }
   }
 
+  return registration;
+}
+
+/** Saves everything entered so far without sending it to the ward. */
+export const saveRegistrationDraft = saveRegistration;
+
+/** Saves, then files the registration with the ward when it is still a draft. */
+export async function submitRegistrationDraft(): Promise<ApiRegistration> {
+  const registration = await saveRegistration();
+  // Editing a filed registration (REG-04) is re-filed by the update itself.
+  if (registration.registrationStatus === 'DRAFT') {
+    return vendorRegistrationApi.file(registration.registrationId);
+  }
   return registration;
 }

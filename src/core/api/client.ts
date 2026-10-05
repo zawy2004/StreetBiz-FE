@@ -150,10 +150,17 @@ export async function apiDelete<T>(url: string): Promise<T> {
 }
 
 /** Multipart upload. The explicit content type stops axios turning FormData into JSON. */
-export async function apiUpload<T>(url: string, form: FormData): Promise<T> {
+export async function apiUpload<T>(
+  url: string,
+  form: FormData,
+  onProgress?: (fraction: number) => void,
+): Promise<T> {
   const { data } = await http.post<T>(url, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 60_000,
+    onUploadProgress: onProgress
+      ? (event) => onProgress(event.total ? Math.min(1, event.loaded / event.total) : 0)
+      : undefined,
   });
   return data;
 }

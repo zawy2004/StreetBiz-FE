@@ -1,4 +1,4 @@
-import { apiGet, apiGetBlob, apiPathFromFileUrl, apiPost, apiPut, apiUpload } from './client';
+import { apiDelete, apiGet, apiGetBlob, apiPathFromFileUrl, apiPost, apiPut, apiUpload } from './client';
 
 /**
  * Mirrors StreetBiz-BE `VendorRegistrationController` (REG-01…REG-05).
@@ -183,10 +183,10 @@ export const vendorRegistrationApi = {
     apiGet<ApiRegistrationDetail>(`/vendor/registrations/${registrationId}`),
 
   /** Stores a document and returns the URL to attach with `submitEvidence`. */
-  uploadEvidenceFile: (file: File) => {
+  uploadEvidenceFile: (file: File, onProgress?: (fraction: number) => void) => {
     const form = new FormData();
     form.append('file', file);
-    return apiUpload<UploadedFile>('/uploads/evidence', form);
+    return apiUpload<UploadedFile>('/uploads/evidence', form, onProgress);
   },
 
   /** Evidence files require the bearer token, so they are fetched rather than linked. */
@@ -196,9 +196,21 @@ export const vendorRegistrationApi = {
   submitEvidence: (registrationId: number, payload: EvidencePayload) =>
     apiPost<ApiEvidence>(`/vendor/registrations/${registrationId}/evidence`, payload),
 
-  /** REG-04 — updating an editable registration also re-submits it for review. */
+  /** REG-04: saves a DRAFT as a draft; updating a filed registration re-submits it for review. */
   update: (registrationId: number, payload: RegistrationPayload) =>
     apiPut<ApiRegistration>(`/vendor/registrations/${registrationId}`, payload),
+
+  /** REG-02: remove an attached document while the registration is still editable. */
+  removeEvidence: (registrationId: number, evidenceId: number) =>
+    apiDelete<void>(`/vendor/registrations/${registrationId}/evidence/${evidenceId}`),
+
+  /** REG-01: file a completed draft with the ward. Fails if a required document is missing. */
+  file: async (registrationId: number) => {
+    const response = await apiPost<{ message: string; data: ApiRegistration }>(
+      `/vendor/registrations/${registrationId}/submit`,
+    );
+    return response.data;
+  },
 
   /** REG-05 */
   withdraw: (registrationId: number) =>

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
   EVIDENCE_ACCEPTED_TYPES,
@@ -10,6 +11,7 @@ import {
   type ApiOwnerGender,
   type ApiOwnerIdType,
   type ApiVendorType,
+  type RegistrationStatus,
 } from '@/core/api';
 
 /** One picked document, held locally until it is uploaded and attached (REG-02). */
@@ -22,6 +24,8 @@ export type DraftEvidence = {
   file?: File;
   /** URL returned by POST /api/uploads/evidence once the file is stored. */
   uploadedUrl?: string;
+  /** Upload progress, 0..1, while the file is being sent. */
+  progress?: number;
   /** True once the URL has been attached to the registration. */
   attached?: boolean;
 };
@@ -53,6 +57,10 @@ type Draft = {
    * resume instead of creating a second application.
    */
   createdRegistrationId: number | null;
+  /** User id the draft belongs to, so another account on the same browser never inherits it. */
+  draftOwnerId: string | null;
+  /** Status of the registration being edited (REG-04); a DRAFT is filed on submit, anything else is re-filed. */
+  editingStatus: RegistrationStatus | null;
   vendorType: ApiVendorType;
   displayName: string;
   declaredAddress: string;
@@ -103,6 +111,8 @@ type NewRegistrationState = Draft & {
 const initial: Draft = {
   registrationId: null,
   createdRegistrationId: null,
+  draftOwnerId: null,
+  editingStatus: null,
   vendorType: VENDOR_TYPE.itinerant,
   displayName: '',
   declaredAddress: '',
@@ -197,7 +207,9 @@ export function householdMemberToDraft(m: ApiHouseholdMember): DraftHouseholdMem
 }
 
 /** Holds in-progress REG-01/02 form state across the multi-step wizard routes. */
-export const useNewRegistrationStore = create<NewRegistrationState>((set, get) => ({
+export const useNewRegistrationStore = create<NewRegistrationState>()(
+  persist(
+    (set, get) => ({
   ...initial,
   setField: (key, value) => set({ [key]: value } as Partial<Draft>),
   addEvidence: (file) => {
@@ -230,4 +242,60 @@ export const useNewRegistrationStore = create<NewRegistrationState>((set, get) =
     revoke(get().evidence);
     set(initial);
   },
-}));
+    }),
+    {
+      name: 'streetbiz-registration-draft',
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      // Only the form is kept across reloads. Picked files cannot be serialised, and anything
+      // already uploaded lives on the server (the draft registration), which is where the
+      // wizard reads attached documents from.
+      partialize: (state) => pickDraft(state),
+    },
+  ),
+);
+
+/** The serialisable form fields of the wizard (everything but the action functions). */
+function pickDraft(state: NewRegistrationState): Omit<Draft, 'evidence'> {
+  return {
+    registrationId: state.registrationId,
+    createdRegistrationId: state.createdRegistrationId,
+    draftOwnerId: state.draftOwnerId,
+    editingStatus: state.editingStatus,
+    vendorType: state.vendorType,
+    displayName: state.displayName,
+    declaredAddress: state.declaredAddress,
+    addressLatitude: state.addressLatitude,
+    addressLongitude: state.addressLongitude,
+    wardUnitId: state.wardUnitId,
+    biometricConsent: state.biometricConsent,
+    ownerDateOfBirth: state.ownerDateOfBirth,
+    ownerGender: state.ownerGender,
+    ownerEthnicity: state.ownerEthnicity,
+    ownerNationality: state.ownerNationality,
+    idType: state.idType,
+    idIssuedDate: state.idIssuedDate,
+    idIssuedPlace: state.idIssuedPlace,
+    permanentAddress: state.permanentAddress,
+    contactAddress: state.contactAddress,
+    businessLine: state.businessLine,
+    businessLineCode: state.businessLineCode,
+    capitalAmount: state.capitalAmount,
+    laborCount: state.laborCount,
+    plannedStartDate: state.plannedStartDate,
+    foodSafetyCommitment: state.foodSafetyCommitment,
+    householdMembers: state.householdMembers,
+  };
+}
+
+/** True once the vendor has typed anything worth offering to resume. */
+export function hasDraftContent(state: Draft): boolean {
+  return (
+    state.createdRegistrationId !== null ||
+    state.displayName.trim() !== '' ||
+    state.declaredAddress.trim() !== '' ||
+    state.ownerDateOfBirth !== '' ||
+    state.businessLine.trim() !== '' ||
+    state.wardUnitId !== null
+  );
+}

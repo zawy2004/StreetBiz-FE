@@ -72,6 +72,10 @@ const NewRegistrationEvidenceScreen = lazyScreen(
   () => import('@/features/business-registrations/screens'),
   'NewRegistrationEvidenceScreen',
 );
+const NewRegistrationReviewScreen = lazyScreen(
+  () => import('@/features/business-registrations/screens'),
+  'NewRegistrationReviewScreen',
+);
 const NewRegistrationOwnerScreen = lazyScreen(
   () => import('@/features/business-registrations/screens'),
   'NewRegistrationOwnerScreen',
@@ -513,6 +517,7 @@ export function AppRouter() {
           <Route path="registrations/new/details" element={<NewRegistrationDetailsScreen />} />
           <Route path="registrations/new/owner" element={<NewRegistrationOwnerScreen />} />
           <Route path="registrations/new/evidence" element={<NewRegistrationEvidenceScreen />} />
+          <Route path="registrations/new/review" element={<NewRegistrationReviewScreen />} />
           <Route path="registrations/:id" element={<RegistrationDetailScreen />} />
           <Route path="registrations/:id/address" element={<AddressUpdateScreen />} />
           <Route path="registrations/:id/adjacent-slot" element={<AdjacentSlotScreen />} />

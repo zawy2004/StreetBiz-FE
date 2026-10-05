@@ -9,6 +9,7 @@ import { EDITABLE_STATUSES, errorMessage, VENDOR_TYPE } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { householdMemberToDraft, useNewRegistrationStore } from '../new-registration-store';
 import { EvidencePreview } from '../components/EvidencePreview';
+import { RegistrationTimeline } from '../components/RegistrationTimeline';
 import { useRegistrationDetail, useWithdrawRegistration } from '../useRegistrations';
 import { vendorTypeLabel } from '../labels';
 
@@ -65,10 +66,15 @@ export function RegistrationDetailScreen() {
   // Offering it against a live backend would be a dead end, so hide it until then.
   const canRentAdjacentSlot = isFixedApproved && !isLiveApi;
   const needsMoreInfo = registration.registrationStatus === 'MORE_INFORMATION_REQUIRED';
+  const feedbackStyle =
+    registration.registrationStatus === 'APPROVED'
+      ? { backgroundColor: 'rgb(var(--c-tertiary) / 0.08)', borderColor: 'rgb(var(--c-tertiary) / 0.3)' }
+      : { backgroundColor: 'rgb(var(--c-error) / 0.06)', borderColor: 'rgb(var(--c-error) / 0.25)' };
 
   const startEdit = () => {
     loadForEdit({
       registrationId: registration.registrationId,
+      editingStatus: registration.registrationStatus,
       vendorType: registration.vendorType,
       displayName: registration.displayName,
       declaredAddress: registration.declaredAddress ?? '',
@@ -122,7 +128,9 @@ export function RegistrationDetailScreen() {
                 onPress={() => setConfirmWithdraw(true)}
               />
             ) : null}
-            {canEdit ? <Button label="Chỉnh sửa" onPress={startEdit} /> : null}
+            {canEdit ? (
+              <Button label={registration.registrationStatus === 'DRAFT' ? 'Tiếp tục soạn và nộp' : 'Chỉnh sửa'} onPress={startEdit} />
+            ) : null}
           </StickyActions>
         ) : undefined
       }
@@ -136,7 +144,7 @@ export function RegistrationDetailScreen() {
               {vendorTypeLabel(registration.vendorType)}
             </span>
             <span className="text-body-sm text-muted">
-              Nộp ngày {new Date(registration.createdAt).toLocaleDateString('vi-VN')}
+              {registration.registrationStatus === 'DRAFT' ? 'Tạo' : 'Nộp'} ngày {new Date(registration.createdAt).toLocaleDateString('vi-VN')}
             </span>
             {registration.reviewedAt ? (
               <span className="text-body-sm text-muted">
@@ -149,8 +157,10 @@ export function RegistrationDetailScreen() {
       </Card>
 
       {registration.reviewDecisionReason ? (
-        <Card style={{ backgroundColor: 'rgb(var(--c-error) / 0.06)', borderColor: 'rgb(var(--c-error) / 0.25)' }}>
-          <p className="mb-1 text-label text-error">Phản hồi từ Phường</p>
+        <Card style={feedbackStyle}>
+          <p className={`mb-1 text-label ${registration.registrationStatus === 'APPROVED' ? 'text-tertiary-ink' : 'text-error'}`}>
+            Phản hồi từ Phường
+          </p>
           <p className="text-body-md text-text">{registration.reviewDecisionReason}</p>
           {needsMoreInfo ? (
             <p className="mt-xs text-body-sm text-muted">
@@ -159,6 +169,16 @@ export function RegistrationDetailScreen() {
           ) : null}
         </Card>
       ) : null}
+
+      <Section title="Tiến trình">
+        <Card>
+          <RegistrationTimeline
+            status={registration.registrationStatus}
+            createdAt={registration.createdAt}
+            reviewedAt={registration.reviewedAt}
+          />
+        </Card>
+      </Section>
 
       <Section title="Thông tin đã nộp">
         <Card padded={false}>
@@ -232,7 +252,11 @@ export function RegistrationDetailScreen() {
       <ConfirmDialog
         visible={confirmWithdraw}
         title="Rút hồ sơ đăng ký?"
-        description="Bạn có thể nộp lại hồ sơ mới bất cứ lúc nào."
+        description={
+          registration.registrationStatus === 'APPROVED'
+            ? 'Hồ sơ đã được duyệt sẽ không còn hiệu lực. Muốn kinh doanh tiếp, bạn cần nộp hồ sơ mới và chờ phường duyệt lại.'
+            : 'Hồ sơ này sẽ dừng xử lý. Bạn có thể nộp hồ sơ mới bất cứ lúc nào.'
+        }
         confirmLabel="Rút hồ sơ"
         confirmVariant="danger"
         onConfirm={doWithdraw}

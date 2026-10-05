@@ -8,6 +8,8 @@ const api = vi.hoisted(() => ({
   update: vi.fn(),
   get: vi.fn(),
   submitEvidence: vi.fn(),
+  removeEvidence: vi.fn(),
+  file: vi.fn(),
 }));
 
 vi.mock('@/core/api', async (importOriginal) => {
@@ -18,7 +20,7 @@ vi.mock('@/core/api', async (importOriginal) => {
 const { useNewRegistrationStore } = await import(
   '@/features/business-registrations/new-registration-store'
 );
-const { submitRegistrationDraft } = await import(
+const { saveRegistrationDraft, submitRegistrationDraft } = await import(
   '@/features/business-registrations/submit-registration'
 );
 
@@ -30,7 +32,7 @@ const created: ApiRegistration = {
   addressLatitude: null,
   addressLongitude: null,
   wardUnitId: 10,
-  registrationStatus: 'SUBMITTED',
+  registrationStatus: 'DRAFT',
   fastTrackFlag: false,
   reviewDecisionReason: null,
   reviewedAt: null,
@@ -79,6 +81,9 @@ beforeEach(() => {
   api.submit.mockResolvedValue(created);
   api.update.mockResolvedValue(created);
   api.submitEvidence.mockResolvedValue({});
+  api.removeEvidence.mockResolvedValue(undefined);
+  api.get.mockResolvedValue({ evidence: [] });
+  api.file.mockImplementation(async (id: number) => ({ ...created, registrationId: id, registrationStatus: 'SUBMITTED' }));
 });
 
 describe('submitRegistrationDraft', () => {
@@ -129,5 +134,63 @@ describe('submitRegistrationDraft', () => {
 
     expect(api.update).toHaveBeenCalledWith(7, expect.anything());
     expect(api.submit).not.toHaveBeenCalled();
+  });
+});
+
+describe('draft filing', () => {
+  it('files a new draft with the ward once its documents are attached', async () => {
+    const result = await submitRegistrationDraft();
+
+    expect(api.file).toHaveBeenCalledWith(42);
+    expect(result.registrationStatus).toBe('SUBMITTED');
+    // Filing happens after every document is attached, never before.
+    expect(api.file.mock.invocationCallOrder[0]!).toBeGreaterThan(
+      Math.max(...api.submitEvidence.mock.invocationCallOrder),
+    );
+  });
+
+  it('saveRegistrationDraft keeps the registration private to the vendor', async () => {
+    const result = await saveRegistrationDraft();
+
+    expect(result.registrationStatus).toBe('DRAFT');
+    expect(api.file).not.toHaveBeenCalled();
+  });
+
+  it('does not file again when editing a registration that is already with the ward (REG-04)', async () => {
+    useNewRegistrationStore.getState().setField('registrationId', 7);
+    api.update.mockResolvedValue({ ...created, registrationId: 7, registrationStatus: 'SUBMITTED' });
+
+    await submitRegistrationDraft();
+
+    expect(api.file).not.toHaveBeenCalled();
+  });
+
+  it('replaces a document of the same type that is already on file', async () => {
+    useNewRegistrationStore.getState().setField('registrationId', 7);
+    api.update.mockResolvedValue({ ...created, registrationId: 7, registrationStatus: 'SUBMITTED' });
+    api.get.mockResolvedValue({
+      evidence: [{ evidenceId: 99, evidenceType: 'IDENTITY_DOCUMENT', fileUrl: '/old', registrationId: 7, uploadedAt: '' }],
+    });
+
+    await submitRegistrationDraft();
+
+    expect(api.removeEvidence).toHaveBeenCalledWith(7, 99);
+    expect(api.removeEvidence).toHaveBeenCalledTimes(1);
+  });
+
+  it('uploads the files in parallel', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    api.uploadEvidenceFile.mockImplementation(async (f: File) => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return { fileUrl: `/api/uploads/evidence/1/${f.name}`, contentType: 'image/jpeg', sizeBytes: 1 };
+    });
+
+    await saveRegistrationDraft();
+
+    expect(peak).toBe(2);
   });
 });

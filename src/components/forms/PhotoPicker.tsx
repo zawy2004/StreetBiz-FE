@@ -18,6 +18,10 @@ type Props = {
    * for evidence documents that may be a scanned PDF. Defaults to photos only.
    */
   accept?: string;
+  /** Upload progress 0..1; shows a bar over the tile while a file is being sent. */
+  progress?: number;
+  /** Marks a document that is already stored, e.g. attached in an earlier session. */
+  uploaded?: boolean;
 };
 
 const SIZE = 96;
@@ -31,6 +35,8 @@ export function PhotoPicker({
   onInvalid,
   error,
   accept = 'image/*',
+  progress,
+  uploaded,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   // <img> cannot render a PDF; track the picked file's type so a non-image
@@ -81,14 +87,32 @@ export function PhotoPicker({
         <div className="absolute inset-x-0 bottom-0 truncate bg-[rgba(26,34,56,0.7)] px-1.5 py-0.5 text-body-sm text-white">
           {label}
         </div>
+        {progress !== undefined && progress < 1 ? (
+          <div
+            role="progressbar"
+            aria-label={`Đang tải ${label}`}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(progress * 100)}
+            className="absolute inset-x-0 top-0 h-1 bg-border"
+          >
+            <div className="h-full bg-primary" style={{ width: `${Math.round(progress * 100)}%` }} />
+          </div>
+        ) : uploaded ? (
+          <div className="absolute left-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-tertiary">
+            <Icon name="check" size={14} color={colors.white} />
+          </div>
+        ) : null}
         {onRemove ? (
           <button
             type="button"
             onClick={onRemove}
             aria-label={`Xoá ảnh ${label}`}
-            className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(26,34,56,0.7)]"
+            className="absolute right-0 top-0 flex h-11 w-11 items-start justify-end p-1"
           >
-            <Icon name="close" size={14} color={colors.white} />
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(26,34,56,0.7)]">
+              <Icon name="close" size={14} color={colors.white} />
+            </span>
           </button>
         ) : null}
       </div>

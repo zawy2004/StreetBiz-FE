@@ -16,7 +16,9 @@ export function RegistrationsListScreen() {
   const { registrations, isLoading, isError, error, refetch } = useRegistrations();
 
   const startNew = () => {
-    reset();
+    // A leftover edit session must not leak into a new filing, but a draft in progress is kept:
+    // the first step offers to resume it.
+    if (useNewRegistrationStore.getState().registrationId !== null) reset();
     navigate('/vendor/registrations/new/type');
   };
 
@@ -29,6 +31,7 @@ export function RegistrationsListScreen() {
           icon="file-document-outline"
           title="Chưa có hồ sơ đăng ký"
           description="Nộp hồ sơ để được phường xét duyệt và nhận giấy phép số."
+          action={<Button label="Đăng ký kinh doanh" fullWidth={false} onPress={startNew} />}
         />
       );
     }

@@ -6,3 +6,4 @@ export * from './NewRegistrationEvidenceScreen';
 export * from './RegistrationDetailScreen';
 export * from './AddressUpdateScreen';
 export * from './AdjacentSlotScreen';
+export * from './NewRegistrationReviewScreen';

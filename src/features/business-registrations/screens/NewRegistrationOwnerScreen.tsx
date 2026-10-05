@@ -53,7 +53,7 @@ export function NewRegistrationOwnerScreen() {
       }
     >
       <AppHeader title="Đăng ký kinh doanh" back />
-      <Stepper step={3} total={4} label="Chủ hộ kinh doanh & ngành nghề" />
+      <Stepper step={3} total={5} label="Chủ hộ kinh doanh & ngành nghề" />
 
       <IdCardScanner />
 
