@@ -40,6 +40,14 @@ export type ApiSession = {
   isCurrent: boolean;
 };
 
+/** One entry of the account's security history (`SecurityActions` in StreetBiz-BE). */
+export type ApiSecurityEvent = {
+  id: number;
+  action: string;
+  details: string | null;
+  createdAt: string;
+};
+
 export type RegisterPayload = {
   phoneNumber: string;
   password: string;
@@ -82,6 +90,13 @@ export const authApi = {
   /** AUTH-09 */
   revokeSession: (sessionId: number) =>
     apiDelete<{ message: string }>(`/auth/sessions/${sessionId}`),
+
+  /** AUTH-09: sign out every device except this one. */
+  revokeOtherSessions: () => apiDelete<{ message: string }>('/auth/sessions'),
+
+  /** The caller's own sign-in and security history, newest first; `before` pages backwards. */
+  loginHistory: (before?: number, take = 20) =>
+    apiGet<ApiSecurityEvent[]>(`/auth/login-history?take=${take}${before ? `&before=${before}` : ''}`),
 };
 
 export type Ward = {

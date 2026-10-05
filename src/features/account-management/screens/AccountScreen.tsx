@@ -41,7 +41,7 @@ export function AccountScreen() {
 
   return (
     <Screen width="narrow">
-      <AppHeader title="Tài khoản" />
+      <AppHeader title="Tài khoản" back={user.role_code === 'WARD_AUTHORITY' || user.role_code === 'PLATFORM_ADMIN'} />
       <Card>
         <div className="flex items-center gap-3">
           <Avatar name={user.fullName} size={56} />
@@ -75,6 +75,13 @@ export function AccountScreen() {
               leading={<Icon name="devices" size={20} color={colors.muted} />}
               showChevron
               onPress={() => navigate('/account/sessions')}
+            />
+            <Divider />
+            <ListRow
+              title="Lịch sử đăng nhập"
+              leading={<Icon name="shield-outline" size={20} color={colors.muted} />}
+              showChevron
+              onPress={() => navigate('/account/security-history')}
             />
             <Divider />
             <ListRow

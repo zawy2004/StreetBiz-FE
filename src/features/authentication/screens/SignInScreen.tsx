@@ -80,7 +80,11 @@ export function SignInScreen() {
         setError(err.fieldError('Password'));
         if (!err.fieldError('Password') && !err.fieldError('PhoneNumber')) setFormError(err.message);
       } else {
-        setFormError(errorMessage(err));
+        setFormError(
+          err instanceof ApiError && err.retryAfterSeconds
+            ? `${err.message} Thử lại sau khoảng ${Math.max(1, Math.ceil(err.retryAfterSeconds / 60))} phút.`
+            : errorMessage(err),
+        );
       }
     } finally {
       setSubmitting(false);

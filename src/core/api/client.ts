@@ -69,6 +69,7 @@ async function refreshTokens(): Promise<AuthTokens> {
     accessTokenExpiresAtUtc: response.data.accessTokenExpiresAtUtc,
   };
   setTokens(next);
+  scheduleTokenRefresh();
   return next;
 }
 
@@ -187,4 +188,32 @@ export function refreshSession(): Promise<AuthTokens> {
     refreshInFlight = null;
   });
   return refreshInFlight;
+}
+
+// ---- Proactive refresh -----------------------------------------------------------------------
+// Waiting for a 401 means the user's next click fails and is retried; refreshing a minute before
+// the access token expires keeps requests clean and uses the same shared single-flight refresh.
+let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+const REFRESH_LEAD_MS = 60_000;
+
+/** (Re)schedules a refresh shortly before the current access token expires. Safe to call often. */
+export function scheduleTokenRefresh(): void {
+  if (refreshTimer) clearTimeout(refreshTimer);
+  refreshTimer = undefined;
+  const expiresAt = getTokens()?.accessTokenExpiresAtUtc;
+  if (!expiresAt) return;
+  const delay = Math.max(0, new Date(expiresAt).getTime() - Date.now() - REFRESH_LEAD_MS);
+  // setTimeout cannot hold more than ~24.8 days, far beyond a token lifetime.
+  refreshTimer = setTimeout(() => {
+    refreshSession()
+      .then(scheduleTokenRefresh)
+      .catch(() => {
+        // The 401 handler will notice a dead session on the next request.
+      });
+  }, delay);
+}
+
+export function cancelTokenRefresh(): void {
+  if (refreshTimer) clearTimeout(refreshTimer);
+  refreshTimer = undefined;
 }

@@ -48,6 +48,10 @@ const SessionsScreen = lazyScreen(
   () => import('@/features/account-management/screens'),
   'SessionsScreen',
 );
+const SecurityHistoryScreen = lazyScreen(
+  () => import('@/features/account-management/screens'),
+  'SecurityHistoryScreen',
+);
 const VendorHomeScreen = lazyScreen(
   () => import('@/features/vendor-home/screens/VendorHomeScreen'),
   'VendorHomeScreen',
@@ -429,6 +433,14 @@ export function AppRouter() {
           element={
             <AuthGuard>
               <SessionsScreen />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/account/security-history"
+          element={
+            <AuthGuard>
+              <SecurityHistoryScreen />
             </AuthGuard>
           }
         />

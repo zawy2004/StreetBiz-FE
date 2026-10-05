@@ -3,8 +3,10 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
   authApi,
+  cancelTokenRefresh,
   clearTokens,
   getTokens,
+  scheduleTokenRefresh,
   setSessionExpiredHandler,
   setTokens,
   type ApiUser,
@@ -55,6 +57,7 @@ function applyAuthResult(result: AuthResult): MockUser {
     refreshToken: result.refreshToken,
     accessTokenExpiresAtUtc: result.accessTokenExpiresAtUtc,
   });
+  scheduleTokenRefresh();
   return toAppUser(result.user);
 }
 
@@ -131,6 +134,7 @@ export const useAuthStore = create<AuthState>()(
             /* ignore */
           }
           clearTokens();
+          cancelTokenRefresh();
         }
         set({ user: null, sessionExpired: false });
       },
@@ -165,6 +169,7 @@ else useAuthStore.persist.onFinishHydration(dropTokenlessUser);
 // When the refresh token is rejected, drop the user so RoleGuard routes to
 // sign-in and the screen can explain that the session expired.
 setSessionExpiredHandler(() => {
+  cancelTokenRefresh();
   useAuthStore.setState({ user: null, sessionExpired: true });
 });
 
@@ -176,6 +181,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
     if (event.key !== TOKEN_STORAGE_KEY && event.key !== null) return;
     invalidateTokenCache();
+    scheduleTokenRefresh();
     if (!isLiveApi) return;
     const { user } = useAuthStore.getState();
     if (user && !getTokens()) {
@@ -185,3 +191,6 @@ if (typeof window !== 'undefined') {
     }
   });
 }
+
+// A reload keeps the tokens in localStorage; resume refreshing them in the background.
+if (isLiveApi && getTokens()) scheduleTokenRefresh();
