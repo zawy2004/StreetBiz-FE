@@ -46,8 +46,19 @@ export function SlotApplyForm({ slot }: Props) {
   const [termDays, setTermDays] = useState(DEFAULT_TERM_DAYS);
   const [accepted, setAccepted] = useState<boolean[]>(() => COMMITMENTS.map(() => false));
 
+  // Phase C: an EVENT zone's term may never outrun its own event window, regardless of the
+  // general 365-day cap (mirrors WardComplianceService.EventZoneBlocker on the backend).
+  const eventDaysLeft =
+    slot.rentalMode === 'EVENT' && slot.eventEndDate
+      ? Math.max(1, Math.ceil((Date.parse(slot.eventEndDate) - Date.now()) / 86_400_000) + 1)
+      : null;
+  const maxTermDays = eventDaysLeft ?? MAX_TERM_DAYS;
+
   const days = Number(termDays);
-  const validDays = Number.isInteger(days) && days >= 1 && days <= MAX_TERM_DAYS;
+  const validDays = Number.isInteger(days) && days >= 1 && days <= maxTermDays;
+  // Phase B: STANDARD zones priced by the month offer a quick-select instead of a free-text
+  // day count; EVENT zones keep the free-text input (their rental stays day-by-day).
+  const isMonthly = slot.rentalMode === 'STANDARD' && slot.priceDisplayUnit === 'MONTH';
   const debouncedDays = useDebouncedValue(days);
 
   const state = slotDisplayState(slot, nowMs);
@@ -111,20 +122,46 @@ export function SlotApplyForm({ slot }: Props) {
 
   return (
     <div className="flex flex-col gap-md">
-      <label className="flex flex-col gap-xs text-label text-text">
-        Số ngày thuê
-        <input
-          className="h-10 w-full rounded-sm border border-border bg-card px-sm text-body-md"
-          value={termDays}
-          onChange={(e) => setTermDays(e.target.value)}
-          inputMode="numeric"
-          aria-invalid={!validDays}
-        />
-      </label>
+      {isMonthly ? (
+        <div className="flex flex-col gap-xs">
+          <span className="text-label text-text">Thời hạn thuê</span>
+          <div className="flex flex-wrap gap-xs">
+            {[1, 3, 6, 12].map((months) => (
+              <button
+                key={months}
+                type="button"
+                onClick={() => setTermDays(String(months * 30))}
+                className={`h-9 flex-1 rounded-sm border px-sm text-label ${
+                  days === months * 30 ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-text'
+                }`}
+              >
+                {months} tháng
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <label className="flex flex-col gap-xs text-label text-text">
+          Số ngày thuê
+          <input
+            className="h-10 w-full rounded-sm border border-border bg-card px-sm text-body-md"
+            value={termDays}
+            onChange={(e) => setTermDays(e.target.value)}
+            inputMode="numeric"
+            aria-invalid={!validDays}
+          />
+        </label>
+      )}
+      {slot.rentalMode === 'EVENT' && slot.eventEndDate && (
+        <p className="text-body-xs text-muted">
+          Khu vực sự kiện: chỉ thuê được đến hết ngày{' '}
+          {new Date(slot.eventEndDate).toLocaleDateString('vi-VN')}.
+        </p>
+      )}
 
       <div className="overflow-hidden rounded-md border border-border">
         {!validDays ? (
-          <p className="p-sm text-body-sm text-muted">Nhập 1 – {MAX_TERM_DAYS} ngày.</p>
+          <p className="p-sm text-body-sm text-muted">Nhập 1 – {maxTermDays} ngày.</p>
         ) : quote.error ? (
           <p className="p-sm text-body-sm text-error">
             {quote.error instanceof SideApiError ? quote.error.message : 'Không tính được báo giá.'}
