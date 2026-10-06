@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button, Card, Money } from '@/components/common';
@@ -19,6 +19,98 @@ import {
   type SetPenaltyRateRequest,
   type WardPenaltyType,
 } from '../ward-config-api';
+
+function NumberField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number | null;
+  onChange: (value: number | null) => void;
+}) {
+  return (
+    <TextField
+      label={label}
+      value={value == null ? '' : String(value)}
+      onChangeText={(text) => {
+        const digits = text.replace(/\D/g, '');
+        onChange(digits ? Number(digits) : null);
+      }}
+      keyboardType="numeric"
+    />
+  );
+}
+
+function CompliancePolicySection() {
+  const userId = useAuthStore((state) => state.user?.id);
+  const queryKey = ['ward', userId, 'compliance-policy'];
+  const client = useQueryClient();
+  const policy = useQuery({ queryKey, queryFn: wardConfigApi.getCompliancePolicy });
+  const [threshold, setThreshold] = useState<number | null>(null);
+  const [window, setWindowDays] = useState<number | null>(null);
+  const [grace, setGrace] = useState<number | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!policy.data || loaded) return;
+    setThreshold(policy.data.violationThresholdCount);
+    setWindowDays(policy.data.violationWindowDays);
+    setGrace(policy.data.unpaidPenaltyGraceDays);
+    setLoaded(true);
+  }, [policy.data, loaded]);
+
+  const save = useMutation({
+    mutationFn: () =>
+      wardConfigApi.upsertCompliancePolicy({
+        violationThresholdCount: threshold,
+        violationWindowDays: window,
+        unpaidPenaltyGraceDays: grace,
+      }),
+    onSuccess: () => {
+      showToast('Đã lưu chính sách tuân thủ');
+      void client.invalidateQueries({ queryKey });
+    },
+    onError: (error) => showToast(errorMessage(error)),
+  });
+
+  if (policy.isPending) return null;
+
+  return (
+    <Section
+      title="Chính sách thu hồi giấy phép do vi phạm nhiều lần"
+      description="Chỉ mang tính gợi ý cho cán bộ -- không tự động thu hồi (BR-41). Để trống = tắt tính năng."
+    >
+      <Card>
+        <div className="flex flex-col gap-sm">
+          <NumberField
+            label="Ngưỡng số lần vi phạm đã có quyết định xử phạt"
+            value={threshold}
+            onChange={setThreshold}
+          />
+          <NumberField label="Trong vòng (số ngày)" value={window} onChange={setWindowDays} />
+          <NumberField
+            label="Số ngày ân hạn trước khi nhắc nộp phạt quá hạn"
+            value={grace}
+            onChange={setGrace}
+          />
+          <Button
+            label="Lưu chính sách"
+            variant="approve"
+            loading={save.isPending}
+            disabled={threshold != null && window == null}
+            onPress={() => save.mutate()}
+          />
+          {threshold != null && window == null && (
+            <p className="text-body-sm text-error">
+              Đã nhập ngưỡng số lần vi phạm thì phải nhập cả cửa sổ thời gian.
+            </p>
+          )}
+        </div>
+      </Card>
+    </Section>
+  );
+}
 
 /** WARD-03: the ward's penalty schedule, one bracket per violation type, effective-dated. */
 export function PenaltyScheduleScreen() {
@@ -91,6 +183,8 @@ function PenaltyScheduleContent() {
           ))}
         </Section>
       )}
+
+      <CompliancePolicySection />
     </Screen>
   );
 }
@@ -360,6 +454,8 @@ function RateHistory({ violationType }: { violationType: string }) {
           {formatDateVn(rate.effectiveFrom)}
           {rate.effectiveTo ? ` → ${formatDateVn(rate.effectiveTo)}` : ' → nay'}
           {rate.isInUse ? ' · đã dùng cho quyết định xử phạt' : ''}
+          {' · '}
+          {rate.actorName}
           <br />
           <span className="text-muted">{rate.legalBasis ?? 'Chưa có căn cứ pháp lý'}</span>
         </li>
