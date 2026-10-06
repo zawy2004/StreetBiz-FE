@@ -27,6 +27,7 @@ export function PermitActionScreen() {
   const [action, setAction] = useState<Action>('SUSPEND');
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
+  const [basedOnComplianceThreshold, setBasedOnComplianceThreshold] = useState(false);
 
   if (!permit && !isLiveApi) return <ErrorState message="Không tìm thấy giấy phép." />;
   const contract = contracts.find((c) => c.id === permit?.contractId);
@@ -43,7 +44,7 @@ export function PermitActionScreen() {
       setLoading(true);
       try {
         const idNum = Number(permitId);
-        await complianceApi.permitAction(idNum, action, trimmed);
+        await complianceApi.permitAction(idNum, action, trimmed, basedOnComplianceThreshold);
         showToast(
           action === 'SUSPEND'
             ? 'Đã tạm đình chỉ giấy phép sử dụng hè phố'
@@ -120,6 +121,21 @@ export function PermitActionScreen() {
         multiline
         placeholder="Ghi rõ hành vi vi phạm, số biên bản hoặc căn cứ pháp lý để đình chỉ / thu hồi..."
       />
+
+      {action === 'REVOKE' && (
+        <label className="flex cursor-pointer items-start gap-sm px-md">
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4"
+            checked={basedOnComplianceThreshold}
+            onChange={(e) => setBasedOnComplianceThreshold(e.target.checked)}
+          />
+          <span className="text-body-sm text-text">
+            Thu hồi dựa trên đề xuất đạt ngưỡng vi phạm (từ màn hình chi tiết vi phạm) — ghi rõ
+            trong nhật ký để phân biệt với quyết định độc lập của cán bộ.
+          </span>
+        </label>
+      )}
 
       <Card>
         <p className="text-body-sm text-muted">
