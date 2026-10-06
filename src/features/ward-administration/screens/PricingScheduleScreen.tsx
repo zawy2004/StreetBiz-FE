@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button, Card, Money } from '@/components/common';
 import { ConfirmDialog, showToast } from '@/components/feedback';
-import { SelectField, TextField } from '@/components/forms';
+import { SegmentedControl, SelectField, TextField } from '@/components/forms';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { useAuthStore } from '@/store/auth-store';
@@ -132,6 +132,11 @@ type Draft = {
   zoneName: string;
   zoneCode: string;
   pricePerDay: number | null;
+  priceDisplayUnit: 'DAY' | 'MONTH';
+  pricePerMonth: number | null;
+  rentalMode: 'STANDARD' | 'EVENT';
+  eventStartDate: string;
+  eventEndDate: string;
   from: string;
   to: string;
   regulationNumber: string;
@@ -148,6 +153,11 @@ function draftOf(zone: WardZone | null): Draft {
     zoneName: zone?.zoneName ?? '',
     zoneCode: zone?.zoneCode ?? '',
     pricePerDay: zone?.pricePerDay ?? null,
+    priceDisplayUnit: zone?.priceDisplayUnit ?? 'DAY',
+    pricePerMonth: zone?.pricePerMonth ?? null,
+    rentalMode: zone?.rentalMode ?? 'STANDARD',
+    eventStartDate: zone?.eventStartDate ?? '',
+    eventEndDate: zone?.eventEndDate ?? '',
     from: hhmm(zone?.availableFrom ?? null),
     to: hhmm(zone?.availableTo ?? null),
     regulationNumber: '',
@@ -196,20 +206,46 @@ function ZoneEditor({
   const documentReady =
     !changeDocument ||
     (draft.regulationNumber.trim() && draft.regulationIssuedOn && draft.regulationIssuer.trim());
+  const priceReady =
+    draft.priceDisplayUnit === 'MONTH' ? (draft.pricePerMonth ?? 0) > 0 : (draft.pricePerDay ?? 0) > 0;
+  const eventReady =
+    draft.rentalMode === 'STANDARD' ||
+    (!!draft.eventStartDate && !!draft.eventEndDate && draft.eventStartDate < draft.eventEndDate);
   const valid =
     draft.zoneName.trim() &&
     /^[A-Z0-9-]+$/.test(draft.zoneCode) &&
-    (draft.pricePerDay ?? 0) > 0 &&
+    priceReady &&
+    eventReady &&
     !hoursError &&
     documentReady &&
     draft.feeComponents.every((c) => c.componentName.trim());
-  const previewKey = `${draft.pricePerDay}|${draft.from}|${draft.to}`;
+  const feeComponentsKey = JSON.stringify(
+    draft.feeComponents.map((c) => ({ ...c, componentName: c.componentName.trim() })),
+  );
+  const previewKey = `${draft.pricePerDay}|${draft.from}|${draft.to}|${feeComponentsKey}`;
   const previewCurrent = preview?.key === previewKey;
+  // Only price, hours or fee components change what a pending application/renewal is billed
+  // (BR-32-adjacent: the real fee schedule includes fee components, not just price-per-day) --
+  // a pure metadata edit (name, segment, permitting document) needs no impact review or reason.
+  const amountOrHoursChanged =
+    !isNew &&
+    (zone!.pricePerDay !== (draft.pricePerDay ?? 0) ||
+      toApiTime(draft.from) !== zone!.availableFrom ||
+      toApiTime(draft.to) !== zone!.availableTo ||
+      feeComponentsKey !==
+        JSON.stringify(zone!.feeComponents.map(({ componentName, calcBasis, unitAmount }) => ({ componentName, calcBasis, unitAmount }))));
 
   const request = (): UpsertZoneRequest => ({
     zoneName: draft.zoneName.trim(),
     zoneCode: draft.zoneCode.trim(),
+    // price_per_day is ignored server-side when priceDisplayUnit is MONTH (it's derived from
+    // pricePerMonth instead) -- see WardConfigurationService.ApplyZoneFields.
     pricePerDay: draft.pricePerDay ?? 0,
+    priceDisplayUnit: draft.priceDisplayUnit,
+    pricePerMonth: draft.priceDisplayUnit === 'MONTH' ? (draft.pricePerMonth ?? 0) : null,
+    rentalMode: draft.rentalMode,
+    eventStartDate: draft.rentalMode === 'EVENT' ? draft.eventStartDate || null : null,
+    eventEndDate: draft.rentalMode === 'EVENT' ? draft.eventEndDate || null : null,
     availableFrom: toApiTime(draft.from),
     availableTo: toApiTime(draft.to),
     regulationNumber: changeDocument ? draft.regulationNumber.trim() : null,
@@ -233,6 +269,7 @@ function ZoneEditor({
         draft.pricePerDay ?? 0,
         toApiTime(draft.from),
         toApiTime(draft.to),
+        draft.feeComponents.map((c) => ({ ...c, componentName: c.componentName.trim() })),
       ),
     onSuccess: (data) => setPreview({ key: previewKey, data }),
     onError: (error) => showToast(errorMessage(error)),
@@ -284,11 +321,62 @@ function ZoneEditor({
             onChangeText={(v) => set('zoneCode', v.toUpperCase())}
             helperText="Chữ in hoa, số, dấu gạch ngang. Dùng làm tiền tố mã ô."
           />
-          <MoneyInput
-            label="Giá thuê mỗi ngày"
-            value={draft.pricePerDay}
-            onChange={(v) => set('pricePerDay', v)}
+          <p className="text-label text-text">Hình thức thuê</p>
+          <SegmentedControl
+            value={draft.rentalMode}
+            onChange={(v) => {
+              set('rentalMode', v);
+              // An event's day-by-day pricing has no monthly equivalent worth entering.
+              if (v === 'EVENT') set('priceDisplayUnit', 'DAY');
+            }}
+            options={[
+              { value: 'STANDARD', label: 'Dài hạn (tháng/quý/năm)' },
+              { value: 'EVENT', label: 'Sự kiện (ngắn hạn, theo ngày)' },
+            ]}
           />
+          {draft.rentalMode === 'EVENT' && (
+            <div className="grid grid-cols-2 gap-sm">
+              <DateInput
+                label="Ngày bắt đầu sự kiện"
+                value={draft.eventStartDate}
+                onChange={(v) => set('eventStartDate', v)}
+              />
+              <DateInput
+                label="Ngày kết thúc sự kiện"
+                value={draft.eventEndDate}
+                onChange={(v) => set('eventEndDate', v)}
+              />
+            </div>
+          )}
+
+          {draft.rentalMode === 'STANDARD' && (
+            <SegmentedControl
+              value={draft.priceDisplayUnit}
+              onChange={(v) => set('priceDisplayUnit', v)}
+              options={[
+                { value: 'DAY', label: 'Giá theo ngày' },
+                { value: 'MONTH', label: 'Giá theo tháng' },
+              ]}
+            />
+          )}
+          {draft.priceDisplayUnit === 'MONTH' && draft.rentalMode === 'STANDARD' ? (
+            <MoneyInput
+              label="Giá thuê mỗi tháng"
+              value={draft.pricePerMonth}
+              onChange={(v) => set('pricePerMonth', v)}
+              helperText={
+                draft.pricePerMonth
+                  ? `≈ ${Math.round(draft.pricePerMonth / 30).toLocaleString('vi-VN')}đ/ngày`
+                  : undefined
+              }
+            />
+          ) : (
+            <MoneyInput
+              label="Giá thuê mỗi ngày"
+              value={draft.pricePerDay}
+              onChange={(v) => set('pricePerDay', v)}
+            />
+          )}
           <div className="grid grid-cols-2 gap-sm">
             <TimeInput
               label="Giờ bắt đầu"
@@ -363,7 +451,7 @@ function ZoneEditor({
             onChange={(v) => set('feeComponents', v)}
           />
 
-          {!isNew && (
+          {!isNew && amountOrHoursChanged && (
             <>
               <Button
                 label="Xem tác động trước khi lưu"
@@ -373,26 +461,28 @@ function ZoneEditor({
                 onPress={() => impact.mutate()}
               />
               {previewCurrent && preview && <ImpactPanel preview={preview.data} />}
-              <TextField
-                label="Lý do thay đổi"
-                value={reason}
-                onChangeText={setReason}
-                multiline
-                maxLength={500}
-              />
             </>
+          )}
+          {!isNew && (
+            <TextField
+              label={amountOrHoursChanged ? 'Lý do thay đổi' : 'Lý do thay đổi (không bắt buộc)'}
+              value={reason}
+              onChangeText={setReason}
+              multiline
+              maxLength={500}
+            />
           )}
 
           <Button
             label={isNew ? 'Tạo khu vực' : 'Lưu thay đổi'}
             variant="approve"
-            disabled={!valid || (!isNew && (!previewCurrent || !reason.trim()))}
+            disabled={!valid || (!isNew && amountOrHoursChanged && (!previewCurrent || !reason.trim()))}
             loading={save.isPending}
             onPress={() => save.mutate()}
           />
-          {!isNew && !previewCurrent && (
+          {!isNew && amountOrHoursChanged && !previewCurrent && (
             <p className="text-body-sm text-muted">
-              Xem tác động với giá và giờ đang nhập trước khi lưu.
+              Đổi giá, giờ hoặc phụ phí cố định cần xem tác động trước khi lưu.
             </p>
           )}
 
@@ -446,10 +536,10 @@ function FeeComponentsEditor({
     onChange(value.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
   return (
     <div className="flex flex-col gap-sm">
-      <p className="text-label text-text">Phụ phí tham khảo</p>
+      <p className="text-label text-text">Phụ phí cố định</p>
       <p className="text-body-sm text-muted">
-        Các khoản phụ phí mang tính tham khảo để hộ kinh doanh biết trước; tiền hợp đồng chính thức
-        tính bằng giá thuê mỗi ngày × số ngày.
+        Các khoản này được cộng thẳng vào hoá đơn chính thức của hộ kinh doanh khi hợp đồng được
+        duyệt (theo ngày × số ngày thuê, hoặc một lần mỗi kỳ) — không phải chỉ để tham khảo.
       </p>
       {value.map((c, i) => (
         <div key={i} className="rounded-sm border border-border p-sm">
@@ -503,15 +593,15 @@ function ImpactPanel({ preview }: { preview: ZoneImpactPreview }) {
   return (
     <div className="rounded-sm border border-border bg-sunken p-sm" aria-live="polite">
       <p className="text-label text-text">Tác động nếu lưu</p>
-      {!preview.priceChanged && !preview.hoursChanged && (
-        <p className="text-body-sm">Giá và khung giờ không đổi.</p>
+      {!preview.amountChanged && !preview.hoursChanged && (
+        <p className="text-body-sm">Số tiền phải nộp và khung giờ không đổi.</p>
       )}
-      {preview.priceChanged && (
+      {preview.amountChanged && (
         <>
           <p className="text-body-sm">
             {preview.pendingApplications.length} đơn thuê và {preview.openRenewals.length} đơn gia
-            hạn đang chờ sẽ được tính giá mới khi duyệt. Hợp đồng và biểu phí đã phát hành không
-            thay đổi.
+            hạn đang chờ sẽ được tính lại tổng tiền (giá thuê + phụ phí cố định) khi duyệt. Hợp đồng
+            và biểu phí đã phát hành không thay đổi.
           </p>
           {rows.length > 0 && (
             <ul className="ml-md list-disc text-body-sm">

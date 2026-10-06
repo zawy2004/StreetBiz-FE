@@ -5,7 +5,7 @@ import { Button, Card, Divider, ListRow } from '@/components/common';
 import { AppHeader, Screen, Section, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ConfirmDialog, ErrorState, LoadingState, showToast } from '@/components/feedback';
-import { EDITABLE_STATUSES, errorMessage, VENDOR_TYPE } from '@/core/api';
+import { EDITABLE_STATUSES, errorMessage, VENDOR_TYPE, vendorRegistrationApi } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { householdMemberToDraft, useNewRegistrationStore } from '../new-registration-store';
 import { EvidencePreview } from '../components/EvidencePreview';
@@ -23,6 +23,7 @@ export function RegistrationDetailScreen() {
   const withdraw = useWithdrawRegistration();
   const loadForEdit = useNewRegistrationStore((s) => s.loadForEdit);
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
+  const [downloadingFormat, setDownloadingFormat] = useState<'docx' | 'pdf' | null>(null);
 
   if (isLoading) {
     return (
@@ -97,6 +98,23 @@ export function RegistrationDetailScreen() {
     navigate('/vendor/registrations/new/type');
   };
 
+  const downloadDocument = async (format: 'docx' | 'pdf') => {
+    setDownloadingFormat(format);
+    try {
+      const blob = await vendorRegistrationApi.downloadDocument(registration.registrationId, format);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `DangKyHKD_${registration.registrationId}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showToast(errorMessage(err));
+    } finally {
+      setDownloadingFormat(null);
+    }
+  };
+
   const doWithdraw = async () => {
     try {
       await withdraw.mutateAsync(registration.registrationId);
@@ -147,6 +165,34 @@ export function RegistrationDetailScreen() {
           <StatusChip code={registration.registrationStatus} />
         </div>
       </Card>
+
+      {isLiveApi ? (
+        <Section title="Xuất hồ sơ (Mẫu số 01 Phụ lục II, TT 68/2025/TT-BTC)">
+          <div className="flex gap-sm">
+            <div className="flex-1">
+              <Button
+                label={downloadingFormat === 'docx' ? 'Đang tải...' : 'Tải .docx'}
+                variant="outline"
+                disabled={downloadingFormat !== null}
+                onPress={() => downloadDocument('docx')}
+              />
+            </div>
+            <div className="flex-1">
+              <Button
+                label={downloadingFormat === 'pdf' ? 'Đang tải...' : 'Tải .pdf'}
+                variant="outline"
+                disabled={downloadingFormat !== null}
+                onPress={() => downloadDocument('pdf')}
+              />
+            </div>
+          </div>
+          {registration.registrationStatus !== 'APPROVED' ? (
+            <p className="mt-xs text-body-xs text-muted">
+              Hồ sơ chưa được duyệt — bản tải về sẽ có nhãn "BẢN NHÁP".
+            </p>
+          ) : null}
+        </Section>
+      ) : null}
 
       {registration.reviewDecisionReason ? (
         <Card style={{ backgroundColor: 'rgb(var(--c-error) / 0.06)', borderColor: 'rgb(var(--c-error) / 0.25)' }}>

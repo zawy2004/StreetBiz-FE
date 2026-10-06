@@ -203,4 +203,9 @@ export const vendorRegistrationApi = {
   /** REG-05 */
   withdraw: (registrationId: number) =>
     apiPost<{ message: string }>(`/vendor/registrations/${registrationId}/withdraw`),
+
+  /** Mẫu số 01 Phụ lục II, TT 68/2025/TT-BTC, filled with this registration's own data. Watermarked
+   * "BẢN NHÁP" until the ward approves it. */
+  downloadDocument: (registrationId: number, format: 'docx' | 'pdf'): Promise<Blob> =>
+    apiGetBlob(`/vendor/registrations/${registrationId}/document?format=${format}`),
 };
