@@ -4,6 +4,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
 import { AppHeader, Screen } from '@/components/layout';
 import { errorMessage } from '@/core/api';
 import { useAuthStore } from '@/store/auth-store';
+import { ChatNotificationPrompt } from '../alerts/ChatNotificationPrompt';
 import { ConversationRow } from '../components/ConversationRow';
 import { useCanChat, useChatConversations } from '../hooks/useChat';
 
@@ -43,6 +44,7 @@ export function ConversationsScreen() {
   return (
     <Screen>
       <AppHeader title="Tin nhắn" />
+      <ChatNotificationPrompt />
       {rows.length === 0 ? (
         <EmptyState
           icon="chat-outline"
