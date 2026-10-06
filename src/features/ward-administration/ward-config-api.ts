@@ -117,6 +117,13 @@ export type WardZone = {
   featureCount: number;
   feeComponents: ZoneFeeComponent[];
   versionToken: string;
+  /** price_per_day stays the only value the fee engine reads; this + pricePerMonth are just
+   * how the officer entered/sees the price. */
+  priceDisplayUnit: 'DAY' | 'MONTH';
+  pricePerMonth: number | null;
+  rentalMode: 'STANDARD' | 'EVENT';
+  eventStartDate: string | null;
+  eventEndDate: string | null;
 };
 
 export type UpsertZoneRequest = {
@@ -135,6 +142,11 @@ export type UpsertZoneRequest = {
   feeComponents: ZoneFeeComponentInput[];
   changeReason: string | null;
   versionToken: string | null;
+  priceDisplayUnit: 'DAY' | 'MONTH';
+  pricePerMonth: number | null;
+  rentalMode: 'STANDARD' | 'EVENT';
+  eventStartDate: string | null;
+  eventEndDate: string | null;
 };
 
 export type ZoneImpactItem = {
@@ -147,7 +159,8 @@ export type ZoneImpactItem = {
   newTotal: number;
 };
 export type ZoneImpactPreview = {
-  priceChanged: boolean;
+  /** Price-per-day OR fee components changed -- either changes what a pending application/renewal is billed. */
+  amountChanged: boolean;
   hoursChanged: boolean;
   pendingApplications: ZoneImpactItem[];
   openRenewals: ZoneImpactItem[];
@@ -174,6 +187,7 @@ export type PenaltyRate = {
   effectiveTo: string | null;
   createdAt: string;
   isInUse: boolean;
+  actorName: string;
 };
 export type WardPenaltyType = {
   violationType: string;
@@ -194,6 +208,21 @@ export type SetPenaltyRateRequest = {
   bracketMax: number;
   effectiveFrom: string;
   expectedCurrentScheduleId: number | null;
+};
+
+/** Null fields mean the feature is off for this ward -- no "consider revoking" banner, no
+ * overdue-penalty reminder sweep. A ward opts in explicitly. */
+export type WardCompliancePolicy = {
+  violationThresholdCount: number | null;
+  violationWindowDays: number | null;
+  unpaidPenaltyGraceDays: number | null;
+  updatedAt: string | null;
+  updatedByName: string | null;
+};
+export type UpsertWardCompliancePolicyRequest = {
+  violationThresholdCount: number | null;
+  violationWindowDays: number | null;
+  unpaidPenaltyGraceDays: number | null;
 };
 
 const token = (versionToken: string) => `versionToken=${encodeURIComponent(versionToken)}`;
@@ -222,14 +251,21 @@ export const wardConfigApi = {
     pricePerDay: number,
     availableFrom: string | null,
     availableTo: string | null,
+    feeComponents: ZoneFeeComponentInput[],
   ) =>
     apiPost<ZoneImpactPreview>(`/ward/pricing-zones/${zoneId}/impact-preview`, {
       pricePerDay,
       availableFrom,
       availableTo,
+      feeComponents,
     }),
   zoneHistory: (zoneId: number) =>
     apiGet<ConfigHistoryEntry[]>(`/ward/pricing-zones/${zoneId}/history`),
+
+  // Phase A - compliance policy
+  getCompliancePolicy: () => apiGet<WardCompliancePolicy>('/ward/compliance-policy'),
+  upsertCompliancePolicy: (request: UpsertWardCompliancePolicyRequest) =>
+    apiPut<WardCompliancePolicy>('/ward/compliance-policy', request),
 
   // WARD-01
   slotGrid: (zoneId?: number) =>
@@ -279,6 +315,8 @@ export const wardConfigApi = {
     } & SlotFacilities &
       WarningAcknowledgement,
   ) => apiPost<WardSlot[]>('/ward/slot-grid/batch', request),
+  slotHistory: (slotId: number) =>
+    apiGet<ConfigHistoryEntry[]>(`/ward/slot-grid/${slotId}/history`),
   createFeature: (input: StreetFeatureInput) =>
     apiPost<{ feature: WardStreetFeature; affectedSlots: PlacementIssue[] }>(
       '/ward/street-features',
@@ -335,6 +373,31 @@ export const businessCategoryLabels: Record<string, string> = {
   CRAFTS: 'Thủ công',
   GENERAL: 'Tổng hợp',
 };
+
+/** Haversine distance in metres; same formula as the backend's GeoMath.DistanceMeters. */
+export function distanceMeters(
+  a: { latitude: number; longitude: number },
+  b: { latitude: number; longitude: number },
+): number {
+  const rad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = rad(b.latitude - a.latitude);
+  const dLon = rad(b.longitude - a.longitude);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(a.latitude)) * Math.cos(rad(b.latitude)) * Math.sin(dLon / 2) ** 2;
+  return 6_371_000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+export const MAX_BATCH_SLOTS = 50;
+
+/** How many slots SlotLine.Positions will lay along a segment; 0 when the segment is shorter than one slot. */
+export function batchSlotCount(segmentMeters: number, lengthMeters: number, gapMeters: number): number {
+  if (segmentMeters < lengthMeters) return 0;
+  return Math.min(
+    MAX_BATCH_SLOTS,
+    Math.floor((segmentMeters - lengthMeters) / (lengthMeters + gapMeters)) + 1,
+  );
+}
 
 /** Calendar date in Vietnam (UTC+7) of a UTC timestamp the backend sends without a "Z". */
 export function vnDateOf(isoUtc: string): string {

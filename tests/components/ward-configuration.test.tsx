@@ -10,7 +10,9 @@ import {
   wardConfigApi,
   type PlacementCheck,
   type WardPenaltyType,
+  type WardSlot,
   type WardSlotGrid,
+  type WardStreetFeature,
   type WardZone,
 } from '@/features/ward-administration/ward-config-api';
 import { PenaltyScheduleScreen } from '@/features/ward-administration/screens/PenaltyScheduleScreen';
@@ -24,12 +26,32 @@ vi.mock('@/core/config/env', () => ({
   isLiveApi: true,
 }));
 
-// Leaflet does not render in jsdom; the stand-in exposes the one interaction the screen needs.
+// Goong does not render in jsdom; the stand-in exposes the taps the screen needs. "map-click-double"
+// replays what goong-map-react really does: two onClick calls for one physical tap.
 vi.mock('@/features/ward-administration/components/SlotGridMap', () => ({
   SlotGridMap: ({ onMapClick }: { onMapClick: (p: { latitude: number; longitude: number }) => void }) => (
-    <button type="button" onClick={() => onMapClick({ latitude: 16.05, longitude: 108.22 })}>
-      map-click
-    </button>
+    <>
+      <button type="button" onClick={() => onMapClick({ latitude: 16.05, longitude: 108.22 })}>
+        map-click
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          onMapClick({ latitude: 16.05, longitude: 108.22 });
+          onMapClick({ latitude: 16.05, longitude: 108.22 });
+        }}
+      >
+        map-click-double
+      </button>
+      {/* ~33 m north of map-click */}
+      <button type="button" onClick={() => onMapClick({ latitude: 16.0503, longitude: 108.22 })}>
+        map-click-far
+      </button>
+      {/* ~1.7 m north of map-click: shorter than a 2 m slot, but clearly a second point */}
+      <button type="button" onClick={() => onMapClick({ latitude: 16.050015, longitude: 108.22 })}>
+        map-click-near
+      </button>
+    </>
   ),
 }));
 
@@ -50,6 +72,11 @@ const zone: WardZone = {
   featureCount: 0,
   feeComponents: [],
   versionToken: 'zone-v1',
+  priceDisplayUnit: 'DAY',
+  pricePerMonth: null,
+  rentalMode: 'STANDARD',
+  eventStartDate: null,
+  eventEndDate: null,
 };
 
 function mount(ui: ReactElement) {
@@ -65,7 +92,7 @@ function mount(ui: ReactElement) {
     },
     sessionExpired: false,
   });
-  vi.spyOn(wardApi, 'me').mockResolvedValue({ userId: '1', wardId: 1, name: 'Ward' });
+  vi.spyOn(wardApi, 'me').mockResolvedValue({ userId: '1', wardId: 1, name: 'Ward', sanctionAuthorityTitle: null });
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter>{ui}</MemoryRouter>
@@ -96,6 +123,7 @@ describe('WARD-03 penalty schedule', () => {
         effectiveTo: null,
         createdAt: '2026-01-01T00:00:00Z',
         isInUse: false,
+        actorName: 'Nguyễn Thị Hồng Vân',
       },
       scheduled: null,
     },
@@ -159,7 +187,7 @@ describe('WARD-02 pricing & hours', () => {
   it('requires an impact preview and a reason before saving a zone change', async () => {
     vi.spyOn(wardConfigApi, 'listZones').mockResolvedValue([zone]);
     const preview = vi.spyOn(wardConfigApi, 'previewZoneImpact').mockResolvedValue({
-      priceChanged: true,
+      amountChanged: true,
       hoursChanged: false,
       pendingApplications: [
         { kind: 'RENTAL_APPLICATION', id: 1, slotCode: 'A-01', vendorName: 'Hộ A', termDays: 30, currentTotal: 900000, newTotal: 1200000 },
@@ -179,7 +207,7 @@ describe('WARD-02 pricing & hours', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Xem tác động trước khi lưu' }));
     expect(await screen.findByText(/Tổng chênh lệch/)).toBeInTheDocument();
-    expect(preview).toHaveBeenCalledWith(1, 40000, '05:00:00', '22:00:00');
+    expect(preview).toHaveBeenCalledWith(1, 40000, '05:00:00', '22:00:00', []);
     expect(save).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText('Lý do thay đổi'), { target: { value: 'Theo quyết định mới' } });
@@ -190,6 +218,47 @@ describe('WARD-02 pricing & hours', () => {
         expect.objectContaining({ pricePerDay: 40000, versionToken: 'zone-v1', changeReason: 'Theo quyết định mới', regulationNumber: null }),
       ),
     );
+  });
+
+  it('saves a pure metadata edit without requiring an impact preview or a reason', async () => {
+    vi.spyOn(wardConfigApi, 'listZones').mockResolvedValue([zone]);
+    const preview = vi.spyOn(wardConfigApi, 'previewZoneImpact');
+    const update = vi.spyOn(wardConfigApi, 'updateZone').mockResolvedValue(zone);
+    mount(<PricingScheduleScreen />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Đường Nguyễn Văn Linh/ }));
+    // Price, hours and fee components are untouched -- only a metadata field changes.
+    fireEvent.change(screen.getByLabelText('Đoạn từ'), { target: { value: 'Ngã tư mới' } });
+
+    expect(screen.queryByRole('button', { name: 'Xem tác động trước khi lưu' })).not.toBeInTheDocument();
+    const save = screen.getByRole('button', { name: 'Lưu thay đổi' });
+    expect(save).not.toBeDisabled();
+    fireEvent.click(save);
+
+    await waitFor(() => expect(update).toHaveBeenCalledWith(1, expect.objectContaining({ segmentFrom: 'Ngã tư mới' })));
+    expect(preview).not.toHaveBeenCalled();
+  });
+
+  it('requires the impact preview when only the fee components change, price and hours untouched', async () => {
+    vi.spyOn(wardConfigApi, 'listZones').mockResolvedValue([zone]);
+    vi.spyOn(wardConfigApi, 'previewZoneImpact').mockResolvedValue({
+      amountChanged: true,
+      hoursChanged: false,
+      pendingApplications: [],
+      openRenewals: [],
+      activeContractsAffectedByHours: 0,
+      totalDelta: 0,
+      vendorsToNotify: 0,
+    });
+    mount(<PricingScheduleScreen />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Đường Nguyễn Văn Linh/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm khoản phí' }));
+    fireEvent.change(screen.getByLabelText('Tên khoản phí'), { target: { value: 'Phí vệ sinh' } });
+
+    const save = screen.getByRole('button', { name: 'Lưu thay đổi' });
+    expect(save).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Xem tác động trước khi lưu' })).toBeInTheDocument();
   });
 
   it('marks an overnight window', async () => {
@@ -255,6 +324,169 @@ describe('WARD-01 slot grid', () => {
     await waitFor(() =>
       expect(create).toHaveBeenCalledWith(
         expect.objectContaining({ zoneId: 1, acknowledgeWarnings: true, warningReason: 'Hai ô ghép', slotCode: null }),
+      ),
+    );
+  });
+
+  const slot = (over: Partial<WardSlot>): WardSlot => ({
+    slotId: 1, slotCode: 'NVL-01', zoneId: 1, zoneName: zone.zoneName, latitude: 16.05, longitude: 108.22,
+    widthMeters: 2, lengthMeters: 3, status: 'AVAILABLE', source: 'WARD_DEFINED', hasPower: false, hasWater: false,
+    hasTrashBin: false, businessCategory: null, canHardDelete: false, canEditGeometry: true, versionToken: 'v1',
+    ...over,
+  });
+
+  async function openBatch() {
+    vi.spyOn(wardConfigApi, 'listZones').mockResolvedValue([zone]);
+    vi.spyOn(wardConfigApi, 'slotGrid').mockResolvedValue(grid);
+    mount(<SlotGridEditorScreen />);
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rải hàng loạt' }));
+  }
+
+  it('counts one physical tap once even though the map library fires onClick twice', async () => {
+    await openBatch();
+    fireEvent.click(screen.getByRole('button', { name: 'map-click-double' }));
+    expect(screen.getByText(/Đã chọn 1\/2 điểm/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'map-click-far' }));
+    // Two distinct pins: the start survived the duplicate call, so a real segment is measured.
+    expect(screen.getByText(/Đoạn dài khoảng/)).toBeInTheDocument();
+  });
+
+  it('shows the segment length and how many slots it fits before any server call', async () => {
+    await openBatch();
+    const preview = vi.spyOn(wardConfigApi, 'previewBatch');
+    fireEvent.click(screen.getByRole('button', { name: 'map-click' }));
+    fireEvent.click(screen.getByRole('button', { name: 'map-click-far' }));
+    // 33.4 m, 2 m slots, 1 m gap: floor((33.4 - 2) / 3) + 1 = 11, same formula as SlotLine.Positions.
+    expect(screen.getByText(/rải được khoảng 11 ô/)).toBeInTheDocument();
+    expect(preview).not.toHaveBeenCalled();
+  });
+
+  it('blocks the preview when the segment is shorter than one slot', async () => {
+    await openBatch();
+    fireEvent.click(screen.getByRole('button', { name: 'map-click' }));
+    fireEvent.click(screen.getByRole('button', { name: 'map-click-near' }));
+    expect(screen.getByText(/ngắn hơn chiều dài một ô/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xem trước' })).toBeDisabled();
+  });
+
+  it("lists a slot's change history with who, what and why", async () => {
+    vi.spyOn(wardConfigApi, 'listZones').mockResolvedValue([zone]);
+    vi.spyOn(wardConfigApi, 'slotGrid').mockResolvedValue({ ...grid, slots: [slot({})] });
+    const history = vi.spyOn(wardConfigApi, 'slotHistory').mockResolvedValue([
+      {
+        auditId: 2,
+        action: 'SLOT_STATUS_CHANGED',
+        actorName: 'Nguyễn Thị Hồng Vân',
+        createdAt: '2026-09-20T03:00:00Z',
+        details: JSON.stringify({ before: { status: 'AVAILABLE' }, after: { status: 'SUSPENDED' }, reason: 'Thi công cống' }),
+      },
+      {
+        auditId: 1,
+        action: 'SLOT_UPDATED',
+        actorName: 'Nguyễn Thị Hồng Vân',
+        createdAt: '2026-09-19T03:00:00Z',
+        details: JSON.stringify({
+          before: { slotCode: 'NVL-01', zoneId: 1, latitude: 16.05, longitude: 108.22, widthMeters: 2, lengthMeters: 2, hasPower: false },
+          after: { slotCode: 'NVL-01', zoneId: 1, latitude: 16.05, longitude: 108.22, widthMeters: 2, lengthMeters: 3, hasPower: true },
+        }),
+      },
+    ]);
+    mount(<SlotGridEditorScreen />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /NVL-01/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lịch sử thay đổi' }));
+    expect(await screen.findByText('Trống → Tạm ngưng')).toBeInTheDocument();
+    expect(screen.getByText('Lý do: Thi công cống')).toBeInTheDocument();
+    expect(screen.getByText('Kích thước 2×2 → 2×3 m')).toBeInTheDocument();
+    expect(screen.getByText('Điện: không → có')).toBeInTheDocument();
+    expect(history).toHaveBeenCalledWith(1);
+  });
+
+  it('suspends every selected free slot with one reason and skips slots in use', async () => {
+    vi.spyOn(wardConfigApi, 'listZones').mockResolvedValue([zone]);
+    vi.spyOn(wardConfigApi, 'slotGrid').mockResolvedValue({
+      ...grid,
+      slots: [
+        slot({ slotId: 1, slotCode: 'NVL-01' }),
+        slot({ slotId: 2, slotCode: 'NVL-02', versionToken: 'v2' }),
+        slot({ slotId: 3, slotCode: 'NVL-03', status: 'ACTIVE' }),
+      ],
+    });
+    const setStatus = vi.spyOn(wardConfigApi, 'setSlotStatus').mockImplementation(async (s) => ({ ...s, status: 'SUSPENDED' }));
+    mount(<SlotGridEditorScreen />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Chọn nhiều ô' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Chọn tất cả 3 ô khớp bộ lọc' }));
+    expect(screen.getByText(/1 ô đang có đơn hoặc hợp đồng sẽ được bỏ qua/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Lý do (áp dụng cho tất cả ô đã chọn)'), {
+      target: { value: 'Thi công vỉa hè' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Tạm ngưng 2 ô' }));
+
+    await waitFor(() => expect(setStatus).toHaveBeenCalledTimes(2));
+    expect(setStatus).toHaveBeenCalledWith(expect.objectContaining({ slotId: 1, versionToken: 'v1' }), 'SUSPENDED', 'Thi công vỉa hè');
+    expect(setStatus).toHaveBeenCalledWith(expect.objectContaining({ slotId: 2, versionToken: 'v2' }), 'SUSPENDED', 'Thi công vỉa hè');
+  });
+
+  it('paginates a long slot list, 20 per page, and resets to page 1 on a new search', async () => {
+    const slots = Array.from({ length: 25 }, (_, i) =>
+      slot({ slotId: i + 1, slotCode: `NVL-${String(i + 1).padStart(2, '0')}`, versionToken: `v${i + 1}` }),
+    );
+    vi.spyOn(wardConfigApi, 'listZones').mockResolvedValue([zone]);
+    vi.spyOn(wardConfigApi, 'slotGrid').mockResolvedValue({ ...grid, slots });
+    mount(<SlotGridEditorScreen />);
+
+    expect(await screen.findByText('Ô trên lưới (25)')).toBeInTheDocument();
+    expect(screen.getByText('Trang 1/2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /NVL-01\b/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /NVL-21\b/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Trang trước' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }));
+    expect(screen.getByText('Trang 2/2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /NVL-21\b/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /NVL-01\b/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Trang sau' })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Tìm theo mã ô'), { target: { value: 'NVL-0' } });
+    expect(screen.getByText('Ô trên lưới (9/25 khớp bộ lọc)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /NVL-01\b/ })).toBeInTheDocument();
+    expect(screen.queryByText(/Trang \d\/\d/)).not.toBeInTheDocument();
+  });
+
+  it('explains why a slot with an open application cannot be suspended here', async () => {
+    vi.spyOn(wardConfigApi, 'listZones').mockResolvedValue([zone]);
+    vi.spyOn(wardConfigApi, 'slotGrid').mockResolvedValue({
+      ...grid,
+      slots: [slot({ status: 'PENDING_APPLICATION', canEditGeometry: false })],
+    });
+    mount(<SlotGridEditorScreen />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /NVL-01/ }));
+    expect(screen.getByText(/đang có đơn thuê chờ xử lý nên chưa tạm ngưng được/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Tạm ngưng ô' })).not.toBeInTheDocument();
+  });
+
+  it('edits a street feature in place, keeping its position unless a new one is tapped', async () => {
+    const feature: WardStreetFeature = {
+      featureId: 4, zoneId: 1, featureType: 'HYDRANT', label: 'Trụ nước', latitude: 16.06, longitude: 108.21,
+      blocksBusiness: true, note: null, clearanceMeters: null, versionToken: 'f1',
+    };
+    vi.spyOn(wardConfigApi, 'listZones').mockResolvedValue([zone]);
+    vi.spyOn(wardConfigApi, 'slotGrid').mockResolvedValue({ ...grid, features: [feature] });
+    const update = vi.spyOn(wardConfigApi, 'updateFeature').mockResolvedValue({ feature, affectedSlots: [] });
+    mount(<SlotGridEditorScreen />);
+
+    fireEvent.click(await screen.findByRole('tab', { name: 'Chướng ngại vật' }));
+    fireEvent.click(screen.getByRole('button', { name: 'map-click' })); // stray tap before choosing "Sửa"
+    fireEvent.click(screen.getByRole('button', { name: 'Sửa' }));
+    fireEvent.change(screen.getByLabelText('Tên / mô tả ngắn'), { target: { value: 'Trụ nước PCCC số 2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
+
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith(
+        feature,
+        expect.objectContaining({ label: 'Trụ nước PCCC số 2', latitude: 16.06, longitude: 108.21 }),
       ),
     );
   });
