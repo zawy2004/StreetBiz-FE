@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button, Card, Divider, ListRow, Money } from '@/components/common';
+import { Button, Card, Divider, Icon, ListRow, Money } from '@/components/common';
 import { ConfirmDialog, ErrorState, LoadingState, showToast } from '@/components/feedback';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
@@ -20,6 +20,12 @@ import {
   formatOrderDate,
 } from '../components';
 import { useCustomerOrder, useRefreshAfterOrderMutation } from '../hooks/useOrders';
+import { useOrderTracking } from '../hooks/useOrderTracking';
+import { OrderProgressCard } from '../tracking/OrderProgressCard';
+import { PickupPointCard } from '../tracking/PickupPointCard';
+import { hasTrackingJourney, normalizeTrackingStatus } from '../tracking/tracking-steps';
+import { useReadyNotice } from '../tracking/useReadyNotice';
+import { COLLECTABLE_ORDER_STATUSES } from '../types/order.types';
 
 function refundPresentation(status: string) {
   if (status === 'SUCCESS') {
@@ -52,6 +58,8 @@ function LiveOrderDetailScreen() {
   const { orderId } = useParams<{ orderId: string }>();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const order = useCustomerOrder(orderId);
+  const tracking = useOrderTracking(order.data?.orderId, order.data?.orderStatus);
+  useReadyNotice(order.data?.orderStatus);
   const refresh = useRefreshAfterOrderMutation('customer', Number(orderId));
   const transition = useMutation({
     mutationFn: () => orderApi.cancel(order.data!.orderId),
@@ -92,6 +100,13 @@ function LiveOrderDetailScreen() {
         <OrderStatusBadge status={data.orderStatus} />
         {data.paymentStatus ? <StatusChip code={data.paymentStatus} /> : null}
       </div>
+      {hasTrackingJourney(data.orderStatus) ? (
+        <OrderProgressCard
+          status={data.orderStatus}
+          history={data.statusHistory}
+          tracking={tracking.data}
+        />
+      ) : null}
       <OrderPickupQr order={data} />
       {data.orderStatus === 'PENDING_PAYMENT' ? (
         <Card
@@ -106,24 +121,13 @@ function LiveOrderDetailScreen() {
           </p>
         </Card>
       ) : null}
-      <Card>
-        <div className="flex items-center gap-sm">
-          {data.storefront.imageUrl ? (
-            <img
-              src={data.storefront.imageUrl}
-              alt=""
-              className="h-16 w-16 rounded-sm object-cover"
-            />
-          ) : null}
-          <div>
-            <p className="text-headline-sm text-text">{data.storefront.storefrontName}</p>
-            {data.storefront.address ? (
-              <p className="text-body-sm text-muted">{data.storefront.address}</p>
-            ) : null}
-            <p className="text-body-sm text-muted">Nhận trực tiếp tại điểm bán</p>
-          </div>
-        </div>
-      </Card>
+      <PickupPointCard
+        storefront={data.storefront}
+        point={tracking.data?.pickupPoint}
+        active={COLLECTABLE_ORDER_STATUSES.has(data.orderStatus)}
+        orderId={data.orderId}
+        arrivalNotifiedAt={tracking.data?.arrivalNotifiedAt}
+      />
       <Card padded={false}>
         <OrderItemsList items={data.items} />
       </Card>
@@ -142,9 +146,19 @@ function LiveOrderDetailScreen() {
         ) : null}
       </Card>
       {data.statusHistory.length ? (
+        // The progress card above answers "where is it"; the full log with notes stays one tap away.
         <Card>
-          <p className="mb-xs text-label text-text">Tiến trình đơn hàng</p>
-          <OrderTimeline history={data.statusHistory} />
+          <details className="group">
+            <summary className="flex cursor-pointer list-none items-center justify-between text-label text-text">
+              Lịch sử cập nhật
+              <span className="text-muted transition-transform duration-200 group-open:rotate-180">
+                <Icon name="chevron-down" size={18} />
+              </span>
+            </summary>
+            <div className="mt-sm">
+              <OrderTimeline history={data.statusHistory} />
+            </div>
+          </details>
         </Card>
       ) : null}
       {data.rejectionReason ? (
@@ -248,6 +262,8 @@ function MockOrderDetailScreen() {
     >
       <AppHeader title={`#${order.order_code}`} back subtitle={storefront?.name} />
       <StatusChip code={order.order_status} />
+      {/* The demo keeps no history, so the steps show without times. */}
+      <OrderProgressCard status={normalizeTrackingStatus(order.order_status)} history={[]} />
       <Card padded={false}>
         <div className="px-md">
           {order.items.map((item, index) => (

@@ -2,17 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
-import { Button } from '@/components/common';
+import { Button, Card, Icon, Money } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { ErrorState, LoadingState, showToast } from '@/components/feedback';
-import { ApiError, errorMessage, financeApi } from '@/core/api';
+import { ApiError, errorMessage, financeApi, type FeeItemDetailDto } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
+import { saveFile } from '@/core/utils/save-file';
 import { useMockDb } from '@/mocks/db';
+import { colors } from '@/theme';
 import { PaymentProviderSelector } from '@/features/orders/components';
 import { isSandboxPaymentUrl, redirectToPayment } from '@/features/orders/payment-redirect';
 import { rememberFinancePayment, useFinancePaymentReturn } from '../useFinancePaymentReturn';
 import { PaymentSummary } from '../components/PaymentSummary';
-import { FINANCE_KEYS, useFeeItems, usePayFeeCheckout } from '../useFinance';
+import { DueBadge, ProgressBar } from '../components/ScheduleComponents';
+import { formatDay, paidShare } from '../schedule-progress';
+import { usePayFeeCheckout } from '../useFinance';
+import { useFeeItemDetail } from '../useFeeSchedules';
 
 type Provider = 'MOMO' | 'ZALOPAY';
 
@@ -20,24 +25,148 @@ export function FeePaymentScreen() {
   return isLiveApi ? <LiveFeePaymentScreen /> : <MockFeePaymentScreen />;
 }
 
+/** What is being paid: the instalment, its slot and contract, and how urgent it is. */
+function FeeSummary({ detail }: { detail: FeeItemDetailDto }) {
+  const { item, contract } = detail;
+  return (
+    <Card>
+      <div className="flex items-start justify-between gap-sm">
+        <div className="min-w-0">
+          <p className="text-body-md text-muted">Phí thuê ô {contract.slotCode}</p>
+          <p className="text-headline-sm text-text">{item.periodLabel}</p>
+        </div>
+        <DueBadge item={item} />
+      </div>
+      <div className="mt-sm">
+        <Money amountVnd={item.amount} size="lg" />
+        <p className="mt-2xs text-body-sm text-muted">Hạn thanh toán {formatDay(item.dueDate)}</p>
+      </div>
+      <div className="mt-sm border-t border-border pt-sm">
+        <div className="mb-2xs flex justify-between text-body-sm text-muted">
+          <span>
+            Hợp đồng đã nộp {contract.paidCount}/{contract.instalmentCount} kỳ
+          </span>
+          <span>
+            Còn lại <Money amountVnd={contract.outstandingAmount} />
+          </span>
+        </div>
+        <ProgressBar value={paidShare(contract)} label="Tiến độ đóng phí của hợp đồng" />
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * After paying: a receipt, not a bounce back to the list. The vendor sees the money was taken,
+ * which invoice it produced, and can open or download it straight away.
+ */
+function PaidReceipt({ detail }: { detail: FeeItemDetailDto }) {
+  const navigate = useNavigate();
+  const [downloading, setDownloading] = useState(false);
+  const { item, contract } = detail;
+
+  const download = async () => {
+    if (!item.invoiceId || !item.invoiceNumber) return;
+    setDownloading(true);
+    try {
+      saveFile(await financeApi.invoicePdf(item.invoiceId), `${item.invoiceNumber}.pdf`);
+    } catch (err) {
+      showToast(errorMessage(err));
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <Screen
+      footer={
+        <StickyActions>
+          <Button label="Về trang Tài chính" variant="outline" onPress={() => navigate('/vendor/finance')} />
+        </StickyActions>
+      }
+    >
+      <AppHeader title="Đã thanh toán" back />
+      <Card className="sb-fade-in">
+        <div className="flex flex-col items-center gap-xs py-sm text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-tint-tertiary">
+            <Icon name="check-circle" size={32} color={colors.tertiary} />
+          </span>
+          <p className="text-headline-sm text-text">Thanh toán thành công</p>
+          <Money amountVnd={item.amount} size="lg" />
+          <p className="text-body-sm text-muted">
+            {item.periodLabel} · Ô {contract.slotCode}
+          </p>
+          {item.paidAt ? (
+            <p className="text-body-sm text-muted">
+              Lúc {new Date(item.paidAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
+            </p>
+          ) : null}
+        </div>
+      </Card>
+      {item.invoiceId && item.invoiceNumber ? (
+        <Card>
+          <p className="text-body-sm text-muted">Hoá đơn đã phát hành</p>
+          <p className="text-headline-sm text-text">{item.invoiceNumber}</p>
+          <div className="mt-sm flex flex-wrap gap-xs">
+            <Button
+              label="Xem hoá đơn"
+              size="sm"
+              fullWidth={false}
+              onPress={() => navigate(`/vendor/finance/invoices/${item.invoiceId}`)}
+            />
+            <Button
+              label="Tải PDF"
+              size="sm"
+              variant="outline"
+              fullWidth={false}
+              loading={downloading}
+              disabled={downloading}
+              onPress={() => void download()}
+            />
+          </div>
+        </Card>
+      ) : (
+        <p className="text-center text-body-sm text-muted">Hoá đơn đang được phát hành…</p>
+      )}
+      {contract.nextDue ? (
+        <Card onPress={() => navigate(`/vendor/finance/contracts/${contract.contractId}`)}>
+          <div className="flex items-center justify-between gap-sm">
+            <div>
+              <p className="text-body-sm text-muted">Kỳ tiếp theo</p>
+              <p className="text-headline-sm text-text">{contract.nextDue.periodLabel}</p>
+              <p className="mt-2xs text-body-sm text-muted">Hạn {formatDay(contract.nextDue.dueDate)}</p>
+            </div>
+            <Money amountVnd={contract.nextDue.amount} />
+          </div>
+        </Card>
+      ) : null}
+    </Screen>
+  );
+}
+
 function LiveFeePaymentScreen() {
   const { id } = useParams<{ id: string }>();
   const feeItemId = Number(id);
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [provider, setProvider] = useState<Provider>('MOMO');
   const idempotencyKey = useRef<string | null>(null);
   const submitting = useRef(false);
-  const { feeItems, isLoading, isError, error, refetch } = useFeeItems();
+  const detail = useFeeItemDetail(feeItemId);
   const checkout = usePayFeeCheckout();
   const { pathname } = useLocation();
-  // Back from MoMo on this page: the backend checks with MoMo, then we leave for the finance home.
-  const momoReturn = useFinancePaymentReturn(async () => {
+  // Every finance view (lists, summary, schedules, this item) re-reads after a payment. A read
+  // still in flight is cancelled first: back from MoMo, the page's first read of this instalment
+  // can start before the sync applied the payment, and an invalidation would otherwise just wait
+  // for that stale read instead of asking again.
+  const refreshAll = async () => {
+    await queryClient.cancelQueries({ queryKey: ['finance'] });
     await queryClient.invalidateQueries({ queryKey: ['finance'] });
+  };
+  // Back from MoMo on this page: the backend checks with MoMo, then this page shows the receipt.
+  const momoReturn = useFinancePaymentReturn(async () => {
+    await refreshAll();
     showToast('MoMo đã xác nhận thanh toán');
-    navigate('/vendor/finance', { replace: true });
   });
-  const fee = feeItems.find((f) => f.feeItemId === feeItemId);
 
   useEffect(() => {
     idempotencyKey.current = null;
@@ -45,7 +174,7 @@ function LiveFeePaymentScreen() {
   }, [feeItemId]);
 
   const pay = () => {
-    if (!fee || submitting.current || checkout.isPending) return;
+    if (!detail.data || submitting.current || checkout.isPending) return;
     submitting.current = true;
     idempotencyKey.current ??= crypto.randomUUID();
     checkout.mutate(
@@ -60,17 +189,10 @@ function LiveFeePaymentScreen() {
             return;
           }
           try {
-            // Development-only: no real MoMo/ZaloPay sandbox account is wired up, so
-            // confirm here instead of letting the redirect below hit a dead custom-scheme URL.
+            // Development-only: the local sandbox confirms here instead of a real gateway.
             await financeApi.sandboxConfirmPayment(result.transactionId);
-            await Promise.all([
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.fees() }),
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.summary }),
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.payments }),
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.invoices }),
-            ]);
+            await refreshAll();
             showToast('Thanh toán thành công');
-            navigate(-1);
           } catch (err) {
             if (err instanceof ApiError && err.status === 404) {
               showToast('Đang chuyển đến cổng thanh toán.');
@@ -78,10 +200,7 @@ function LiveFeePaymentScreen() {
               return;
             }
             // e.g. already paid from another tab: refresh so the item stops looking payable.
-            await Promise.all([
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.fees() }),
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.summary }),
-            ]);
+            await refreshAll();
             submitting.current = false;
             showToast(errorMessage(err));
           }
@@ -93,7 +212,7 @@ function LiveFeePaymentScreen() {
     );
   };
 
-  if (isLoading) {
+  if (detail.isLoading) {
     return (
       <Screen>
         <AppHeader title="Thanh toán phí thuê ô" back />
@@ -101,15 +220,17 @@ function LiveFeePaymentScreen() {
       </Screen>
     );
   }
-  if (isError) {
+  if (detail.isError || !detail.data) {
     return (
       <Screen>
         <AppHeader title="Thanh toán phí thuê ô" back />
-        <ErrorState message={errorMessage(error)} onRetry={() => refetch()} />
+        <ErrorState message={errorMessage(detail.error)} onRetry={() => detail.refetch()} />
       </Screen>
     );
   }
-  if (!fee) return <ErrorState message="Không tìm thấy khoản phí." />;
+  if (detail.data.item.itemStatus === 'PAID') {
+    return <PaidReceipt detail={detail.data} />;
+  }
 
   return (
     <Screen
@@ -157,7 +278,7 @@ function LiveFeePaymentScreen() {
           {momoReturn.state.message}
         </p>
       ) : null}
-      <PaymentSummary title={fee.periodLabel} amount={fee.amount} dueDate={fee.dueDate} />
+      <FeeSummary detail={detail.data} />
       <PaymentProviderSelector
         value={provider}
         onChange={setProvider}

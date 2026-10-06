@@ -11,6 +11,7 @@ import {
   showToast,
 } from '@/components/feedback';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
+import { CartRangeHint } from '@/features/orders/pickup/CartRangeHint';
 import { commerceApi, errorMessage } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
@@ -105,6 +106,7 @@ function LiveCartScreen() {
       }
     >
       <AppHeader title="Giỏ hàng" back subtitle={data?.storefrontName} />
+      {!locked && items.length ? <CartRangeHint storefrontId={data?.storefrontId} /> : null}
       {locked ? (
         <div
           role="status"

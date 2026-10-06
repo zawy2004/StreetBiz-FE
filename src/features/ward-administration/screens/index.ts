@@ -17,3 +17,4 @@ export * from './CollectionReportScreen';
 export * from './PermitScanScreen';
 export * from './RecordViolationScreen';
 export * from './PermitActionScreen';
+export * from './WardDebtorsScreen';

@@ -87,6 +87,7 @@ const ICON_MAP: Record<string, IconType> = {
   'bus-stop': Md.MdOutlineDirectionsBus,
   parking: Md.MdOutlineLocalParking,
   walk: Md.MdOutlineDirectionsWalk,
+  directions: Md.MdOutlineDirections,
   'ruler-square': Md.MdOutlineSquareFoot,
   'phone-outline': Md.MdOutlinePhone,
   'map-outline': Md.MdOutlineMap,

@@ -1,5 +1,6 @@
 import { apiGet, apiPost } from '@/core/api/client';
 import type {
+  ArrivalNotice,
   CheckoutRequest,
   CheckoutResponse,
   Order,
@@ -7,7 +8,10 @@ import type {
   OrderPickupCode,
   OrderListFilters,
   OrderStatusHistory,
+  OrderArrival,
+  OrderTracking,
   PagedResult,
+  PickupRangeInfo,
   SalesGroup,
   SalesSummary,
 } from '../types/order.types';
@@ -123,6 +127,37 @@ export const orderApi = {
   /** ORD-06: the signed code the buyer shows at the stall. */
   pickupCode: (orderId: number | string) =>
     apiGet<OrderPickupCode>(`/orders/${orderId}/pickup-code`),
+  /** ORD-02: ready-time estimate, queue ahead and where to collect. */
+  tracking: async (orderId: number | string): Promise<OrderTracking> => {
+    const tracking = await apiGet<OrderTracking>(`/orders/${orderId}/tracking`);
+    const estimate = tracking.readyEstimate;
+    return {
+      ...tracking,
+      readyAt: normalizeUtc(tracking.readyAt),
+      arrivalNotifiedAt: normalizeUtc(tracking.arrivalNotifiedAt),
+      readyEstimate: estimate && {
+        ...estimate,
+        earliestReadyAt: normalizeUtc(estimate.earliestReadyAt),
+        latestReadyAt: normalizeUtc(estimate.latestReadyAt),
+      },
+    };
+  },
+  /** ORD-01: the stall's pickup point and the range rule the server applies at checkout. */
+  pickupRange: (storefrontId: number | string) =>
+    apiGet<PickupRangeInfo>(`/marketplace/storefronts/${storefrontId}/pickup-range`),
+  /** "Tôi đang đến": tells the stall the customer is on the way, with a walking ETA if known. */
+  announceArrival: async (orderId: number, etaMinutes?: number): Promise<ArrivalNotice> => {
+    const notice = await apiPost<ArrivalNotice>(`/orders/${orderId}/arriving`, {
+      etaMinutes: etaMinutes ?? null,
+    });
+    return { ...notice, notifiedAt: normalizeUtc(notice.notifiedAt) ?? notice.notifiedAt };
+  },
+  /** The seller's board: customers on their way to collect. */
+  vendorArrivals: async (): Promise<OrderArrival[]> =>
+    (await apiGet<OrderArrival[]>('/vendor/orders/arrivals')).map((arrival) => ({
+      ...arrival,
+      notifiedAt: normalizeUtc(arrival.notifiedAt) ?? arrival.notifiedAt,
+    })),
 
   vendorOrders: async (filters: OrderListFilters = {}) =>
     mapPage(await apiGet<PagedResult<BackendOrder>>(`/vendor/orders?${query(filters)}`)),

@@ -168,6 +168,10 @@ const VendorViolationsScreen = lazyScreen(
   () => import('@/features/fee-schedules/screens'),
   'VendorViolationsScreen',
 );
+const ContractScheduleScreen = lazyScreen(
+  () => import('@/features/fee-schedules/screens'),
+  'ContractScheduleScreen',
+);
 const MenuScreen = lazyScreen(() => import('@/features/storefronts/screens'), 'MenuScreen');
 const SalesSummaryScreen = lazyScreen(
   () => import('@/features/storefronts/screens'),
@@ -266,6 +270,10 @@ const AddressConflictReviewScreen = lazyScreen(
 const CollectionReportScreen = lazyScreen(
   () => import('@/features/ward-administration/screens'),
   'CollectionReportScreen',
+);
+const WardDebtorsScreen = lazyScreen(
+  () => import('@/features/ward-administration/screens'),
+  'WardDebtorsScreen',
 );
 const InboxScreen = lazyScreen(
   () => import('@/features/ward-administration/screens'),
@@ -515,6 +523,7 @@ export function AppRouter() {
           <Route path="finance/invoices/:id" element={<InvoiceDetailScreen />} />
           <Route path="finance/payments" element={<PaymentHistoryScreen />} />
           <Route path="finance/violations" element={<VendorViolationsScreen />} />
+          <Route path="finance/contracts/:id" element={<ContractScheduleScreen />} />
           <Route path="chat" element={<ConversationsScreen />} />
           <Route path="chat/:conversationId" element={<ChatThreadScreen />} />
           <Route path="store" element={<StoreScreen />} />
@@ -536,6 +545,7 @@ export function AppRouter() {
         >
           <Route path="dashboard" element={<WardDashboardScreen />} />
           <Route path="reports" element={<CollectionReportScreen />} />
+          <Route path="reports/debtors" element={<WardDebtorsScreen />} />
           <Route path="inbox" element={<InboxScreen />} />
           <Route path="inbox/reviews" element={<WardCasesScreen />} />
           <Route path="inbox/reviews/:kind/:id" element={<WardCaseScreen />} />

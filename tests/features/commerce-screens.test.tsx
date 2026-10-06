@@ -28,8 +28,25 @@ const ordersApi = vi.hoisted(() => ({
   preparing: vi.fn(),
   readyForPickup: vi.fn(),
   salesSummary: vi.fn(),
+  // ORD-02 tracking: left pending, these tests read the order itself.
+  tracking: vi.fn(() => new Promise(() => undefined)),
 }));
 const redirect = vi.hoisted(() => vi.fn());
+// These tests are about payment, so the customer stands at the stall; the pickup-range rule
+// itself is covered in order-tracking.test.tsx.
+const atTheStall = vi.hoisted(() => ({ latitude: 16.0609, longitude: 108.2177, accuracyMeters: 8 }));
+
+vi.mock('@/features/orders/pickup/usePickupRange', () => ({
+  pickupRangeKey: (id: number | string) => ['orders', 'pickup-range', String(id)],
+  usePickupRange: () => ({
+    canOrder: true,
+    enforced: false,
+    location: atTheStall,
+    verdict: null,
+    info: {},
+    live: {},
+  }),
+}));
 
 vi.mock('@/core/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/core/api')>();
@@ -148,6 +165,7 @@ describe('order UI contracts', () => {
       message: '',
     });
     ordersApi.syncPayment.mockImplementation(async () => order('PENDING_PAYMENT'));
+    ordersApi.tracking.mockImplementation(() => new Promise(() => undefined));
     vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'uuid-checkout-1') });
     useAuthStore.setState({
       user: {
@@ -241,7 +259,7 @@ describe('order UI contracts', () => {
     await user.dblClick(button);
     expect(ordersApi.checkout).toHaveBeenCalledOnce();
     expect(ordersApi.checkout).toHaveBeenCalledWith(
-      { cartId: 3, provider: 'MOMO' },
+      { cartId: 3, provider: 'MOMO', location: atTheStall },
       'uuid-checkout-1',
     );
   });

@@ -60,9 +60,79 @@ export interface Order {
   statusHistory: OrderStatusHistory[];
 }
 
+/** Where the customer is when ordering, as the browser reported it (ORD-01 pickup range). */
+export interface PickupLocation {
+  latitude: number;
+  longitude: number;
+  /** The Geolocation API's own figure: 95% of the time the true position is within this radius. */
+  accuracyMeters: number;
+}
+
 export interface CheckoutRequest {
   cartId: number;
   provider: PaymentProvider;
+  location?: PickupLocation;
+}
+
+/** The stall's rented slot: where a pickup order is collected. */
+export interface PickupPoint {
+  storefrontId: number;
+  storefrontName: string;
+  address: string | null;
+  latitude: number;
+  longitude: number;
+}
+
+/** GET /marketplace/storefronts/{id}/pickup-range: the point plus the rule the server applies. */
+export interface PickupRangeInfo {
+  pickupPoint: PickupPoint;
+  enforced: boolean;
+  radiusMeters: number;
+  accuracyAllowanceMeters: number;
+  maxAccuracyMeters: number;
+}
+
+/**
+ * When an order should be ready. Minutes are the stall's usual range (its middle half of recent
+ * orders, or a default with too little history); the instants exist once the stall has accepted.
+ */
+export interface ReadyEstimate {
+  lowMinutes: number;
+  typicalMinutes: number;
+  highMinutes: number;
+  basis: 'HISTORY' | 'DEFAULT';
+  sampleSize: number;
+  earliestReadyAt: string | null;
+  latestReadyAt: string | null;
+  isLate: boolean;
+}
+
+/** GET /orders/{id}/tracking: the forward-looking half of tracking (history stays on Order). */
+export interface OrderTracking {
+  orderId: number;
+  orderStatus: OrderStatus;
+  pickupPoint: PickupPoint;
+  readyEstimate: ReadyEstimate | null;
+  ordersAhead: number;
+  readyAt: string | null;
+  /** When the customer last told the stall they were on the way. */
+  arrivalNotifiedAt?: string | null;
+}
+
+/** POST /orders/{id}/arriving: the stall has been told; `alreadySent` when within the 2-minute window. */
+export interface ArrivalNotice {
+  orderId: number;
+  orderStatus: OrderStatus;
+  notifiedAt: string;
+  alreadySent: boolean;
+}
+
+/** GET /vendor/orders/arrivals: a customer on the way, for the seller's board. */
+export interface OrderArrival {
+  orderId: number;
+  orderCode: string;
+  notifiedAt: string;
+  message: string;
 }
 
 export interface CheckoutResponse {

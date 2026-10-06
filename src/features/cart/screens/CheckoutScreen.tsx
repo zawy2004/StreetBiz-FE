@@ -14,6 +14,8 @@ import { useCartStore } from '../cart-store';
 import { useCheckoutOrder } from '@/features/orders/hooks/useOrders';
 import { PaymentProviderSelector } from '@/features/orders/components';
 import { isSandboxPaymentUrl, redirectToPayment } from '@/features/orders/payment-redirect';
+import { PickupRangeNotice } from '@/features/orders/pickup/PickupRangeNotice';
+import { usePickupRange } from '@/features/orders/pickup/usePickupRange';
 
 type Provider = 'MOMO' | 'ZALOPAY';
 
@@ -34,12 +36,17 @@ function LiveCheckoutScreen() {
     enabled: user?.role_code === 'CUSTOMER',
   });
   const place = useCheckoutOrder();
+  // ORD-01: called before any early return, like every hook. Idle (no location prompt) until
+  // there is a cart that can actually be checked out.
+  const range = usePickupRange(
+    cart.data?.items.length && !cart.data.pendingOrderId ? cart.data.storefrontId : undefined,
+  );
   useEffect(() => {
     idempotencyKey.current = null;
     submitting.current = false;
   }, [cart.data?.cartId]);
   const startCheckout = () => {
-    if (!cart.data || submitting.current || place.isPending) return;
+    if (!cart.data || submitting.current || place.isPending || !range.canOrder) return;
     submitting.current = true;
     idempotencyKey.current ??= crypto.randomUUID();
     place.mutate(
@@ -47,6 +54,8 @@ function LiveCheckoutScreen() {
         cartId: cart.data.cartId,
         provider,
         idempotencyKey: idempotencyKey.current,
+        // The position the screen judged; the server re-checks this same one.
+        location: range.location,
       },
       {
         onSuccess: async (checkout) => {
@@ -122,6 +131,7 @@ function LiveCheckoutScreen() {
             loading={place.isPending}
             disabled={
               place.isPending ||
+              !range.canOrder ||
               data.storefrontStatus !== 'OPEN' ||
               items.some((item) => item.availabilityStatus !== 'AVAILABLE')
             }
@@ -137,6 +147,11 @@ function LiveCheckoutScreen() {
           {data.storefrontAddress || 'Địa chỉ điểm bán chưa được cập nhật'}
         </p>
         <p className="mt-xs text-body-sm text-primary">Nhận món trực tiếp tại điểm bán</p>
+        {range.enforced ? (
+          <div className="mt-sm border-t border-border pt-sm">
+            <PickupRangeNotice range={range} />
+          </div>
+        ) : null}
       </Card>
       <Card padded={false}>
         <div className="px-md">

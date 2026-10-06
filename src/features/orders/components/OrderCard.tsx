@@ -2,6 +2,7 @@ import { Card, Money } from '@/components/common';
 import type { Order } from '../types/order.types';
 import { formatOrderDate } from './order-format';
 import { OrderStatusBadge } from './OrderStatusBadge';
+import { OrderProgressStrip } from '../tracking/OrderProgressStrip';
 
 export function OrderCard({
   order,
@@ -49,6 +50,7 @@ export function OrderCard({
           <p className="mt-2xs text-body-sm text-muted">
             {itemCount} món · {formatOrderDate(order.placedAt ?? order.createdAt)}
           </p>
+          <OrderProgressStrip status={order.orderStatus} history={order.statusHistory} />
           <div className="mt-xs flex items-center justify-between gap-sm">
             <Money amountVnd={order.totalAmount} />
             {onPress ? (

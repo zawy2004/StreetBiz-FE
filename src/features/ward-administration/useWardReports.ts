@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { wardReportApi, type CollectionReportDto, type WardDashboardDto } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
@@ -117,4 +117,51 @@ export function useWardDashboard() {
     error: query.error,
     refetch: query.refetch,
   };
+}
+
+export const WARD_COLLECTION_KEYS = {
+  performance: (from: string, to: string) => ['ward', 'reports', 'performance', from, to] as const,
+  trend: (months: number) => ['ward', 'reports', 'trend', months] as const,
+  debtors: ['ward', 'reports', 'debtors'] as const,
+};
+
+/**
+ * WARD-14 collections: on-time rate and zones for the period. Live only: the demo database keeps
+ * no payment dates, so it cannot say what was on time.
+ */
+export function useCollectionPerformance(period: ReportPeriod) {
+  return useQuery({
+    queryKey: WARD_COLLECTION_KEYS.performance(period.from, period.to),
+    queryFn: () => wardReportApi.performance(period.from, period.to),
+    enabled: isLiveApi,
+    // Keep the last figures on screen while another period loads: no flash, no layout jump.
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Collections month by month (live only, like the on-time rate). */
+export function useCollectionTrend(months = 6) {
+  return useQuery({
+    queryKey: WARD_COLLECTION_KEYS.trend(months),
+    queryFn: () => wardReportApi.trend(months),
+    enabled: isLiveApi,
+  });
+}
+
+/** Households with overdue fees (live only). */
+export function useWardDebtors() {
+  return useQuery({
+    queryKey: WARD_COLLECTION_KEYS.debtors,
+    queryFn: wardReportApi.debtors,
+    enabled: isLiveApi,
+  });
+}
+
+/** One reminder per household per day; the list re-reads so "đã nhắc" shows at once. */
+export function useRemindDebtor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (contractId: number) => wardReportApi.remindDebtor(contractId),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: WARD_COLLECTION_KEYS.debtors }),
+  });
 }

@@ -14,6 +14,7 @@ import { FoodImage } from '../components/FoodImage';
 import { OpenBadge } from '../components/StorefrontCard';
 import { directionsUrl, formatDistance, ratingText, vietnamWeekday, weeklySchedule } from '../discovery-format';
 import { useDiscoveryStore } from '../discovery-store';
+import { OutOfRangeHint } from '@/features/orders/pickup/OutOfRangeHint';
 import { menuItemPhotos, storefrontPhotos } from '../food-photos';
 
 /** One storefront in full: where it is, when it opens and what it sells (DISC-06). */
@@ -70,6 +71,7 @@ export function StorefrontDetailScreen() {
               {distance ? ` · ${distance}` : ''}
             </span>
           </div>
+          <OutOfRangeHint storefrontId={storefront.storefrontId} distanceMeters={storefront.distanceMeters} />
           <div className="flex flex-wrap gap-sm">
             <a
               href={directionsUrl(storefront.latitude, storefront.longitude)}

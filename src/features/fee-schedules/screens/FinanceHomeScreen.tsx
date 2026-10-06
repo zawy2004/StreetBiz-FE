@@ -1,30 +1,52 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Button, Card, Money } from '@/components/common';
+import { Button, Card, Divider, Money } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { SegmentedControl } from '@/components/forms';
 import { StatusChip } from '@/components/status';
-import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
-import { errorMessage } from '@/core/api';
+import { EmptyState, ErrorState, LoadingState, showToast } from '@/components/feedback';
+import { errorMessage, financeApi } from '@/core/api';
+import { isLiveApi } from '@/core/config/env';
+import { saveFile } from '@/core/utils/save-file';
 import { alpha, colors } from '@/theme';
+import { ContractProgressCard, InstalmentRow } from '../components/ScheduleComponents';
+import { InvoiceList } from '../components/InvoiceList';
+import { byUrgency, localToday, withDueDays } from '../schedule-progress';
 import { useFeeItems, useFinanceSummary, useInvoices, usePenalties } from '../useFinance';
+import { useVendorContracts } from '../useFeeSchedules';
 
 type Tab = 'FEES' | 'PENALTIES' | 'INVOICES';
 
 export function FinanceHomeScreen() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('FEES');
+  const [downloading, setDownloading] = useState(false);
 
   const summary = useFinanceSummary();
   const fees = useFeeItems();
+  const contracts = useVendorContracts();
   const penalties = usePenalties();
   const invoices = useInvoices();
+
+  const today = localToday();
+  // Every unpaid instalment across contracts, the most urgent first, ready for the due badges.
+  const outstanding = fees.feeItems
+    .filter((f) => f.itemStatus !== 'PAID')
+    .map((f) => ({
+      ...withDueDays(f, today),
+      ordinal: 0,
+      ofCount: 0,
+      invoiceId: null,
+      invoiceNumber: null,
+    }))
+    .sort(byUrgency);
+  const mostUrgent = outstanding[0];
 
   const totals = summary.summary;
   const summaryHint = totals
     ? [
-        totals.overdueCount > 0 ? `${totals.overdueCount} khoản quá hạn` : null,
+        totals.overdueCount > 0 ? `${totals.overdueCount} kỳ quá hạn` : null,
         totals.nextDueDate
           ? `Hạn kế tiếp ${new Date(totals.nextDueDate).toLocaleDateString('vi-VN')}`
           : null,
@@ -32,6 +54,22 @@ export function FinanceHomeScreen() {
         .filter(Boolean)
         .join(' · ')
     : '';
+
+  const downloadStatement = async () => {
+    const year = new Date().getFullYear();
+    if (!isLiveApi) {
+      showToast('Sao kê chỉ có khi kết nối máy chủ (đang ở chế độ demo).');
+      return;
+    }
+    setDownloading(true);
+    try {
+      saveFile(await financeApi.statementXlsx(year), `sao-ke-phi-${year}.xlsx`);
+    } catch (err) {
+      showToast(errorMessage(err));
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <Screen>
@@ -60,6 +98,18 @@ export function FinanceHomeScreen() {
               ) : null}
             </>
           )}
+          {mostUrgent ? (
+            <div className="mt-sm">
+              <Button
+                label={
+                  mostUrgent.daysOverdue != null ? 'Thanh toán kỳ quá hạn' : 'Thanh toán kỳ gần nhất'
+                }
+                fullWidth={false}
+                size="sm"
+                onPress={() => navigate(`/vendor/finance/fees/${mostUrgent.feeItemId}/payment`)}
+              />
+            </div>
+          ) : null}
         </div>
       </Card>
 
@@ -68,45 +118,57 @@ export function FinanceHomeScreen() {
         onChange={setTab}
         options={[
           { value: 'FEES', label: 'Phí thuê ô' },
-          { value: 'PENALTIES', label: 'Biên bản phạt' },
+          { value: 'PENALTIES', label: 'Tiền phạt' },
           { value: 'INVOICES', label: 'Hoá đơn' },
         ]}
       />
 
       {tab === 'FEES' ? (
-        <Section>
-          {fees.isLoading ? (
-            <LoadingState />
-          ) : fees.isError ? (
-            <ErrorState message={errorMessage(fees.error)} onRetry={() => fees.refetch()} />
-          ) : fees.feeItems.length === 0 ? (
-            <EmptyState icon="cash-multiple" title="Chưa có khoản phí nào" />
-          ) : (
-            fees.feeItems.map((f) => (
-              <Card
-                key={f.feeItemId}
-                onPress={
-                  f.itemStatus === 'PENDING' || f.itemStatus === 'OVERDUE'
-                    ? () => navigate(`/vendor/finance/fees/${f.feeItemId}/payment`)
-                    : undefined
-                }
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col gap-2xs">
-                    <span className="text-headline-sm text-text">{f.periodLabel}</span>
-                    <span className="text-body-sm text-muted">
-                      Hạn {new Date(f.dueDate).toLocaleDateString('vi-VN')}
-                    </span>
+        fees.isLoading || contracts.isLoading ? (
+          <LoadingState />
+        ) : fees.isError || contracts.isError ? (
+          <ErrorState
+            message={errorMessage(fees.error ?? contracts.error)}
+            onRetry={() => {
+              void fees.refetch();
+              void contracts.refetch();
+            }}
+          />
+        ) : contracts.contracts.length === 0 ? (
+          <EmptyState icon="cash-multiple" title="Chưa có khoản phí nào" />
+        ) : (
+          <>
+            <Section title="Cần thanh toán">
+              {outstanding.length === 0 ? (
+                <EmptyState compact icon="check-circle-outline" title="Bạn đã nộp đủ các kỳ phí" />
+              ) : (
+                <Card padded={false}>
+                  <div className="px-md">
+                    {outstanding.map((item, index) => (
+                      <div key={item.feeItemId}>
+                        {index ? <Divider /> : null}
+                        <InstalmentRow
+                          item={item}
+                          slotCode={item.slotCode}
+                          onPay={() => navigate(`/vendor/finance/fees/${item.feeItemId}/payment`)}
+                        />
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex flex-col items-end gap-2xs">
-                    <Money amountVnd={f.amount} />
-                    <StatusChip code={f.itemStatus} />
-                  </div>
-                </div>
-              </Card>
-            ))
-          )}
-        </Section>
+                </Card>
+              )}
+            </Section>
+            <Section title="Hợp đồng thuê ô">
+              {contracts.contracts.map((contract) => (
+                <ContractProgressCard
+                  key={contract.contractId}
+                  contract={contract}
+                  onOpen={() => navigate(`/vendor/finance/contracts/${contract.contractId}`)}
+                />
+              ))}
+            </Section>
+          </>
+        )
       ) : null}
 
       {tab === 'PENALTIES' ? (
@@ -151,44 +213,37 @@ export function FinanceHomeScreen() {
       ) : null}
 
       {tab === 'INVOICES' ? (
-        <Section>
-          {invoices.isLoading ? (
-            <LoadingState />
-          ) : invoices.isError ? (
-            <ErrorState message={errorMessage(invoices.error)} onRetry={() => invoices.refetch()} />
-          ) : invoices.invoices.length === 0 ? (
-            <EmptyState icon="receipt" title="Chưa có hoá đơn nào" />
-          ) : (
-            invoices.invoices.map((inv) => (
-              <Card
-                key={inv.invoiceId}
-                onPress={() => navigate(`/vendor/finance/invoices/${inv.invoiceId}`)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col gap-2xs">
-                    <span className="text-headline-sm text-text">{inv.invoiceNumber}</span>
-                    <span className="text-body-sm text-muted">
-                      {new Date(inv.issuedAt).toLocaleDateString('vi-VN')}
-                    </span>
-                  </div>
-                  <Money amountVnd={inv.amount} />
-                </div>
-              </Card>
-            ))
-          )}
-        </Section>
+        invoices.isLoading ? (
+          <LoadingState />
+        ) : invoices.isError ? (
+          <ErrorState message={errorMessage(invoices.error)} onRetry={() => invoices.refetch()} />
+        ) : (
+          <InvoiceList
+            invoices={invoices.invoices}
+            onOpen={(invoiceId) => navigate(`/vendor/finance/invoices/${invoiceId}`)}
+          />
+        )
       ) : null}
 
-      <Button
-        label="Lịch sử thanh toán"
-        variant="outline"
-        onPress={() => navigate('/vendor/finance/payments')}
-      />
-      <Button
-        label="Lịch sử vi phạm"
-        variant="ghost"
-        onPress={() => navigate('/vendor/finance/violations')}
-      />
+      <div className="flex flex-col gap-xs">
+        <Button
+          label="Lịch sử thanh toán"
+          variant="outline"
+          onPress={() => navigate('/vendor/finance/payments')}
+        />
+        <Button
+          label={`Tải sao kê năm ${new Date().getFullYear()} (Excel)`}
+          variant="outline"
+          loading={downloading}
+          disabled={downloading}
+          onPress={() => void downloadStatement()}
+        />
+        <Button
+          label="Lịch sử vi phạm"
+          variant="ghost"
+          onPress={() => navigate('/vendor/finance/violations')}
+        />
+      </div>
     </Screen>
   );
 }
