@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import MapGL, { Layer, Marker, NavigationControl, Source, type MapEvent } from '@goongmaps/goong-map-react';
 import '@goongmaps/goong-js/dist/goong-js.css';
 
@@ -21,12 +21,19 @@ import {
 
 export type MapPoint = { latitude: number; longitude: number };
 
+/** Bump `key` to move the view onto `point` (address search, GPS fix); a plain map tap never moves it. */
+export type MapFocus = { point: MapPoint; key: number };
+
 type Props = {
   slots: WardSlot[];
   features: WardStreetFeature[];
   selectedSlotId: number | null;
+  highlightedSlotIds?: ReadonlySet<number>;
   pins: MapPoint[];
   candidates: BatchCandidate[];
+  focus?: MapFocus | null;
+  /** The officer's own GPS position, drawn as a distinct ring so it is not mistaken for a pin. */
+  myLocation?: MapPoint | null;
   onMapClick: (point: MapPoint) => void;
   onSelectSlot: (slot: WardSlot) => void;
 };
@@ -67,6 +74,7 @@ function Dot({
   longitude,
   size,
   color,
+  ring,
   title,
   onSelect,
 }: {
@@ -74,6 +82,8 @@ function Dot({
   longitude: number;
   size: number;
   color: string;
+  /** Outer halo colour, used to mark a multi-selected slot or the officer's own position. */
+  ring?: string;
   title?: string;
   onSelect?: () => void;
 }) {
@@ -104,7 +114,7 @@ function Dot({
           borderRadius: 9999,
           background: color,
           border: '2px solid #fff',
-          boxShadow: '0 1px 3px rgba(0,0,0,.35)',
+          boxShadow: ring ? `0 0 0 3px ${ring}, 0 1px 3px rgba(0,0,0,.35)` : '0 1px 3px rgba(0,0,0,.35)',
           cursor: onSelect ? 'pointer' : undefined,
         }}
       />
@@ -117,8 +127,11 @@ export function SlotGridMap({
   slots,
   features,
   selectedSlotId,
+  highlightedSlotIds,
   pins,
   candidates,
+  focus,
+  myLocation,
   onMapClick,
   onSelectSlot,
 }: Props) {
@@ -129,6 +142,14 @@ export function SlotGridMap({
       ? { latitude: first.latitude, longitude: first.longitude, zoom: 18 }
       : { latitude: DEFAULT_CENTER[0], longitude: DEFAULT_CENTER[1], zoom: 18 };
   });
+
+  const focusKey = focus?.key;
+  useEffect(() => {
+    if (!focus) return;
+    setViewport((v) => ({ latitude: focus.point.latitude, longitude: focus.point.longitude, zoom: Math.max(v.zoom, 18) }));
+    // Only a new key re-centres; the point object itself is recreated on every parent render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusKey]);
 
   const clearanceFeatures = features.filter((f) => f.clearanceMeters);
 
@@ -216,12 +237,24 @@ export function SlotGridMap({
             key={`s-${s.slotId}`}
             latitude={s.latitude}
             longitude={s.longitude}
-            size={s.slotId === selectedSlotId ? 20 : 14}
+            size={s.slotId === selectedSlotId || highlightedSlotIds?.has(s.slotId) ? 20 : 14}
             color={statusColor[s.status]}
+            ring={highlightedSlotIds?.has(s.slotId) ? palette.light.primary : undefined}
             title={`${s.slotCode} · ${slotStatusLabels[s.status]}`}
             onSelect={() => onSelectSlot(s)}
           />
         ))}
+
+        {myLocation && (
+          <Dot
+            latitude={myLocation.latitude}
+            longitude={myLocation.longitude}
+            size={16}
+            color="#1A73E8"
+            ring="#1A73E8"
+            title="Vị trí của bạn"
+          />
+        )}
 
         {pins.map((p, i) => (
           <Dot key={`p-${i}`} latitude={p.latitude} longitude={p.longitude} size={18} color={palette.light.primary} />

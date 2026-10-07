@@ -77,6 +77,7 @@ export function RegistrationReviewScreen() {
   // BR-41 KYC gate: officer's manual identity-verification confirmation.
   const [identityNote, setIdentityNote] = useState('');
   const [confirmingIdentity, setConfirmingIdentity] = useState(false);
+  const [downloadingFormat, setDownloadingFormat] = useState<'docx' | 'pdf' | null>(null);
 
   useEffect(() => {
     if (!isLiveApi || !id) return;
@@ -202,6 +203,24 @@ export function RegistrationReviewScreen() {
       showToast(err instanceof Error ? err.message : 'Lỗi bóc tách ảnh CCCD');
     } finally {
       setOcrRunning(false);
+    }
+  };
+
+  const downloadDocument = async (format: 'docx' | 'pdf') => {
+    if (!id) return;
+    setDownloadingFormat(format);
+    try {
+      const blob = await complianceApi.downloadEnrollmentDocument(id, format);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `DangKyHKD_${id}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Lỗi tải hồ sơ');
+    } finally {
+      setDownloadingFormat(null);
     }
   };
 
@@ -331,6 +350,29 @@ export function RegistrationReviewScreen() {
             variant="outline"
             fullWidth={false}
             loading={ocrRunning}
+        <div className="flex flex-wrap items-center gap-xs">
+          {isLiveApi ? (
+            <>
+              <Button
+                label={downloadingFormat === 'docx' ? 'Đang tải...' : 'Tải .docx'}
+                variant="outline"
+                fullWidth={false}
+                disabled={downloadingFormat !== null}
+                onPress={() => downloadDocument('docx')}
+              />
+              <Button
+                label={downloadingFormat === 'pdf' ? 'Đang tải...' : 'Tải .pdf'}
+                variant="outline"
+                fullWidth={false}
+                disabled={downloadingFormat !== null}
+                onPress={() => downloadDocument('pdf')}
+              />
+            </>
+          ) : null}
+          <Button
+            label={ocrRunning ? 'Đang đọc CCCD...' : '🔍 Quét lại CCCD [AI]'}
+            variant="outline"
+            fullWidth={false}
             onPress={handleRunOcr}
           />
         </div>

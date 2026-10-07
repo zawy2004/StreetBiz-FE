@@ -55,6 +55,7 @@ describe('ward gate', () => {
       userId: '1',
       wardId: 10,
       name: 'Nguyễn Thị Hồng Vân',
+      sanctionAuthorityTitle: null,
     });
 
     mount();

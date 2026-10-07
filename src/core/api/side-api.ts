@@ -36,6 +36,12 @@ export type SidewalkSlot = {
   tenantName: string | null;
   /** UTC ISO time a live hold on this slot lapses; null when nobody holds it. */
   holdExpiresAt: string | null;
+  /** The zone's rental-term model -- STANDARD zones offer a month quick-select, EVENT zones
+   * keep the free-text day count (and may not outrun eventEndDate). */
+  priceDisplayUnit: 'DAY' | 'MONTH';
+  pricePerMonth: number | null;
+  rentalMode: 'STANDARD' | 'EVENT';
+  eventEndDate: string | null;
 };
 
 export type BusinessCategory = 'FOOD_BEVERAGE' | 'RETAIL' | 'SERVICES' | 'CRAFTS' | 'GENERAL';

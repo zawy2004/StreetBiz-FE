@@ -2,10 +2,15 @@ import { Suspense, useMemo, type ReactNode } from 'react';
 import { Outlet } from 'react-router-dom';
 
 import { RoleTabBar, type RoleTabItem } from '@/components/layout/RoleTabBar';
+import { isLiveApi } from '@/core/config/env';
 import { RoleGuard } from '@/core/auth/RoleGuard';
 import { ScreenFallback } from '@/core/routing/ScreenFallback';
 import type { RoleCode } from '@/core/types/role';
 import { useChatUnreadCount } from '@/features/chat/hooks/chat-unread';
+import { useChatAlerts } from '@/features/chat/alerts/useChatAlerts';
+import { useCanChat, useChatUnreadCount } from '@/features/chat/hooks/useChat';
+import { useVendorOrderAlerts } from '@/features/orders/alerts/useVendorOrderAlerts';
+import { useAuthStore } from '@/store/auth-store';
 import { useIsDesktop } from '@/hooks/useBreakpoint';
 import { ConsumerTopNav } from './ConsumerTopNav';
 
@@ -39,12 +44,28 @@ export function RoleShell({
   // Unread messages belong on the navigation, not only inside the inbox: the
   // query is disabled for roles without chat, so this costs them nothing.
   const unreadChat = useChatUnreadCount().data ?? 0;
+  // New orders are announced on every vendor screen, not only the board: the
+  // seller may be editing the menu when a buyer pays.
+  const signedInRole = useAuthStore((state) => state.user?.role_code);
+  const newOrders = useVendorOrderAlerts(
+    isLiveApi && role === 'VENDOR' && signedInRole === 'VENDOR',
+  );
+  // New messages likewise, for both sides of a chat - on the shell the person
+  // is signed in for, so a seller browsing as a buyer is not alerted twice.
+  useChatAlerts(
+    useCanChat() && signedInRole === role,
+    role === 'VENDOR' ? '/vendor/chat' : '/customer/chat',
+  );
   const navItems = useMemo(
     () =>
       items.map((item) =>
-        item.to.endsWith('/chat') ? { ...item, badge: unreadChat } : item,
+        item.to.endsWith('/chat')
+          ? { ...item, badge: unreadChat }
+          : item.to === '/vendor/orders'
+            ? { ...item, badge: newOrders }
+            : item,
       ),
-    [items, unreadChat],
+    [items, unreadChat, newOrders],
   );
 
   return (

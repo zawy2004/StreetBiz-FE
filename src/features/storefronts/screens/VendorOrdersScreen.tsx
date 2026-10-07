@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, showToast } from '@/components/feedback';
 import { AppHeader, Screen } from '@/components/layout';
 import { errorMessage } from '@/core/api';
 import { ApiError } from '@/core/api/problem';
+import { OrderLiveBar } from '@/features/orders/alerts/OrderLiveBar';
 import { orderApi } from '@/features/orders/api/orderApi';
 import {
   OrderListSkeleton,
@@ -20,7 +21,6 @@ import {
   orderKeys,
   useVendorOrderCounts,
   useVendorOrders,
-  VENDOR_ORDERS_REFRESH_MS,
 } from '@/features/orders/hooks/useOrders';
 import type { Order, OrderStatus } from '@/features/orders/types/order.types';
 
@@ -44,7 +44,6 @@ const HISTORY: { value: VendorTab; label: string }[] = [
 ];
 
 const PAGE_SIZE = 10;
-const REFRESH_NOTE = `Tự cập nhật mỗi ${VENDOR_ORDERS_REFRESH_MS / 1000} giây`;
 
 // What each tab asks the API for. "Closed" groups two statuses, and is filtered
 // on the server so the page count is about closed orders alone.
@@ -72,7 +71,7 @@ const EMPTY: Record<VendorTab, { icon: IconName; title: string; description: str
   PLACED: {
     icon: 'inbox-outline',
     title: 'Chưa có đơn mới',
-    description: `Đơn khách vừa thanh toán sẽ hiện ở đây. ${REFRESH_NOTE}.`,
+    description: 'Đơn khách vừa thanh toán sẽ hiện ở đây ngay lập tức.',
   },
   ACCEPTED: {
     icon: 'check-circle-outline',
@@ -269,7 +268,9 @@ export function VendorOrdersScreen() {
     <Screen width="wide">
       <AppHeader
         title="Đơn hàng"
-        subtitle={orders.isFetching && !orders.isPending ? 'Đang cập nhật…' : REFRESH_NOTE}
+        subtitle={
+          orders.isFetching && !orders.isPending ? 'Đang cập nhật…' : 'Đơn của gian hàng bạn'
+        }
         right={
           <div className="flex items-center gap-xs">
             <div className="hidden sm:block">
@@ -301,6 +302,8 @@ export function VendorOrdersScreen() {
           onPress={() => navigate('/vendor/orders/scan')}
         />
       </div>
+
+      <OrderLiveBar />
 
       <section className="flex flex-col gap-sm">
         <OrderPipeline label="Đơn đang xử lý" stages={stages} value={tab} onChange={openTab} />
