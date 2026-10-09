@@ -377,6 +377,7 @@ export function AppRouter() {
     <Suspense fallback={<ScreenFallback />}>
       <Routes>
         <Route path="/" element={<IndexRoute />} />
+        <Route path="/assistant" element={<div className="min-h-screen bg-bg" />} />
         <Route path="/ward-reviews" element={<LegacyWardReviewRedirect />} />
         <Route path="/ward-reviews/:kind/:id" element={<LegacyWardReviewRedirect />} />
 

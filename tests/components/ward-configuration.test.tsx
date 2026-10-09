@@ -107,6 +107,17 @@ afterEach(() => {
 });
 
 describe('WARD-03 penalty schedule', () => {
+  beforeEach(() => {
+    // This section loads alongside the rates; unit tests must not call a live API.
+    vi.spyOn(wardConfigApi, 'getCompliancePolicy').mockResolvedValue({
+      violationThresholdCount: null,
+      violationWindowDays: null,
+      unpaidPenaltyGraceDays: null,
+      updatedAt: null,
+      updatedByName: null,
+    });
+  });
+
   const types: WardPenaltyType[] = [
     {
       violationType: 'UNAUTHORIZED_BUSINESS_USE',
