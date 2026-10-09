@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
+import type { SidewalkSlot } from '@/core/api/side-api';
 
 const api = vi.hoisted(() => ({ listHolds: vi.fn(), getSlot: vi.fn() }));
 const registrations = vi.hoisted(() => ({ list: [] as unknown[] }));
@@ -42,6 +43,16 @@ beforeEach(() => {
   })) as unknown as typeof window.matchMedia;
   registrations.list = [{ registrationId: 7, registrationStatus: 'APPROVED', displayName: 'Xe banh mi' }];
   api.listHolds.mockResolvedValue([]);
+  api.getSlot.mockImplementation(async (slotId: number): Promise<SidewalkSlot> => ({
+    slotId, slotCode: `NVL-${slotId}`, zoneId: 1, zoneName: 'Đường Nguyễn Văn Linh',
+    wardUnitId: 1, latitude: 16.05, longitude: 108.22,
+    widthMeters: 2, lengthMeters: 2, slotStatus: 'HELD', source: 'WARD',
+    pricePerDay: 30000, availableFrom: '05:00:00', availableTo: '22:00:00',
+    distanceMeters: null, imageUrl: null, hasPower: false, hasWater: false,
+    hasTrashBin: false, businessCategory: null, tenantName: null,
+    holdExpiresAt: isoIn(14), priceDisplayUnit: 'DAY', pricePerMonth: null,
+    rentalMode: 'STANDARD', eventEndDate: null,
+  }));
   useAuthStore.setState({
     user: {
       id: '1',

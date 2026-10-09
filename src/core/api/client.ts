@@ -17,6 +17,7 @@ const ANONYMOUS_PATHS = [
   '/auth/refresh',
   '/auth/forgot-password',
   '/auth/reset-password',
+  '/chatbot/guest/messages',
 ];
 
 type RetriableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
@@ -55,7 +56,8 @@ let refreshInFlight: Promise<AuthTokens> | null = null;
 
 async function refreshTokens(): Promise<AuthTokens> {
   const current = getTokens();
-  if (!current?.refreshToken) throw new ApiError('unauthorized', 401, 'Phiên đăng nhập đã hết hạn.');
+  if (!current?.refreshToken)
+    throw new ApiError('unauthorized', 401, 'Phiên đăng nhập đã hết hạn.');
 
   const response = await axios.post(
     `${env.apiBaseUrl}/auth/refresh`,
@@ -116,7 +118,11 @@ http.interceptors.response.use(
       } catch {
         clearTokens();
         onSessionExpired?.();
-        throw new ApiError('unauthorized', 401, 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        throw new ApiError(
+          'unauthorized',
+          401,
+          'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+        );
       }
     }
 

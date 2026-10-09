@@ -49,6 +49,7 @@ export class ApiError extends Error {
   readonly fieldErrors: Record<string, string[]>;
   /** Seconds until the request may be retried (429 OTP cooldown). */
   readonly retryAfterSeconds?: number;
+  activeMessageId?: string;
 
   constructor(
     code: ApiErrorCode,
@@ -70,9 +71,7 @@ export class ApiError extends Error {
    * (FluentValidation property names), so lookups are case-insensitive.
    */
   fieldError(field: string): string | undefined {
-    const key = Object.keys(this.fieldErrors).find(
-      (k) => k.toLowerCase() === field.toLowerCase(),
-    );
+    const key = Object.keys(this.fieldErrors).find((k) => k.toLowerCase() === field.toLowerCase());
     return key ? this.fieldErrors[key]?.[0] : undefined;
   }
 
@@ -101,6 +100,16 @@ export function toApiError(status: number | undefined, body: unknown): ApiError 
     return new ApiError('network_error', 0, FALLBACK_MESSAGES.network_error);
   }
 
+  // The assistant uses the data/error/meta envelope without changing legacy APIs.
+  if (typeof body === 'object' && body !== null && 'error' in body) {
+    const error = (body as { error?: { message?: unknown; activeMessageId?: unknown } }).error;
+    if (error && typeof error.message === 'string') {
+      const result = new ApiError(codeFromStatus(status), status, error.message);
+      if (typeof error.activeMessageId === 'string') result.activeMessageId = error.activeMessageId;
+      return result;
+    }
+  }
+
   const problem = (typeof body === 'object' && body !== null ? body : {}) as ProblemDetails;
   const code =
     problem.type && KNOWN_CODES.has(problem.type)
@@ -113,8 +122,7 @@ export function toApiError(status: number | undefined, body: unknown): ApiError 
 
   // For AppExceptions the backend puts the human message in `detail`; for
   // validation failures `detail` is absent, so prefer the first field message.
-  const message =
-    problem.detail ?? Object.values(fieldErrors)[0]?.[0] ?? FALLBACK_MESSAGES[code];
+  const message = problem.detail ?? Object.values(fieldErrors)[0]?.[0] ?? FALLBACK_MESSAGES[code];
 
   return new ApiError(code, status, message, fieldErrors, problem.retryAfterSeconds);
 }
@@ -127,6 +135,9 @@ export function toApiError(status: number | undefined, body: unknown): ApiError 
 export function isTokenFailure(status: number | undefined, body: unknown): boolean {
   if (status !== 401) return false;
   if (body === undefined || body === null) return true;
+  if (typeof body === 'object' && body !== null && 'error' in body) {
+    return (body as { error?: { code?: string } }).error?.code === 'session_expired';
+  }
   return typeof body === 'string' && body.trim() === '';
 }
 
