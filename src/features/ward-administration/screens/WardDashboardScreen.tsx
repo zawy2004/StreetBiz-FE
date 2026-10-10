@@ -1,17 +1,21 @@
 import { useNavigate } from 'react-router-dom';
 
-import { Card, formatVnd, Icon, IconButton, type IconName } from '@/components/common';
-import { ResponsiveGrid, StatCard } from '@/components/data';
+import { IconButton } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { AiHint } from '@/components/status';
-import { LoadingState } from '@/components/feedback';
 import { useWards } from '@/core/auth/useWards';
 import { env } from '@/core/config/env';
 import { useAuthStore } from '@/store/auth-store';
-import { colors } from '@/theme';
 import { useWardDashboard } from '../useWardReports';
-
-type Shortcut = { to: string; icon: IconName; title: string; description: string };
+import {
+  CollectionLedger,
+  DashboardSkeleton,
+  KerbOccupancyStrip,
+  ShiftShortcuts,
+  WardTaskBoard,
+  type Shortcut,
+} from '../components/review/DashboardParts';
+import { formatTodayVi } from '../components/review/format';
 
 const SHORTCUTS: Shortcut[] = [
   {
@@ -20,7 +24,12 @@ const SHORTCUTS: Shortcut[] = [
     title: 'Hộp duyệt',
     description: 'Hồ sơ đăng ký, đề xuất ô, xung đột địa chỉ và chuyển nhượng',
   },
-  { to: '/ward/slots', icon: 'map-marker-radius-outline', title: 'Lưới ô vỉa hè', description: 'Theo dõi trạng thái từng ô' },
+  {
+    to: '/ward/slots',
+    icon: 'map-marker-radius-outline',
+    title: 'Lưới ô vỉa hè',
+    description: 'Theo dõi trạng thái từng ô',
+  },
   {
     to: '/ward/patrol',
     icon: 'qrcode-scan',
@@ -35,6 +44,12 @@ const SHORTCUTS: Shortcut[] = [
   },
 ];
 
+/**
+ * WARD-15 shift start. The ward's notice board: today's two work numbers set
+ * large, the pavement drawn as its own row of slots, the collection ledger,
+ * then the shift toolbar. Every figure is the officer's own ward (the backend
+ * scopes the token); nothing here belongs to platform administration.
+ */
 export function WardDashboardScreen() {
   const navigate = useNavigate();
   const { dashboard, isLoading } = useWardDashboard();
@@ -42,12 +57,21 @@ export function WardDashboardScreen() {
   const pendingCount = dashboard
     ? dashboard.pendingRegistrations + dashboard.pendingApplications
     : 0;
+  const today = formatTodayVi();
+
+  const aiHint =
+    dashboard && env.enableAiCompliance ? (
+      <AiHint title="Tóm tắt tuần này">
+        {pendingCount} hồ sơ đang chờ xử lý, tỷ lệ lấp đầy {dashboard.occupancyPercent}%. Ưu tiên
+        xét các hồ sơ cửa hàng cố định có giấy phép kinh doanh hợp lệ trước.
+      </AiHint>
+    ) : null;
 
   return (
     <Screen width="wide">
       <AppHeader
         title="Tổng quan"
-        subtitle={wardName}
+        subtitle={wardName ? `${wardName} · ${today}` : today}
         right={
           <>
             <IconButton
@@ -65,83 +89,42 @@ export function WardDashboardScreen() {
       />
 
       {isLoading || !dashboard ? (
-        <LoadingState />
+        <DashboardSkeleton />
       ) : (
-        <>
-          <ResponsiveGrid minItemWidth={210} fit>
-            <StatCard
-              label="Ô đang thuê"
-              value={`${dashboard.slotRented}/${dashboard.slotTotal}`}
-              hint="ô trên toàn phường"
-              icon="map-marker-radius-outline"
-              tone="indigo"
-              onPress={() => navigate('/ward/slots')}
+        <div className="flex flex-col gap-xl">
+          <div className="grid items-start gap-md xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] xl:gap-lg">
+            <WardTaskBoard
+              pendingCount={pendingCount}
+              pendingRegistrations={dashboard.pendingRegistrations}
+              pendingApplications={dashboard.pendingApplications}
+              openViolations={dashboard.openViolations}
+              onOpenInbox={() => navigate('/ward/inbox')}
+              onOpenViolations={() => navigate('/ward/reports')}
             />
-            <StatCard
-              label="Tỷ lệ lấp đầy"
-              value={`${dashboard.occupancyPercent}%`}
-              icon="chart-bar"
-              tone="tertiary"
-            />
-            <StatCard
-              label="Hồ sơ chờ duyệt"
-              value={`${pendingCount}`}
-              hint={pendingCount > 0 ? 'Mở hộp duyệt để xử lý' : 'Đã xử lý hết'}
-              icon="inbox-outline"
-              tone="primary"
-              onPress={() => navigate('/ward/inbox')}
-            />
-            <StatCard
-              label="Đã thu"
-              value={formatVnd(dashboard.revenueCollected)}
-              hint="phí thuê ô và tiền phạt"
-              icon="cash-multiple"
-              tone="secondary"
-              onPress={() => navigate('/ward/reports')}
-            />
-            <StatCard
-              label="Còn phải thu"
-              value={formatVnd(dashboard.outstandingDebt)}
-              hint="phí và phạt chưa thanh toán"
-              icon="clock-outline"
-              tone="primary"
-              onPress={() => navigate('/ward/reports')}
-            />
-            <StatCard
-              label="Vi phạm cần xử lý"
-              value={`${dashboard.openViolations}`}
-              hint={dashboard.openViolations > 0 ? 'chưa xử phạt hoặc chưa nộp phạt' : 'Đã xử lý hết'}
-              icon="shield-alert-outline"
-              tone="indigo"
-            />
-          </ResponsiveGrid>
+            {aiHint}
+          </div>
 
-          {env.enableAiCompliance ? (
-            <AiHint title="Tóm tắt tuần này">
-              {pendingCount} hồ sơ đang chờ xử lý, tỷ lệ lấp đầy {dashboard.occupancyPercent}%. Ưu
-              tiên xét các hồ sơ cửa hàng cố định có giấy phép kinh doanh hợp lệ trước.
-            </AiHint>
-          ) : null}
-        </>
+          <KerbOccupancyStrip
+            rented={dashboard.slotRented}
+            total={dashboard.slotTotal}
+            percent={dashboard.occupancyPercent}
+            activeContracts={dashboard.activeContracts}
+            onOpen={() => navigate('/ward/slots')}
+          />
+
+          <CollectionLedger
+            collected={dashboard.revenueCollected}
+            outstanding={dashboard.outstandingDebt}
+            onOpen={() => navigate('/ward/reports')}
+          />
+        </div>
       )}
 
-      <Section title="Lối tắt">
-        <ResponsiveGrid minItemWidth={240} gap="sm">
-          {SHORTCUTS.map((s) => (
-            <Card key={s.to} onPress={() => navigate(s.to)}>
-              <div className="flex items-start gap-sm">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-tint-indigo">
-                  <Icon name={s.icon} size={22} color={colors.indigo} />
-                </span>
-                <div className="min-w-0">
-                  <h3 className="text-headline-sm text-text">{s.title}</h3>
-                  <p className="mt-0.5 text-body-sm text-muted">{s.description}</p>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </ResponsiveGrid>
-      </Section>
+      <div className="mt-sm pb-[88px] md:pb-0">
+        <Section title="Lối tắt">
+          <ShiftShortcuts shortcuts={SHORTCUTS} onOpen={(to) => navigate(to)} />
+        </Section>
+      </div>
     </Screen>
   );
 }
