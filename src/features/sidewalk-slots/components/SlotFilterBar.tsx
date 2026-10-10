@@ -1,6 +1,5 @@
 import { Icon } from '@/components/common';
 import type { BusinessCategory } from '@/core/api/side-api';
-import { colors } from '@/theme';
 import {
   BUSINESS_CATEGORY_LABELS,
   NO_FILTERS,
@@ -10,7 +9,7 @@ import {
   type SlotDisplayState,
   type SlotFilters,
 } from '../slot-stats';
-import { DISPLAY_STATE_LABELS, SLOT_SELECTED_COLOR, slotDisplayColor } from '../slot-visuals';
+import { DISPLAY_STATE_LABELS } from '../slot-visuals';
 
 type Props = {
   filters: SlotFilters;
@@ -23,76 +22,73 @@ const STATES = Object.keys(DISPLAY_STATE_LABELS) as SlotDisplayState[];
 const CATEGORIES = Object.keys(BUSINESS_CATEGORY_LABELS) as BusinessCategory[];
 const SHIFTS = Object.keys(SHIFT_LABELS) as Shift[];
 
-const LEGEND: { label: string; color: string }[] = [
-  { label: 'Đang chọn', color: SLOT_SELECTED_COLOR },
-  { label: 'Còn trống', color: slotDisplayColor('AVAILABLE') },
-  { label: 'Có đơn / giữ chỗ', color: slotDisplayColor('PENDING') },
-  { label: 'Đã thuê', color: slotDisplayColor('ACTIVE') },
-  { label: 'Tạm ngưng', color: slotDisplayColor('SUSPENDED') },
-];
+const CHIP =
+  'relative inline-flex h-12 shrink-0 items-center gap-1.5 rounded-full px-md text-label transition-[background-color,box-shadow,color] duration-150 md:h-10 focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-primary';
+const CHIP_ON =
+  'bg-primary font-semibold text-on-primary shadow-[0_8px_18px_-10px_rgb(var(--c-primary)/0.8)]';
+const CHIP_OFF = 'bg-card text-text shadow-card ring-1 ring-border hover:ring-text/25';
 
-/** Quick filters (all of them filter for real) and the colour legend. */
+/**
+ * Quick filters, one row that scrolls sideways when tight. Every one filters
+ * for real: a slot that does not match dims on the plan, it is never hidden.
+ * The colour legend lives in the occupancy bar above the plan.
+ */
 export function SlotFilterBar({ filters, onChange, matchCount }: Props) {
   return (
-    <div className="flex flex-col gap-xs">
-      <div className="flex flex-wrap items-center gap-xs">
-        <Icon name="filter-variant" size={18} color={colors.muted} />
+    <div className="no-scrollbar -mx-md flex items-center gap-xs overflow-x-auto px-md py-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
+      <Icon name="filter-variant" size={18} color="currentColor" className="shrink-0 text-muted" />
 
-        <ChipSelect
-          label="Trạng thái"
-          value={filters.state}
-          options={STATES.map((s) => ({ value: s, label: DISPLAY_STATE_LABELS[s] }))}
-          onChange={(state) => onChange({ ...filters, state })}
-        />
-        <ChipSelect
-          label="Ngành hàng"
-          value={filters.category}
-          options={CATEGORIES.map((c) => ({ value: c, label: BUSINESS_CATEGORY_LABELS[c] }))}
-          onChange={(category) => onChange({ ...filters, category })}
-        />
-        <ChipSelect
-          label="Ca"
-          value={filters.shift}
-          options={SHIFTS.map((s) => ({ value: s, label: SHIFT_LABELS[s] }))}
-          onChange={(shift) => onChange({ ...filters, shift })}
-        />
-        <ChipToggle
-          icon="flash-outline"
-          label="Có điện"
-          on={filters.power}
-          onToggle={() => onChange({ ...filters, power: !filters.power })}
-        />
-        <ChipToggle
-          icon="water-outline"
-          label="Có nước"
-          on={filters.water}
-          onToggle={() => onChange({ ...filters, water: !filters.water })}
-        />
+      <ChipSelect
+        label="Trạng thái"
+        value={filters.state}
+        options={STATES.map((s) => ({ value: s, label: DISPLAY_STATE_LABELS[s] }))}
+        onChange={(state) => onChange({ ...filters, state })}
+      />
+      <ChipSelect
+        label="Ngành hàng"
+        value={filters.category}
+        options={CATEGORIES.map((c) => ({ value: c, label: BUSINESS_CATEGORY_LABELS[c] }))}
+        onChange={(category) => onChange({ ...filters, category })}
+      />
+      <ChipSelect
+        label="Ca"
+        value={filters.shift}
+        options={SHIFTS.map((s) => ({ value: s, label: SHIFT_LABELS[s] }))}
+        onChange={(shift) => onChange({ ...filters, shift })}
+      />
+      <ChipToggle
+        icon="flash-outline"
+        label="Có điện"
+        on={filters.power}
+        onToggle={() => onChange({ ...filters, power: !filters.power })}
+      />
+      <ChipToggle
+        icon="water-outline"
+        label="Có nước"
+        on={filters.water}
+        onToggle={() => onChange({ ...filters, water: !filters.water })}
+      />
 
-        {hasActiveFilters(filters) && (
-          <>
-            <button type="button" className="text-label font-semibold text-primary" onClick={() => onChange(NO_FILTERS)}>
-              Xoá lọc
-            </button>
-            <span className="text-body-sm text-muted">{matchCount} ô khớp</span>
-          </>
-        )}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-md text-body-sm text-muted">
-        {LEGEND.map((item) => (
-          <span key={item.label} className="flex items-center gap-1">
-            <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: item.color }} />
-            {item.label}
+      {hasActiveFilters(filters) && (
+        <span className="flex shrink-0 items-center gap-xs pl-1">
+          <button
+            type="button"
+            className="h-12 rounded-full px-sm text-label font-semibold text-primary hover:bg-tint-primary md:h-10"
+            onClick={() => onChange(NO_FILTERS)}
+          >
+            Xoá lọc
+          </button>
+          <span className="whitespace-nowrap font-tabular text-body-sm text-muted">
+            {matchCount} ô khớp
           </span>
-        ))}
-      </div>
+        </span>
+      )}
     </div>
   );
 }
 
 // A native <select> keeps keyboard and screen-reader behaviour for free; it is
-// only dressed as a chip, indigo once a value is chosen.
+// only dressed as a chip, filled once a value is chosen.
 function ChipSelect<T extends string>({
   label,
   value,
@@ -106,18 +102,13 @@ function ChipSelect<T extends string>({
 }) {
   const active = value !== 'ALL';
   return (
-    <label
-      className={[
-        'relative inline-flex h-9 items-center rounded-full border px-sm text-label',
-        active ? 'border-indigo bg-indigo text-on-indigo' : 'border-border bg-card text-text',
-      ].join(' ')}
-    >
+    <label className={`${CHIP} ${active ? CHIP_ON : CHIP_OFF}`}>
       <span className="sr-only">{label}</span>
       <select
         aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value as T | 'ALL')}
-        className="cursor-pointer appearance-none bg-transparent pr-4 outline-none"
+        className="cursor-pointer appearance-none bg-transparent pr-5 outline-none"
       >
         <option value="ALL" className="text-text">
           {label}
@@ -131,8 +122,8 @@ function ChipSelect<T extends string>({
       <Icon
         name="chevron-down"
         size={16}
-        color={active ? colors.onIndigo : colors.muted}
-        className="pointer-events-none absolute right-2"
+        color="currentColor"
+        className={`pointer-events-none absolute right-3 ${active ? '' : 'text-muted'}`}
       />
     </label>
   );
@@ -154,12 +145,15 @@ function ChipToggle({
       type="button"
       aria-pressed={on}
       onClick={onToggle}
-      className={[
-        'inline-flex h-9 items-center gap-1 rounded-full border px-sm text-label',
-        on ? 'border-indigo bg-indigo text-on-indigo' : 'border-border bg-card text-text',
-      ].join(' ')}
+      className={`${CHIP} ${on ? CHIP_ON : CHIP_OFF}`}
     >
-      <Icon name={icon} size={16} color={on ? colors.onIndigo : colors.muted} />
+      <Icon
+        name={icon}
+        size={16}
+        color="currentColor"
+        weight={on ? 'fill' : 'regular'}
+        className={on ? '' : 'text-muted'}
+      />
       {label}
     </button>
   );

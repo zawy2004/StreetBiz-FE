@@ -3,73 +3,130 @@
 @tailwind utilities;
 
 /*
+ * Metric-matched fallbacks: until the web fonts arrive, a local face scaled to the
+ * same advance width keeps every line break where the real font will put it, so
+ * headings and paragraphs do not re-wrap (and shift the page) on swap.
+ * Ratios measured on the hero copy: Newsreader 600 is 0.86x Georgia,
+ * Be Vietnam Pro 500 is 1.07x Segoe UI.
+ */
+@font-face {
+  font-family: 'Newsreader Fallback';
+  src: local('Georgia');
+  size-adjust: 86%;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro Fallback';
+  src: local('Segoe UI'), local('Arial');
+  size-adjust: 107%;
+}
+
+/*
  * Colour tokens as RGB triplets so Tailwind's /opacity modifiers keep working.
  * Keep `palette` in src/theme/colors.ts in sync for the few raw-hex consumers.
+ */
+/*
+ * "Phố Việt Đương Đại" (Design System v0, docs_system/ui-redesign/03-design-system-v0.md).
+ * Urban signage language: Vôi lime-wash ground, Mực ink, Sông Hàn teal for action,
+ * Nghệ turmeric for the buyer's call to action and advisories, Lá chuối green for valid,
+ * the kerb red/white only for the painted-kerb motif. Dark mode is "Phố Đêm".
+ * RGB triplets keep Tailwind's /opacity modifiers working; keep `palette` in
+ * src/theme/colors.ts in sync for raw-hex consumers (maps, QR, canvas).
  */
 :root {
   color-scheme: light;
 
-  --c-primary: 228 68 31; /* chili #E4441F */
-  --c-primary-pressed: 199 55 21;
+  --c-primary: 207 74 11; /* Cam phố #CF4A0B — buttons/text (white 4.5:1) */
+  --c-brand: 255 106 31; /* vivid orange for large marks, never small text */
+  --c-primary-pressed: 184 63 8;
   --c-on-primary: 255 255 255;
 
-  --c-secondary: 245 160 0; /* turmeric */
-  --c-secondary-bg: 255 246 224;
-  --c-on-secondary: 138 83 0;
+  --c-accent: 255 183 3; /* Xoài #FFB703 — ratings, advisories, ink text */
+  --c-accent-pressed: 242 168 0;
+  --c-on-accent: 17 28 43;
 
-  --c-tertiary: 11 138 75; /* banana leaf */
-  --c-on-tertiary: 6 53 29;
+  --c-secondary: 255 183 3; /* advisory / pending */
+  --c-secondary-bg: 255 244 209;
+  --c-on-secondary: 122 84 0;
 
-  --c-indigo: 29 41 57; /* ink — civic actions */
+  --c-tertiary: 11 127 67; /* Lá chuối #0B7F43 */
+  --c-on-tertiary: 6 52 28;
+
+  --c-indigo: 10 95 168; /* Biển xanh #0A5FA8: Vietnamese street-sign blue for civic actions and selected states (white text 6.5:1) */
   --c-on-indigo: 255 255 255;
 
-  --c-bg: 244 244 242;
+  --c-sign: 19 32 46; /* street-sign plates, sidebar */
+  --c-on-sign: 255 255 255;
+
+  --c-kerb: 255 106 31; /* painted kerb — motif only, never a status */
+  --c-kerb-paint: 255 248 242;
+
+  --c-bg: 247 248 250; /* #F7F8FA */
   --c-card: 255 255 255;
-  --c-sunken: 238 238 235;
-  --c-border: 228 228 224;
-  --c-muted: 103 108 117;
-  --c-text: 23 25 28;
+  --c-sunken: 238 241 244;
+  --c-border: 225 229 234;
+  --c-muted: 86 97 115; /* #566173 */
+  --c-text: 17 28 43; /* Mực #111C2B */
 
-  --c-error: 217 45 32;
-  --c-error-bg: 253 236 234;
+  --c-error: 180 35 24;
+  --c-error-bg: 254 236 234;
 
-  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.04);
-  --shadow-card-hover: 0 2px 4px rgb(16 24 40 / 0.05), 0 8px 20px -4px rgb(16 24 40 / 0.1);
-  --shadow-sheet: 0 24px 48px -12px rgb(16 24 40 / 0.22);
-  --scrim: 16 18 22;
+  --font-heading: 'Archivo', 'Be Vietnam Pro', system-ui, sans-serif;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Soft, two-layer depth: a hairline contact shadow plus a wide, faint lift. */
+  --shadow-card: 0 1px 2px rgb(17 28 43 / 0.05), 0 6px 18px -10px rgb(17 28 43 / 0.12);
+  --shadow-card-hover: 0 2px 4px rgb(17 28 43 / 0.05), 0 18px 36px -16px rgb(17 28 43 / 0.26);
+  --shadow-sheet: 0 28px 60px -18px rgb(17 28 43 / 0.3);
+  --scrim: 10 20 25;
 }
 
 .dark {
   color-scheme: dark;
 
-  --c-primary: 242 85 47;
-  --c-primary-pressed: 217 67 31;
-  --c-on-primary: 255 255 255;
+  --c-primary: 255 138 76;
+  --c-brand: 255 122 51; /* vivid orange for large marks, never small text */
+  --c-primary-pressed: 255 120 52;
+  --c-on-primary: 15 23 32;
 
-  --c-secondary: 255 178 63;
-  --c-secondary-bg: 51 38 15;
-  --c-on-secondary: 255 208 138;
+  --c-accent: 255 194 51;
+  --c-accent-pressed: 245 178 30;
+  --c-on-accent: 15 23 32;
 
-  --c-tertiary: 60 203 127;
-  --c-on-tertiary: 214 245 228;
+  --c-secondary: 255 194 51;
+  --c-secondary-bg: 58 45 14;
+  --c-on-secondary: 255 216 140;
 
-  --c-indigo: 221 227 236;
-  --c-on-indigo: 18 22 28;
+  --c-tertiary: 78 209 138;
+  --c-on-tertiary: 220 247 232;
 
-  --c-bg: 15 17 19;
-  --c-card: 24 27 31;
-  --c-sunken: 31 35 40;
-  --c-border: 43 48 54;
-  --c-muted: 154 162 172;
-  --c-text: 236 238 241;
+  --c-indigo: 125 182 245;
+  --c-on-indigo: 15 23 32;
 
-  --c-error: 255 107 94;
-  --c-error-bg: 58 23 20;
+  --c-sign: 9 15 22;
+  --c-on-sign: 255 255 255;
+
+  --c-kerb: 255 122 51;
+  --c-kerb-paint: 230 224 216;
+
+  --c-bg: 15 23 32; /* Phố Đêm */
+  --c-card: 23 33 44;
+  --c-sunken: 29 41 53;
+  --c-border: 43 57 70;
+  --c-muted: 167 179 192;
+  --c-text: 238 242 246;
+
+  --c-error: 255 122 110;
+  --c-error-bg: 58 29 28;
 
   --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.02);
-  --shadow-card-hover: 0 0 0 1px rgb(255 255 255 / 0.06), 0 8px 24px -6px rgb(0 0 0 / 0.6);
-  --shadow-sheet: 0 24px 60px -12px rgb(0 0 0 / 0.7);
+  --shadow-card-hover: 0 0 0 1px rgb(255 255 255 / 0.06), 0 16px 36px -14px rgb(0 0 0 / 0.7);
+  --shadow-sheet: 0 28px 64px -16px rgb(0 0 0 / 0.75);
   --scrim: 0 0 0;
+}
+
+/* Role variants of the one system (RoleShell sets data-surface). */
+[data-surface='CUSTOMER'] {
+  --font-heading: 'Newsreader', 'Newsreader Fallback', Georgia, 'Times New Roman', serif;
 }
 
 html,
@@ -82,7 +139,7 @@ body {
   margin: 0;
   background-color: rgb(var(--c-bg));
   color: rgb(var(--c-text));
-  font-family: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: 'Be Vietnam Pro', 'Be Vietnam Pro Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-feature-settings: 'ss01';
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -97,7 +154,9 @@ body {
   outline-offset: 2px;
 }
 
-input:focus-visible,
+/* Text-like controls show focus on their shell (.input-shell); checkboxes, radios
+   and range inputs keep the outline, or they would have no focus indicator at all. */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):focus-visible,
 textarea:focus-visible,
 select:focus-visible {
   outline: none;
@@ -174,29 +233,117 @@ select:focus-visible {
 }
 
 /* ---------------------------------------------------------------------------
- * Kerb tag — the sidewalk slot code, drawn like the painted outline of a slot
- * on the pavement. The one decorative device in the system.
+ * Slot plate (KerbTag): the sidewalk slot code set like a street-name plate —
+ * ink plate, white inner rule, condensed signage figures. The one mark every
+ * role learns to read.
  * ------------------------------------------------------------------------- */
 .kerb-tag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 22px;
-  padding: 0 7px;
-  border: 1.5px dashed rgb(var(--c-secondary));
-  border-radius: 4px;
-  background: rgb(var(--c-secondary) / 0.1);
-  color: rgb(var(--c-on-secondary));
-  font-size: 11.5px;
-  font-weight: 700;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 5px;
+  background: rgb(var(--c-sign));
+  color: rgb(var(--c-on-sign));
+  box-shadow:
+    inset 0 0 0 1.5px rgb(255 255 255 / 0.88),
+    0 0 0 1px rgb(var(--c-sign));
+  font-family: 'Archivo', 'Be Vietnam Pro', sans-serif;
+  font-stretch: 72%;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.03em;
   line-height: 1;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
+.kerb-tag > span {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-stretch: 100%;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* Painted kerb: ember/ivory blocks of a Vietnamese kerbstone. Marks the edge
+   between "the street" and "the pavement", and the top of a permit pass. */
+.sb-kerb {
+  height: 10px;
+  background: repeating-linear-gradient(90deg, rgb(var(--c-kerb)) 0 44px, rgb(var(--c-kerb-paint)) 44px 88px);
+  box-shadow:
+    inset 0 -3px 0 rgb(0 0 0 / 0.14),
+    inset 0 1px 0 rgb(255 255 255 / 0.22);
+  animation: sb-kerb-in 900ms var(--ease-out) both;
+}
+
+.sb-kerb-thin {
+  height: 6px;
+}
+
+@keyframes sb-kerb-in {
+  from {
+    background-position-x: -264px;
+    opacity: 0;
+  }
+}
+
+/* Skeleton shimmer. */
+.sb-shimmer {
+  background: linear-gradient(90deg, rgb(var(--c-sunken)) 0%, rgb(var(--c-border)) 45%, rgb(var(--c-sunken)) 90%) 0 0 / 220% 100%;
+  animation: sb-shimmer 1.3s linear infinite;
+}
+
+@keyframes sb-shimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+/* A result board arriving. */
+.sb-pop {
+  animation: sb-pop 320ms var(--ease-out) both;
+}
+
+@keyframes sb-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+
+/* Live map pin halo. */
+.sb-ping {
+  animation: sb-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes sb-ping {
+  70%,
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
 /* Ward slot grid map (still on Leaflet): keep street tiles readable in dark mode. */
 .dark .leaflet-tile-pane {
   filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88);
+}
+
+/* Map surfaces take keyboard focus (pan with arrow keys): show it. The map library's own
+   stylesheet removes the outline, hence the !important. */
+.mapboxgl-map:focus-visible,
+.mapboxgl-canvas:focus-visible,
+.mapboxgl-canvas-container:focus-visible,
+div:has(> .mapboxgl-canvas-container):focus-visible,
+[tabindex]:has(.mapboxgl-canvas):focus-visible,
+[tabindex]:has(> .mapboxgl-map):focus-visible {
+  outline: 3px solid rgb(var(--c-primary)) !important;
+  outline-offset: -3px !important;
 }
 
 /* The location picker places the pin on tap; goong-js/Mapbox GL's own "grab" cursor
@@ -439,6 +586,87 @@ select:focus-visible {
   50% {
     box-shadow: 0 0 22px 0 rgb(255 190 70 / 0.35);
     border-color: rgb(255 190 70 / 0.8);
+  }
+}
+
+/* The lit bar beside the current navigation item grows in from its centre. */
+.sb-nav-lit {
+  animation: sb-nav-lit 240ms var(--ease-out) both;
+  transform-origin: center;
+}
+
+@keyframes sb-nav-lit {
+  from {
+    transform: scaleY(0.2);
+    opacity: 0;
+  }
+}
+
+/* Keep the floating assistant launcher clear of a page's bottom action bar
+   (StickyActions marks itself with data-sticky-actions). */
+body:has([data-sticky-actions]) .sb-launcher {
+  bottom: 168px;
+}
+
+@media (min-width: 1024px) {
+  body:has([data-sticky-actions]) .sb-launcher {
+    bottom: 104px;
+  }
+}
+
+/* Steam off a hot bowl: three wisps drift up and thin out, out of step. */
+.sb-steam path {
+  animation: sb-steam 4.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.sb-steam path:nth-child(2) {
+  animation-delay: 1.6s;
+}
+
+.sb-steam path:nth-child(3) {
+  animation-delay: 3.2s;
+}
+
+@keyframes sb-steam {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scaleX(0.9);
+  }
+  35% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-26px) scaleX(1.15);
+  }
+}
+
+/* A permit stamp coming down on the result, once per lookup. */
+.sb-stamp {
+  animation: sb-stamp 460ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+@keyframes sb-stamp {
+  from {
+    opacity: 0;
+    transform: scale(1.35) rotate(-18deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-9deg);
+  }
+}
+
+/* The slot being looked up, glowing on the pavement plan. */
+.sb-slot-beacon {
+  animation: sb-slot-beacon 2.6s ease-in-out infinite;
+}
+
+@keyframes sb-slot-beacon {
+  50% {
+    opacity: 0.35;
   }
 }
 

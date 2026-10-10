@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,10 +10,7 @@ import { ApiError } from '@/core/api/problem';
 import { OrderLiveBar } from '@/features/orders/alerts/OrderLiveBar';
 import { orderApi } from '@/features/orders/api/orderApi';
 import {
-  OrderListSkeleton,
-  OrderPipeline,
   RejectOrderDialog,
-  VendorOrderTicket,
   type PipelineStage,
   type StageTone,
 } from '@/features/orders/components';
@@ -23,6 +20,15 @@ import {
   useVendorOrders,
 } from '@/features/orders/hooks/useOrders';
 import type { Order, OrderStatus } from '@/features/orders/types/order.types';
+import {
+  HandoverGuide,
+  KitchenSkeleton,
+  KitchenStations,
+  KitchenTally,
+  KitchenTicket,
+  LateOrdersBanner,
+} from '../components/orders/KitchenParts';
+import { lateCount, tallyItems } from '../orders-view';
 
 type Stage = 'PLACED' | 'ACCEPTED' | 'PREPARING' | 'READY_FOR_PICKUP';
 type VendorTab = Stage | 'COMPLETED' | 'CLOSED';
@@ -172,6 +178,18 @@ export function VendorOrdersScreen() {
   // Only the ticket being acted on spins; the rest stay usable to read.
   const acting = transition.isPending ? transition.variables?.order.orderId : undefined;
 
+  // Display only, from the tickets already on the page.
+  const shownOrders = orders.data?.items;
+  const tally = useMemo(() => tallyItems(shownOrders ?? []), [shownOrders]);
+  const late = useMemo(() => lateCount(shownOrders ?? [], now), [shownOrders, now]);
+  // New orders seen so far on "Đơn mới": one that turns up later prints in.
+  const seen = useRef<Set<number> | null>(null);
+  const placedKey = tab === 'PLACED' ? (shownOrders ?? []).map((o) => o.orderId).join(',') : '';
+  useEffect(() => {
+    if (!placedKey) return;
+    seen.current = new Set([...(seen.current ?? []), ...placedKey.split(',').map(Number)]);
+  }, [placedKey]);
+
   const stages: PipelineStage<VendorTab>[] = STAGES.map((stage) => ({
     ...stage,
     count: counts[stage.value],
@@ -292,23 +310,18 @@ export function VendorOrdersScreen() {
           </div>
         }
       />
-
-      {/* On a phone the scanner is the one big button: a buyer at the stall is
-          the moment this screen is most often opened for. */}
-      <div className="sm:hidden">
-        <Button
-          label="Quét mã nhận hàng của khách"
-          icon={<Icon name="qrcode-scan" size={20} />}
-          onPress={() => navigate('/vendor/orders/scan')}
-        />
+      {/* A thin bar while the board re-reads itself in the background. */}
+      <div aria-hidden="true" className="-mt-sm h-0.5 overflow-hidden rounded-full">
+        {orders.isFetching && !orders.isPending ? (
+          <div className="sb-shimmer h-full w-full" />
+        ) : null}
       </div>
 
-      <OrderLiveBar />
-
       <section className="flex flex-col gap-sm">
-        <OrderPipeline label="Đơn đang xử lý" stages={stages} value={tab} onChange={openTab} />
+        <OrderLiveBar />
+        <KitchenStations label="Đơn đang xử lý" stages={stages} value={tab} onChange={openTab} />
         <div className="flex flex-wrap items-center justify-between gap-sm">
-          <p className="text-body-md text-muted">{TAB_GUIDE[tab]}</p>
+          <p className="text-body-lg text-muted">{TAB_GUIDE[tab]}</p>
           <div role="tablist" aria-label="Lịch sử đơn" className="flex items-center gap-2xs">
             <span className="pr-2xs text-body-sm text-muted">Lịch sử</span>
             {HISTORY.map((entry) => (
@@ -319,9 +332,9 @@ export function VendorOrdersScreen() {
                 aria-selected={tab === entry.value}
                 onClick={() => openTab(entry.value)}
                 className={[
-                  'h-9 rounded-full border px-sm text-label transition-colors',
+                  'h-11 rounded-full border px-md text-label transition-colors',
                   tab === entry.value
-                    ? 'border-text bg-text font-semibold text-bg'
+                    ? 'border-primary/40 bg-tint-primary font-semibold text-primary'
                     : 'border-border bg-card text-text hover:bg-sunken',
                 ].join(' ')}
               >
@@ -339,18 +352,32 @@ export function VendorOrdersScreen() {
         </p>
       ) : null}
 
+      {tab === 'PLACED' && late > 0 ? <LateOrdersBanner count={late} /> : null}
+      {(tab === 'ACCEPTED' || tab === 'PREPARING') && tally.length > 0 ? (
+        <KitchenTally tally={tally} orders={items.length} page={page} totalPages={totalPages} />
+      ) : null}
+      {tab === 'READY_FOR_PICKUP' && items.length > 2 ? (
+        <div className="hidden lg:block">
+          <HandoverGuide />
+        </div>
+      ) : null}
+
       {orders.isPending ? (
-        <OrderListSkeleton />
+        <KitchenSkeleton />
       ) : orders.isError ? (
         <ErrorState message={errorMessage(orders.error)} onRetry={() => orders.refetch()} />
       ) : items.length === 0 ? (
-        <EmptyState icon={empty.icon} title={empty.title} description={empty.description} />
+        <div className="rounded-[24px] bg-card ring-1 ring-border">
+          <EmptyState icon={empty.icon} title={empty.title} description={empty.description} />
+        </div>
       ) : (
-        <div className="grid gap-md lg:grid-cols-2">
+        <div
+          className={`grid gap-md [grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))] ${orders.isPlaceholderData ? 'opacity-60 transition-opacity' : ''}`}
+        >
           {items.map((order) => {
             const actions = ticketActions(order);
             return (
-              <VendorOrderTicket
+              <KitchenTicket
                 key={order.orderId}
                 order={order}
                 tone={tone(order)}
@@ -358,11 +385,31 @@ export function VendorOrdersScreen() {
                 // Only the closed tab mixes statuses; elsewhere the tab says it.
                 showStatus={tab === 'CLOSED'}
                 now={now}
+                fresh={
+                  tab === 'PLACED' && seen.current !== null && !seen.current.has(order.orderId)
+                }
                 primaryAction={actions.primary}
                 secondaryActions={actions.secondary}
               />
             );
           })}
+          {tab === 'PLACED' && items.length <= 2 ? (
+            <p className="flex items-start gap-sm self-start rounded-[20px] bg-[#FFF3E8] p-md text-body-md text-text/80 dark:bg-brand/10">
+              <Icon
+                name="bell-ring"
+                size={20}
+                color="currentColor"
+                className="mt-0.5 shrink-0 text-primary"
+              />
+              Cứ để trang mở: có đơn mới, bạn được báo cả khi đang ở màn khác của quán (chuông kêu
+              nếu đang bật âm báo).
+            </p>
+          ) : null}
+          {tab === 'READY_FOR_PICKUP' && items.length <= 2 ? (
+            <div className="self-start">
+              <HandoverGuide />
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -375,6 +422,15 @@ export function VendorOrdersScreen() {
           caption={rangeCaption('Đơn', page, PAGE_SIZE, orders.data.totalItems, items.length)}
         />
       ) : null}
+
+      {/* On a phone the scanner is the one big button, kept under the thumb. */}
+      <div className="sticky bottom-sm z-10 mt-auto pr-[68px] sm:hidden">
+        <Button
+          label="Quét mã nhận hàng của khách"
+          icon={<Icon name="qrcode-scan" size={20} />}
+          onPress={() => navigate('/vendor/orders/scan')}
+        />
+      </div>
 
       <RejectOrderDialog
         visible={Boolean(rejecting)}

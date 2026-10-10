@@ -2,11 +2,14 @@ import { FormEvent, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { AuthShell } from '../components/AuthShell';
-import { PasswordChecklist } from '../components/PasswordChecklist';
+import { AuthNotice } from '../components/AuthNotice';
+import { NextStepNote } from '../components/NextStepNote';
+import { PasswordStrength } from '../components/PasswordStrength';
+import { RoleChoice } from '../components/RoleChoice';
 import { WardSelect } from '../components/WardSelect';
 import { usePendingAuthStore } from '../pending-auth-store';
-import { Button } from '@/components/common';
-import { PasswordField, PhoneField, SelectField, TextField } from '@/components/forms';
+import { Button, Icon } from '@/components/common';
+import { PasswordField, PhoneField, TextField } from '@/components/forms';
 import { ApiError, authApi, errorMessage, OTP_PURPOSE } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { isPasswordValid, passwordError } from '@/core/auth/password-policy';
@@ -26,7 +29,9 @@ export function RegisterScreen() {
   // The landing page's "sell on StreetBiz" call to action opens this form as a vendor.
   const requestedRole = (useLocation().state as { role?: SelfRegisterRole } | null)?.role;
 
-  const [role, setRole] = useState<SelfRegisterRole>(requestedRole === 'VENDOR' ? 'VENDOR' : 'CUSTOMER');
+  const [role, setRole] = useState<SelfRegisterRole>(
+    requestedRole === 'VENDOR' ? 'VENDOR' : 'CUSTOMER',
+  );
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [wardUnitId, setWardUnitId] = useState<number>();
@@ -94,9 +99,16 @@ export function RegisterScreen() {
   };
 
   return (
-    <AuthShell title="Tạo tài khoản StreetBiz" subtitle="Chọn vai trò để bắt đầu" back>
-      <form className="flex flex-col gap-md" onSubmit={submit} noValidate>
-        <SelectField
+    <AuthShell
+      title="Tạo tài khoản StreetBiz"
+      subtitle="Chọn vai trò để bắt đầu"
+      back
+      scene={role === 'VENDOR' ? 'register-vendor' : 'register-customer'}
+      progress={{ current: 1, labels: ['Thông tin', 'Mã OTP'] }}
+      width="wide"
+    >
+      <form className="flex flex-col gap-lg" onSubmit={submit} noValidate>
+        <RoleChoice
           label="Bạn là"
           value={role}
           onChange={setRole}
@@ -105,54 +117,85 @@ export function RegisterScreen() {
               value: 'CUSTOMER',
               label: 'Người mua',
               description: 'Khám phá và ủng hộ hàng quán vỉa hè hợp pháp',
+              art: 'customer',
             },
             {
               value: 'VENDOR',
               label: 'Hộ kinh doanh',
               description: 'Đăng ký kinh doanh và thuê ô vỉa hè',
+              art: 'vendor',
             },
           ]}
         />
-        <TextField
-          label="Họ và tên"
-          value={fullName}
-          onChangeText={setFullName}
-          error={fieldErrors.fullName}
-          maxLength={150}
-        />
-        <PhoneField value={phone} onChangeText={setPhone} error={fieldErrors.phone} />
-        {phoneRegistered ? (
-          <Link to="/auth/sign-in" className="-mt-xs text-label text-primary">
-            Đăng nhập bằng số này →
-          </Link>
-        ) : null}
-        <WardSelect
-          value={wardUnitId}
-          onChange={setWardUnitId}
-          label="Phường/xã (không bắt buộc)"
-          helperText="Giúp hồ sơ của bạn được chuyển đúng cán bộ phụ trách."
-        />
-        <PasswordField
-          value={password}
-          onChangeText={setPassword}
-          error={fieldErrors.password}
-          placeholder="Tối thiểu 8 ký tự"
-          autoComplete="new-password"
-        />
-        <PasswordChecklist value={password} visible={password.length > 0} />
-        <PasswordField
-          label="Nhập lại mật khẩu"
-          value={confirm}
-          onChangeText={setConfirm}
-          error={fieldErrors.confirm}
-        />
-        {error ? <span className="text-body-sm text-error">{error}</span> : null}
-        <Button
-          label="Tiếp tục & Nhận OTP"
-          type="submit"
-          loading={submitting}
-          onPress={submit}
-        />
+
+        <section aria-labelledby="register-about" className="flex flex-col gap-md">
+          <h2 id="register-about" className="text-[15px] font-semibold leading-[22px] text-muted">
+            Thông tin của bạn
+          </h2>
+          <TextField
+            label="Họ và tên"
+            value={fullName}
+            onChangeText={setFullName}
+            error={fieldErrors.fullName}
+            maxLength={150}
+          />
+          <div className="flex flex-col gap-xs">
+            <PhoneField value={phone} onChangeText={setPhone} error={fieldErrors.phone} />
+            {phoneRegistered ? (
+              <Link
+                to="/auth/sign-in"
+                className="sb-rise inline-flex min-h-11 w-fit items-center gap-1.5 rounded-[8px] text-[15px] font-semibold text-primary hover:underline"
+                style={{ animationDuration: '200ms' }}
+              >
+                Đăng nhập bằng số này
+                <Icon name="arrow-right" size={16} color="currentColor" />
+              </Link>
+            ) : null}
+          </div>
+          <WardSelect
+            value={wardUnitId}
+            onChange={setWardUnitId}
+            label="Phường/xã (không bắt buộc)"
+            helperText="Giúp hồ sơ của bạn được chuyển đúng cán bộ phụ trách."
+          />
+        </section>
+
+        <section aria-labelledby="register-security" className="flex flex-col gap-md">
+          <h2
+            id="register-security"
+            className="text-[15px] font-semibold leading-[22px] text-muted"
+          >
+            Bảo mật tài khoản
+          </h2>
+          <PasswordField
+            value={password}
+            onChangeText={setPassword}
+            error={fieldErrors.password}
+            placeholder="Tối thiểu 8 ký tự"
+            autoComplete="new-password"
+          />
+          <PasswordStrength value={password} visible={password.length > 0} />
+          <PasswordField
+            label="Nhập lại mật khẩu"
+            value={confirm}
+            onChangeText={setConfirm}
+            error={fieldErrors.confirm}
+          />
+        </section>
+
+        <div className="flex flex-col gap-sm">
+          {error ? (
+            <AuthNotice role="alert" tone="danger">
+              {error}
+            </AuthNotice>
+          ) : null}
+          <Button label="Tiếp tục & Nhận OTP" type="submit" loading={submitting} onPress={submit} />
+          <NextStepNote>
+            {role === 'VENDOR'
+              ? 'Sau bước này: nhập mã OTP, rồi đăng nhập bằng mật khẩu vừa đặt. Sau đó bạn nộp hồ sơ kinh doanh và chọn ô vỉa hè.'
+              : 'Sau bước này: nhập mã OTP, rồi đăng nhập bằng mật khẩu vừa đặt.'}
+          </NextStepNote>
+        </div>
       </form>
     </AuthShell>
   );

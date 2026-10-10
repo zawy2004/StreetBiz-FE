@@ -1,0 +1,87 @@
+/*
+ * Chat inbox and thread (CH01, CH02). Motion only; colours come from the
+ * design-system tokens. Prefixed `sb-chat-` so nothing collides with the
+ * shared `sb-*` classes in src/index.css.
+ */
+
+/* A message that arrived after the thread was first shown. */
+.sb-chat-in {
+  animation: sb-chat-in 200ms var(--ease-out) both;
+}
+
+/* My own message, rising from the composer once the server has it. */
+.sb-chat-in-mine {
+  animation: sb-chat-in-mine 240ms var(--ease-out) both;
+}
+
+@keyframes sb-chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes sb-chat-in-mine {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* The bell in "Bật thông báo" gives one shake on hover. */
+.sb-chat-bell:hover svg,
+.sb-chat-bell:focus-within svg {
+  animation: sb-chat-bell 400ms ease 1;
+  transform-origin: 50% 10%;
+}
+
+@keyframes sb-chat-bell {
+  25% {
+    transform: rotate(8deg);
+  }
+  75% {
+    transform: rotate(-8deg);
+  }
+}
+
+/* The speech bubble over the inbox stall nods once when someone is waiting. */
+.sb-chat-nod {
+  animation: sb-chat-nod 900ms var(--ease-out) 300ms 1 both;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+@keyframes sb-chat-nod {
+  30% {
+    transform: translateY(-4px);
+  }
+  60% {
+    transform: translateY(1px);
+  }
+}
+
+/* The thread's store plate gains a hairline shadow once the thread scrolls under it. */
+.sb-chat-plate[data-scrolled='true'] {
+  box-shadow: 0 8px 18px -14px rgb(17 28 43 / 0.45);
+}
+
+/* Keep the floating assistant launcher off the composer's send button. */
+body:has([data-chat-composer]) .sb-launcher {
+  bottom: calc(var(--sb-bottom-chrome, 72px) + 96px);
+}
+
+@media (min-width: 1024px) {
+  body:has([data-chat-composer]) .sb-launcher {
+    bottom: 104px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-chat-in,
+  .sb-chat-in-mine,
+  .sb-chat-nod,
+  .sb-chat-bell:hover svg,
+  .sb-chat-bell:focus-within svg {
+    animation: none !important;
+  }
+}

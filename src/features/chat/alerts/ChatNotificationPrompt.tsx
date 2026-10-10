@@ -13,15 +13,20 @@ export function ChatNotificationPrompt() {
   if (permission !== 'default') return null;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-md gap-y-xs rounded-md border border-border bg-card px-sm py-xs">
-      <p className="flex min-w-0 items-center gap-xs text-body-sm text-text">
-        <Icon name="bell-outline" size={18} />
+    <div className="sb-chat-bell flex flex-wrap items-center justify-between gap-x-md gap-y-xs rounded-[18px] bg-secondary-bg px-md py-sm">
+      <p className="flex min-w-0 items-center gap-sm text-body-md text-on-secondary">
+        <span
+          aria-hidden="true"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-card text-primary shadow-card"
+        >
+          <Icon name="bell-ring" size={19} color="currentColor" weight="fill" />
+        </span>
         Bật thông báo để biết có tin nhắn mới khi bạn đang ở tab khác.
       </p>
       <button
         type="button"
         onClick={async () => setPermission(await requestNotificationPermission())}
-        className="h-9 shrink-0 rounded-full px-sm text-label font-semibold text-primary hover:bg-tint-primary"
+        className="h-11 shrink-0 rounded-full bg-card px-md text-label font-semibold text-primary-pressed shadow-card transition-colors hover:bg-tint-primary"
       >
         Bật thông báo
       </button>

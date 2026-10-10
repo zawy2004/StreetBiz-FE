@@ -1,18 +1,31 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button, Card } from '@/components/common';
-import { SelectField, TextField } from '@/components/forms';
+import { Button } from '@/components/common';
+import { TextField } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ErrorState, showToast } from '@/components/feedback';
 import { errorMessage } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
+import {
+  ActionChoice,
+  AfterConfirmList,
+  ReasonMeter,
+  ReasonTemplates,
+  StampPreview,
+} from '../components/ops/permit-action/PermitActionParts';
 import { complianceApi } from '../ward-api';
 
 type Action = 'SUSPEND' | 'REVOKE';
 
+/**
+ * W16: suspend or revoke a permit. The screen slows the officer down by one
+ * beat: the chosen action is stamped on a faded permit, the reason has a
+ * ruler, and what happens next is spelled out right above the one danger
+ * button. The button itself is the confirmation (no dialog, as before).
+ */
 export function PermitActionScreen() {
   const { permitId } = useParams<{ permitId: string }>();
   const navigate = useNavigate();
@@ -21,6 +34,7 @@ export function PermitActionScreen() {
   const permit = useMockDb((s) => s.permits.find((p) => p.id === permitId));
   const vendors = useMockDb((s) => s.vendors);
   const contracts = useMockDb((s) => s.contracts);
+  const slots = useMockDb((s) => s.slots);
   const suspend = useMockDb((s) => s.suspendPermit);
   const revoke = useMockDb((s) => s.revokePermit);
 
@@ -28,10 +42,20 @@ export function PermitActionScreen() {
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [basedOnComplianceThreshold, setBasedOnComplianceThreshold] = useState(false);
+  const reasonRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
-  if (!permit && !isLiveApi) return <ErrorState message="Không tìm thấy giấy phép." />;
+  if (!permit && !isLiveApi)
+    return (
+      <Screen width="narrow">
+        <div className="mt-xl rounded-[28px] bg-card shadow-card ring-1 ring-border">
+          <ErrorState message="Không tìm thấy giấy phép." />
+        </div>
+      </Screen>
+    );
   const contract = contracts.find((c) => c.id === permit?.contractId);
   const vendor = vendors.find((v) => v.id === contract?.vendorId);
+  // Display only, mock store: the slot the permit's contract is for.
+  const slot = slots.find((s) => s.id === contract?.slotId);
 
   const submit = async () => {
     const trimmed = reason.trim();
@@ -69,8 +93,24 @@ export function PermitActionScreen() {
     }
   };
 
+  /** A sentence starter goes on the end of what is typed, and the caret follows it. */
+  const insertTemplate = (text: string) => {
+    const next = reason.trim() ? `${reason.trimEnd()} ${text}` : text;
+    setReason(next);
+    requestAnimationFrame(() => {
+      const el = reasonRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(next.length, next.length);
+    });
+  };
+
+  const permitLabel = `Giấy phép #${permitId}`;
+  const spoken = `${action === 'SUSPEND' ? 'Sẽ tạm đình chỉ' : 'Sẽ thu hồi vĩnh viễn'} giấy phép #${permitId}`;
+
   return (
     <Screen
+      width="default"
       footer={
         <StickyActions>
           <Button
@@ -88,60 +128,71 @@ export function PermitActionScreen() {
         back
       />
 
-      <Card>
-        <p className="text-body-sm text-muted">Trạng thái giấy phép hiện tại</p>
-        <div className="mt-1 flex items-center gap-2">
-          <StatusChip code={permit?.permit_status ?? 'ACTIVE'} />
-          <span className="text-body-xs text-muted">Mã: {permitId}</span>
-        </div>
-      </Card>
+      {/* The current state stays one quiet line: in live mode it is not loaded, so it must not stand out. */}
+      <div className="-mt-xs flex flex-wrap items-center gap-x-sm gap-y-1 text-body-sm text-muted">
+        <span>Trạng thái giấy phép hiện tại</span>
+        <StatusChip code={permit?.permit_status ?? 'ACTIVE'} />
+        <span className="text-body-xs text-muted">Mã: {permitId}</span>
+      </div>
 
-      <SelectField
-        label="Hành động xử lý hành chính"
-        value={action}
-        onChange={setAction}
-        options={[
-          {
-            value: 'SUSPEND',
-            label: 'Tạm đình chỉ giấy phép',
-            description: 'Áp dụng cho vi phạm trật tự hè phố chờ khắc phục hoặc chậm nộp phí',
-          },
-          {
-            value: 'REVOKE',
-            label: 'Thu hồi vĩnh viễn giấy phép',
-            description: 'Vi phạm nghiêm trọng, tái phạm nhiều lần hoặc chuyển nhượng trái phép',
-          },
-        ]}
-      />
-
-      <TextField
-        label="Lý do xử lý bắt buộc (BR-35: 5 - 500 ký tự)"
-        value={reason}
-        onChangeText={setReason}
-        multiline
-        placeholder="Ghi rõ hành vi vi phạm, số biên bản hoặc căn cứ pháp lý để đình chỉ / thu hồi..."
-      />
-
-      {action === 'REVOKE' && (
-        <label className="flex cursor-pointer items-start gap-sm px-md">
-          <input
-            type="checkbox"
-            className="mt-1 h-4 w-4"
-            checked={basedOnComplianceThreshold}
-            onChange={(e) => setBasedOnComplianceThreshold(e.target.checked)}
+      <div className="grid items-start gap-lg xl:grid-cols-[minmax(0,400px)_minmax(0,1fr)] xl:gap-xl">
+        <div className="xl:sticky xl:top-0">
+          <StampPreview
+            action={action}
+            permitLabel={permitLabel}
+            slotCode={slot?.slot_code ?? null}
+            vendorName={vendor?.business_name ?? null}
+            spoken={spoken}
           />
-          <span className="text-body-sm text-text">
-            Thu hồi dựa trên đề xuất đạt ngưỡng vi phạm (từ màn hình chi tiết vi phạm) — ghi rõ
-            trong nhật ký để phân biệt với quyết định độc lập của cán bộ.
-          </span>
-        </label>
-      )}
+        </div>
 
-      <Card>
-        <p className="text-body-sm text-muted">
-          * Căn cứ BR-19 &amp; BR-35: Ngay sau khi quyết định có hiệu lực, Giấy phép số QR sẽ lập tức chuyển sang trạng thái tương ứng trên máy chủ, người dân và lực lượng tuần tra quét mã sẽ thấy cảnh báo không hợp lệ.
-        </p>
-      </Card>
+        <div className="flex min-w-0 flex-col gap-lg">
+          <ActionChoice
+            label="Hành động xử lý hành chính"
+            value={action}
+            onChange={setAction}
+            busy={loading}
+          />
+
+          <div className="flex flex-col gap-sm [&_textarea]:text-[16px]">
+            <TextField
+              ref={reasonRef}
+              label="Lý do xử lý bắt buộc (BR-35: 5 - 500 ký tự)"
+              value={reason}
+              onChangeText={setReason}
+              multiline
+              placeholder="Ghi rõ hành vi vi phạm, số biên bản hoặc căn cứ pháp lý để đình chỉ / thu hồi..."
+            />
+            <ReasonMeter length={reason.trim().length} />
+            <ReasonTemplates onPick={insertTemplate} />
+          </div>
+
+          {action === 'REVOKE' && (
+            <label className="sb-pop flex min-h-12 cursor-pointer items-start gap-sm rounded-[16px] bg-card p-md ring-1 ring-inset ring-border">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-5 w-5 shrink-0 accent-[#B42318]"
+                checked={basedOnComplianceThreshold}
+                onChange={(e) => setBasedOnComplianceThreshold(e.target.checked)}
+              />
+              <span className="text-body-md text-text">
+                Thu hồi dựa trên đề xuất đạt ngưỡng vi phạm (từ màn hình chi tiết vi phạm) — ghi rõ
+                trong nhật ký để phân biệt với quyết định độc lập của cán bộ.
+              </span>
+            </label>
+          )}
+
+          <AfterConfirmList
+            footnote={
+              <>
+                * Căn cứ BR-19 &amp; BR-35: Ngay sau khi quyết định có hiệu lực, Giấy phép số QR sẽ
+                lập tức chuyển sang trạng thái tương ứng trên máy chủ, người dân và lực lượng tuần
+                tra quét mã sẽ thấy cảnh báo không hợp lệ.
+              </>
+            }
+          />
+        </div>
+      </div>
     </Screen>
   );
 }

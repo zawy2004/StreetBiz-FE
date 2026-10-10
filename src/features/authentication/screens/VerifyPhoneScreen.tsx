@@ -2,9 +2,11 @@ import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { AuthShell } from '../components/AuthShell';
+import { NextStepNote } from '../components/NextStepNote';
+import { PaintedOtpInput } from '../components/PaintedOtpInput';
+import { ResendButton } from '../components/ResendButton';
 import { usePendingAuthStore } from '../pending-auth-store';
-import { Button } from '@/components/common';
-import { OtpInput } from '@/components/forms';
+import { Button, Icon } from '@/components/common';
 import { showToast } from '@/components/feedback';
 import { ApiError, authApi, errorMessage, OTP_PURPOSE } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
@@ -91,7 +93,10 @@ export function VerifyPhoneScreen() {
       showToast('Tạo tài khoản thành công');
       // Registration does not sign the user in: they confirm the password they
       // just chose on the sign-in screen, with the number filled in for them.
-      navigate('/auth/sign-in', { replace: true, state: { registered: true, phone: registeredPhone } });
+      navigate('/auth/sign-in', {
+        replace: true,
+        state: { registered: true, phone: registeredPhone },
+      });
     } catch (err) {
       if (err instanceof ApiError && err.isValidation) {
         setError(
@@ -136,20 +141,52 @@ export function VerifyPhoneScreen() {
   return (
     <AuthShell
       title="Xác thực số điện thoại"
-      subtitle={`Nhập mã ${OTP_LENGTH} số vừa gửi tới ${formatPhone(phone)}`}
+      subtitle={
+        <>
+          {`Nhập mã ${OTP_LENGTH} số vừa gửi tới `}
+          <span className="inline-block whitespace-nowrap rounded-[6px] bg-sunken px-1.5 font-sign font-semibold tracking-[0.02em] text-[#2B3640] font-tabular dark:text-[#C5D0DA]">
+            {formatPhone(phone)}
+          </span>
+        </>
+      }
       back
+      scene="verify"
+      progress={
+        isRegistration
+          ? { current: 2, labels: ['Thông tin', 'Mã OTP'] }
+          : { current: 2, labels: ['Số điện thoại', 'Mã OTP', 'Mật khẩu mới'] }
+      }
     >
       <form className="flex flex-col gap-md" onSubmit={verify} noValidate>
-        <OtpInput value={code} onChangeText={setCode} length={OTP_LENGTH} />
-        {error ? (
-          <p role="alert" className="text-center text-body-sm text-error">
-            {error}
-          </p>
-        ) : !isLiveApi ? (
-          <p className="text-center text-body-sm text-muted">Giả lập: dùng mã {MOCK_OTP}</p>
-        ) : (
-          <p className="text-center text-body-sm text-muted">Mã có hiệu lực trong 5 phút.</p>
-        )}
+        <PaintedOtpInput
+          value={code}
+          onChangeText={setCode}
+          length={OTP_LENGTH}
+          invalid={Boolean(error)}
+        />
+        <div className="flex min-h-[28px] items-start">
+          {error ? (
+            <p
+              role="alert"
+              className="flex items-start gap-1.5 text-body-md font-medium text-error"
+            >
+              <span className="mt-[3px] shrink-0">
+                <Icon name="alert-circle-outline" size={16} color="currentColor" />
+              </span>
+              {error}
+            </p>
+          ) : !isLiveApi ? (
+            <p className="inline-flex items-center gap-1.5 rounded-[8px] bg-secondary-bg px-xs py-1 text-body-sm font-medium text-on-secondary">
+              <Icon name="information-outline" size={16} color="currentColor" />
+              Giả lập: dùng mã {MOCK_OTP}
+            </p>
+          ) : (
+            <p className="inline-flex items-center gap-1.5 text-body-sm text-muted">
+              <Icon name="clock-outline" size={16} color="currentColor" />
+              Mã có hiệu lực trong 5 phút.
+            </p>
+          )}
+        </div>
         <Button
           label={isRegistration ? 'Xác nhận & Tạo tài khoản' : 'Xác nhận'}
           type="submit"
@@ -159,16 +196,18 @@ export function VerifyPhoneScreen() {
         />
       </form>
 
-      <button
-        type="button"
-        disabled={isRunning || resending}
-        onClick={resend}
-        className="disabled:cursor-not-allowed"
-      >
-        <span className={`block text-center text-label ${isRunning ? 'text-muted' : 'text-primary'}`}>
-          {isRunning ? `Gửi lại mã sau ${seconds}s` : 'Gửi lại mã'}
-        </span>
-      </button>
+      <ResendButton
+        seconds={seconds}
+        isRunning={isRunning}
+        resending={resending}
+        onPress={resend}
+      />
+
+      <NextStepNote>
+        {isRegistration
+          ? 'Sau bước này: tài khoản được tạo, rồi bạn đăng nhập bằng mật khẩu vừa đặt.'
+          : 'Tiếp theo bạn đặt mật khẩu mới.'}
+      </NextStepNote>
     </AuthShell>
   );
 }

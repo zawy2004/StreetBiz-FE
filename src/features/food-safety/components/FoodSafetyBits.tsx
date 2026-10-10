@@ -4,6 +4,7 @@ import type { FoodSafetyApplication } from '@/core/api/food-safety-api';
 import type { DishFoodSafetyStatus } from '@/core/api/seller-store-api';
 import { colors } from '@/theme';
 import { formatDay } from '../format';
+import { stepStates, type StepState } from '../view';
 
 /** Where one dish stands with ATTP, on the vendor's menu. */
 export function DishFoodSafetyChip({
@@ -37,33 +38,105 @@ export function FoodSafetyBadge() {
 
 const STEPS = ['Gửi phường', 'Chuyển cục ATTP', 'Có kết quả'] as const;
 
-function reachedStep(application: FoodSafetyApplication): number {
-  switch (application.status) {
-    case 'FORWARDED':
-      return 1;
-    case 'APPROVED':
-      return 2;
-    case 'REJECTED':
-      // Rejected by the ward (never forwarded) or by the department.
-      return application.forwardedAt ? 2 : 0;
-    default:
-      return 0;
+const STATE_WORDS: Record<StepState, string> = {
+  done: 'đã xong',
+  current: 'đang chờ',
+  failed: 'bị từ chối',
+  todo: 'chưa tới',
+};
+
+function StepNode({ state, size }: { state: StepState; size: 'sm' | 'md' }) {
+  const box = size === 'md' ? 'size-7' : 'size-5';
+  const glyph = size === 'md' ? 15 : 11;
+  if (state === 'done' || state === 'failed') {
+    return (
+      <span
+        aria-hidden="true"
+        className={`flex ${box} shrink-0 items-center justify-center rounded-full text-white dark:text-[#06140C] ${state === 'done' ? 'bg-tertiary' : 'bg-error'}`}
+      >
+        <Icon name={state === 'done' ? 'check' : 'close'} size={glyph} color="currentColor" />
+      </span>
+    );
   }
+  if (state === 'current') {
+    return (
+      <span
+        aria-hidden="true"
+        className={`relative flex ${box} shrink-0 items-center justify-center rounded-full border-[2.5px] border-brand bg-card`}
+      >
+        <span className="absolute inset-0 rounded-full bg-brand/30 sb-ping" />
+        <span className="relative size-2 rounded-full bg-brand" />
+      </span>
+    );
+  }
+  return (
+    <span
+      aria-hidden="true"
+      className={`${box} shrink-0 rounded-full border-2 border-border bg-card`}
+    />
+  );
 }
 
-/** The three hops of an ATTP file: vendor → ward → department → result back to the vendor. */
-export function FoodSafetySteps({ application }: { application: FoodSafetyApplication }) {
-  const reached = reachedStep(application);
-  const failed = application.status === 'REJECTED';
+/**
+ * The three hops of an ATTP file: vendor → ward → department → result back to
+ * the vendor, drawn as stations on a line. The step it waits at pulses; a
+ * refusal is marked in red where it happened. `showDates` adds the day each
+ * step was reached (vendor's file list).
+ */
+export function FoodSafetySteps({
+  application,
+  showDates = false,
+  size = 'sm',
+}: {
+  application: FoodSafetyApplication;
+  showDates?: boolean;
+  size?: 'sm' | 'md';
+}) {
+  const states = stepStates(application);
+  const dates = [application.submittedAt, application.forwardedAt, application.resultRecordedAt];
   return (
-    <ol className="flex items-center gap-xs" aria-label="Tiến trình hồ sơ ATTP">
+    <ol className="flex w-full items-start" aria-label="Tiến trình hồ sơ ATTP">
       {STEPS.map((label, index) => {
-        const done = index <= reached;
-        const tone = failed && index === reached ? 'bg-error' : done ? 'bg-tertiary' : 'bg-border';
+        const state = states[index]!;
+        const next = states[index + 1];
+        const last = index === STEPS.length - 1;
         return (
-          <li key={label} className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className={`h-1.5 rounded-full ${tone}`} />
-            <span className={`truncate text-body-xs ${done ? 'text-text' : 'text-muted'}`}>{label}</span>
+          <li key={label} className={`flex min-w-0 flex-col gap-1 ${last ? 'shrink-0' : 'flex-1'}`}>
+            <div className="flex items-center">
+              <StepNode state={state} size={size} />
+              {!last ? (
+                <span
+                  aria-hidden="true"
+                  className={[
+                    'mx-1 h-1 flex-1 rounded-full',
+                    next === 'done' || next === 'failed'
+                      ? 'bg-tertiary'
+                      : next === 'current'
+                        ? 'bg-[repeating-linear-gradient(90deg,rgb(var(--c-brand))_0_6px,transparent_6px_10px)]'
+                        : 'bg-border',
+                  ].join(' ')}
+                />
+              ) : null}
+            </div>
+            <span
+              className={[
+                'whitespace-nowrap pr-xs',
+                size === 'md' ? 'text-body-sm' : 'text-body-xs',
+                state === 'failed'
+                  ? 'font-semibold text-error'
+                  : state === 'todo'
+                    ? 'text-muted'
+                    : 'font-semibold text-text',
+              ].join(' ')}
+            >
+              {label}
+              <span className="sr-only">: {STATE_WORDS[state]}</span>
+            </span>
+            {showDates && dates[index] && state !== 'todo' ? (
+              <span className="text-body-xs tabular-nums text-muted">
+                {formatDay(dates[index])}
+              </span>
+            ) : null}
           </li>
         );
       })}

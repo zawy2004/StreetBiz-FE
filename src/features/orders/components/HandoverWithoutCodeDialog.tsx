@@ -1,4 +1,4 @@
-import { Button } from '@/components/common';
+import { Button, Icon } from '@/components/common';
 import { TextField } from '@/components/forms';
 import { BottomSheet } from '@/components/layout';
 
@@ -21,6 +21,7 @@ export function HandoverWithoutCodeDialog({
   onReasonChange,
   onConfirm,
   onClose,
+  error: failure,
 }: {
   visible: boolean;
   reason: string;
@@ -28,6 +29,8 @@ export function HandoverWithoutCodeDialog({
   onReasonChange: (reason: string) => void;
   onConfirm: () => void;
   onClose: () => void;
+  /** The server's refusal, shown inside the sheet while it is open (the one alert on screen). */
+  error?: string;
 }) {
   const trimmed = reason.trim();
   const tooShort = trimmed.length > 0 && trimmed.length < MIN_HANDOVER_REASON_LENGTH;
@@ -43,8 +46,15 @@ export function HandoverWithoutCodeDialog({
 
   return (
     <BottomSheet visible={visible} onClose={onClose}>
-      <h2 className="text-headline-md text-text">Giao đơn khi khách không có mã</h2>
-      <p className="text-body-md text-muted">
+      <div className="flex items-start gap-sm">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#FFF3D1] text-[#6B4100] dark:bg-[#3A2A08] dark:text-[#FFD27A]">
+          <Icon name="clipboard-text-outline" size={22} color="currentColor" weight="duotone" />
+        </span>
+        <h2 className="font-sign text-[22px] font-bold leading-7 tracking-[-0.01em] text-text">
+          Giao đơn khi khách không có mã
+        </h2>
+      </div>
+      <p className="rounded-[14px] bg-sunken/70 px-sm py-xs text-[16px] leading-6 text-text">
         Chỉ dùng khi không thể quét mã QR và khách cũng không đọc được mã 8 ký tự. Lý do bạn ghi sẽ
         lưu vào lịch sử đơn và khách hàng đọc được.
       </p>
@@ -57,12 +67,28 @@ export function HandoverWithoutCodeDialog({
         multiline
         error={error}
       />
-      <Button
-        label="Xác nhận đã giao đơn"
-        loading={pending}
-        disabled={trimmed.length < MIN_HANDOVER_REASON_LENGTH}
-        onPress={onConfirm}
-      />
+      {failure ? (
+        <p
+          role="alert"
+          className="flex items-start gap-1.5 rounded-[12px] bg-[#FDEBEA] px-sm py-xs text-[16px] font-semibold text-[#8F1717] dark:bg-[#3A1414] dark:text-[#FF9A90]"
+        >
+          <Icon
+            name="alert-octagon-outline"
+            size={18}
+            color="currentColor"
+            className="mt-0.5 shrink-0"
+          />
+          <span className="text-error !text-[#8F1717] dark:!text-[#FF9A90]">{failure}</span>
+        </p>
+      ) : null}
+      <div className="[&>button]:h-14">
+        <Button
+          label="Xác nhận đã giao đơn"
+          loading={pending}
+          disabled={trimmed.length < MIN_HANDOVER_REASON_LENGTH}
+          onPress={onConfirm}
+        />
+      </div>
     </BottomSheet>
   );
 }

@@ -4,15 +4,22 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
-import { ErrorState, LoadingState, showToast } from '@/components/feedback';
+import { ErrorState, Skeleton, showToast } from '@/components/feedback';
 import { ApiError, errorMessage, financeApi } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
-import { PaymentProviderSelector } from '@/features/orders/components';
 import { isSandboxPaymentUrl, redirectToPayment } from '@/features/orders/payment-redirect';
 import { rememberFinancePayment, useFinancePaymentReturn } from '../useFinancePaymentReturn';
-import { PaymentSummary } from '../components/PaymentSummary';
 import { FINANCE_KEYS, usePenalties, usePayPenaltyCheckout } from '../useFinance';
+import { LoadingBlock } from '../components/FinanceParts';
+import {
+  CheckoutError,
+  PayBar,
+  PenaltyNote,
+  PenaltyNotice,
+  WalletPicker,
+} from '../components/PaymentParts';
+import { ReturnCheckTrack } from '../components/ReturnCheckTrack';
 
 type Provider = 'MOMO' | 'ZALOPAY';
 
@@ -97,7 +104,7 @@ function LivePenaltyPaymentScreen() {
     return (
       <Screen>
         <AppHeader title="Thanh toán biên bản phạt" back />
-        <LoadingState />
+        <NoticeSkeleton />
       </Screen>
     );
   }
@@ -115,57 +122,35 @@ function LivePenaltyPaymentScreen() {
     <Screen
       footer={
         <StickyActions>
-          <Button
-            label={
-              checkout.isPending ? 'Đang khởi tạo thanh toán…' : 'Thanh toán qua MoMo / ZaloPay'
-            }
-            loading={checkout.isPending}
-            disabled={checkout.isPending}
-            onPress={pay}
-          />
+          <PayBar amount={penalty.amount}>
+            <Button
+              label={
+                checkout.isPending ? 'Đang khởi tạo thanh toán…' : 'Thanh toán qua MoMo / ZaloPay'
+              }
+              loading={checkout.isPending}
+              disabled={checkout.isPending}
+              onPress={pay}
+            />
+          </PayBar>
         </StickyActions>
       }
     >
       <AppHeader title="Thanh toán biên bản phạt" back />
-      {momoReturn.state.phase === 'checking' ? (
-        <p role="status" className="rounded-md bg-sunken p-md text-body-md text-muted">
-          Đang kiểm tra kết quả thanh toán với MoMo…
-        </p>
-      ) : null}
-      {momoReturn.state.phase === 'pending' ? (
-        <div role="status" className="rounded-md border border-border bg-tint-secondary p-md">
-          <p className="text-headline-sm text-text">MoMo chưa xác nhận thanh toán</p>
-          <p className="mt-2xs text-body-md text-muted">
-            Nếu bạn đã thanh toán, bấm kiểm tra lại sau vài giây.
-          </p>
-          <div className="mt-sm">
-            <Button
-              label="Kiểm tra lại"
-              variant="outline"
-              fullWidth={false}
-              size="sm"
-              onPress={() =>
-                momoReturn.state.phase === 'pending' &&
-                momoReturn.retry(momoReturn.state.transactionId)
-              }
-            />
-          </div>
+      <ReturnCheckTrack state={momoReturn.state} onRetry={momoReturn.retry} />
+      <div className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+        <PenaltyNotice
+          violationLabel={penalty.violationLabel}
+          amount={penalty.amount}
+          slotCode={penalty.slotCode}
+          issuedAt={penalty.issuedAt}
+          status={penalty.penaltyStatus}
+        />
+        <div className="flex min-w-0 max-w-[640px] flex-col gap-md">
+          <WalletPicker value={provider} onChange={setProvider} disabled={checkout.isPending} />
+          {checkout.isError ? <CheckoutError message={errorMessage(checkout.error)} /> : null}
+          <PenaltyNote />
         </div>
-      ) : null}
-      {momoReturn.state.phase === 'failed' ? (
-        <p role="alert" className="rounded-md bg-error-bg p-md text-body-md text-error">
-          {momoReturn.state.message}
-        </p>
-      ) : null}
-      <PaymentSummary title={penalty.violationLabel} amount={penalty.amount} />
-      <PaymentProviderSelector
-        value={provider}
-        onChange={setProvider}
-        disabled={checkout.isPending}
-      />
-      {checkout.isError ? (
-        <p className="text-body-md text-error">{errorMessage(checkout.error)}</p>
-      ) : null}
+      </div>
     </Screen>
   );
 }
@@ -193,12 +178,39 @@ function MockPenaltyPaymentScreen() {
     <Screen
       footer={
         <StickyActions>
-          <Button label="Thanh toán qua MoMo / ZaloPay" onPress={pay} loading={processing} />
+          <PayBar amount={penalty.amount}>
+            <Button label="Thanh toán qua MoMo / ZaloPay" onPress={pay} loading={processing} />
+          </PayBar>
         </StickyActions>
       }
     >
       <AppHeader title="Thanh toán biên bản phạt" back />
-      <PaymentSummary title={penalty.reason} amount={penalty.amount} />
+      <PenaltyNotice
+        violationLabel={penalty.reason}
+        amount={penalty.amount}
+        issuedAt={penalty.issued_at}
+        status={penalty.penalty_status}
+      />
     </Screen>
+  );
+}
+
+/** The notice in outline (its red margin already ruled) while the list loads. */
+function NoticeSkeleton() {
+  return (
+    <LoadingBlock>
+      <div className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="relative flex max-w-[640px] flex-col gap-md overflow-hidden rounded-[16px] bg-card py-lg pl-xl pr-lg ring-1 ring-border/80">
+          <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1.5 bg-[#B42318]/60" />
+          <Skeleton className="h-5 w-2/5" />
+          <Skeleton className="h-8 w-4/5" />
+          <Skeleton className="h-12 w-3/5" />
+        </div>
+        <div className="grid max-w-[640px] grid-cols-2 gap-sm self-start">
+          <Skeleton className="h-20 w-full !rounded-[16px]" />
+          <Skeleton className="h-20 w-full !rounded-[16px]" />
+        </div>
+      </div>
+    </LoadingBlock>
   );
 }

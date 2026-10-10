@@ -70,13 +70,26 @@ export function ConfirmDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="w-full max-w-[420px] rounded-lg border border-border bg-card p-lg shadow-sheet"
+        className="sb-pop w-full max-w-[440px] overflow-hidden rounded-[28px] bg-card shadow-sheet ring-1 ring-border"
       >
-        <h2 id="confirm-dialog-title" className="text-headline-md text-text">{title}</h2>
-        {description ? <p className="mt-xs text-body-md text-muted">{description}</p> : null}
-        <div className="mt-lg flex flex-col-reverse gap-sm sm:flex-row sm:justify-end">
-          <Button label="Huỷ" variant="outline" fullWidth={false} onPress={onCancel} />
-          <Button label={confirmLabel} variant={confirmVariant} fullWidth={false} onPress={onConfirm} />
+        <div aria-hidden="true" className="sb-kerb sb-kerb-thin" />
+        <div className="p-lg">
+          <h2
+            id="confirm-dialog-title"
+            className="font-heading text-[21px] font-bold leading-tight text-text"
+          >
+            {title}
+          </h2>
+          {description ? <p className="mt-xs text-body-md text-muted">{description}</p> : null}
+          <div className="mt-lg flex flex-col-reverse gap-sm sm:flex-row sm:justify-end">
+            <Button label="Huỷ" variant="outline" fullWidth={false} onPress={onCancel} />
+            <Button
+              label={confirmLabel}
+              variant={confirmVariant}
+              fullWidth={false}
+              onPress={onConfirm}
+            />
+          </div>
         </div>
       </div>
     </div>,

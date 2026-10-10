@@ -14,5 +14,5 @@ export function LoadingState({ label = 'Đang tải' }: Props) {
 
 /** Grey placeholder blocks in the shape of the content that is coming. */
 export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden="true" className={`animate-pulse rounded-sm bg-sunken ${className ?? ''}`} />;
+  return <div aria-hidden="true" className={`sb-shimmer rounded-sm ${className ?? ''}`} />;
 }
