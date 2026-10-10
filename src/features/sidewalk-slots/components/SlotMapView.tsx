@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import MapGL, { Marker, NavigationControl, Popup, type MapRef } from '@goongmaps/goong-map-react';
 import '@goongmaps/goong-js/dist/goong-js.css';
 
-import { Button } from '@/components/common';
+import { Button, Icon } from '@/components/common';
 import { env } from '@/core/config/env';
-import { colors } from '@/theme';
+import { palette } from '@/theme';
 import { SideApiError, type SidewalkSlot } from '@/core/api/side-api';
 import { DEFAULT_CENTER } from '../map-constants';
 import {
@@ -44,9 +44,18 @@ type Props = {
   error: unknown;
   onRetry: () => void;
   onViewZoneDiagram: (zoneId: number) => void;
+  /** No route around the viewport yet: show a hint to pan the map. */
+  empty?: boolean;
 };
 
-export function SlotMapView({ slots, onBoundsChange, error, onRetry, onViewZoneDiagram }: Props) {
+export function SlotMapView({
+  slots,
+  onBoundsChange,
+  error,
+  onRetry,
+  onViewZoneDiagram,
+  empty = false,
+}: Props) {
   const mapRef = useRef<MapRef>(null);
   const [mapStyle, layerSwitcher] = useMapBaseLayer();
   const [viewport, setViewport] = useState<Viewport>({
@@ -67,7 +76,12 @@ export function SlotMapView({ slots, onBoundsChange, error, onRetry, onViewZoneD
     if (!map) return;
     const handleMoveEnd = () => {
       const b = map.getBounds();
-      onBoundsChange({ minLat: b.getSouth(), maxLat: b.getNorth(), minLng: b.getWest(), maxLng: b.getEast() });
+      onBoundsChange({
+        minLat: b.getSouth(),
+        maxLat: b.getNorth(),
+        minLng: b.getWest(),
+        maxLng: b.getEast(),
+      });
     };
     map.on('moveend', handleMoveEnd);
     const observer = new ResizeObserver(() => map.resize());
@@ -108,7 +122,9 @@ export function SlotMapView({ slots, onBoundsChange, error, onRetry, onViewZoneD
         height="100%"
         mapStyle={mapStyle}
         goongApiAccessToken={env.goongMaptilesKey}
-        onViewportChange={(v: Viewport) => setViewport({ latitude: v.latitude, longitude: v.longitude, zoom: v.zoom })}
+        onViewportChange={(v: Viewport) =>
+          setViewport({ latitude: v.latitude, longitude: v.longitude, zoom: v.zoom })
+        }
       >
         <NavigationControl
           {...GOONG_NAV_CONTROL_DEFAULT_PROPS}
@@ -116,41 +132,52 @@ export function SlotMapView({ slots, onBoundsChange, error, onRetry, onViewZoneD
           showCompass={false}
         />
         {layerSwitcher}
-        {zoneGroups.map((zone) => (
-          <Marker
-            {...GOONG_MARKER_DEFAULT_PROPS}
-            key={zone.zoneId}
-            latitude={zone.latitude}
-            longitude={zone.longitude}
-            offsetLeft={-18}
-            offsetTop={-18}
-          >
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => setSelectedZoneId(zone.zoneId)}
-              onKeyDown={(e) => e.key === 'Enter' && setSelectedZoneId(zone.zoneId)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 36,
-                height: 36,
-                borderRadius: 9999,
-                background: zone.availableCount > 0 ? colors.tertiary : colors.muted,
-                border: '3px solid white',
-                boxShadow: '0 2px 6px rgba(0,0,0,.35)',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: 13,
-                fontFamily: 'sans-serif',
-                cursor: 'pointer',
-              }}
+        {zoneGroups.map((zone) => {
+          const open = zone.availableCount > 0;
+          const selected = zone.zoneId === selectedZoneId;
+          return (
+            <Marker
+              {...GOONG_MARKER_DEFAULT_PROPS}
+              key={zone.zoneId}
+              latitude={zone.latitude}
+              longitude={zone.longitude}
+              offsetLeft={-22}
+              offsetTop={-22}
             >
-              {zone.totalCount}
-            </div>
-          </Marker>
-        ))}
+              {/* A route sign: the slot count on a plate, green while any slot is free. */}
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label={`${zone.zoneName}: ${zone.totalCount} ô`}
+                onClick={() => setSelectedZoneId(zone.zoneId)}
+                onKeyDown={(e) => e.key === 'Enter' && setSelectedZoneId(zone.zoneId)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 44,
+                  height: 44,
+                  padding: '0 10px',
+                  borderRadius: 12,
+                  background: open ? palette.light.tertiary : '#EEF1F4',
+                  border: '3px solid white',
+                  boxShadow: selected
+                    ? `0 0 0 3px ${palette.light.brand}, 0 8px 18px -6px rgba(17,28,43,.5)`
+                    : '0 6px 14px -6px rgba(17,28,43,.55)',
+                  color: open ? 'white' : '#2B3640',
+                  fontWeight: 800,
+                  fontSize: 16,
+                  fontFamily: "'Archivo', 'Be Vietnam Pro', sans-serif",
+                  cursor: 'pointer',
+                  transform: selected ? 'scale(1.08)' : undefined,
+                  transition: 'transform 200ms cubic-bezier(.2,.8,.2,1), box-shadow 200ms',
+                }}
+              >
+                {zone.totalCount}
+              </div>
+            </Marker>
+          );
+        })}
         {selectedZone && (
           <Popup
             {...GOONG_POPUP_DEFAULT_PROPS}
@@ -160,9 +187,11 @@ export function SlotMapView({ slots, onBoundsChange, error, onRetry, onViewZoneD
             closeOnClick={false}
             onClose={() => setSelectedZoneId(null)}
           >
-            <div className="flex flex-col gap-1">
-              <strong>{selectedZone.zoneName}</strong>
-              <span>
+            <div className="flex min-w-[200px] flex-col gap-xs p-1 text-text">
+              <strong className="font-sign text-[18px] font-extrabold leading-tight">
+                {selectedZone.zoneName}
+              </strong>
+              <span className="text-body-sm text-muted">
                 {selectedZone.totalCount} ô · {selectedZone.availableCount} còn trống
               </span>
               <Button label="Xem sơ đồ" onPress={() => onViewZoneDiagram(selectedZone.zoneId)} />
@@ -171,13 +200,39 @@ export function SlotMapView({ slots, onBoundsChange, error, onRetry, onViewZoneD
         )}
       </MapGL>
 
+      {empty && error === null ? (
+        <div className="pointer-events-none absolute inset-x-0 top-3 z-[1000] flex justify-center px-md">
+          <p className="flex items-center gap-1.5 rounded-full bg-card/95 px-md py-xs text-body-sm font-semibold text-text shadow-card ring-1 ring-border backdrop-blur">
+            <Icon
+              name="map-marker-radius-outline"
+              size={18}
+              color="currentColor"
+              className="text-primary"
+            />
+            Kéo bản đồ tới khu vực có ô vỉa hè
+          </p>
+        </div>
+      ) : null}
+
       {error !== null && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-3 z-[1000] flex justify-center">
-          <div className="pointer-events-auto flex items-center gap-sm rounded-md border border-border bg-card px-sm py-xs shadow-md">
-            <span className="text-body-sm text-error">
-              {error instanceof SideApiError || error instanceof Error ? error.message : 'Không tải được dữ liệu.'}
+        <div className="pointer-events-none absolute inset-x-0 bottom-3 z-[1000] flex justify-center px-md">
+          <div className="pointer-events-auto flex items-center gap-sm rounded-[14px] bg-card px-md py-xs shadow-sheet ring-1 ring-border">
+            <Icon
+              name="alert-circle-outline"
+              size={18}
+              color="currentColor"
+              className="shrink-0 text-error"
+            />
+            <span className="text-body-sm font-semibold text-error">
+              {error instanceof SideApiError || error instanceof Error
+                ? error.message
+                : 'Không tải được dữ liệu.'}
             </span>
-            <button type="button" className="text-body-sm font-semibold text-indigo" onClick={onRetry}>
+            <button
+              type="button"
+              className="h-10 shrink-0 rounded-[10px] px-sm text-label font-semibold text-primary hover:bg-tint-primary"
+              onClick={onRetry}
+            >
               Thử lại
             </button>
           </div>
