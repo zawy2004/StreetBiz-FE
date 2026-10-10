@@ -69,10 +69,17 @@ export function RoleShell({
 
   return (
     <RoleGuard role={role} allowGuest={allowGuest}>
-      {/* data-surface picks the role variant of the design system (heading face, density). */}
+      {/* data-surface picks the role variant of the design system (heading face, density).
+          relative + overflow-hidden: absolutely positioned descendants (sr-only labels inside
+          the screen's scroller) would otherwise anchor to the page and make the document
+          taller than the viewport, so an overscroll drags the whole shell up. */}
       <div
         data-surface={role}
-        className={sideNav ? 'flex h-screen bg-bg' : 'flex h-screen flex-col bg-bg'}
+        className={
+          sideNav
+            ? 'relative flex h-screen overflow-hidden bg-bg'
+            : 'relative flex h-screen flex-col overflow-hidden bg-bg'
+        }
       >
         <a
           href="#main-content"
