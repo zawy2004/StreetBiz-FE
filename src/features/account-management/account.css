@@ -1,0 +1,155 @@
+/*
+ * Account & security screens (AC01-AC04). Motion moments only; every colour
+ * comes from the design-system tokens in src/index.css. Names are prefixed
+ * `sb-acct-` so nothing here can override the shared `sb-*` classes.
+ */
+
+/* AC01: the role plate drops onto the identity plate after the kerb runs in. */
+.sb-acct-plate {
+  animation: sb-acct-plate 460ms cubic-bezier(0.3, 1.4, 0.5, 1) 300ms both;
+}
+
+@keyframes sb-acct-plate {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(1.16);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A check mark popping in (theme picker, rule slots). */
+.sb-acct-check {
+  animation: sb-acct-check 320ms var(--ease-out) both;
+}
+
+@keyframes sb-acct-check {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* AC02: a rule slot lighting up, with one beacon pulse around it. */
+.sb-acct-slot-on {
+  animation: sb-acct-slot 320ms var(--ease-out) both;
+}
+
+.sb-acct-slot-on::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 9px;
+  box-shadow: 0 0 0 3px rgb(var(--c-tertiary) / 0.35);
+  opacity: 0;
+  animation: sb-acct-beacon 900ms ease-out 1;
+  pointer-events: none;
+}
+
+@keyframes sb-acct-slot {
+  0% {
+    transform: scale(0.86);
+  }
+  60% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes sb-acct-beacon {
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+
+/* AC02: the padlock shackle comes down and clicks shut once all six rules pass. */
+.sb-acct-shackle {
+  transition: transform 460ms var(--ease-out);
+}
+
+[data-locked='true'] .sb-acct-shackle {
+  transform: translateY(6px);
+}
+
+/* A field that has just received an error nudges once. */
+.sb-acct-shake {
+  animation: sb-acct-shake 200ms ease 1;
+}
+
+@keyframes sb-acct-shake {
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+
+/* AC03: a device row the server no longer lists folds away. */
+.sb-acct-row {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 200ms var(--ease-out),
+    opacity 200ms ease;
+}
+
+.sb-acct-row > * {
+  min-height: 0;
+}
+
+.sb-acct-row[data-leaving='true'] > * {
+  overflow: hidden;
+}
+
+.sb-acct-row[data-leaving='true'] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+/* AC04: unread marks switching off from the top down after "Đọc hết". */
+.sb-acct-unread-edge {
+  transform-origin: 50% 0;
+  transition:
+    transform 200ms var(--ease-out),
+    opacity 200ms ease;
+  transition-delay: var(--delay, 0ms);
+}
+
+.sb-acct-read .sb-acct-unread-edge {
+  transform: scaleY(0);
+  opacity: 0;
+}
+
+.sb-acct-note {
+  transition: background-color 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-acct-plate,
+  .sb-acct-check,
+  .sb-acct-slot-on,
+  .sb-acct-slot-on::after,
+  .sb-acct-shake {
+    animation: none !important;
+  }
+
+  .sb-acct-shackle,
+  .sb-acct-row,
+  .sb-acct-unread-edge,
+  .sb-acct-note {
+    transition: none !important;
+  }
+}

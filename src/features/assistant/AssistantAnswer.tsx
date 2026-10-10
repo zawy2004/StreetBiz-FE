@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { m } from 'motion/react';
@@ -51,7 +51,11 @@ const SOURCE_KIND: Record<AssistantSource['kind'], { label: string; icon: typeof
   IMAGE_ANALYSIS: { label: '[AI] Nhận định từ ảnh', icon: PiImage },
 };
 
-export type ReadAloud = { supported: boolean; speaking?: string; toggle: (id: string, text: string) => void };
+export type ReadAloud = {
+  supported: boolean;
+  speaking?: string;
+  toggle: (id: string, text: string) => void;
+};
 
 export function ActivityTrail({ items, done }: { items: string[]; done?: boolean }) {
   if (!items.length) return null;
@@ -60,9 +64,18 @@ export function ActivityTrail({ items, done }: { items: string[]; done?: boolean
       {items.map((item, i) => {
         const finished = done || i < items.length - 1;
         return (
-          <m.li key={`${i}-${item}`} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className={finished ? 'is-done' : ''}>
-            {finished ? <PiCheckCircle aria-hidden="true" /> : <PiCircleNotch aria-hidden="true" className="sb-spin" />}
-            <span className={finished ? '' : 'sb-shimmer'}>{item}</span>
+          <m.li
+            key={`${i}-${item}`}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={finished ? 'is-done' : ''}
+          >
+            {finished ? (
+              <PiCheckCircle aria-hidden="true" />
+            ) : (
+              <PiCircleNotch aria-hidden="true" className="sb-ai-spin" />
+            )}
+            <span className={finished ? '' : 'sb-ai-shimmer'}>{item}</span>
           </m.li>
         );
       })}
@@ -98,6 +111,12 @@ export function MessageBubble({
   const [copyError, setCopyError] = useState(false);
   const generating = message.status === 'GENERATING';
   const text = useSmoothText(message.content, generating);
+  // Display only: an answer that was still being written while on screen gets
+  // the "printed slip" moment when it completes; answers loaded from history do not.
+  const watchedGenerating = useRef(generating);
+  useEffect(() => {
+    if (generating) watchedGenerating.current = true;
+  }, [generating]);
   useEffect(() => {
     if (!copied) return;
     const timer = setTimeout(() => setCopied(false), 2500);
@@ -132,8 +151,12 @@ export function MessageBubble({
   const actions = message.actions.filter((a) => safeRoute(a.route, role));
   const dishCard = message.cards.find((card) => card.kind === 'dish_match');
   const vendorCards =
-    role === 'CUSTOMER' ? message.cards.filter((card) => card.actionId?.startsWith('public.food:')) : [];
-  const otherCards = message.cards.filter((card) => !vendorCards.includes(card) && card !== dishCard);
+    role === 'CUSTOMER'
+      ? message.cards.filter((card) => card.actionId?.startsWith('public.food:'))
+      : [];
+  const otherCards = message.cards.filter(
+    (card) => !vendorCards.includes(card) && card !== dishCard,
+  );
   const failed = ['FAILED', 'INTERRUPTED', 'CANCELLED'].includes(message.status);
   const live = message.sources.find((s) => s.kind === 'LIVE_DATA' && s.observedAt);
   const kinds = [...new Set(message.sources.map((s) => s.kind))];
@@ -169,7 +192,9 @@ export function MessageBubble({
   const block = { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 } };
   return (
     <m.article
-      className={`sb-answer${generating ? ' is-generating' : ''}`}
+      className={`sb-answer${generating ? ' is-generating' : ''}${
+        watchedGenerating.current && message.status === 'COMPLETED' ? ' is-fresh' : ''
+      }`}
       aria-label="Câu trả lời AI"
       aria-busy={generating}
       initial="initial"
@@ -187,7 +212,11 @@ export function MessageBubble({
               ? 'Kết quả tra cứu'
               : 'Hỗ trợ bạn'}
         </span>
-        {!generating && <time dateTime={message.createdAt}>{clock(message.completedAt ?? message.createdAt)}</time>}
+        {!generating && (
+          <time dateTime={message.createdAt}>
+            {clock(message.completedAt ?? message.createdAt)}
+          </time>
+        )}
       </m.header>
       {generating && <ActivityTrail items={trail} />}
       {generating && !text && (
@@ -232,10 +261,13 @@ export function MessageBubble({
         <m.div variants={block} className="sb-cards-wrap">
           {live?.observedAt && (
             <p className="sb-live">
-              <span className="sb-live-dot" aria-hidden="true" /> Dữ liệu trực tiếp · {clock(live.observedAt)}
+              <span className="sb-live-dot" aria-hidden="true" /> Dữ liệu trực tiếp ·{' '}
+              {clock(live.observedAt)}
             </p>
           )}
-          <div className={`sb-cards${otherCards.length >= 3 && !expandedCards ? ' is-carousel' : ''}`}>
+          <div
+            className={`sb-cards${otherCards.length >= 3 && !expandedCards ? ' is-carousel' : ''}`}
+          >
             {(expandedCards ? otherCards : otherCards.slice(0, 4)).map((card, i) => (
               <div className="sb-card" key={`${card.title}-${i}`}>
                 {card.imageUrl && PUBLIC_UPLOAD.test(card.imageUrl) && (
@@ -262,7 +294,12 @@ export function MessageBubble({
                 {actions
                   .filter((a) => a.id === card.actionId)
                   .map((action) => (
-                    <button key={action.id} type="button" className="sb-link" onClick={() => onNavigate(action.route)}>
+                    <button
+                      key={action.id}
+                      type="button"
+                      className="sb-link"
+                      onClick={() => onNavigate(action.route)}
+                    >
                       {action.label}
                       <PiArrowRight aria-hidden="true" />
                     </button>
@@ -283,7 +320,11 @@ export function MessageBubble({
         </m.div>
       )}
       {Boolean(message.checklist?.length) && (
-        <m.details variants={block} className="sb-steps" open={message.responseStyle === 'steps' ? true : undefined}>
+        <m.details
+          variants={block}
+          className="sb-steps"
+          open={message.responseStyle === 'steps' ? true : undefined}
+        >
           <summary>
             Các bước tiếp theo <span>{message.checklist?.length} bước</span>
           </summary>
@@ -299,7 +340,11 @@ export function MessageBubble({
                   <div>
                     {step.text}
                     {action && (
-                      <button type="button" className="sb-link" onClick={() => onNavigate(action.route)}>
+                      <button
+                        type="button"
+                        className="sb-link"
+                        onClick={() => onNavigate(action.route)}
+                      >
                         {action.label}
                         <PiArrowRight aria-hidden="true" />
                       </button>
@@ -354,7 +399,12 @@ export function MessageBubble({
                 {actions
                   .filter((a) => a.id === source.actionId)
                   .map((a) => (
-                    <button key={a.id} type="button" className="sb-link" onClick={() => onNavigate(a.route)}>
+                    <button
+                      key={a.id}
+                      type="button"
+                      className="sb-link"
+                      onClick={() => onNavigate(a.route)}
+                    >
                       {a.label}
                       <PiArrowRight aria-hidden="true" />
                     </button>
@@ -419,7 +469,13 @@ export function MessageBubble({
                 <PiThumbsDown />
               </button>
               {message.channel !== 'VOICE' && (
-                <button type="button" className="sb-tool" aria-label="Tạo lại câu trả lời" disabled={busy} onClick={onRetry}>
+                <button
+                  type="button"
+                  className="sb-tool"
+                  aria-label="Tạo lại câu trả lời"
+                  disabled={busy}
+                  onClick={onRetry}
+                >
                   <PiArrowClockwise />
                 </button>
               )}
@@ -435,7 +491,13 @@ export function MessageBubble({
       {suggestions.length > 0 && (
         <m.div variants={block} className="sb-followups" aria-label="Gợi ý hỏi tiếp">
           {suggestions.map((q) => (
-            <button key={q} type="button" className="sb-chip" disabled={busy} onClick={() => onAsk?.(q)}>
+            <button
+              key={q}
+              type="button"
+              className="sb-chip"
+              disabled={busy}
+              onClick={() => onAsk?.(q)}
+            >
               {q}
             </button>
           ))}

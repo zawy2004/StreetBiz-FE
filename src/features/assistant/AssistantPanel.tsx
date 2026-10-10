@@ -24,7 +24,14 @@ import {
 } from 'react-icons/pi';
 import { isLiveApi } from '@/core/config/env';
 import { useAuthStore } from '@/store/auth-store';
-import { contextLabel, pageContext, ROLE_LABEL, safeRoute, suggestions, welcome } from './assistant-context';
+import {
+  contextLabel,
+  pageContext,
+  ROLE_LABEL,
+  safeRoute,
+  suggestions,
+  welcome,
+} from './assistant-context';
 import { useAssistant } from './useAssistant';
 import type { AssistantLocation, AssistantRole, Briefing, ResponseStyle } from './types';
 import './assistant.css';
@@ -32,6 +39,7 @@ import { assistantApi } from './assistant-api';
 import { useAssistantImage } from './useAssistantImage';
 import { greeting, requestLocation, usePreference, useReadAloud } from './assistant-ux';
 import { ActivityTrail, MessageBubble } from './AssistantAnswer';
+import { AssistantWelcomeArt } from './AssistantWelcomeArt';
 import { EmberOrb } from './EmberOrb';
 import { VoiceMode } from './VoiceMode';
 import { useVoiceSession } from './voice/useVoiceSession';
@@ -55,6 +63,34 @@ const historyTime = (value: string) =>
     day: '2-digit',
     month: '2-digit',
   });
+const clockTime = (value: string) =>
+  new Date(value).toLocaleString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+const VN_DAY = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+/** Saved conversations under "Hôm nay / Hôm qua / Trước đó" (Asia/Ho_Chi_Minh), order kept. */
+function historyGroups<T extends { updatedAt: string }>(items: T[], now = new Date()) {
+  const today = VN_DAY.format(now);
+  const yesterday = VN_DAY.format(new Date(now.getTime() - 86_400_000));
+  const groups: { key: string; label: string; items: T[] }[] = [
+    { key: 'today', label: 'Hôm nay', items: [] },
+    { key: 'yesterday', label: 'Hôm qua', items: [] },
+    { key: 'earlier', label: 'Trước đó', items: [] },
+  ];
+  for (const item of items) {
+    const at = new Date(item.updatedAt);
+    const day = Number.isNaN(at.getTime()) ? '' : VN_DAY.format(at);
+    groups[day === today ? 0 : day === yesterday ? 1 : 2]!.items.push(item);
+  }
+  return groups.filter((group) => group.items.length > 0);
+}
 const HINTS: Partial<Record<AssistantRole, string>> = {
   VENDOR: 'Hỏi về hồ sơ, hợp đồng, phí, giấy phép…',
   WARD_AUTHORITY: 'Hỏi về hồ sơ chờ duyệt, ô HC-08, báo cáo thu…',
@@ -86,8 +122,14 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
   const [briefing, setBriefing] = useState<Briefing>();
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [easy, setEasy] = usePreference(`sb-assistant-easy:${accountKey}`, false);
-  const [photoConsent, setPhotoConsent] = usePreference(`sb-assistant-photo-consent:${accountKey}`, false);
-  const [voiceConsent, setVoiceConsent] = usePreference(`sb-assistant-voice-consent:${accountKey}`, false);
+  const [photoConsent, setPhotoConsent] = usePreference(
+    `sb-assistant-photo-consent:${accountKey}`,
+    false,
+  );
+  const [voiceConsent, setVoiceConsent] = usePreference(
+    `sb-assistant-voice-consent:${accountKey}`,
+    false,
+  );
   const [rememberPhoto, setRememberPhoto] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
@@ -104,7 +146,8 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
   const canAttach = Boolean(chat.capabilities?.attachmentsEnabled);
   const canVoice = Boolean(chat.capabilities?.voiceEnabled) && isLiveApi && role !== 'GUEST';
   const unavailable =
-    chat.capabilities?.enabled === false || (role === 'GUEST' && chat.capabilities?.guestEnabled === false);
+    chat.capabilities?.enabled === false ||
+    (role === 'GUEST' && chat.capabilities?.guestEnabled === false);
   // Spoken turns appear in the thread as they are saved, so the transcript is there when the overlay closes.
   const voice = useVoiceSession({
     onReady: (conversationId) => {
@@ -182,7 +225,12 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
     if (photo.image && photoConsent && !photo.consent) photo.setConsent(true);
   }, [photo.image, photoConsent]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (!open || !isLiveApi || (role !== 'VENDOR' && role !== 'WARD_AUTHORITY') || chat.capabilities?.enabled === false)
+    if (
+      !open ||
+      !isLiveApi ||
+      (role !== 'VENDOR' && role !== 'WARD_AUTHORITY') ||
+      chat.capabilities?.enabled === false
+    )
       return;
     let live = true;
     assistantApi
@@ -197,7 +245,11 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
   const completedSeen = useRef(new Set<string>());
   useEffect(() => {
     for (const m of chat.messages)
-      if (m.sender === 'ASSISTANT' && m.status === 'COMPLETED' && !completedSeen.current.has(m.id)) {
+      if (
+        m.sender === 'ASSISTANT' &&
+        m.status === 'COMPLETED' &&
+        !completedSeen.current.has(m.id)
+      ) {
         completedSeen.current.add(m.id);
         if (!open) onUnread?.();
       }
@@ -227,7 +279,8 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
     } else onClose();
   };
   const send = async (text = input) => {
-    const content = text.trim() || (photo.image ? 'Giúp tôi giải thích nội dung trong ảnh này.' : '');
+    const content =
+      text.trim() || (photo.image ? 'Giúp tôi giải thích nội dung trong ảnh này.' : '');
     if (
       !content ||
       sending.current ||
@@ -277,7 +330,8 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
     } finally {
       sending.current = false;
       // A lost HTTP response may still be processing server-side; keep its upload until consumption/TTL.
-      if (uploadedId && !submitted) void assistantApi.removeAttachment(uploadedId).catch(() => undefined);
+      if (uploadedId && !submitted)
+        void assistantApi.removeAttachment(uploadedId).catch(() => undefined);
       if (mounted.current) setUploading(false);
     }
   };
@@ -326,6 +380,11 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
   const name = lastWord && !/\d/.test(lastWord) ? lastWord : undefined;
   const showMic = canVoice && !input.trim() && !photo.image && !busyOrUploading;
   const headerState = voice.active ? 'listening' : chat.busy ? 'thinking' : 'idle';
+  const maxQuestion = chat.capabilities?.maxQuestionCharacters ?? 4000;
+  const voiceMinutes = chat.capabilities?.voiceMaxSeconds
+    ? Math.max(1, Math.round(chat.capabilities.voiceMaxSeconds / 60))
+    : undefined;
+  const briefingWarnings = briefing?.items.filter((item) => item.tone === 'warning').length ?? 0;
 
   return (
     <LazyMotion features={domAnimation}>
@@ -335,6 +394,7 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
           className={`sb-assistant${fullPage ? ' sb-assistant-full' : ''}${easy ? ' sb-easy' : ''}${historyOpen ? ' has-history' : ''}`}
           role={fullPage ? 'region' : 'dialog'}
           aria-labelledby="assistant-title"
+          data-surface={role === 'GUEST' || role === 'CUSTOMER' ? 'CUSTOMER' : role}
           onKeyDown={onKeys}
         >
           <header className="sb-head">
@@ -354,7 +414,13 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
               </p>
             </div>
             <div className="sb-head-actions">
-              <button type="button" className="sb-icon" aria-label="Cuộc trò chuyện mới" disabled={busyOrUploading} onClick={newConversation}>
+              <button
+                type="button"
+                className="sb-icon"
+                aria-label="Cuộc trò chuyện mới"
+                disabled={busyOrUploading}
+                onClick={newConversation}
+              >
                 <PiPlus />
               </button>
               <button
@@ -368,7 +434,13 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                 <PiClockCounterClockwise />
               </button>
               {canVoice && (
-                <button type="button" className="sb-icon" aria-label="Trò chuyện bằng giọng nói" onClick={openVoice} disabled={busyOrUploading}>
+                <button
+                  type="button"
+                  className="sb-icon"
+                  aria-label="Trò chuyện bằng giọng nói"
+                  onClick={openVoice}
+                  disabled={busyOrUploading}
+                >
                   <PiWaveform />
                 </button>
               )}
@@ -394,17 +466,36 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                       exit={{ opacity: 0, scale: 0.96, y: -4 }}
                       transition={{ duration: 0.16 }}
                     >
-                      <button role="menuitemcheckbox" aria-checked={easy} type="button" onClick={() => setEasy(!easy)}>
+                      <button
+                        role="menuitemcheckbox"
+                        aria-checked={easy}
+                        type="button"
+                        onClick={() => setEasy(!easy)}
+                      >
                         <PiTextAa aria-hidden="true" /> Chế độ dễ dùng
                         <small>Chữ lớn, câu ngắn, giọng nói chậm</small>
                       </button>
                       {photoConsent && (
-                        <button role="menuitem" type="button" onClick={() => { setPhotoConsent(false); setMenuOpen(false); }}>
+                        <button
+                          role="menuitem"
+                          type="button"
+                          onClick={() => {
+                            setPhotoConsent(false);
+                            setMenuOpen(false);
+                          }}
+                        >
                           <PiImage aria-hidden="true" /> Thu hồi đồng ý gửi ảnh
                         </button>
                       )}
                       {voiceConsent && (
-                        <button role="menuitem" type="button" onClick={() => { setVoiceConsent(false); setMenuOpen(false); }}>
+                        <button
+                          role="menuitem"
+                          type="button"
+                          onClick={() => {
+                            setVoiceConsent(false);
+                            setMenuOpen(false);
+                          }}
+                        >
                           <PiMicrophone aria-hidden="true" /> Thu hồi đồng ý dùng giọng nói
                         </button>
                       )}
@@ -423,14 +514,21 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                         </button>
                       )}
                       <p className="sb-menu-note">
-                        <PiInfo aria-hidden="true" /> Lịch sử được lưu {chat.capabilities?.retentionDays ?? 30} ngày. Ảnh và bản ghi âm không được lưu.
+                        <PiInfo aria-hidden="true" /> Lịch sử được lưu{' '}
+                        {chat.capabilities?.retentionDays ?? 30} ngày. Ảnh và bản ghi âm không được
+                        lưu.
                       </p>
                     </m.div>
                   )}
                 </AnimatePresence>
               </div>
               {!fullPage && (
-                <button type="button" className="sb-icon" aria-label="Mở trang trợ lý" onClick={() => navigate('/assistant')}>
+                <button
+                  type="button"
+                  className="sb-icon"
+                  aria-label="Mở trang trợ lý"
+                  onClick={() => navigate('/assistant')}
+                >
                   <PiArrowsOut />
                 </button>
               )}
@@ -463,28 +561,48 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                   exit={{ opacity: 0, x: -16 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <button type="button" className="sb-btn is-soft sb-history-new" onClick={newConversation}>
+                  <button
+                    type="button"
+                    className="sb-btn is-soft sb-history-new"
+                    onClick={newConversation}
+                  >
                     <PiPlus aria-hidden="true" /> Cuộc trò chuyện mới
                   </button>
-                  {chat.conversations.length === 0 && <p className="sb-hint">Chưa có hội thoại được lưu.</p>}
-                  {chat.conversations.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className={`sb-history-item${c.id === chat.conversationId ? ' is-current' : ''}`}
-                      onClick={() => {
-                        void chat.select(c.id);
-                        photo.clear();
-                        setInput('');
-                        setHistoryOpen(false);
-                      }}
-                    >
-                      <span>{c.title}</span>
-                      <time>{historyTime(c.updatedAt)}</time>
-                    </button>
+                  {chat.conversations.length === 0 && (
+                    <p className="sb-hint">Chưa có hội thoại được lưu.</p>
+                  )}
+                  {historyGroups(chat.conversations).map((group) => (
+                    <div key={group.key} role="group" aria-labelledby={`sb-history-${group.key}`}>
+                      <p id={`sb-history-${group.key}`} className="sb-history-day">
+                        {group.label}
+                      </p>
+                      {group.items.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className={`sb-history-item${c.id === chat.conversationId ? ' is-current' : ''}`}
+                          onClick={() => {
+                            void chat.select(c.id);
+                            photo.clear();
+                            setInput('');
+                            setHistoryOpen(false);
+                          }}
+                        >
+                          <span>{c.title}</span>
+                          <span className="sb-history-meta">
+                            <time>{historyTime(c.updatedAt)}</time>
+                            {c.activeMessageId && <em className="sb-history-live">Đang trả lời</em>}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   ))}
                   {chat.conversationBefore && (
-                    <button type="button" className="sb-link" onClick={() => void chat.loadConversations(true)}>
+                    <button
+                      type="button"
+                      className="sb-link"
+                      onClick={() => void chat.loadConversations(true)}
+                    >
                       Xem thêm hội thoại
                     </button>
                   )}
@@ -517,14 +635,22 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                       >
                         Xóa hội thoại
                       </button>
-                      <button type="button" className="sb-btn is-ghost" onClick={() => setConfirmDelete(false)}>
+                      <button
+                        type="button"
+                        className="sb-btn is-ghost"
+                        onClick={() => setConfirmDelete(false)}
+                      >
                         Giữ lại
                       </button>
                     </div>
                   </div>
                 )}
                 {chat.before && (
-                  <button type="button" className="sb-link sb-older" onClick={() => void chat.loadOlder()}>
+                  <button
+                    type="button"
+                    className="sb-link sb-older"
+                    onClick={() => void chat.loadOlder()}
+                  >
                     Xem tin nhắn trước
                   </button>
                 )}
@@ -535,31 +661,57 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                     animate="animate"
                     variants={{ animate: { transition: { staggerChildren: 0.05 } } }}
                   >
-                    <m.div variants={{ initial: { opacity: 0, scale: 0.9 }, animate: { opacity: 1, scale: 1 } }}>
-                      <EmberOrb size={84} state="idle" className="sb-welcome-orb" />
+                    <m.div
+                      className="sb-welcome-hero"
+                      variants={{ initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 } }}
+                    >
+                      <div className="sb-welcome-copy">
+                        <EmberOrb size={84} state="idle" className="sb-welcome-orb" />
+                        <h3>
+                          {role === 'GUEST'
+                            ? welcome(role).title
+                            : `${greeting()}${name ? `, ${name}` : ''}.`}
+                        </h3>
+                        <p className="sb-welcome-sub">
+                          {role === 'GUEST'
+                            ? welcome(role).description
+                            : `${welcome(role).title}. ${welcome(role).description}`}
+                        </p>
+                      </div>
+                      <AssistantWelcomeArt role={role} />
                     </m.div>
-                    <m.h3 variants={{ initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 } }}>
-                      {role === 'GUEST' ? welcome(role).title : `${greeting()}${name ? `, ${name}` : ''}.`}
-                    </m.h3>
-                    <m.p className="sb-welcome-sub" variants={{ initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 } }}>
-                      {role === 'GUEST' ? welcome(role).description : `${welcome(role).title}. ${welcome(role).description}`}
-                    </m.p>
                     {briefing && briefing.items.length > 0 && (
                       <m.section
                         className="sb-briefing"
                         aria-label="Việc cần làm hôm nay"
                         variants={{ initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 } }}
                       >
-                        <p className="sb-eyebrow">Việc cần làm hôm nay · dữ liệu trực tiếp</p>
+                        <div className="sb-briefing-head">
+                          <p className="sb-eyebrow">Việc cần làm hôm nay · dữ liệu trực tiếp</p>
+                          <p className="sb-briefing-count">
+                            {`${briefing.items.length} việc${briefingWarnings ? ` · ${briefingWarnings} cần xử lý` : ''}`}
+                            {briefing.observedAt && (
+                              <small>{`Cập nhật lúc ${clockTime(briefing.observedAt)}`}</small>
+                            )}
+                          </p>
+                        </div>
                         {briefing.items.map((item, i) => (
                           <div key={i} className={`sb-brief is-${item.tone}`}>
-                            {item.tone === 'warning' ? <PiWarningCircle aria-hidden="true" /> : <PiCheckCircle aria-hidden="true" />}
+                            {item.tone === 'warning' ? (
+                              <PiWarningCircle aria-hidden="true" />
+                            ) : (
+                              <PiCheckCircle aria-hidden="true" />
+                            )}
                             <div>
                               <strong>{item.title}</strong>
                               <span>{item.detail}</span>
                             </div>
                             {item.action && safeRoute(item.action.route, role) && (
-                              <button type="button" className="sb-link" onClick={() => onNavigate(item.action!.route)}>
+                              <button
+                                type="button"
+                                className="sb-link"
+                                onClick={() => onNavigate(item.action!.route)}
+                              >
                                 {item.action.label} <PiArrowRight aria-hidden="true" />
                               </button>
                             )}
@@ -568,24 +720,45 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                       </m.section>
                     )}
                     {(canAttach || canVoice) && (
-                      <m.div className="sb-entry" variants={{ initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 } }}>
+                      <m.div
+                        className="sb-entry"
+                        variants={{ initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 } }}
+                      >
                         {canAttach && (
-                          <button type="button" className="sb-entry-tile" disabled={busyOrUploading} onClick={() => fileInput.current?.click()}>
+                          <button
+                            type="button"
+                            className="sb-entry-tile"
+                            disabled={busyOrUploading}
+                            onClick={() => fileInput.current?.click()}
+                          >
                             <PiCamera aria-hidden="true" />
                             <strong>Hỏi bằng ảnh</strong>
-                            <span>{role === 'CUSTOMER' ? 'Chụp món, biết tên và quán bán' : 'Gửi ảnh để được giải thích'}</span>
+                            <span>
+                              {role === 'CUSTOMER'
+                                ? 'Chụp món, biết tên và quán bán'
+                                : 'Gửi ảnh để được giải thích'}
+                            </span>
                           </button>
                         )}
                         {canVoice && (
-                          <button type="button" className="sb-entry-tile" disabled={busyOrUploading} onClick={openVoice}>
+                          <button
+                            type="button"
+                            className="sb-entry-tile"
+                            disabled={busyOrUploading}
+                            onClick={openVoice}
+                          >
                             <PiWaveform aria-hidden="true" />
                             <strong>Trò chuyện bằng giọng nói</strong>
                             <span>Nói tự nhiên, có thể ngắt lời</span>
+                            {voiceMinutes && <small>{`Tối đa ${voiceMinutes} phút`}</small>}
                           </button>
                         )}
                       </m.div>
                     )}
-                    <m.div className="sb-suggestions" variants={{ animate: { transition: { staggerChildren: 0.04 } } }}>
+                    <m.div
+                      className="sb-suggestions"
+                      variants={{ animate: { transition: { staggerChildren: 0.04 } } }}
+                    >
                       {quickReplies.map((q) => (
                         <m.button
                           key={q}
@@ -594,7 +767,10 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                           aria-label={q}
                           disabled={busyOrUploading}
                           onClick={() => void send(q)}
-                          variants={{ initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 } }}
+                          variants={{
+                            initial: { opacity: 0, y: 6 },
+                            animate: { opacity: 1, y: 0 },
+                          }}
                           whileTap={{ scale: 0.98 }}
                         >
                           <span>{q}</span>
@@ -603,8 +779,8 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                       ))}
                     </m.div>
                     <p className="sb-fineprint">
-                      Không gửi mật khẩu, OTP hoặc giấy tờ định danh. Các quyết định nghiệp vụ được thực hiện tại màn
-                      hình tương ứng.
+                      Không gửi mật khẩu, OTP hoặc giấy tờ định danh. Các quyết định nghiệp vụ được
+                      thực hiện tại màn hình tương ứng.
                     </p>
                   </m.div>
                 )}
@@ -627,7 +803,9 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                       if (message.hasAttachments || question.hasAttachments) {
                         setInput(question.content);
                         if (photo.restore(question.clientRequestId))
-                          photo.setError('Ảnh được giữ tạm trên thiết bị. Xác nhận gửi ảnh rồi bấm Gửi để thử lại.');
+                          photo.setError(
+                            'Ảnh được giữ tạm trên thiết bị. Xác nhận gửi ảnh rồi bấm Gửi để thử lại.',
+                          );
                         else
                           photo.setError(
                             'Ảnh tạm đã hết hạn. Chọn lại ảnh để hỏi lại; ảnh không được lưu trong lịch sử.',
@@ -684,7 +862,10 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                 onClick={() => {
                   atBottom.current = true;
                   setNewContent(false);
-                  scroll.current?.scrollTo({ top: scroll.current.scrollHeight, behavior: 'smooth' });
+                  scroll.current?.scrollTo({
+                    top: scroll.current.scrollHeight,
+                    behavior: 'smooth',
+                  });
                 }}
               >
                 <PiArrowDown aria-hidden="true" /> Tin mới
@@ -750,21 +931,29 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                 >
                   <div className="sb-attachment-row">
                     <span className={`sb-attachment-thumb${uploading ? ' is-uploading' : ''}`}>
-                      <img src={`data:image/png;base64,${photo.image.png}`} alt="Ảnh đính kèm đang chờ gửi" />
+                      <img
+                        src={`data:image/png;base64,${photo.image.png}`}
+                        alt="Ảnh đính kèm đang chờ gửi"
+                      />
                     </span>
                     <div className="sb-attachment-copy">
                       <strong>{uploading ? 'Đang tải ảnh lên…' : 'Ảnh đã sẵn sàng'}</strong>
                       <span>{photo.image.name}</span>
                       <small>Chỉ gửi khi bạn bấm gửi câu hỏi</small>
                     </div>
-                    <button type="button" className="sb-btn is-ghost" disabled={busyOrUploading} onClick={photo.clear}>
+                    <button
+                      type="button"
+                      className="sb-btn is-ghost"
+                      disabled={busyOrUploading}
+                      onClick={photo.clear}
+                    >
                       Bỏ ảnh
                     </button>
                   </div>
                   {photoConsent ? (
                     <p className="sb-consent is-granted">
-                      <PiCheckCircle aria-hidden="true" /> Bạn đã cho phép gửi ảnh đến Gemini để phân tích. Có thể thu hồi
-                      trong menu ⋯.
+                      <PiCheckCircle aria-hidden="true" /> Bạn đã cho phép gửi ảnh đến Gemini để
+                      phân tích. Có thể thu hồi trong menu ⋯.
                     </p>
                   ) : (
                     <div className="sb-consent">
@@ -779,8 +968,8 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                           }}
                         />
                         <span>
-                          Tôi đồng ý gửi ảnh đến Gemini để phân tích. Ảnh đã được che thông tin cá nhân. Nếu lỗi, ảnh
-                          được giữ tạm trên thiết bị tối đa 5 phút để thử lại.
+                          Tôi đồng ý gửi ảnh đến Gemini để phân tích. Ảnh đã được che thông tin cá
+                          nhân. Nếu lỗi, ảnh được giữ tạm trên thiết bị tối đa 5 phút để thử lại.
                         </span>
                       </label>
                       <label className="sb-consent-remember">
@@ -840,7 +1029,11 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                     disabled={busyOrUploading || photo.preparing || !online}
                     onClick={() => setAttachOpen(!attachOpen)}
                   >
-                    {photo.preparing ? <span className="sb-dot-spin" aria-hidden="true" /> : <PiPlus />}
+                    {photo.preparing ? (
+                      <span className="sb-dot-spin" aria-hidden="true" />
+                    ) : (
+                      <PiPlus />
+                    )}
                   </button>
                   <AnimatePresence>
                     {attachOpen && (
@@ -853,10 +1046,18 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                         exit={{ opacity: 0, scale: 0.96, y: 4 }}
                         transition={{ duration: 0.16 }}
                       >
-                        <button role="menuitem" type="button" onClick={() => fileInput.current?.click()}>
+                        <button
+                          role="menuitem"
+                          type="button"
+                          onClick={() => fileInput.current?.click()}
+                        >
                           <PiImage aria-hidden="true" /> Chọn ảnh
                         </button>
-                        <button role="menuitem" type="button" onClick={() => cameraInput.current?.click()}>
+                        <button
+                          role="menuitem"
+                          type="button"
+                          onClick={() => cameraInput.current?.click()}
+                        >
                           <PiCamera aria-hidden="true" /> Chụp ảnh
                         </button>
                       </m.div>
@@ -870,7 +1071,11 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                 onChange={(e) => setInput(e.target.value)}
                 rows={1}
                 aria-label="Câu hỏi cho Trợ lý StreetBiz"
-                placeholder={photo.image ? 'Bạn muốn biết điều gì về ảnh này?' : (HINTS[role] ?? 'Hỏi điều bạn đang cần…')}
+                placeholder={
+                  photo.image
+                    ? 'Bạn muốn biết điều gì về ảnh này?'
+                    : (HINTS[role] ?? 'Hỏi điều bạn đang cần…')
+                }
                 onPaste={(e) => {
                   const file = Array.from(e.clipboardData.items)
                     .find((item) => item.type.startsWith('image/'))
@@ -880,7 +1085,7 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                     chooseImage(file);
                   }
                 }}
-                maxLength={chat.capabilities?.maxQuestionCharacters ?? 4000}
+                maxLength={maxQuestion}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                     e.preventDefault();
@@ -974,10 +1179,18 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                   disabled={locating}
                   onClick={() => void toggleLocation()}
                 >
-                  <PiMapPin aria-hidden="true" /> {locating ? 'Đang định vị…' : location ? 'Đang dùng vị trí' : 'Gần tôi'}
+                  <PiMapPin aria-hidden="true" />{' '}
+                  {locating ? 'Đang định vị…' : location ? 'Đang dùng vị trí' : 'Gần tôi'}
                 </button>
               )}
-              <span className="sb-disclaimer">[AI] Có thể có sai sót. Kiểm tra nguồn và thời điểm tra cứu.</span>
+              {input.length >= maxQuestion * 0.9 && (
+                <span className="sb-count is-near">
+                  {`${input.length.toLocaleString('vi-VN')}/${maxQuestion.toLocaleString('vi-VN')}`}
+                </span>
+              )}
+              <span className="sb-disclaimer">
+                [AI] Có thể có sai sót. Kiểm tra nguồn và thời điểm tra cứu.
+              </span>
             </div>
           </footer>
         </section>
