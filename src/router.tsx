@@ -1,23 +1,37 @@
 import { Suspense } from 'react';
-import { Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useParams } from 'react-router-dom';
+
+import { EmptySlotArt } from '@/components/illustrations';
 
 import { ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
 import { AuthGuard, RoleGuard } from '@/core/auth/RoleGuard';
 import { useAuthStore } from '@/store/auth-store';
-import { LandingScreen } from '@/features/landing/screens';
 import { RoleShell } from '@/layouts/RoleShell';
 import { VendorTopBar } from '@/layouts/VendorTopBar';
 import { CUSTOMER_TABS, PLATFORM_TABS, VENDOR_TABS, WARD_TABS } from '@/layouts/role-tabs';
 import { lazyScreen } from '@/core/routing/lazy-screen';
 import { ScreenFallback } from '@/core/routing/ScreenFallback';
 
-import {
-  RegisterScreen,
-  ResetPasswordRequestScreen,
-  ResetPasswordScreen,
-  SignInScreen,
-  VerifyPhoneScreen,
-} from '@/features/authentication/screens';
+// The public pages are split too: their illustrated layouts would otherwise ride in
+// the first bundle of every signed-in role.
+const LandingScreen = lazyScreen(() => import('@/features/landing/screens'), 'LandingScreen');
+const SignInScreen = lazyScreen(() => import('@/features/authentication/screens'), 'SignInScreen');
+const RegisterScreen = lazyScreen(
+  () => import('@/features/authentication/screens'),
+  'RegisterScreen',
+);
+const VerifyPhoneScreen = lazyScreen(
+  () => import('@/features/authentication/screens'),
+  'VerifyPhoneScreen',
+);
+const ResetPasswordRequestScreen = lazyScreen(
+  () => import('@/features/authentication/screens'),
+  'ResetPasswordRequestScreen',
+);
+const ResetPasswordScreen = lazyScreen(
+  () => import('@/features/authentication/screens'),
+  'ResetPasswordScreen',
+);
 
 // Everything past sign-in is split per feature and fetched on first visit.
 const WardCasesScreen = lazyScreen(
@@ -53,35 +67,35 @@ const VendorAssistantScreen = lazyScreen(
   'VendorAssistantScreen',
 );
 const AddressUpdateScreen = lazyScreen(
-  () => import('@/features/business-registrations/screens'),
+  () => import('@/features/business-registrations/screens/AddressUpdateScreen'),
   'AddressUpdateScreen',
 );
 const AdjacentSlotScreen = lazyScreen(
-  () => import('@/features/business-registrations/screens'),
+  () => import('@/features/business-registrations/screens/AdjacentSlotScreen'),
   'AdjacentSlotScreen',
 );
 const NewRegistrationDetailsScreen = lazyScreen(
-  () => import('@/features/business-registrations/screens'),
+  () => import('@/features/business-registrations/screens/NewRegistrationDetailsScreen'),
   'NewRegistrationDetailsScreen',
 );
 const NewRegistrationEvidenceScreen = lazyScreen(
-  () => import('@/features/business-registrations/screens'),
+  () => import('@/features/business-registrations/screens/NewRegistrationEvidenceScreen'),
   'NewRegistrationEvidenceScreen',
 );
 const NewRegistrationOwnerScreen = lazyScreen(
-  () => import('@/features/business-registrations/screens'),
+  () => import('@/features/business-registrations/screens/NewRegistrationOwnerScreen'),
   'NewRegistrationOwnerScreen',
 );
 const NewRegistrationTypeScreen = lazyScreen(
-  () => import('@/features/business-registrations/screens'),
+  () => import('@/features/business-registrations/screens/NewRegistrationTypeScreen'),
   'NewRegistrationTypeScreen',
 );
 const RegistrationDetailScreen = lazyScreen(
-  () => import('@/features/business-registrations/screens'),
+  () => import('@/features/business-registrations/screens/RegistrationDetailScreen'),
   'RegistrationDetailScreen',
 );
 const RegistrationsListScreen = lazyScreen(
-  () => import('@/features/business-registrations/screens'),
+  () => import('@/features/business-registrations/screens/RegistrationsListScreen'),
   'RegistrationsListScreen',
 );
 const RentalApplicationDetailScreen = lazyScreen(
@@ -260,71 +274,71 @@ const VendorOrderDetailScreen = lazyScreen(
   'VendorOrderDetailScreen',
 );
 const AddressConflictReviewScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/AddressConflictReviewScreen'),
   'AddressConflictReviewScreen',
 );
 const CollectionReportScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/CollectionReportScreen'),
   'CollectionReportScreen',
 );
 const InboxScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/InboxScreen'),
   'InboxScreen',
 );
 const PenaltyScheduleScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/PenaltyScheduleScreen'),
   'PenaltyScheduleScreen',
 );
 const PermitActionScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/PermitActionScreen'),
   'PermitActionScreen',
 );
 const PermitScanScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/PermitScanScreen'),
   'PermitScanScreen',
 );
 const PricingScheduleScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/PricingScheduleScreen'),
   'PricingScheduleScreen',
 );
 const RecordViolationScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/RecordViolationScreen'),
   'RecordViolationScreen',
 );
 const RegistrationReviewScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/RegistrationReviewScreen'),
   'RegistrationReviewScreen',
 );
 const RentalApplicationReviewScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/RentalApplicationReviewScreen'),
   'RentalApplicationReviewScreen',
 );
 const RenewalReviewScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/RenewalReviewScreen'),
   'RenewalReviewScreen',
 );
 const SlotGridEditorScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/SlotGridEditorScreen'),
   'SlotGridEditorScreen',
 );
 const SlotOccupancyScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/SlotOccupancyScreen'),
   'SlotOccupancyScreen',
 );
 const SlotProposalReviewScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/SlotProposalReviewScreen'),
   'SlotProposalReviewScreen',
 );
 const SlotTransferReviewScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/SlotTransferReviewScreen'),
   'SlotTransferReviewScreen',
 );
 const VendorReportReviewScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/VendorReportReviewScreen'),
   'VendorReportReviewScreen',
 );
 const WardDashboardScreen = lazyScreen(
-  () => import('@/features/ward-administration/screens'),
+  () => import('@/features/ward-administration/screens/WardDashboardScreen'),
   'WardDashboardScreen',
 );
 const AccountsScreen = lazyScreen(
@@ -359,9 +373,23 @@ function IndexRoute() {
 }
 
 function NotFoundScreen() {
+  const role = useAuthStore((s) => s.user?.role_code);
+  const home = role ? ROLE_HOME_ROUTE[role] : '/';
   return (
-    <div className="flex h-screen items-center justify-center bg-bg text-body-lg text-muted">
-      Không tìm thấy trang.
+    <div className="flex h-screen flex-col items-center justify-center gap-md bg-bg px-lg text-center">
+      <EmptySlotArt variant="sign" className="h-[160px] w-[240px]" />
+      <p className="font-heading text-[22px] font-bold leading-tight text-text">
+        Không tìm thấy trang.
+      </p>
+      <p className="max-w-[40ch] text-body-md text-muted">
+        Đường dẫn này không có ô nào. Có thể trang đã đổi chỗ hoặc gõ nhầm địa chỉ.
+      </p>
+      <Link
+        to={home}
+        className="mt-xs flex h-12 items-center rounded-[12px] bg-primary px-lg text-[15px] font-semibold text-on-primary shadow-[0_10px_22px_-12px_rgb(var(--c-primary)/0.9)] transition-colors hover:bg-primary-pressed"
+      >
+        Về trang chủ
+      </Link>
     </div>
   );
 }
