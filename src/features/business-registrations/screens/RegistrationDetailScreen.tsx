@@ -1,16 +1,22 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
-import { Button, Card, Divider, ListRow } from '@/components/common';
-import { AppHeader, Screen, Section, StickyActions } from '@/components/layout';
-import { StatusChip } from '@/components/status';
-import { ConfirmDialog, ErrorState, LoadingState, showToast } from '@/components/feedback';
+import { Button, Icon, IconButton } from '@/components/common';
+import { AppHeader, Screen, StickyActions } from '@/components/layout';
+import { ConfirmDialog, ErrorState, showToast } from '@/components/feedback';
 import { EDITABLE_STATUSES, errorMessage, VENDOR_TYPE, vendorRegistrationApi } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { householdMemberToDraft, useNewRegistrationStore } from '../new-registration-store';
-import { EvidencePreview } from '../components/EvidencePreview';
+import {
+  CoverSkeleton,
+  EvidenceTile,
+  Form01Card,
+  NextStepCard,
+  RegistrationCover,
+  SubmittedInfo,
+  WardFeedbackNote,
+} from '../components/detail/DetailParts';
 import { useRegistrationDetail, useWithdrawRegistration } from '../useRegistrations';
-import { vendorTypeLabel } from '../labels';
 
 /** REG-03 detail, plus REG-04 (edit) and REG-05 (withdraw). */
 export function RegistrationDetailScreen() {
@@ -29,7 +35,7 @@ export function RegistrationDetailScreen() {
     return (
       <Screen>
         <AppHeader title="Hồ sơ đăng ký" back />
-        <LoadingState />
+        <CoverSkeleton />
       </Screen>
     );
   }
@@ -38,7 +44,9 @@ export function RegistrationDetailScreen() {
     return (
       <Screen>
         <AppHeader title="Hồ sơ đăng ký" back />
-        <ErrorState message={errorMessage(error)} onRetry={() => refetch()} />
+        <div className="rounded-[28px] border-2 border-dashed border-error/40 bg-card">
+          <ErrorState message={errorMessage(error)} onRetry={() => refetch()} />
+        </div>
       </Screen>
     );
   }
@@ -47,7 +55,16 @@ export function RegistrationDetailScreen() {
     return (
       <Screen>
         <AppHeader title="Hồ sơ đăng ký" back />
-        <ErrorState message="Không tìm thấy hồ sơ." />
+        <div className="flex flex-col items-center rounded-[28px] bg-card pb-lg text-center shadow-card ring-1 ring-border">
+          <ErrorState message="Không tìm thấy hồ sơ." />
+          <Link
+            to="/vendor/registrations"
+            className="-mt-lg inline-flex min-h-12 items-center gap-1.5 rounded-[12px] px-md text-[15px] font-semibold text-primary hover:bg-tint-primary"
+          >
+            <Icon name="format-list-bulleted" size={18} color="currentColor" />
+            Về danh sách hồ sơ
+          </Link>
+        </div>
       </Screen>
     );
   }
@@ -66,6 +83,10 @@ export function RegistrationDetailScreen() {
   // Offering it against a live backend would be a dead end, so hide it until then.
   const canRentAdjacentSlot = isFixedApproved && !isLiveApi;
   const needsMoreInfo = registration.registrationStatus === 'MORE_INFORMATION_REQUIRED';
+  // BR-08: an approved itinerant file still needs its own slot application.
+  const isItinerantApproved =
+    registration.vendorType !== VENDOR_TYPE.fixedStorefront &&
+    registration.registrationStatus === 'APPROVED';
 
   const startEdit = () => {
     loadForEdit({
@@ -101,7 +122,10 @@ export function RegistrationDetailScreen() {
   const downloadDocument = async (format: 'docx' | 'pdf') => {
     setDownloadingFormat(format);
     try {
-      const blob = await vendorRegistrationApi.downloadDocument(registration.registrationId, format);
+      const blob = await vendorRegistrationApi.downloadDocument(
+        registration.registrationId,
+        format,
+      );
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -127,6 +151,53 @@ export function RegistrationDetailScreen() {
     }
   };
 
+  const nextSteps =
+    isFixedApproved || isItinerantApproved ? (
+      <section aria-label="Tiếp theo" className="flex flex-col gap-sm">
+        <h2 className="font-sign text-[21px] font-extrabold leading-tight text-text">Tiếp theo</h2>
+        <div className="grid gap-sm md:grid-cols-2 xl:grid-cols-1">
+          {canRentAdjacentSlot ? (
+            <NextStepCard
+              label="Thuê ô vỉa hè liền kề"
+              caption="Xin ô ngay trước mặt tiền cửa hàng"
+              art="frontage"
+              primary
+              onPress={() =>
+                navigate(`/vendor/registrations/${registration.registrationId}/adjacent-slot`)
+              }
+            />
+          ) : null}
+          {isFixedApproved ? (
+            <NextStepCard
+              label="Cập nhật địa chỉ kinh doanh"
+              caption="Báo Phường khi cửa hàng chuyển địa chỉ"
+              art="plate"
+              onPress={() =>
+                navigate(`/vendor/registrations/${registration.registrationId}/address`)
+              }
+            />
+          ) : null}
+          {isItinerantApproved ? (
+            <NextStepCard
+              label="Thuê ô vỉa hè"
+              caption="Hồ sơ đã duyệt; thuê ô là một đơn riêng"
+              art="slot"
+              primary
+              onPress={() => navigate('/vendor/slots')}
+            />
+          ) : null}
+        </div>
+      </section>
+    ) : null;
+
+  const form01 = isLiveApi ? (
+    <Form01Card
+      approved={registration.registrationStatus === 'APPROVED'}
+      downloadingFormat={downloadingFormat}
+      onDownload={downloadDocument}
+    />
+  ) : null;
+
   return (
     <Screen
       footer={
@@ -145,135 +216,63 @@ export function RegistrationDetailScreen() {
         ) : undefined
       }
     >
-      <AppHeader title={registration.displayName} back />
+      <div className="flex">
+        <IconButton icon="arrow-left" accessibilityLabel="Quay lại" onPress={() => navigate(-1)} />
+      </div>
 
-      <Card>
-        <div className="flex items-start justify-between gap-sm">
-          <div className="flex flex-col gap-2xs">
-            <span className="text-body-md text-muted">
-              {vendorTypeLabel(registration.vendorType)}
-            </span>
-            <span className="text-body-sm text-muted">
-              Nộp ngày {new Date(registration.createdAt).toLocaleDateString('vi-VN')}
-            </span>
-            {registration.reviewedAt ? (
-              <span className="text-body-sm text-muted">
-                Xét duyệt ngày {new Date(registration.reviewedAt).toLocaleDateString('vi-VN')}
-              </span>
-            ) : null}
-          </div>
-          <StatusChip code={registration.registrationStatus} />
-        </div>
-      </Card>
+      <RegistrationCover registration={registration} />
 
-      {isLiveApi ? (
-        <Section title="Xuất hồ sơ (Mẫu số 01 Phụ lục II, TT 68/2025/TT-BTC)">
-          <div className="flex gap-sm">
-            <div className="flex-1">
-              <Button
-                label={downloadingFormat === 'docx' ? 'Đang tải...' : 'Tải .docx'}
-                variant="outline"
-                disabled={downloadingFormat !== null}
-                onPress={() => downloadDocument('docx')}
-              />
-            </div>
-            <div className="flex-1">
-              <Button
-                label={downloadingFormat === 'pdf' ? 'Đang tải...' : 'Tải .pdf'}
-                variant="outline"
-                disabled={downloadingFormat !== null}
-                onPress={() => downloadDocument('pdf')}
-              />
-            </div>
-          </div>
-          {registration.registrationStatus !== 'APPROVED' ? (
-            <p className="mt-xs text-body-xs text-muted">
-              Hồ sơ chưa được duyệt — bản tải về sẽ có nhãn "BẢN NHÁP".
-            </p>
-          ) : null}
-        </Section>
-      ) : null}
-
-      {registration.reviewDecisionReason ? (
-        <Card style={{ backgroundColor: 'rgb(var(--c-error) / 0.06)', borderColor: 'rgb(var(--c-error) / 0.25)' }}>
-          <p className="mb-1 text-label text-error">Phản hồi từ Phường</p>
-          <p className="text-body-md text-text">{registration.reviewDecisionReason}</p>
-          {needsMoreInfo ? (
-            <p className="mt-xs text-body-sm text-muted">
-              Cập nhật hồ sơ theo yêu cầu rồi gửi lại để được xét duyệt tiếp.
-            </p>
-          ) : null}
-        </Card>
-      ) : null}
-
-      <Section title="Thông tin đã nộp">
-        <Card padded={false}>
-          <div className="px-md">
-            <ListRow title="Tên hộ kinh doanh" subtitle={registration.displayName} />
-            <Divider />
-            <ListRow title="Loại hình" subtitle={vendorTypeLabel(registration.vendorType)} />
-            <Divider />
-            <ListRow
-              title="Địa chỉ kinh doanh"
-              subtitle={registration.declaredAddress ?? 'Không khai báo (bán hàng lưu động)'}
-            />
-            <Divider />
-            <ListRow
-              title="Ưu tiên xử lý nhanh"
-              subtitle={registration.fastTrackFlag ? 'Có' : 'Không'}
-            />
-            <Divider />
-            <ListRow
-              title="Ngành, nghề kinh doanh"
-              subtitle={registration.businessLine ?? 'Chưa cập nhật'}
-            />
-            <Divider />
-            <ListRow
-              title="Vốn kinh doanh / Số lao động"
-              subtitle={`${registration.capitalAmount != null ? `${registration.capitalAmount.toLocaleString('vi-VN')} đ` : '—'} · ${registration.laborCount ?? '—'} lao động`}
-            />
-            <Divider />
-            <ListRow
-              title="Cam kết an toàn thực phẩm"
-              subtitle={registration.foodSafetyCommitmentAt ? 'Đã cam kết' : 'Chưa cam kết'}
-            />
-          </div>
-        </Card>
-      </Section>
-
-      <Section title="Giấy tờ minh chứng">
-        {evidence.length === 0 ? (
-          <p className="text-body-md text-muted">
-            Chưa có giấy tờ nào.{canEdit ? ' Chọn "Chỉnh sửa" để tải lên.' : ''}
-          </p>
-        ) : (
-          <div className="flex flex-wrap gap-sm">
-            {evidence.map((item) => (
-              <EvidencePreview key={item.evidenceId} evidence={item} />
-            ))}
-          </div>
-        )}
-      </Section>
-
-      {isFixedApproved ? (
-        <Section title="Tiếp theo">
-          {canRentAdjacentSlot ? (
-            <Button
-              label="Thuê ô vỉa hè liền kề"
-              onPress={() =>
-                navigate(`/vendor/registrations/${registration.registrationId}/adjacent-slot`)
+      <div className="grid items-start gap-lg xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-xl">
+        <div className="flex min-w-0 flex-col gap-lg">
+          {registration.reviewDecisionReason ? (
+            <WardFeedbackNote
+              status={registration.registrationStatus}
+              reason={registration.reviewDecisionReason}
+              needsMoreInfo={needsMoreInfo}
+              action={
+                needsMoreInfo && canEdit ? (
+                  <Button
+                    label="Cập nhật hồ sơ"
+                    icon={<Icon name="pencil-outline" size={18} color="currentColor" />}
+                    onPress={startEdit}
+                  />
+                ) : undefined
               }
             />
           ) : null}
-          <Button
-            label="Cập nhật địa chỉ kinh doanh"
-            variant="outline"
-            onPress={() =>
-              navigate(`/vendor/registrations/${registration.registrationId}/address`)
-            }
-          />
-        </Section>
-      ) : null}
+
+          <div className="xl:hidden">{nextSteps}</div>
+
+          <SubmittedInfo registration={registration} />
+
+          <section aria-labelledby="registration-evidence" className="flex flex-col gap-sm">
+            <h2
+              id="registration-evidence"
+              className="font-sign text-[21px] font-extrabold leading-tight text-text"
+            >
+              Giấy tờ minh chứng
+            </h2>
+            {evidence.length === 0 ? (
+              <p className="rounded-[18px] bg-sunken/70 p-md text-body-md text-muted">
+                Chưa có giấy tờ nào.{canEdit ? ' Chọn "Chỉnh sửa" để tải lên.' : ''}
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-sm sm:grid-cols-[repeat(auto-fill,minmax(150px,160px))] sm:gap-md">
+                {evidence.map((item) => (
+                  <EvidenceTile key={item.evidenceId} evidence={item} />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <div className="xl:hidden">{form01}</div>
+        </div>
+
+        <aside className="hidden min-w-0 flex-col gap-lg xl:sticky xl:top-0 xl:flex">
+          {nextSteps}
+          {form01}
+        </aside>
+      </div>
 
       <ConfirmDialog
         visible={confirmWithdraw}
