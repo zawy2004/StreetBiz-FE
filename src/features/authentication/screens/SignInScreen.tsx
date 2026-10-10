@@ -1,8 +1,11 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { AuthShell } from '../components/AuthShell';
-import { Button } from '@/components/common';
+import { AuthNotice } from '../components/AuthNotice';
+import { RoleUsage } from '../components/RolePlates';
+import { ROLE_ICON, ROLE_TINT } from '../components/role-plates';
+import { Button, Icon } from '@/components/common';
 import { PasswordField, PhoneField } from '@/components/forms';
 import { ApiError, errorMessage } from '@/core/api';
 import { isDev, isLiveApi } from '@/core/config/env';
@@ -44,6 +47,23 @@ export function SignInScreen() {
   const [error, setError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
 
+  // Presentation only: a Caps Lock hint, and a short flash on the two fields a
+  // demo button just filled in (live mode), so it is clear nothing was sent yet.
+  const [capsLock, setCapsLock] = useState(false);
+  const [filled, setFilled] = useState(false);
+  const flashTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(flashTimer.current), []);
+  const readCapsLock = (event: KeyboardEvent) => {
+    if (typeof event.getModifierState === 'function') {
+      setCapsLock(event.getModifierState('CapsLock'));
+    }
+  };
+  const flashFilled = () => {
+    setFilled(true);
+    clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFilled(false), 600);
+  };
+
   // Clear the "session expired" banner as soon as the user starts over.
   useEffect(() => clearSessionExpired, [clearSessionExpired]);
 
@@ -82,56 +102,75 @@ export function SignInScreen() {
     }
   };
 
+  const flashRing = [
+    '-m-1 rounded-[14px] p-1 transition-shadow duration-300',
+    filled ? 'shadow-[0_0_0_3px_rgb(var(--c-brand)/0.6)]' : 'shadow-none',
+  ].join(' ');
+
   return (
     <AuthShell
       title="Đăng nhập StreetBiz"
       subtitle="Quản lý kinh doanh vỉa hè, minh bạch và đơn giản"
+      scene="sign-in"
     >
       {registered ? (
-        <div
-          role="status"
-          className="rounded-sm border border-border bg-tint-tertiary p-sm text-body-sm text-text"
-        >
+        <AuthNotice role="status" tone="success" popIcon>
           Tạo tài khoản thành công. Vui lòng đăng nhập bằng mật khẩu bạn vừa đặt.
-        </div>
+        </AuthNotice>
       ) : null}
 
       {sessionExpired ? (
-        <div
-          role="status"
-          className="rounded-sm border border-border bg-tint-secondary p-sm text-body-sm text-text"
-        >
+        <AuthNotice role="status" tone="waiting">
           Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.
-        </div>
+        </AuthNotice>
       ) : null}
 
       <form className="flex flex-col gap-md" onSubmit={submit} noValidate>
-        <PhoneField value={phone} onChangeText={setPhone} error={phoneMessage} />
-        <PasswordField
-          value={password}
-          onChangeText={setPassword}
-          error={error}
-          autoComplete="current-password"
-        />
+        <div className={flashRing}>
+          <PhoneField value={phone} onChangeText={setPhone} error={phoneMessage} />
+        </div>
+        <div className={flashRing} onKeyDown={readCapsLock} onKeyUp={readCapsLock}>
+          <PasswordField
+            value={password}
+            onChangeText={setPassword}
+            error={error}
+            autoComplete="current-password"
+          />
+          <p
+            aria-live="polite"
+            className={`flex items-center gap-1.5 text-body-sm font-medium text-[#6B4100] dark:text-[#FFD27A] ${capsLock ? 'mt-1.5' : ''}`}
+          >
+            {capsLock ? (
+              <>
+                <Icon name="information-outline" size={16} color="currentColor" />
+                Đang bật Caps Lock
+              </>
+            ) : null}
+          </p>
+        </div>
         <Link
           to="/auth/password/reset-request"
-          className="block text-right text-label text-primary"
+          className="-mt-xs inline-flex min-h-11 items-center self-end rounded-[8px] px-1 text-[15px] font-semibold text-primary hover:underline"
         >
           Quên mật khẩu?
         </Link>
         <Button label="Đăng nhập" type="submit" loading={submitting} onPress={submit} />
       </form>
 
-      <Link to="/auth/register" className="block text-center text-body-md text-muted">
-        Chưa có tài khoản? <span className="text-primary">Đăng ký ngay</span>
+      <Link
+        to="/auth/register"
+        className="group flex min-h-11 items-center justify-center rounded-[12px] text-[15px] text-muted"
+      >
+        Chưa có tài khoản?&nbsp;
+        <span className="font-semibold text-primary group-hover:underline">Đăng ký ngay</span>
       </Link>
 
       {isDev ? (
-        <div className="mt-md rounded-md border border-border bg-card p-sm">
+        <div className="rounded-[20px] bg-sunken p-sm ring-1 ring-inset ring-border">
           <span className="mb-xs block text-label text-muted">
             Tài khoản mẫu ({isLiveApi ? 'điền sẵn số và mật khẩu' : 'chế độ demo'})
           </span>
-          <div className="flex flex-col gap-xs">
+          <div className="grid grid-cols-2 gap-xs">
             {DEMO_ROLES.map((role) => (
               <button
                 key={role}
@@ -143,18 +182,27 @@ export function SignInScreen() {
                   } else {
                     setPhone(DEMO_PHONE_BY_ROLE[role]);
                     setPassword(DEMO_PASSWORD);
+                    flashFilled();
                   }
                 }}
-                className="flex h-10 items-center justify-center rounded-sm bg-sunken hover:bg-border"
+                className="flex min-h-12 items-center gap-xs rounded-[12px] bg-card px-xs py-1.5 text-left shadow-card ring-1 ring-border transition-[box-shadow] duration-150 hover:ring-text/25"
               >
-                <span className="text-body-md text-text">
+                <span
+                  aria-hidden="true"
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] ${ROLE_TINT[role]}`}
+                >
+                  <Icon name={ROLE_ICON[role]} size={17} color="currentColor" weight="fill" />
+                </span>
+                <span className="min-w-0 text-body-md leading-[18px] text-text">
                   {ROLE_LABELS[role]} {isLiveApi ? '(Điền nhanh)' : ''}
                 </span>
               </button>
             ))}
           </div>
         </div>
-      ) : null}
+      ) : (
+        <RoleUsage />
+      )}
     </AuthShell>
   );
 }

@@ -1,10 +1,11 @@
 import { FormEvent, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { AuthShell } from '../components/AuthShell';
+import { AuthNotice } from '../components/AuthNotice';
+import { PlatePhoneField } from '../components/PlatePhoneField';
 import { usePendingAuthStore } from '../pending-auth-store';
 import { Button } from '@/components/common';
-import { PhoneField } from '@/components/forms';
 import { ApiError, authApi, errorMessage, OTP_PURPOSE } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { phoneError, toLocalPhone } from '@/core/utils/phone';
@@ -56,14 +57,23 @@ export function ResetPasswordRequestScreen() {
       title="Quên mật khẩu"
       subtitle="Nhập số điện thoại đã đăng ký để nhận mã OTP đặt lại mật khẩu"
       back
+      scene="reset"
+      progress={{ current: 1, labels: ['Số điện thoại', 'Mã OTP', 'Mật khẩu mới'] }}
     >
       <form className="flex flex-col gap-md" onSubmit={submit} noValidate>
-        <PhoneField value={phone} onChangeText={setPhone} error={error} />
-        <p className="text-body-sm text-muted">
+        <PlatePhoneField value={phone} onChangeText={setPhone} error={error} />
+        <AuthNotice tone="safe">
           Nếu số điện thoại đã đăng ký, bạn sẽ nhận được mã OTP trong ít phút.
-        </p>
+        </AuthNotice>
         <Button label="Gửi mã OTP" type="submit" loading={submitting} onPress={submit} />
       </form>
+      <Link
+        to="/auth/sign-in"
+        className="group flex min-h-11 items-center justify-center rounded-[12px] text-[15px] text-muted"
+      >
+        Nhớ ra mật khẩu?&nbsp;
+        <span className="font-semibold text-primary group-hover:underline">Đăng nhập</span>
+      </Link>
     </AuthShell>
   );
 }

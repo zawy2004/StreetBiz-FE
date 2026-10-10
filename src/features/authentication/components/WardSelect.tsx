@@ -42,7 +42,7 @@ export function WardSelect({
         aria-invalid={message ? true : undefined}
         aria-describedby={message || helperText ? messageId : undefined}
         className={[
-          'h-12 w-full rounded-sm border bg-card px-sm text-body-lg text-text disabled:opacity-60',
+          'h-12 w-full rounded-sm border bg-card px-sm text-body-lg text-text transition-[border-color,box-shadow] focus-visible:border-primary focus-visible:shadow-[0_0_0_3px_rgb(var(--c-primary)/0.16)] disabled:opacity-60',
           message ? 'border-error' : 'border-border',
         ].join(' ')}
       >
