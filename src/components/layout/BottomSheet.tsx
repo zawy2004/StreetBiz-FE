@@ -60,7 +60,7 @@ export function BottomSheet({ visible, onClose, children }: Props) {
         ref={sheetRef}
         role="dialog"
         aria-modal="true"
-        className="cq relative flex max-h-[90vh] flex-col gap-md overflow-y-auto rounded-t-lg border border-border bg-card p-md pb-lg shadow-sheet lg:w-full lg:max-w-[560px] lg:rounded-lg lg:p-lg"
+        className="sb-pop cq relative flex max-h-[90vh] flex-col gap-md overflow-y-auto rounded-t-[28px] bg-card p-md pb-lg shadow-sheet ring-1 ring-border lg:w-full lg:max-w-[560px] lg:rounded-[28px] lg:p-lg"
       >
         <div className="mx-auto h-1 w-10 shrink-0 rounded-full bg-border lg:hidden" />
         {children}

@@ -13,7 +13,9 @@ export function Section({ title, description, action, children }: Props) {
       {title ? (
         <div className="flex items-end justify-between gap-sm">
           <div className="min-w-0">
-            <h2 className="text-headline-md text-text">{title}</h2>
+            <h2 className="font-heading text-[21px] font-bold leading-[1.2] tracking-[-0.015em] text-text">
+              {title}
+            </h2>
             {description ? <p className="mt-0.5 text-body-sm text-muted">{description}</p> : null}
           </div>
           {action}

@@ -10,7 +10,10 @@ type Props = {
  */
 export function StickyActions({ children }: Props) {
   return (
-    <div className="shrink-0 border-t border-border bg-card/95 backdrop-blur">
+    <div
+      data-sticky-actions=""
+      className="shrink-0 border-t border-border bg-card/95 backdrop-blur"
+    >
       <div className="mx-auto flex max-w-[1040px] gap-sm p-md md:px-lg lg:justify-end lg:px-xl lg:[&>*]:w-auto lg:[&>*]:min-w-[200px] lg:[&>*]:flex-none">
         {children}
       </div>

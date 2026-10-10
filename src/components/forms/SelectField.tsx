@@ -41,15 +41,21 @@ export function SelectField<T extends string>({
               aria-checked={selected}
               className={[
                 'flex items-center text-left transition-colors',
-                layout === 'cards' ? 'gap-sm rounded-md border-[1.5px] p-sm' : 'h-10 gap-xs rounded-full border px-md',
+                layout === 'cards'
+                  ? 'gap-sm rounded-[16px] border-[1.5px] p-md'
+                  : 'h-11 gap-xs rounded-full border px-md',
                 selected
-                  ? 'border-primary bg-tint-primary'
-                  : 'border-border bg-card hover:border-muted/50',
+                  ? 'border-primary bg-tint-primary shadow-[0_8px_20px_-14px_rgb(var(--c-primary)/0.9)]'
+                  : 'border-border bg-card hover:border-text/25',
               ].join(' ')}
             >
               <div className="min-w-0 flex-1">
-                <div className={`text-headline-sm ${selected ? 'text-primary' : 'text-text'}`}>{opt.label}</div>
-                {opt.description ? <div className="mt-0.5 text-body-sm text-muted">{opt.description}</div> : null}
+                <div className={`text-headline-sm ${selected ? 'text-primary' : 'text-text'}`}>
+                  {opt.label}
+                </div>
+                {opt.description ? (
+                  <div className="mt-0.5 text-body-sm text-muted">{opt.description}</div>
+                ) : null}
               </div>
               {layout === 'cards' ? (
                 <Icon

@@ -31,26 +31,31 @@ const toneTint: Record<Tone, string> = {
 export function StatCard({ label, value, hint, icon, tone = 'indigo', onPress }: Props) {
   const content = (
     <>
-      <div className="flex items-center justify-between gap-sm">
-        <span className="text-body-sm text-muted">{label}</span>
+      <div className="flex items-start justify-between gap-sm">
+        <span className="pt-0.5 text-body-sm font-medium text-muted">{label}</span>
         {icon ? (
-          <span className={`flex h-8 w-8 items-center justify-center rounded-sm ${toneTint[tone]}`}>
-            <Icon name={icon} size={18} color={toneColor[tone]} />
+          <span
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${toneTint[tone]}`}
+          >
+            <Icon name={icon} size={20} color={toneColor[tone]} weight="duotone" />
           </span>
         ) : null}
       </div>
-      <span className="mt-xs block text-display-md font-tabular text-text">{value}</span>
-      {hint ? <span className="mt-0.5 block text-body-sm text-muted">{hint}</span> : null}
+      <span className="mt-sm block font-sign text-[34px] font-extrabold leading-none tracking-[-0.01em] font-tabular text-text [font-stretch:92%]">
+        {value}
+      </span>
+      {hint ? <span className="mt-xs block text-body-sm text-muted">{hint}</span> : null}
     </>
   );
 
-  const classes = 'rounded-md border border-border bg-card p-md text-left shadow-card';
+  const classes =
+    'relative overflow-hidden rounded-[20px] bg-card p-md text-left shadow-card ring-1 ring-border/80';
 
   return onPress ? (
     <button
       type="button"
       onClick={onPress}
-      className={`${classes} block w-full transition-[border-color,box-shadow] hover:border-muted/40 hover:shadow-card-hover`}
+      className={`${classes} block w-full transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-hover`}
     >
       {content}
     </button>
