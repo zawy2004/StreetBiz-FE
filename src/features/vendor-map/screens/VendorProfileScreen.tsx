@@ -1,123 +1,109 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Avatar, Button, Card, Divider, Icon, ListRow } from '@/components/common';
-import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
-import { AppHeader, Screen, Section } from '@/components/layout';
-import { StatusChip } from '@/components/status';
-import { colors } from '@/theme';
+import { ErrorState, Skeleton } from '@/components/feedback';
+import { Screen, StickyActions } from '@/components/layout';
+import { BackButton } from '@/features/buyer-discovery/components/BackButton';
+import { useIsDesktop } from '@/hooks/useBreakpoint';
+import {
+  CommunityScore,
+  ProfileActions,
+  ReviewList,
+  VendorLocation,
+  VendorSignboard,
+} from '../components/profile/ProfileParts';
 import { communityApi, CommunityApiError } from '../community-api';
 
+/**
+ * A vendor's public profile, as the signboard of a pavement slot (who, which
+ * slot, is the permit good and for how long), then the community's score, the
+ * two ways to have a say, where they trade, and the guest book of reviews.
+ */
 export function VendorProfileScreen() {
   const { vendorId } = useParams<{ vendorId: string }>();
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const profile = useQuery({
     queryKey: ['community', 'vendor', vendorId],
     queryFn: () => communityApi.profile(vendorId!),
     enabled: Boolean(vendorId),
   });
 
-  if (profile.isPending) return <LoadingState />;
+  if (profile.isPending) return <VendorProfileSkeleton />;
   if (profile.isError || !profile.data) {
     return (
-      <ErrorState
-        message={
-          profile.error instanceof CommunityApiError
-            ? profile.error.message
-            : 'Không tìm thấy hộ kinh doanh.'
-        }
-        onRetry={() => profile.refetch()}
-      />
+      <Screen>
+        <div>
+          <BackButton />
+        </div>
+        <ErrorState
+          message={
+            profile.error instanceof CommunityApiError
+              ? profile.error.message
+              : 'Không tìm thấy hộ kinh doanh.'
+          }
+          onRetry={() => profile.refetch()}
+        />
+      </Screen>
     );
   }
 
   const vendor = profile.data;
+  const actions = (layout: 'stack' | 'row') => (
+    <ProfileActions
+      layout={layout}
+      onReview={() => navigate(`/customer/explore/vendors/${vendor.vendorId}/comments/new`)}
+      onReport={() => navigate(`/customer/explore/vendors/${vendor.vendorId}/reports/new`)}
+    />
+  );
+
   return (
-    <Screen>
-      <AppHeader title={vendor.displayName} back />
-      <Card>
-        <div className="flex gap-sm">
-          <Avatar name={vendor.displayName} size={56} />
-          <div className="flex flex-1 flex-col gap-1">
-            <StatusChip code={vendor.permitStatus} />
-            <span className="text-body-md text-muted">{vendor.vendorType}</span>
-            <div className="flex items-center gap-1">
-              <Icon name="star" size={16} color={colors.secondary} />
-              <span className="text-body-md text-text">
-                {vendor.communityRating?.toFixed(1) ?? 'Chưa có điểm'} ({vendor.communityCount} đánh
-                giá)
-              </span>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <Card padded={false}>
-        <div className="px-md">
-          <ListRow title="Vị trí" subtitle={`${vendor.zoneName} · Ô ${vendor.slotCode}`} />
-          <Divider />
-          <ListRow title="Phường" subtitle={vendor.wardName ?? `#${vendor.wardId}`} />
-          <Divider />
-          <ListRow title="Địa chỉ đăng ký" subtitle={vendor.address ?? 'Chưa cập nhật'} />
-          <Divider />
-          <ListRow
-            title="Giấy phép có hiệu lực đến"
-            subtitle={new Date(vendor.permitEndDate).toLocaleDateString('vi-VN')}
-          />
-          {vendor.verifiedCount > 0 ? (
-            <>
-              <Divider />
-              <ListRow
-                title="Đánh giá từ giao dịch xác thực"
-                subtitle={`${vendor.verifiedRating?.toFixed(1) ?? '—'} ★ (${vendor.verifiedCount})`}
-              />
-            </>
-          ) : null}
-        </div>
-      </Card>
-
-      <div className="flex gap-sm">
-        <div className="flex-1">
-          <Button
-            label="Viết đánh giá"
-            variant="outline"
-            onPress={() => navigate(`/customer/explore/vendors/${vendor.vendorId}/comments/new`)}
-          />
-        </div>
-        <div className="flex-1">
-          <Button
-            label="Báo cáo vi phạm"
-            variant="ghost"
-            onPress={() => navigate(`/customer/explore/vendors/${vendor.vendorId}/reports/new`)}
-          />
+    <Screen footer={isDesktop ? undefined : <StickyActions>{actions('row')}</StickyActions>}>
+      <div>
+        <BackButton />
+      </div>
+      <VendorSignboard vendor={vendor} />
+      <div className="grid gap-md lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-lg">
+        <CommunityScore vendor={vendor} />
+        <div className="flex flex-col gap-md">
+          {isDesktop ? actions('stack') : null}
+          <VendorLocation vendor={vendor} />
         </div>
       </div>
+      <ReviewList comments={vendor.comments} />
+    </Screen>
+  );
+}
 
-      <Section title={`Đánh giá cộng đồng (${vendor.comments.length})`}>
-        {vendor.comments.length === 0 ? (
-          <EmptyState icon="comment-outline" title="Chưa có đánh giá nào" />
-        ) : (
-          vendor.comments.map((comment) => (
-            <Card key={comment.commentId}>
-              <div className="flex items-center justify-between gap-sm">
-                <span className="text-headline-sm text-text">{comment.authorName}</span>
-                {comment.rating ? (
-                  <div className="flex items-center gap-0.5">
-                    <Icon name="star" size={14} color={colors.secondary} />
-                    <span className="text-body-sm text-muted">{comment.rating}</span>
-                  </div>
-                ) : null}
-              </div>
-              {comment.commentText ? (
-                <p className="mt-1 text-body-md text-muted">{comment.commentText}</p>
-              ) : null}
-              <p className="mt-1 text-body-sm text-muted">
-                {new Date(comment.createdAt).toLocaleDateString('vi-VN')}
-              </p>
-            </Card>
-          ))
-        )}
-      </Section>
+/** The signboard, the score and two reviews in outline while the profile loads. */
+function VendorProfileSkeleton() {
+  return (
+    <Screen>
+      <div role="status" aria-label="Đang tải hồ sơ hộ kinh doanh" className="flex flex-col gap-md">
+        <div>
+          <BackButton />
+        </div>
+        <div className="overflow-hidden rounded-[28px] bg-card shadow-sheet ring-1 ring-border">
+          <div aria-hidden="true" className="sb-kerb sb-kerb-thin" />
+          <div className="flex min-h-[200px] flex-col gap-md p-md md:p-lg lg:flex-row lg:items-center lg:p-xl">
+            <Skeleton className="h-24 w-24 shrink-0 !rounded-[20px] lg:h-40 lg:w-40" />
+            <div className="flex flex-1 flex-col gap-sm">
+              <Skeleton className="h-10 w-[60%]" />
+              <Skeleton className="h-10 w-[120px] !rounded-[8px]" />
+              <Skeleton className="h-5 w-1/3" />
+            </div>
+            <Skeleton className="h-[96px] w-[220px] !rounded-[20px]" />
+          </div>
+        </div>
+        <div className="grid gap-md lg:grid-cols-[minmax(0,1fr)_340px]">
+          <Skeleton className="h-[200px] w-full !rounded-[24px]" />
+          <Skeleton className="h-[200px] w-full !rounded-[24px]" />
+        </div>
+        <div className="grid gap-md md:grid-cols-2">
+          <Skeleton className="h-[140px] w-full !rounded-[24px]" />
+          <Skeleton className="h-[140px] w-full !rounded-[24px]" />
+        </div>
+      </div>
     </Screen>
   );
 }
