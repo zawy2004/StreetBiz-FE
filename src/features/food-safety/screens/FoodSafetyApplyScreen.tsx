@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import { Button, Card, Icon } from '@/components/common';
-import { EmptyState, ErrorState, LoadingState, showToast } from '@/components/feedback';
-import { PhotoPicker, SelectField, TextField } from '@/components/forms';
-import { AppHeader, Screen, Section } from '@/components/layout';
+import { Button, Icon } from '@/components/common';
+import { EmptyState, ErrorState, showToast } from '@/components/feedback';
+import { SelectField, TextField } from '@/components/forms';
+import { AppHeader, Screen } from '@/components/layout';
 import { errorMessage, vendorRegistrationApi } from '@/core/api';
 import {
   FOOD_SAFETY_EVIDENCE_LABELS,
@@ -13,8 +13,19 @@ import {
   type FoodSafetyEvidenceType,
 } from '@/core/api/food-safety-api';
 import { sellerStoreApi } from '@/core/api/seller-store-api';
-import { colors } from '@/theme';
-import { DishFoodSafetyChip } from '../components/FoodSafetyBits';
+import { useMediaQuery } from '@/hooks/useBreakpoint';
+import {
+  AddEvidenceSheet,
+  ApplicationSummary,
+  ApplySkeleton,
+  DishGridSkeleton,
+  DishGroupLabel,
+  DishPickTile,
+  EvidenceChecklist,
+  EvidenceSheet,
+  PhotoTips,
+  WardRequestNote,
+} from '../components/vendor/AttpApplyParts';
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_EVIDENCE = 10;
@@ -39,12 +50,15 @@ export function FoodSafetyApplyScreen() {
   });
   const stores = useQuery({ queryKey: ['commerce', 'stores'], queryFn: sellerStoreApi.stores });
   const storeId =
-    existing.data?.storefrontId ?? (Number(params.get('storefrontId')) || stores.data?.[0]?.storefrontId);
+    existing.data?.storefrontId ??
+    (Number(params.get('storefrontId')) || stores.data?.[0]?.storefrontId);
   const menu = useQuery({
     queryKey: ['commerce', 'seller-menu', storeId],
     queryFn: () => sellerStoreApi.menu(storeId!),
     enabled: Boolean(storeId),
   });
+  // Type picker as cards on a phone, a row of chips with room to spare.
+  const roomy = useMediaQuery('(min-width: 768px)');
 
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [note, setNote] = useState('');
@@ -58,12 +72,17 @@ export function FoodSafetyApplyScreen() {
     setSelected(new Set(existing.data.dishes.map((d) => d.menuItemId)));
     setNote(existing.data.vendorNote ?? '');
     setAttachments(
-      existing.data.evidence.map((e) => ({ evidenceType: e.evidenceType, fileUrl: e.fileUrl, preview: '' })),
+      existing.data.evidence.map((e) => ({
+        evidenceType: e.evidenceType,
+        fileUrl: e.fileUrl,
+        preview: '',
+      })),
     );
   }, [existing.data]);
 
   const upload = useMutation({
-    mutationFn: ({ file }: { file: File; preview: string }) => vendorRegistrationApi.uploadEvidenceFile(file),
+    mutationFn: ({ file }: { file: File; preview: string }) =>
+      vendorRegistrationApi.uploadEvidenceFile(file),
     onSuccess: (result, { preview }) =>
       setAttachments((prev) => [...prev, { evidenceType, fileUrl: result.fileUrl, preview }]),
     onError: (error) => setFileError(errorMessage(error)),
@@ -74,7 +93,10 @@ export function FoodSafetyApplyScreen() {
         storefrontId: storeId!,
         menuItemIds: [...selected],
         note: note.trim() || null,
-        evidence: attachments.map(({ evidenceType: type, fileUrl }) => ({ evidenceType: type, fileUrl })),
+        evidence: attachments.map(({ evidenceType: type, fileUrl }) => ({
+          evidenceType: type,
+          fileUrl,
+        })),
       };
       return applicationId === null
         ? foodSafetyApi.submit(input)
@@ -88,7 +110,8 @@ export function FoodSafetyApplyScreen() {
     },
   });
 
-  if (stores.isPending || (applicationId !== null && existing.isPending)) return <LoadingState />;
+  if (stores.isPending || (applicationId !== null && existing.isPending))
+    return <ApplySkeleton resubmit={applicationId !== null} />;
   if (stores.isError || existing.isError || menu.isError) {
     return (
       <ErrorState
@@ -124,148 +147,216 @@ export function FoodSafetyApplyScreen() {
     });
   const valid = selected.size > 0 && attachments.length > 0 && !upload.isPending;
 
+  // Display only: which sheets came with the file being completed.
+  const earlier = new Set(existing.data?.evidence.map((e) => e.fileUrl) ?? []);
+  const missing = dishes.filter((d) => d.foodSafetyStatus === 'MISSING');
+  const others = dishes.filter((d) => d.foodSafetyStatus !== 'MISSING');
+  const split = missing.length > 0 && others.length > 0;
+  const store = stores.data.find((s) => s.storefrontId === storeId);
+  const pickedNames = dishes.filter((d) => selected.has(d.menuItemId)).map((d) => d.name);
+
+  const tile = (dish: (typeof dishes)[number]) => {
+    const claimed =
+      !ownDishes.has(dish.menuItemId) &&
+      (dish.foodSafetyStatus === 'PENDING' || dish.foodSafetyStatus === 'APPROVED');
+    return (
+      <DishPickTile
+        key={dish.menuItemId}
+        dish={dish}
+        checked={selected.has(dish.menuItemId)}
+        claimed={claimed}
+        wide={dishes.length === 1}
+        onToggle={() => toggle(dish.menuItemId)}
+      />
+    );
+  };
+
   return (
-    <Screen>
+    <Screen width="wide">
       <AppHeader
         title={applicationId === null ? 'Nộp hồ sơ ATTP' : `Bổ sung hồ sơ #${applicationId}`}
         back
       />
-      {existing.data?.reviewReason ? (
-        <Card>
-          <p className="text-headline-sm text-text">Phường yêu cầu bổ sung</p>
-          <p className="text-body-md text-muted">{existing.data.reviewReason}</p>
-        </Card>
-      ) : null}
-      {applicationId === null && stores.data.length > 1 ? (
-        <SelectField
-          label="Gian hàng"
-          value={String(storeId)}
-          onChange={(v) => {
-            navigate(`/vendor/store/food-safety/new?storefrontId=${v}`, { replace: true });
-            setSelected(new Set());
-          }}
-          options={stores.data.map((s) => ({ value: String(s.storefrontId), label: s.name }))}
-        />
-      ) : null}
+      <div className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-xl">
+        <div className="flex min-w-0 flex-col gap-lg">
+          {existing.data?.reviewReason ? (
+            <WardRequestNote reason={existing.data.reviewReason} />
+          ) : null}
+          {applicationId === null && stores.data.length > 1 ? (
+            <SelectField
+              label="Gian hàng"
+              value={String(storeId)}
+              onChange={(v) => {
+                navigate(`/vendor/store/food-safety/new?storefrontId=${v}`, { replace: true });
+                setSelected(new Set());
+              }}
+              options={stores.data.map((s) => ({ value: String(s.storefrontId), label: s.name }))}
+            />
+          ) : null}
 
-      <Section title="1. Chọn món xin cấp giấy" description="Món 'Cần giấy ATTP' chưa được bán cho tới khi hồ sơ được duyệt.">
-        {menu.isPending ? <LoadingState /> : null}
-        {dishes.length === 0 && !menu.isPending ? (
-          <EmptyState icon="silverware-fork-knife" title="Thực đơn chưa có món" />
-        ) : null}
-        <Card>
-          <ul className="flex flex-col divide-y divide-border">
-            {dishes.map((dish) => {
-              const claimed =
-                !ownDishes.has(dish.menuItemId) &&
-                (dish.foodSafetyStatus === 'PENDING' || dish.foodSafetyStatus === 'APPROVED');
-              return (
-                <li key={dish.menuItemId}>
-                  <label
-                    className={`flex items-center gap-sm py-xs ${claimed ? 'opacity-60' : 'cursor-pointer'}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="size-5 accent-[rgb(var(--c-primary))]"
-                      checked={selected.has(dish.menuItemId)}
-                      disabled={claimed}
-                      onChange={() => toggle(dish.menuItemId)}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-body-md text-text">{dish.name}</span>
-                      <span className="block text-body-sm text-muted">{dish.categoryName}</span>
-                    </span>
-                    <DishFoodSafetyChip status={dish.foodSafetyStatus} expiresOn={dish.foodSafetyExpiresOn} />
-                  </label>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-      </Section>
-
-      <Section
-        title="2. Giấy tờ đính kèm"
-        description="Ảnh hoặc PDF: giấy cam kết/chứng nhận ATTP, giấy khám sức khỏe, xác nhận tập huấn, ảnh khu chế biến."
-      >
-        <Card>
-          <SelectField
-            label="Loại giấy tờ"
-            value={evidenceType}
-            onChange={(v) => setEvidenceType(v)}
-            options={(Object.keys(FOOD_SAFETY_EVIDENCE_LABELS) as FoodSafetyEvidenceType[]).map((value) => ({
-              value,
-              label: FOOD_SAFETY_EVIDENCE_LABELS[value],
-            }))}
-            layout="inline"
-          />
-          <div className="mt-sm flex flex-wrap gap-sm">
-            {attachments.map((attachment, index) => (
-              <div key={`${attachment.fileUrl}-${index}`} className="flex w-24 flex-col gap-1">
-                {attachment.preview ? (
-                  <PhotoPicker
-                    label={FOOD_SAFETY_EVIDENCE_LABELS[attachment.evidenceType]}
-                    uri={attachment.preview}
-                    onChange={() => undefined}
-                    onRemove={() => setAttachments((prev) => prev.filter((_, i) => i !== index))}
-                  />
-                ) : (
-                  <div className="relative flex size-24 flex-col items-center justify-center gap-1 rounded-sm border border-border bg-bg p-1 text-center">
-                    <Icon name="file-document-outline" size={24} color={colors.muted} />
-                    <span className="line-clamp-2 text-body-xs text-muted">
-                      {FOOD_SAFETY_EVIDENCE_LABELS[attachment.evidenceType]}
-                    </span>
-                    <button
-                      type="button"
-                      aria-label="Bỏ giấy tờ"
-                      className="absolute right-1 top-1"
-                      onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== index))}
-                    >
-                      <Icon name="close" size={14} color={colors.muted} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-            {attachments.length < MAX_EVIDENCE ? (
-              <PhotoPicker
-                label={upload.isPending ? 'Đang tải…' : 'Thêm giấy tờ'}
-                accept="image/*,application/pdf"
-                error={Boolean(fileError)}
-                validate={(file) => (file.size > MAX_FILE_BYTES ? 'File tối đa 5 MB.' : undefined)}
-                onInvalid={setFileError}
-                onChange={(preview, file) => {
-                  setFileError(null);
-                  upload.mutate({ file, preview: file.type.startsWith('image/') ? preview : '' });
-                }}
-              />
+          <fieldset className="flex min-w-0 flex-col gap-sm">
+            <legend className="mb-sm">
+              <h2 className="font-heading text-[21px] font-bold leading-[1.2] tracking-[-0.015em] text-text">
+                1. Chọn món xin cấp giấy
+              </h2>
+              <span className="mt-0.5 block text-body-md text-muted">
+                Món &apos;Cần giấy ATTP&apos; chưa được bán cho tới khi hồ sơ được duyệt.
+              </span>
+            </legend>
+            {menu.isPending ? <DishGridSkeleton /> : null}
+            {dishes.length === 0 && !menu.isPending ? (
+              <EmptyState icon="silverware-fork-knife" title="Thực đơn chưa có món" />
             ) : null}
-          </div>
-          {fileError ? <p className="mt-xs text-body-sm text-error">{fileError}</p> : null}
-        </Card>
-      </Section>
+            {split ? <DishGroupLabel urgent>Cần giấy để được bán</DishGroupLabel> : null}
+            {dishes.length ? (
+              <ul className="grid gap-sm md:grid-cols-2 xl:grid-cols-3">
+                {(split ? missing : dishes).map(tile)}
+              </ul>
+            ) : null}
+            {split ? (
+              <>
+                <DishGroupLabel>Món khác</DishGroupLabel>
+                <ul className="grid gap-sm md:grid-cols-2 xl:grid-cols-3">{others.map(tile)}</ul>
+              </>
+            ) : null}
+          </fieldset>
 
-      <Section title="3. Ghi chú cho phường">
-        <TextField
-          label="Ghi chú (không bắt buộc)"
-          value={note}
-          onChangeText={(v) => setNote(v.slice(0, 500))}
-          multiline
-          placeholder="VD: nguồn nguyên liệu, nơi chế biến…"
-        />
-      </Section>
+          <section aria-labelledby="attp-evidence" className="flex flex-col gap-sm">
+            <div>
+              <h2
+                id="attp-evidence"
+                className="font-heading text-[21px] font-bold leading-[1.2] tracking-[-0.015em] text-text"
+              >
+                2. Giấy tờ đính kèm
+              </h2>
+              <p className="mt-0.5 text-body-md text-muted">
+                Ảnh hoặc PDF: giấy cam kết/chứng nhận ATTP, giấy khám sức khỏe, xác nhận tập huấn,
+                ảnh khu chế biến.
+              </p>
+            </div>
+            <div className="relative flex flex-col gap-md rounded-[24px] bg-[#FFF3E8] p-md pt-lg ring-1 ring-brand/15 dark:bg-brand/10 md:p-lg">
+              <span
+                aria-hidden="true"
+                className="absolute left-1/2 top-0 h-2 w-28 -translate-x-1/2 rounded-b-full bg-brand"
+              />
+              <EvidenceChecklist types={attachments.map((a) => a.evidenceType)} />
+              <div className="[&_.field-label]:!pt-0 [&_.field-label]:!self-start [&_.field]:!flex [&_.field]:!flex-col">
+                <SelectField
+                  label="Loại giấy tờ"
+                  value={evidenceType}
+                  onChange={(v) => setEvidenceType(v)}
+                  options={(
+                    Object.keys(FOOD_SAFETY_EVIDENCE_LABELS) as FoodSafetyEvidenceType[]
+                  ).map((value) => ({ value, label: FOOD_SAFETY_EVIDENCE_LABELS[value] }))}
+                  layout={roomy ? 'inline' : 'cards'}
+                />
+              </div>
+              <ul
+                aria-label="Giấy tờ đã đính kèm"
+                className="no-scrollbar -mx-1 flex min-h-[152px] gap-sm overflow-x-auto px-1 pt-2 sm:flex-wrap sm:overflow-visible"
+              >
+                {attachments.map((attachment, index) => {
+                  const label = FOOD_SAFETY_EVIDENCE_LABELS[attachment.evidenceType];
+                  const remove = () => setAttachments((prev) => prev.filter((_, i) => i !== index));
+                  const fromEarlier = !attachment.preview && earlier.has(attachment.fileUrl);
+                  return (
+                    <EvidenceSheet
+                      key={`${attachment.fileUrl}-${index}`}
+                      type={attachment.evidenceType}
+                      preview={attachment.preview}
+                      kind={attachment.preview ? 'photo' : fromEarlier ? 'earlier' : 'file'}
+                      fresh={!fromEarlier}
+                      removeLabel={attachment.preview ? `Xoá ảnh ${label}` : 'Bỏ giấy tờ'}
+                      onRemove={remove}
+                    />
+                  );
+                })}
+                {attachments.length < MAX_EVIDENCE ? (
+                  <AddEvidenceSheet
+                    label={upload.isPending ? 'Đang tải…' : 'Thêm giấy tờ'}
+                    uploading={upload.isPending}
+                    error={Boolean(fileError)}
+                    validate={(file) =>
+                      file.size > MAX_FILE_BYTES ? 'File tối đa 5 MB.' : undefined
+                    }
+                    onInvalid={setFileError}
+                    onPick={(preview, file) => {
+                      setFileError(null);
+                      upload.mutate({
+                        file,
+                        preview: file.type.startsWith('image/') ? preview : '',
+                      });
+                    }}
+                  />
+                ) : null}
+              </ul>
+              {attachments.length >= MAX_EVIDENCE ? (
+                <p className="text-body-md font-medium text-text">Đã đủ 10 giấy tờ</p>
+              ) : null}
+              {fileError ? (
+                <p className="flex items-start gap-xs rounded-[12px] bg-[#FDEBEA] px-sm py-xs text-body-lg text-[#8F1717] dark:bg-[#3A1414] dark:text-[#FF9A90]">
+                  <Icon
+                    name="alert-circle-outline"
+                    size={20}
+                    color="currentColor"
+                    className="mt-[3px] shrink-0"
+                  />
+                  {fileError}
+                </p>
+              ) : null}
+              <PhotoTips />
+            </div>
+          </section>
 
-      {submit.isError ? (
-        <p role="alert" className="text-error">
-          {errorMessage(submit.error)}
-        </p>
-      ) : null}
-      <Button
-        label={applicationId === null ? 'Gửi hồ sơ cho phường' : 'Gửi lại hồ sơ'}
-        disabled={!valid || submit.isPending}
-        loading={submit.isPending}
-        onPress={() => submit.mutate()}
-      />
+          <section aria-labelledby="attp-note" className="flex flex-col gap-sm">
+            <h2
+              id="attp-note"
+              className="font-heading text-[21px] font-bold leading-[1.2] tracking-[-0.015em] text-text"
+            >
+              3. Ghi chú cho phường
+            </h2>
+            <TextField
+              label="Ghi chú (không bắt buộc)"
+              value={note}
+              onChangeText={(v) => setNote(v.slice(0, 500))}
+              multiline
+              placeholder="VD: nguồn nguyên liệu, nơi chế biến…"
+              helperText={`${note.length}/500`}
+            />
+          </section>
+        </div>
+
+        <aside className="flex flex-col gap-sm xl:sticky xl:top-lg xl:self-start">
+          <ApplicationSummary
+            storeName={store?.name}
+            dishNames={pickedNames}
+            fileCount={attachments.length}
+            maxFiles={MAX_EVIDENCE}
+            uploading={upload.isPending}
+          />
+          {submit.isError ? (
+            <p
+              role="alert"
+              className="flex items-start gap-xs rounded-[12px] bg-[#FDEBEA] px-sm py-xs text-body-lg text-[#8F1717] dark:bg-[#3A1414] dark:text-[#FF9A90]"
+            >
+              <Icon
+                name="alert-circle-outline"
+                size={20}
+                color="currentColor"
+                className="mt-[3px] shrink-0"
+              />
+              {errorMessage(submit.error)}
+            </p>
+          ) : null}
+          <Button
+            label={applicationId === null ? 'Gửi hồ sơ cho phường' : 'Gửi lại hồ sơ'}
+            icon={<Icon name="send-outline" size={18} color="currentColor" />}
+            disabled={!valid || submit.isPending}
+            loading={submit.isPending}
+            onPress={() => submit.mutate()}
+          />
+        </aside>
+      </div>
     </Screen>
   );
 }

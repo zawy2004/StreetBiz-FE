@@ -1,15 +1,53 @@
-import { useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { Button, Card } from '@/components/common';
-import { ConfirmDialog, EmptyState, ErrorState, LoadingState, showToast } from '@/components/feedback';
+import { Icon } from '@/components/common';
+import { ConfirmDialog, ErrorState, showToast } from '@/components/feedback';
 import { AppHeader, Screen } from '@/components/layout';
-import { StatusChip } from '@/components/status';
 import { errorMessage } from '@/core/api';
 import { foodSafetyApi, type FoodSafetyApplication } from '@/core/api/food-safety-api';
-import { FoodSafetySteps } from '../components/FoodSafetyBits';
-import { formatDay } from '../format';
+import {
+  ApplicationCard,
+  AttpEmpty,
+  AttpListSkeleton,
+  FoodSafetyGuideBand,
+} from '../components/vendor/AttpVendorParts';
+import { groupApplications } from '../view';
+
+/** Files past this many in the "finished" group wait behind "Xem thêm". */
+const CLOSED_SHOWN = 3;
+
+function Group({
+  id,
+  title,
+  tone = 'plain',
+  children,
+}: {
+  id: string;
+  title: string;
+  tone?: 'plain' | 'todo';
+  children: ReactNode;
+}) {
+  return (
+    <section aria-labelledby={id} className="flex flex-col gap-sm">
+      <h2
+        id={id}
+        className={
+          tone === 'todo'
+            ? 'flex w-fit items-center gap-xs rounded-[10px] bg-[#FFF3D1] px-sm py-1 font-heading text-[19px] font-bold text-[#6B4100] dark:bg-[#3A2A08] dark:text-[#FFD27A]'
+            : 'font-heading text-[19px] font-bold text-text'
+        }
+      >
+        {tone === 'todo' ? (
+          <Icon name="alert-circle-outline" size={20} color="currentColor" />
+        ) : null}
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
 
 /** The vendor's ATTP files: where each one is in the ward → department → result flow. */
 export function FoodSafetyListScreen() {
@@ -19,6 +57,8 @@ export function FoodSafetyListScreen() {
   const cache = useQueryClient();
   const list = useQuery({ queryKey: ['food-safety', 'mine'], queryFn: foodSafetyApi.mine });
   const [withdrawing, setWithdrawing] = useState<FoodSafetyApplication | null>(null);
+  const [showAllClosed, setShowAllClosed] = useState(false);
+  const now = useMemo(() => Date.now(), []);
   const withdraw = useMutation({
     mutationFn: (id: number) => foodSafetyApi.withdraw(id),
     onSuccess: async () => {
@@ -29,88 +69,116 @@ export function FoodSafetyListScreen() {
     },
   });
 
-  if (list.isPending) return <LoadingState />;
-  if (list.isError) return <ErrorState message={errorMessage(list.error)} onRetry={() => list.refetch()} />;
+  if (list.isPending) return <AttpListSkeleton />;
+  if (list.isError)
+    return <ErrorState message={errorMessage(list.error)} onRetry={() => list.refetch()} />;
 
   const newUrl = `/vendor/store/food-safety/new${storefrontId ? `?storefrontId=${storefrontId}` : ''}`;
+  const groups = groupApplications(list.data);
+  // The first certificate on the page is the one whose stamp comes down.
+  const featuredId =
+    groups.valid[0]?.applicationId ??
+    groups.closed.find((a) => a.status === 'APPROVED')?.applicationId;
+
+  const card = (application: FoodSafetyApplication, wide = true) => (
+    <ApplicationCard
+      key={application.applicationId}
+      application={application}
+      highlighted={Boolean(storefrontId) && Number(storefrontId) === application.storefrontId}
+      featured={application.applicationId === featuredId}
+      wide={wide}
+      now={now}
+      onResubmit={() => navigate(`/vendor/store/food-safety/${application.applicationId}/edit`)}
+      onWithdraw={() => setWithdrawing(application)}
+    />
+  );
+
+  const closed = showAllClosed ? groups.closed : groups.closed.slice(0, CLOSED_SHOWN);
+  const hiddenClosed = groups.closed.length - closed.length;
+  const tally = [
+    {
+      value: groups.valid.length,
+      label: 'giấy còn hiệu lực',
+      tone: 'text-[#0B5D33] dark:text-[#8BE3B0]',
+    },
+    {
+      value: groups.reviewing.length,
+      label: 'đang xét',
+      tone: 'text-[#6B4100] dark:text-[#FFD27A]',
+    },
+    { value: groups.todo.length, label: 'cần bổ sung', tone: 'text-[#8F1717] dark:text-[#FF9A90]' },
+  ];
+
   return (
     <Screen>
       <AppHeader title="Giấy ATTP" back subtitle="An toàn thực phẩm cho món bán tại gian hàng" />
-      <Card>
-        <p className="text-body-md text-text">
-          Món thuộc nhóm rủi ro cao (món nước, cơm - bún - phở, bánh mì - xôi, hải sản) chỉ được bán khi có giấy ATTP.
-        </p>
-        <p className="mt-1 text-body-sm text-muted">
-          Hồ sơ gửi phường → phường chuyển Chi cục ATTP kiểm tra → phường cập nhật kết quả cho bạn.
-        </p>
-        <div className="mt-sm">
-          <Button label="Nộp hồ sơ ATTP" fullWidth={false} onPress={() => navigate(newUrl)} />
-        </div>
-      </Card>
+      <FoodSafetyGuideBand onApply={() => navigate(newUrl)} />
 
       {list.data.length === 0 ? (
-        <EmptyState icon="shield-check-outline" title="Chưa có hồ sơ ATTP" />
+        <AttpEmpty />
       ) : (
-        list.data.map((application) => (
-          <Card key={application.applicationId}>
-            <div className="flex flex-wrap items-center justify-between gap-xs">
-              <h2 className="text-headline-sm text-text">
-                Hồ sơ #{application.applicationId} · {application.storefrontName}
-              </h2>
-              {application.isExpired ? (
-                <StatusChip code="EXPIRED" />
-              ) : (
-                <StatusChip code={application.status} />
-              )}
-            </div>
-            {application.status !== 'WITHDRAWN' ? (
-              <div className="my-sm">
-                <FoodSafetySteps application={application} />
+        <>
+          <ul aria-label="Tình trạng hồ sơ" className="flex flex-wrap gap-xs">
+            {tally.map((item) => (
+              <li
+                key={item.label}
+                className="flex items-baseline gap-1.5 rounded-full bg-card px-sm py-1.5 shadow-card ring-1 ring-border"
+              >
+                <span
+                  className={`font-sign text-[20px] font-bold leading-none tabular-nums ${item.value ? item.tone : 'text-muted'}`}
+                >
+                  {item.value}
+                </span>
+                <span className="text-body-md text-text">{item.label}</span>
+              </li>
+            ))}
+          </ul>
+
+          {groups.todo.length ? (
+            <Group id="attp-todo" title="Cần bạn bổ sung" tone="todo">
+              {groups.todo.map((a) => card(a))}
+            </Group>
+          ) : null}
+          {groups.reviewing.length ? (
+            <Group id="attp-reviewing" title="Đang xét">
+              {groups.reviewing.map((a) => card(a))}
+            </Group>
+          ) : null}
+          {groups.valid.length ? (
+            <Group id="attp-valid" title="Giấy còn hiệu lực">
+              <div className={`grid gap-md ${groups.valid.length > 1 ? 'xl:grid-cols-2' : ''}`}>
+                {groups.valid.map((a) => card(a, groups.valid.length === 1))}
               </div>
-            ) : null}
-            <p className="text-body-md text-text">{application.dishes.map((d) => d.name).join(', ')}</p>
-            <p className="text-body-sm text-muted">Nộp ngày {formatDay(application.submittedAt)}</p>
-            {application.status === 'APPROVED' ? (
-              <p className="mt-1 text-body-sm text-tertiary">
-                Giấy số {application.certificateNumber} · hiệu lực {formatDay(application.issuedOn)} –{' '}
-                {formatDay(application.expiresOn)}
-              </p>
-            ) : null}
-            {application.status === 'FORWARDED' && application.departmentName ? (
-              <p className="mt-1 text-body-sm text-muted">Đang chờ {application.departmentName} kiểm tra.</p>
-            ) : null}
-            {application.reviewReason &&
-            ['MORE_INFORMATION_REQUIRED', 'REJECTED'].includes(application.status) &&
-            !application.forwardedAt ? (
-              <p className="mt-1 text-body-sm text-error">Phường: {application.reviewReason}</p>
-            ) : null}
-            {application.resultReason && application.status === 'REJECTED' ? (
-              <p className="mt-1 text-body-sm text-error">Kết quả kiểm tra: {application.resultReason}</p>
-            ) : null}
-            {application.actions.length > 0 ? (
-              <div className="mt-sm flex flex-wrap gap-sm">
-                {application.actions.includes('RESUBMIT') ? (
-                  <Button
-                    label="Bổ sung hồ sơ"
-                    fullWidth={false}
-                    onPress={() => navigate(`/vendor/store/food-safety/${application.applicationId}/edit`)}
-                  />
-                ) : null}
-                {application.actions.includes('WITHDRAW') ? (
-                  <Button
-                    label="Rút hồ sơ"
-                    variant="ghost"
-                    fullWidth={false}
-                    onPress={() => setWithdrawing(application)}
-                  />
-                ) : null}
-              </div>
-            ) : null}
-          </Card>
-        ))
+            </Group>
+          ) : null}
+          {groups.closed.length ? (
+            <Group id="attp-closed" title="Đã kết thúc">
+              {closed.map((a) => card(a))}
+              {hiddenClosed > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAllClosed(true)}
+                  className="inline-flex h-12 w-fit items-center gap-xs rounded-[12px] px-md text-[15px] font-semibold text-primary hover:bg-tint-primary"
+                >
+                  Xem thêm {hiddenClosed} hồ sơ
+                  <Icon name="chevron-down" size={16} color="currentColor" />
+                </button>
+              ) : null}
+            </Group>
+          ) : null}
+        </>
       )}
       {withdraw.isError ? (
-        <p role="alert" className="text-error">
+        <p
+          role="alert"
+          className="flex items-start gap-xs rounded-[12px] bg-[#FDEBEA] px-sm py-xs text-body-lg text-[#8F1717] dark:bg-[#3A1414] dark:text-[#FF9A90]"
+        >
+          <Icon
+            name="alert-circle-outline"
+            size={20}
+            color="currentColor"
+            className="mt-[3px] shrink-0"
+          />
           {errorMessage(withdraw.error)}
         </p>
       ) : null}
