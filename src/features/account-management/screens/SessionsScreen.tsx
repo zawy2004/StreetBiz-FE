@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { Button } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
-import { EmptyState, ErrorState, showToast } from '@/components/feedback';
+import { ConfirmDialog, EmptyState, ErrorState, showToast } from '@/components/feedback';
 import { authApi, errorMessage, type ApiSession } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { describeDevice } from '@/core/utils/user-agent';
@@ -50,10 +52,22 @@ export function SessionsScreen() {
     enabled: isLiveApi,
   });
 
+  const [confirmAll, setConfirmAll] = useState(false);
+
   const revoke = useMutation({
     mutationFn: (sessionId: number) => authApi.revokeSession(sessionId),
     onSuccess: async () => {
       showToast('Đã đăng xuất thiết bị');
+      await queryClient.invalidateQueries({ queryKey: ['sessions'] });
+    },
+    onError: (err) => showToast(errorMessage(err)),
+  });
+
+  const revokeOthers = useMutation({
+    mutationFn: () => authApi.revokeOtherSessions(),
+    onSuccess: async () => {
+      setConfirmAll(false);
+      showToast('Đã đăng xuất mọi thiết bị khác');
       await queryClient.invalidateQueries({ queryKey: ['sessions'] });
     },
     onError: (err) => showToast(errorMessage(err)),
@@ -84,6 +98,17 @@ export function SessionsScreen() {
     else revokeMock(mockSessions[sess.sessionId]!.id);
   };
 
+  const revokeAllOthers = () => {
+    if (isLiveApi) {
+      revokeOthers.mutate();
+      return;
+    }
+    // Mock mode: drop every non-current session one by one.
+    mockSessions.filter((sess) => !sess.current).forEach((sess) => revokeMock(sess.id));
+    setConfirmAll(false);
+    showToast('Đã đăng xuất mọi thiết bị khác');
+  };
+
   const body = () => {
     if (isLiveApi && query.isLoading) return <SessionsSkeleton />;
     if (isLiveApi && query.isError) {
@@ -108,12 +133,22 @@ export function SessionsScreen() {
 
             {otherRows.length > 0 ? (
               <section aria-labelledby="sessions-others" className="flex flex-col gap-sm">
-                <h2
-                  id="sessions-others"
-                  className="font-heading text-[19px] font-bold leading-6 text-text"
-                >
-                  Thiết bị khác
-                </h2>
+                <div className="flex flex-wrap items-center justify-between gap-xs">
+                  <h2
+                    id="sessions-others"
+                    className="font-heading text-[19px] font-bold leading-6 text-text"
+                  >
+                    Thiết bị khác
+                  </h2>
+                  <Button
+                    label="Đăng xuất tất cả"
+                    variant="ghost"
+                    size="sm"
+                    fullWidth={false}
+                    loading={isLiveApi && revokeOthers.isPending}
+                    onPress={() => setConfirmAll(true)}
+                  />
+                </div>
                 <ul className="ml-[5px] flex flex-col border-l-2 border-border">
                   {otherRows.map(({ item, leaving }) => (
                     <li
@@ -154,6 +189,16 @@ export function SessionsScreen() {
     <Screen>
       <AppHeader title="Phiên đăng nhập" back subtitle="Thiết bị đang truy cập tài khoản của bạn" />
       {body()}
+
+      <ConfirmDialog
+        visible={confirmAll}
+        title="Đăng xuất mọi thiết bị khác?"
+        description="Mọi phiên trừ thiết bị này sẽ bị đăng xuất. Dùng khi bạn nghi ngờ có người lạ truy cập."
+        confirmLabel="Đăng xuất tất cả"
+        confirmVariant="danger"
+        onConfirm={revokeAllOthers}
+        onCancel={() => setConfirmAll(false)}
+      />
     </Screen>
   );
 }

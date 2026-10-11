@@ -4,6 +4,7 @@ import { Button, Icon } from '@/components/common';
 import { showToast } from '@/components/feedback';
 import { AiHint } from '@/components/status';
 import {
+  ApiError,
   errorMessage,
   EVIDENCE_TYPE,
   vendorKycApi,
@@ -59,6 +60,19 @@ export function IdCardScanner({ id, onExtracted }: Props) {
   const [error, setError] = useState<string>();
   // Display only: where each upload stands. The upload call itself is unchanged.
   const [uploadState, setUploadState] = useState<Partial<Record<ApiEvidenceType, UploadState>>>({});
+
+  // eKYC spends real FPT.AI credits and is rate limited per account (VendorKycAi):
+  // a 429 means the quota/limit was hit, not that the photos are wrong, so say so
+  // clearly and point at the manual-entry fallback instead of a generic error.
+  const kycErrorMessage = (err: unknown): string => {
+    if (err instanceof ApiError && err.status === 429) {
+      const wait = err.retryAfterSeconds
+        ? ` Vui lòng thử lại sau ${err.retryAfterSeconds} giây.`
+        : ' Vui lòng thử lại sau ít phút.';
+      return `Dịch vụ eKYC đang bận hoặc đã đạt giới hạn lượt quét.${wait} Bạn vẫn có thể nhập thông tin thủ công bên dưới và cán bộ phường sẽ đối chiếu giấy tờ.`;
+    }
+    return errorMessage(err);
+  };
 
   const photo = (type: ApiEvidenceType) => draft.evidence.find((e) => e.evidenceType === type);
   const front = photo(EVIDENCE_TYPE.identityDocument);
@@ -150,7 +164,7 @@ export function IdCardScanner({ id, onExtracted }: Props) {
           : result.summary,
       );
     } catch (err) {
-      setError(errorMessage(err));
+      setError(kycErrorMessage(err));
     } finally {
       setScanning(false);
     }
@@ -179,7 +193,7 @@ export function IdCardScanner({ id, onExtracted }: Props) {
       setFaceMatch(result);
       showToast(result.summary);
     } catch (err) {
-      setError(errorMessage(err));
+      setError(kycErrorMessage(err));
     } finally {
       setMatching(false);
     }

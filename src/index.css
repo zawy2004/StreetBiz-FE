@@ -645,7 +645,7 @@ body:has([data-sticky-actions]) .sb-launcher {
 
 /* A permit stamp coming down on the result, once per lookup. */
 .sb-stamp {
-  animation: sb-stamp 460ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  animation: sb-stamp 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes sb-stamp {
@@ -668,14 +668,6 @@ body:has([data-sticky-actions]) .sb-launcher {
   50% {
     opacity: 0.35;
   }
-}
-
-/* Headline accent: warm gradient text. */
-.sb-gradient-text {
-  background: linear-gradient(92deg, #ff7a45 0%, #ffb547 55%, #ffd88a 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
 
 /* Faint dot grid for sections that do not need a live canvas. */

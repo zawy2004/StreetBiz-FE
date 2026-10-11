@@ -10,6 +10,7 @@ import { apiDelete, apiGet, apiPost } from './client';
 export const OTP_PURPOSE = {
   register: 'REGISTRATION',
   passwordReset: 'PASSWORD_RESET',
+  login: 'LOGIN',
 } as const;
 
 export type OtpPurpose = (typeof OTP_PURPOSE)[keyof typeof OTP_PURPOSE];
@@ -40,6 +41,19 @@ export type ApiSession = {
   isCurrent: boolean;
 };
 
+/**
+ * One row of the caller's own sign-in / security history.
+ * Mirrors `SecurityEvent(long Id, string Action, string? Details, DateTime CreatedAt)`.
+ * `action` is one of LOGIN_SUCCESS, LOGIN_FAILED, PASSWORD_CHANGED, PASSWORD_RESET,
+ * SESSION_REVOKED, SECURITY_ALERT.
+ */
+export type SecurityEvent = {
+  id: number;
+  action: string;
+  details: string | null;
+  createdAt: string;
+};
+
 export type RegisterPayload = {
   phoneNumber: string;
   password: string;
@@ -60,6 +74,10 @@ export const authApi = {
   /** AUTH-03 */
   login: (phoneNumber: string, password: string) =>
     apiPost<AuthResult>('/auth/login', { phoneNumber, password }),
+
+  /** AUTH-03 — passwordless sign-in with the OTP sent to a registered phone (FE-01, BR-03). */
+  loginWithOtp: (phoneNumber: string, otp: string) =>
+    apiPost<AuthResult>('/auth/login-otp', { phoneNumber, otp }),
 
   /** AUTH-04 */
   logout: () => apiPost<{ message: string }>('/auth/logout'),
@@ -82,6 +100,15 @@ export const authApi = {
   /** AUTH-09 */
   revokeSession: (sessionId: number) =>
     apiDelete<{ message: string }>(`/auth/sessions/${sessionId}`),
+
+  /** AUTH-09 — sign out of every other device, keeping the current session. */
+  revokeOtherSessions: () => apiDelete<{ message: string }>('/auth/sessions'),
+
+  /** The caller's own sign-in and security history, newest first (paged with `before`). */
+  listLoginHistory: (take = 20, before?: number) =>
+    apiGet<SecurityEvent[]>('/auth/login-history', {
+      params: { take, ...(before != null ? { before } : {}) },
+    }),
 };
 
 export type Ward = {

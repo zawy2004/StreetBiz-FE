@@ -158,6 +158,14 @@ export function SignInScreen() {
       </form>
 
       <Link
+        to="/auth/sign-in/otp"
+        className="flex min-h-11 items-center justify-center gap-xs rounded-[12px] text-[15px] font-semibold text-primary hover:underline"
+      >
+        <Icon name="message-text-outline" size={18} color="currentColor" />
+        Đăng nhập bằng mã OTP
+      </Link>
+
+      <Link
         to="/auth/register"
         className="group flex min-h-11 items-center justify-center rounded-[12px] text-[15px] text-muted"
       >
