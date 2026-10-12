@@ -90,6 +90,15 @@ function buildSteps(registrations: ApiRegistration[]): StepModel[] {
     cta: approved ? { label: 'Mở gian hàng', to: '/vendor/store' } : undefined,
   };
 
+  const attpStep: StepModel = {
+    title: 'Giấy an toàn thực phẩm (nếu bán đồ ăn)',
+    icon: 'clipboard-text-outline',
+    description:
+      'Món thuộc ngành ăn uống cần cam kết/giấy ATTP mới được bán. Nộp trong mục Cửa hàng.',
+    state: 'todo',
+    cta: approved ? { label: 'Khai giấy ATTP', to: '/vendor/store/food-safety' } : undefined,
+  };
+
   return [
     {
       title: 'Tạo tài khoản',
@@ -101,6 +110,7 @@ function buildSteps(registrations: ApiRegistration[]): StepModel[] {
     reviewStep,
     slotStep,
     storeStep,
+    attpStep,
   ];
 }
 

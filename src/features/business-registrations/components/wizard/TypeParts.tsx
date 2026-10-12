@@ -306,6 +306,65 @@ export function VendorTypeChoice({
   );
 }
 
+/* ------------------------------------------------------------ legal basis */
+
+/**
+ * Plain-language note on whether a business licence is legally required, keyed to
+ * the chosen vendor type, so the household declares the right thing and the ward
+ * reviews faster. Based on Nghị định 01/2021/NĐ-CP (Điều 79 khoản 2) and Nghị
+ * định 39/2007/NĐ-CP: itinerant street vendors are exempt from household-business
+ * registration, but a conditional trade (prepared food, alcohol, …) must still
+ * meet its own rules — food here means an ATTP commitment on those dishes.
+ *
+ * Guidance only; it changes nothing the server enforces (BR-07 still decides which
+ * evidence is mandatory). Not legal advice.
+ */
+export function LegalBasisNote({ vendorType }: { vendorType: ApiVendorType }) {
+  const fixed = vendorType === VENDOR_TYPE.fixedStorefront;
+
+  return (
+    <aside
+      aria-live="polite"
+      className="flex flex-col gap-xs rounded-[16px] bg-sunken/70 p-md ring-1 ring-inset ring-border"
+    >
+      <p className="flex items-center gap-xs text-[15px] font-semibold text-text">
+        <Icon name="information-outline" size={18} color="currentColor" className="shrink-0" />
+        {fixed ? 'Cần giấy phép kinh doanh' : 'Thường được miễn giấy phép kinh doanh'}
+      </p>
+
+      {fixed ? (
+        <ul className="flex list-disc flex-col gap-1 pl-5 text-[14px] leading-[21px] text-muted">
+          <li>
+            Bán cố định, thường xuyên nhằm sinh lời thuộc diện <strong>bắt buộc</strong> đăng ký hộ
+            kinh doanh — cần tải <strong>Giấy phép kinh doanh</strong> ở bước sau.
+          </li>
+          <li>
+            Nếu bán đồ ăn, thức uống (ngành có điều kiện) thì cần thêm <strong>cam kết/giấy ATTP</strong>{' '}
+            cho các món đó, khai ở mục Cửa hàng sau khi mở gian hàng.
+          </li>
+        </ul>
+      ) : (
+        <ul className="flex list-disc flex-col gap-1 pl-5 text-[14px] leading-[21px] text-muted">
+          <li>
+            Bán hàng rong, quà vặt, buôn bán lưu động (không có địa điểm cố định) thường{' '}
+            <strong>được miễn</strong> đăng ký hộ kinh doanh, nên <strong>không cần</strong> Giấy phép
+            kinh doanh.
+          </li>
+          <li>
+            Nhưng nếu bán <strong>đồ ăn, thức uống</strong> hoặc ngành có điều kiện, bạn vẫn phải{' '}
+            <strong>cam kết điều kiện ATTP</strong> cho món đó — dù được miễn giấy phép.
+          </li>
+        </ul>
+      )}
+
+      <p className="text-[12px] leading-[18px] text-muted/80">
+        Cơ sở: Nghị định 01/2021/NĐ-CP (Điều 79 khoản 2) và Nghị định 39/2007/NĐ-CP. Thông tin tham
+        khảo, không thay tư vấn pháp lý.
+      </p>
+    </aside>
+  );
+}
+
 /* --------------------------------------------------------------- checklist */
 
 type DocKind = 'id-front' | 'id-back' | 'license' | 'portrait' | 'address';
