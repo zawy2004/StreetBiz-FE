@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button, Icon } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { useCachedRegistrations } from '../components/cached-data';
-import { PrepareChecklist, VendorTypeChoice } from '../components/wizard/TypeParts';
+import { LegalBasisNote, PrepareChecklist, VendorTypeChoice } from '../components/wizard/TypeParts';
 import {
   DraftNotice,
   EditingBanner,
@@ -55,6 +55,8 @@ export function NewRegistrationTypeScreen() {
             onChange={(v) => setField('vendorType', v)}
             labelledBy={questionId}
           />
+
+          <LegalBasisNote vendorType={vendorType} />
 
           {pending ? (
             <div className="flex flex-col gap-xs rounded-[16px] bg-[#FFF3D1] p-md text-[#6B4100] dark:bg-[#3A2A08] dark:text-[#FFD27A]">
