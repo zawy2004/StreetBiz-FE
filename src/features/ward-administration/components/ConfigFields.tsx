@@ -59,6 +59,41 @@ export function TimeInput({ label, value, onChange, error, helperText, disabled 
   );
 }
 
+/** A whole percentage, 1–99; empty means "none". */
+export function PercentInput({
+  label,
+  value,
+  onChange,
+  error,
+  helperText,
+  disabled,
+}: Omit<NativeProps, 'value' | 'onChange' | 'min'> & {
+  value: number | null;
+  onChange: (value: number | null) => void;
+}) {
+  const id = useId();
+  return (
+    <Field htmlFor={id} label={label} error={error} helperText={helperText}>
+      <div className="relative">
+        <input
+          id={id}
+          inputMode="numeric"
+          className={`${inputClass(error)} pr-10`}
+          value={value == null ? '' : String(value)}
+          disabled={disabled}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/\D/g, '').slice(0, 2);
+            onChange(digits && Number(digits) > 0 ? Number(digits) : null);
+          }}
+        />
+        <span className="pointer-events-none absolute right-sm top-1/2 -translate-y-1/2 text-muted">
+          %
+        </span>
+      </div>
+    </Field>
+  );
+}
+
 /** VND is always a whole number: digits only, shown with Vietnamese thousand separators. */
 export function MoneyInput({
   label,

@@ -109,7 +109,16 @@ export function RentalApplicationReviewScreen() {
   const monthlyFee = mockSlot?.price_monthly ?? 450000;
   const pricePerDay = liveDetail?.pricePerDay ?? Math.round(monthlyFee / 30);
   const requestedTermDays = liveDetail?.requestedTermDays ?? 30;
-  const totalFee = pricePerDay * requestedTermDays;
+  // The server prices the term exactly as approval will bill it (monthly rent, quarterly
+  // discount, fees, deposit); the day-rate product is only the mock/older-server fallback.
+  const totalFee = liveDetail?.totalFee ?? pricePerDay * requestedTermDays;
+  const rentFee = liveDetail?.rentFee ?? pricePerDay * requestedTermDays;
+  const deposit = liveDetail?.deposit ?? 0;
+  const otherFees = totalFee - rentFee - deposit;
+  const termText =
+    requestedTermDays % 30 === 0
+      ? `${requestedTermDays / 30} tháng (${requestedTermDays} ngày)`
+      : `${requestedTermDays} ngày`;
 
   const canApprove = liveDetail ? liveDetail.canApprove : mockBlockers.length === 0;
   const blockers = liveDetail?.blockers ?? mockBlockers;
@@ -173,20 +182,23 @@ export function RentalApplicationReviewScreen() {
     <FeeReceipt
       title="Dự toán phí sử dụng tạm thời hè phố (Nộp NSNN)"
       rows={[
-        { label: 'Mức thu theo ngày:', value: `${pricePerDay.toLocaleString('vi-VN')} đ / ngày` },
-        { label: 'Thời hạn đề nghị', value: `× ${requestedTermDays} ngày` },
+        { label: 'Thời hạn đề nghị:', value: termText },
+        { label: 'Tiền thuê ô (đã trừ khuyến mãi):', value: `${rentFee.toLocaleString('vi-VN')} đ` },
+        ...(otherFees > 0
+          ? [{ label: 'Phụ phí:', value: `${otherFees.toLocaleString('vi-VN')} đ` }]
+          : []),
+        ...(deposit > 0
+          ? [{ label: 'Tiền cọc (hoàn lại):', value: `${deposit.toLocaleString('vi-VN')} đ` }]
+          : []),
       ]}
       totalLabel="Tổng phí dự kiến thu:"
       totalValue={`${totalFee.toLocaleString('vi-VN')} đ`}
       totalAria={`Tổng phí dự kiến thu ${totalFee.toLocaleString('vi-VN')} đồng`}
       footnotes={
-        <>
-          <p className="flex items-baseline justify-between gap-sm">
-            <span>Mức thu theo tháng ({requestedTermDays} ngày):</span>
-            <span className="font-tabular">{monthlyFee.toLocaleString('vi-VN')} đ / tháng</span>
-          </p>
-          <p>Mức thu theo biểu giá khu vực Phường đã cấu hình (PricingZones)</p>
-        </>
+        <p>
+          Tính theo biểu giá khu vực Phường đã cấu hình (PricingZones), đúng bằng lịch thu phí sẽ
+          tạo khi duyệt.
+        </p>
       }
     />
   );

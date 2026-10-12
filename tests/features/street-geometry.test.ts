@@ -25,6 +25,8 @@ function makeSlot(overrides: Partial<SidewalkSlot> & Pick<SidewalkSlot, 'slotCod
     priceDisplayUnit: 'DAY',
     pricePerMonth: null,
     rentalMode: 'STANDARD',
+    monthlyPrice: 900000,
+    quarterDiscountPercent: null,
     eventEndDate: null,
     ...overrides,
   };

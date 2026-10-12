@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Icon, formatVnd } from '@/components/common';
 import type { IconName } from '@/components/common/Icon';
 import type { SidewalkZone } from '@/core/api/side-api';
-import { deadlineText, formatHours } from '../slot-format';
+import { deadlineText, formatHours, rentPrice } from '../slot-format';
 import { occupancyLabel } from '../plan-labels';
 import type { SlotCounts } from '../slot-stats';
 import { SLOT_TONES } from '../slot-visuals';
@@ -65,15 +65,25 @@ export function ZoneHeader({ zoneName, zone, counts, nowMs }: Props) {
             <p className="flex flex-wrap items-center gap-x-sm gap-y-1 text-body-sm text-muted">
               <span>
                 Giá tuyến{' '}
-                <span className="font-sign font-bold text-text">{formatVnd(zone.pricePerDay)}</span>
-                /ngày
+                <span className="font-sign font-bold text-text">
+                  {formatVnd(rentPrice(zone).amount)}
+                </span>
+                /{rentPrice(zone).unit}
               </span>
+              {zone.quarterDiscountPercent ? (
+                <>
+                  <span aria-hidden="true" className="h-1 w-1 rounded-full bg-muted/50" />
+                  <span className="font-semibold text-[#0B5D33] dark:text-[#8BE3B0]">
+                    Giảm {zone.quarterDiscountPercent}% khi thuê theo quý
+                  </span>
+                </>
+              ) : null}
               <span aria-hidden="true" className="h-1 w-1 rounded-full bg-muted/50" />
               <span>Bán {formatHours(zone.availableFrom, zone.availableTo)}</span>
               {zone.feeComponents.length > 0 ? (
                 <>
                   <span aria-hidden="true" className="h-1 w-1 rounded-full bg-muted/50" />
-                  <span>{zone.feeComponents.length} khoản phí tham khảo</span>
+                  <span>{zone.feeComponents.length} khoản phụ phí</span>
                 </>
               ) : null}
             </p>

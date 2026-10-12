@@ -203,6 +203,11 @@ export type WardRentalApplicationDetail = WardRentalApplicationItem & {
   reviewedAt: string | null;
   canApprove: boolean;
   blockers: string[];
+  /** What approving it bills, from the same quote the vendor applied against (absent from an
+   * older server). rentFee is after any quarterly discount; deposit is refundable. */
+  totalFee?: number;
+  rentFee?: number;
+  deposit?: number;
 };
 
 export type AiEncroachment = {

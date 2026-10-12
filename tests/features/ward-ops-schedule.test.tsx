@@ -78,6 +78,7 @@ const zone = (over: Partial<WardZone>): WardZone => ({
   priceDisplayUnit: 'DAY',
   pricePerMonth: null,
   rentalMode: 'STANDARD',
+  quarterDiscountPercent: null,
   eventStartDate: null,
   eventEndDate: null,
   ...over,
