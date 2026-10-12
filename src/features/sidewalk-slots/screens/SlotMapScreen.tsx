@@ -270,7 +270,7 @@ export function SlotMapScreen() {
       <aside
         ref={panelRef}
         aria-label="Chi tiết ô"
-        className="scroll-mt-md px-md pb-xl md:px-lg xl:w-[440px] xl:shrink-0 xl:overflow-y-auto xl:border-l xl:border-border xl:bg-card xl:px-lg xl:py-lg"
+        className="sb-clear-launcher scroll-mt-md px-md pb-xl md:px-lg xl:w-[440px] xl:shrink-0 xl:overflow-y-auto xl:border-l xl:border-border xl:bg-card xl:px-lg xl:py-lg"
       >
         {selectedSlot ? (
           <SlotDetailPanel
