@@ -17,6 +17,7 @@ import {
   type WardViolationDetail,
 } from '../ward-api';
 import { hhmm, vnDateOf, wardConfigApi } from '../ward-config-api';
+import { MoneyInput } from '../components/ConfigFields';
 import {
   CaseFact,
   CaseRail,
@@ -42,7 +43,7 @@ import {
 import { VendorPicker } from '../components/ops/violation/VendorPicker';
 import { SheetSection, ViolationSheet } from '../components/ops/violation/ViolationSheet';
 import { ViolationTypePicker } from '../components/ops/violation/ViolationTypePicker';
-import { daysUntil } from '../components/ops/violation/violation-utils';
+import { daysUntil, parseFineBracket } from '../components/ops/violation/violation-utils';
 
 const PENDING = VERDICT_TONES.pending;
 const NEUTRAL = VERDICT_TONES.neutral;
@@ -149,6 +150,10 @@ export function RecordViolationScreen() {
     undefined,
   );
   const [sanctionNotes, setSanctionNotes] = useState('');
+  // The officer may move the fine inside the legal bracket of the chosen rate (Điều 23 khoản 4
+  // Luật XLVPHC) -- the amount is the configured rate unless they do, and then with a reason.
+  const [fineOverride, setFineOverride] = useState<number | null>(null);
+  const [fineReason, setFineReason] = useState('');
 
   useEffect(() => {
     if (!isLiveApi) return;
@@ -364,16 +369,35 @@ export function RecordViolationScreen() {
       return;
     }
 
+    const moved =
+      fineOverride != null && fineOverride !== chosenSanction?.penaltyAmount ? fineOverride : null;
+    if (moved != null) {
+      if (fineBracket && (moved < fineBracket.min || moved > fineBracket.max)) {
+        showToast(
+          `Mức phạt phải nằm trong khung ${fineBracket.min.toLocaleString('vi-VN')} - ${fineBracket.max.toLocaleString('vi-VN')} đ.`,
+        );
+        return;
+      }
+      if (!fineReason.trim()) {
+        showToast('Nhập lý do khi quyết định mức phạt khác mức đã cấu hình.');
+        return;
+      }
+    }
+
     setSanctioning(true);
     try {
       if (isLiveApi) {
-        await complianceApi.sanctionViolation(
+        const args = [
           createdViolation.violationId,
           schedId!,
           decisionNumber.trim(),
           sanctionNotes.trim() || undefined,
           acknowledgeEarlySanction,
-        );
+        ] as const;
+        // The sixth argument exists only when the officer moved the fine off the configured rate.
+        await (moved != null
+          ? complianceApi.sanctionViolation(...args, { amount: moved, reason: fineReason.trim() })
+          : complianceApi.sanctionViolation(...args));
         setExplanationBlockedMessage(null);
       } else {
         // Mock demo
@@ -581,6 +605,7 @@ export function RecordViolationScreen() {
   const chosenSanction = sanctionOptions.find(
     (s) => s.scheduleId === sanctionScheduleId && s.legalBasis,
   );
+  const fineBracket = parseFineBracket(chosenSanction?.legalBasis);
   const step2Placard = chosenSanction
     ? {
         state: 'amount' as const,
@@ -1097,6 +1122,25 @@ export function RecordViolationScreen() {
                   />
                 </div>
                 <SanctionAmount amount={chosenSanction?.penaltyAmount ?? null} />
+                {chosenSanction && fineBracket ? (
+                  <>
+                    <MoneyInput
+                      label="Mức phạt quyết định (không bắt buộc)"
+                      value={fineOverride}
+                      onChange={setFineOverride}
+                      helperText={`Để trống = áp dụng ${chosenSanction.penaltyAmount.toLocaleString('vi-VN')} đ. Khung cho phép: ${fineBracket.min.toLocaleString('vi-VN')} - ${fineBracket.max.toLocaleString('vi-VN')} đ.`}
+                    />
+                    {fineOverride != null && fineOverride !== chosenSanction.penaltyAmount ? (
+                      <TextField
+                        label="Lý do tăng/giảm mức phạt *"
+                        value={fineReason}
+                        onChangeText={setFineReason}
+                        multiline
+                        placeholder="Tình tiết giảm nhẹ hoặc tăng nặng theo Điều 9, 10 Luật XLVPHC..."
+                      />
+                    ) : null}
+                  </>
+                ) : null}
                 {isLiveApi && !sanctionOptions.some((s) => s.legalBasis) && (
                   <Outcome tone="danger" icon="alert-octagon-outline" role="alert">
                     Hành vi này chưa có căn cứ pháp lý hoặc mức phạt hiệu lực vào ngày vi phạm. Cấu

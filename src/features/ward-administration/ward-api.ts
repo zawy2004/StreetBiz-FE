@@ -528,12 +528,16 @@ export const complianceApi = {
     decisionNumber: string,
     notes?: string,
     acknowledgeEarlySanction?: boolean,
+    /** Only inside the legal bracket of the chosen rate, with a reason (checked server-side). */
+    amountOverride?: { amount: number; reason: string },
   ) =>
     apiPost<WardViolationDetail>(`/ward/violations/${id}/sanction`, {
       penaltyScheduleId,
       decisionNumber,
       notes,
       acknowledgeEarlySanction,
+      amountOverride: amountOverride?.amount,
+      amountReason: amountOverride?.reason,
     }),
 
   riskQueue: () => apiGet<WardRiskQueueItem[]>('/ward/insights/risk-queue'),
