@@ -235,12 +235,20 @@ describe('ward collection report', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Tháng trước' }));
     await userEvent.click(screen.getByRole('tab', { name: '90 ngày' }));
 
-    await waitFor(() =>
-      expect(client.apiGet.mock.calls.map(([path]) => path)).toEqual([
-        '/ward/reports/collection?from=2026-10-01&to=2026-10-05',
-        '/ward/reports/collection?from=2026-09-01&to=2026-09-30',
-        '/ward/reports/collection?from=2026-07-08&to=2026-10-05',
-      ]),
-    );
+    // Each period asks for its report and, alongside it, the AIC-08 summary of the same period.
+    const periods = [
+      'from=2026-10-01&to=2026-10-05',
+      'from=2026-09-01&to=2026-09-30',
+      'from=2026-07-08&to=2026-10-05',
+    ];
+    await waitFor(() => {
+      const paths = client.apiGet.mock.calls.map(([path]) => path as string);
+      expect(paths.filter((p) => p.startsWith('/ward/reports/collection'))).toEqual(
+        periods.map((p) => `/ward/reports/collection?${p}`),
+      );
+      expect(paths.filter((p) => p.startsWith('/ward/reports/summary'))).toEqual(
+        periods.map((p) => `/ward/reports/summary?${p}`),
+      );
+    });
   });
 });

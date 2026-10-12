@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { wardReportApi, type CollectionReportDto, type WardDashboardDto } from '@/core/api';
+import {
+  wardReportApi,
+  type CollectionReportDto,
+  type ReportSummaryDto,
+  type WardDashboardDto,
+} from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
 import { VIOLATION_TYPES } from '@/mocks/seed';
@@ -8,6 +13,7 @@ import { VIOLATION_TYPES } from '@/mocks/seed';
 export const WARD_REPORT_KEYS = {
   collectionReport: (from: string, to: string) => ['ward', 'reports', 'collection', from, to] as const,
   dashboard: ['ward', 'dashboard'] as const,
+  summary: (from: string, to: string) => ['ward', 'reports', 'summary', from, to] as const,
 };
 
 /** Inclusive calendar-day range, "YYYY-MM-DD" in the viewer's (Vietnamese) local time. */
@@ -71,6 +77,25 @@ export function useCollectionReport(period: ReportPeriod) {
     error: query.error,
     refetch: query.refetch,
   };
+}
+
+/**
+ * AIC-08. Live API only: the sentences are computed on the server from the same rows as the
+ * report, so there is nothing honest to show in demo mode.
+ */
+export function useReportSummary(period: ReportPeriod): {
+  summary: ReportSummaryDto | undefined;
+  isLoading: boolean;
+  isError: boolean;
+} {
+  const query = useQuery({
+    queryKey: WARD_REPORT_KEYS.summary(period.from, period.to),
+    queryFn: () => wardReportApi.summary(period.from, period.to),
+    enabled: isLiveApi,
+  });
+  // A body without its list of points is not a summary; leave the card out rather than crash the report.
+  const summary = Array.isArray(query.data?.points) ? query.data : undefined;
+  return { summary, isLoading: isLiveApi && query.isLoading, isError: isLiveApi && query.isError };
 }
 
 /** WARD-15. */

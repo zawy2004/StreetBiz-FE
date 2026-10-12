@@ -207,6 +207,22 @@ export type WardDashboardDto = {
   openViolations: number;
 };
 
+/** AIC-08: one sentence of the period's report, with how it should be read. */
+export type ReportSummaryPoint = {
+  tone: 'POSITIVE' | 'NEUTRAL' | 'ATTENTION';
+  topic: 'COLLECTION' | 'TIMELINESS' | 'DEBT' | 'VIOLATIONS' | 'OCCUPANCY' | 'WORKLOAD';
+  text: string;
+};
+
+/** AIC-08: the WARD-14/15 numbers written out. Every figure is copied from the report rows. */
+export type ReportSummaryDto = {
+  from: string;
+  to: string;
+  headline: string;
+  points: ReportSummaryPoint[];
+  basis: string;
+};
+
 export const wardReportApi = {
   /** WARD-14. Defaults (no `from`/`to`) mirror the backend's own default: the 1st of the current month through today. */
   collectionReport: (from?: string, to?: string) =>
@@ -214,4 +230,8 @@ export const wardReportApi = {
 
   /** WARD-15. */
   dashboard: () => apiGet<WardDashboardDto>('/ward/dashboard'),
+
+  /** AIC-08. Same default period as `collectionReport`. */
+  summary: (from?: string, to?: string) =>
+    apiGet<ReportSummaryDto>(`/ward/reports/summary${queryString({ from, to })}`),
 };
