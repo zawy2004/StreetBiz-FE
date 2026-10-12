@@ -40,6 +40,8 @@ type AuthState = {
   /** Set when a refresh failed, so the sign-in screen can explain why. */
   sessionExpired: boolean;
   signIn: (phone: string, password: string) => Promise<void>;
+  /** Passwordless sign-in: the phone proves itself with the OTP it was sent. */
+  signInWithOtp: (phone: string, otp: string) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<MockUser>;
   signOut: () => Promise<void>;
   setUser: (user: MockUser) => void;
@@ -59,10 +61,20 @@ function applyAuthResult(result: AuthResult): MockUser {
 
 /** Mock sign-in kept for the offline demo path (VITE_USE_MOCK_API=true). */
 function mockSignIn(phone: string, password: string): MockUser {
+  const match = mockFindByPhone(phone);
+  if (match.password !== password) throw new Error('Mật khẩu không đúng.');
+  return match;
+}
+
+/** Mock passwordless sign-in: the OTP itself is validated by the screen (123456). */
+function mockSignInByPhone(phone: string): MockUser {
+  return mockFindByPhone(phone);
+}
+
+function mockFindByPhone(phone: string): MockUser {
   const normalized = phone.replace(/\D/g, '');
   const match = useMockDb.getState().users.find((u) => u.phone.replace(/\D/g, '') === normalized);
   if (!match) throw new Error('Không tìm thấy tài khoản với số điện thoại này.');
-  if (match.password !== password) throw new Error('Mật khẩu không đúng.');
   if (match.account_status === 'SUSPENDED') {
     throw new Error('Tài khoản đã bị tạm khoá. Vui lòng liên hệ quản trị viên.');
   }
@@ -84,15 +96,20 @@ export const useAuthStore = create<AuthState>()(
         set({ user: applyAuthResult(result), sessionExpired: false });
       },
 
+      signInWithOtp: async (phone, otp) => {
+        if (!isLiveApi) {
+          set({ user: mockSignInByPhone(phone), sessionExpired: false });
+          return;
+        }
+        const result = await authApi.loginWithOtp(phone, otp);
+        set({ user: applyAuthResult(result), sessionExpired: false });
+      },
+
       /**
-       * Creates the account but deliberately does NOT start a session: the app
-       * sends the new user to the sign-in screen to enter the password they just
-       * chose.
-       *
-       * `POST /auth/register` (AUTH-01) signs the account in and hands back a
-       * live access/refresh pair regardless, so that session is revoked here
-       * rather than dropped on the floor - otherwise a usable refresh token
-       * would sit on the server for its full 30-day life with nobody holding it.
+       * Creates the account and keeps the session `POST /auth/register` (AUTH-01)
+       * hands back, so the new user lands signed in — a vendor goes straight to
+       * the onboarding checklist instead of re-typing the password they just set.
+       * The caller routes by role after this resolves.
        */
       register: async (payload) => {
         if (!isLiveApi) {
@@ -103,21 +120,14 @@ export const useAuthStore = create<AuthState>()(
             role_code: payload.roleCode,
             account_status: 'ACTIVE',
           });
-          set({ user: null, sessionExpired: false });
+          set({ user: created, sessionExpired: false });
           return created;
         }
 
         const result = await authApi.register(payload);
-        // Hold the tokens just long enough to authenticate the logout call.
-        applyAuthResult(result);
-        try {
-          await authApi.logout();
-        } catch {
-          /* best effort: the account exists either way, and the token expires */
-        }
-        clearTokens();
-        set({ user: null, sessionExpired: false });
-        return toAppUser(result.user);
+        const user = applyAuthResult(result);
+        set({ user, sessionExpired: false });
+        return user;
       },
 
       signOut: async () => {

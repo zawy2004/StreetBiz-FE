@@ -16,6 +16,10 @@ import { ScreenFallback } from '@/core/routing/ScreenFallback';
 // the first bundle of every signed-in role.
 const LandingScreen = lazyScreen(() => import('@/features/landing/screens'), 'LandingScreen');
 const SignInScreen = lazyScreen(() => import('@/features/authentication/screens'), 'SignInScreen');
+const OtpSignInScreen = lazyScreen(
+  () => import('@/features/authentication/screens'),
+  'OtpSignInScreen',
+);
 const RegisterScreen = lazyScreen(
   () => import('@/features/authentication/screens'),
   'RegisterScreen',
@@ -58,9 +62,17 @@ const SessionsScreen = lazyScreen(
   () => import('@/features/account-management/screens'),
   'SessionsScreen',
 );
+const LoginHistoryScreen = lazyScreen(
+  () => import('@/features/account-management/screens'),
+  'LoginHistoryScreen',
+);
 const VendorHomeScreen = lazyScreen(
   () => import('@/features/vendor-home/screens/VendorHomeScreen'),
   'VendorHomeScreen',
+);
+const VendorOnboardingScreen = lazyScreen(
+  () => import('@/features/vendor-home/screens/VendorOnboardingScreen'),
+  'VendorOnboardingScreen',
 );
 const VendorAssistantScreen = lazyScreen(
   () => import('@/features/ai-compliance/screens/VendorAssistantScreen'),
@@ -410,6 +422,7 @@ export function AppRouter() {
         <Route path="/ward-reviews/:kind/:id" element={<LegacyWardReviewRedirect />} />
 
         <Route path="/auth/sign-in" element={<SignInScreen />} />
+        <Route path="/auth/sign-in/otp" element={<OtpSignInScreen />} />
         <Route path="/auth/register" element={<RegisterScreen />} />
         <Route path="/auth/verify-phone" element={<VerifyPhoneScreen />} />
         <Route path="/auth/password/reset-request" element={<ResetPasswordRequestScreen />} />
@@ -436,6 +449,14 @@ export function AppRouter() {
           element={
             <AuthGuard>
               <SessionsScreen />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/account/login-history"
+          element={
+            <AuthGuard>
+              <LoginHistoryScreen />
             </AuthGuard>
           }
         />
@@ -513,6 +534,7 @@ export function AppRouter() {
           }
         >
           <Route path="home" element={<VendorHomeScreen />} />
+          <Route path="onboarding" element={<VendorOnboardingScreen />} />
           <Route path="account" element={<AccountScreen />} />
           <Route path="assistant" element={<VendorAssistantScreen />} />
           <Route path="registrations" element={<RegistrationsListScreen />} />

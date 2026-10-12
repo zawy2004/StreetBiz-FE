@@ -10,6 +10,7 @@ import { Button, Icon } from '@/components/common';
 import { showToast } from '@/components/feedback';
 import { ApiError, authApi, errorMessage, OTP_PURPOSE } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
+import { ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
 import { formatPhone } from '@/core/utils/phone';
 import { useCountdown } from '@/hooks/useCountdown';
 import { useAuthStore } from '@/store/auth-store';
@@ -84,18 +85,20 @@ export function VerifyPhoneScreen() {
     if (!registration) return;
     setSubmitting(true);
     try {
-      await register({ ...registration, fullName: registration.fullName || null, otp: code });
-      const registeredPhone = registration.phoneNumber;
+      const user = await register({
+        ...registration,
+        fullName: registration.fullName || null,
+        otp: code,
+      });
       completed.current = true;
       // The pending store holds the plaintext password, so clear it before
       // leaving rather than carrying it to the next screen.
       clearPending();
       showToast('Tạo tài khoản thành công');
-      // Registration does not sign the user in: they confirm the password they
-      // just chose on the sign-in screen, with the number filled in for them.
-      navigate('/auth/sign-in', {
+      // Registration now keeps the session: a vendor lands on the onboarding
+      // checklist, everyone else on their role's home.
+      navigate(user.role_code === 'VENDOR' ? '/vendor/onboarding' : ROLE_HOME_ROUTE[user.role_code], {
         replace: true,
-        state: { registered: true, phone: registeredPhone },
       });
     } catch (err) {
       if (err instanceof ApiError && err.isValidation) {

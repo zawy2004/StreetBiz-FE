@@ -91,6 +91,12 @@ export function AccountScreen() {
                 onPress={() => navigate('/account/sessions')}
               />
               <SecurityTile
+                icon="history"
+                title="Hoạt động đăng nhập"
+                description="Lịch sử đăng nhập và bảo mật"
+                onPress={() => navigate('/account/login-history')}
+              />
+              <SecurityTile
                 icon="bell-outline"
                 title="Thông báo"
                 description="Phí, hồ sơ, đơn hàng và kết quả duyệt"
