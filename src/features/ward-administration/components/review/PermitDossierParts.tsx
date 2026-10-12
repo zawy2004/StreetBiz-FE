@@ -654,12 +654,16 @@ export function DecisionRecord({
   );
 }
 
-/** The decision desk card used in the right column on wide screens. */
+/**
+ * The decision desk card used in the right column on wide screens. It is its own form container
+ * (`cq`): a Field measures the nearest one, and without this it measured the whole wide screen,
+ * put its label in a left column and squeezed the note box into a sliver of this narrow card.
+ */
 export function DecisionDeskCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section
       aria-label={title}
-      className="overflow-hidden rounded-[24px] bg-card shadow-sheet ring-1 ring-border"
+      className="cq overflow-hidden rounded-[24px] bg-card shadow-sheet ring-1 ring-border"
     >
       <div aria-hidden="true" className="sb-kerb sb-kerb-thin" />
       <div className="flex flex-col gap-md p-md pb-lg md:p-lg">
