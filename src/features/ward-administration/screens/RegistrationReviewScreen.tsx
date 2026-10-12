@@ -20,6 +20,7 @@ import {
   ToneBox,
 } from '../components/review/Primitives';
 import { DecisionDeskCard } from '../components/review/PermitDossierParts';
+import { RegistrationIntegrityPanel } from '../components/review/RegistrationIntegrityPanel';
 import {
   AiMatchGauge,
   EvidenceLightTable,
@@ -437,6 +438,8 @@ export function RegistrationReviewScreen() {
               quy định địa phương.
             </AiHint>
           ) : null}
+
+          {isLiveApi && id ? <RegistrationIntegrityPanel registrationId={id} /> : null}
 
           {kycChecks.length > 0 ? (
             <DossierBlock
