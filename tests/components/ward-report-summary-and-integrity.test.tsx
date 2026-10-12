@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -75,6 +76,51 @@ describe('AIC-08 report summary on the collection report', () => {
     const [from, to] = load.mock.calls[0]!;
     expect(from).toMatch(/^\d{4}-\d{2}-01$/);
     expect(to).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('opens on what needs attention and keeps the rest one tap away', async () => {
+    vi.spyOn(wardReportApi, 'collectionReport').mockResolvedValue(report);
+    vi.spyOn(wardReportApi, 'summary').mockResolvedValue({
+      ...summary,
+      points: [
+        { tone: 'POSITIVE', topic: 'COLLECTION', text: 'Kỳ này thu 2.630.000 đ.' },
+        { tone: 'NEUTRAL', topic: 'WORKLOAD', text: 'Đang chờ xử lý: 3 hồ sơ.' },
+        { tone: 'ATTENTION', topic: 'DEBT', text: 'Hiện có 1 kỳ phí quá hạn.' },
+        { tone: 'ATTENTION', topic: 'VIOLATIONS', text: 'Ghi nhận 2 vi phạm.' },
+        { tone: 'POSITIVE', topic: 'OCCUPANCY', text: '17/20 ô đang cho thuê.' },
+      ],
+    });
+    renderAt(['/ward/reports'], <Route path="/ward/reports" element={<CollectionReportScreen />} />);
+
+    const card = await screen.findByRole('region', { name: 'Tóm tắt kỳ báo cáo' });
+    expect(within(card).getByText('2 điểm cần chú ý')).toBeInTheDocument();
+    // Attention first, then the next one by the server's order; the other two stay hidden.
+    const items = within(card).getAllByRole('listitem');
+    expect(items).toHaveLength(3);
+    expect(items[0]).toHaveTextContent('Hiện có 1 kỳ phí quá hạn.');
+    expect(items[1]).toHaveTextContent('Ghi nhận 2 vi phạm.');
+    expect(within(card).queryByText('17/20 ô đang cho thuê.')).not.toBeInTheDocument();
+
+    const more = within(card).getByRole('button', { name: 'Xem thêm 2 mục' });
+    expect(more).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(more);
+
+    expect(within(card).getAllByRole('listitem')).toHaveLength(5);
+    expect(within(card).getByText('17/20 ô đang cho thuê.')).toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: 'Thu gọn' })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('says nothing needs attention when every point is fine', async () => {
+    vi.spyOn(wardReportApi, 'collectionReport').mockResolvedValue(report);
+    vi.spyOn(wardReportApi, 'summary').mockResolvedValue({
+      ...summary,
+      points: [{ tone: 'POSITIVE', topic: 'DEBT', text: 'Không có kỳ phí nào đang quá hạn.' }],
+    });
+    renderAt(['/ward/reports'], <Route path="/ward/reports" element={<CollectionReportScreen />} />);
+
+    const card = await screen.findByRole('region', { name: 'Tóm tắt kỳ báo cáo' });
+    expect(within(card).getByText('Không có điểm cần chú ý')).toBeInTheDocument();
+    expect(within(card).queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('still shows the report when the summary cannot be loaded', async () => {
