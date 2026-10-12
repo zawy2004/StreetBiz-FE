@@ -8,6 +8,15 @@ export function daysUntil(iso: string, now: number = Date.now()): number {
   return Math.ceil((Date.parse(iso) - now) / 86_400_000);
 }
 
+/** The "(khung 2.000.000 - 3.000.000đ)" a legal basis ends with, as numbers; null when absent. Mirrors
+ * LegalBasisText.TryParseBracket on the server, which alone enforces it. */
+export function parseFineBracket(legalBasis: string | null | undefined): { min: number; max: number } | null {
+  const match = /(khungs+([d.]+)s*-s*([d.]+)s*đ)/.exec(legalBasis ?? '');
+  if (!match) return null;
+  const toNumber = (text: string) => Number(text.replace(/./g, ''));
+  return { min: toNumber(match[1] ?? ''), max: toNumber(match[2] ?? '') };
+}
+
 /** Penalty schedules split by whether a fine can be issued from them (a legal basis is set). */
 export function groupSchedules(schedules: PenaltyScheduleItem[]) {
   return {

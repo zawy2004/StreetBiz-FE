@@ -2,7 +2,13 @@ import { memo } from 'react';
 
 import { Icon } from '@/components/common';
 import type { SidewalkSlot } from '@/core/api/side-api';
-import { formatCountdown, formatShortVnd, formatSize, secondsUntil } from '../slot-format';
+import {
+  formatCountdown,
+  formatShortVnd,
+  formatSize,
+  rentPrice,
+  secondsUntil,
+} from '../slot-format';
 import { BUSINESS_CATEGORY_LABELS, type SlotDisplayState } from '../slot-stats';
 import { CATEGORY_ICONS, PENDING_HATCH, SLOT_TONES } from '../slot-visuals';
 
@@ -26,8 +32,10 @@ function footerText(
   nowMs: number,
 ): string {
   switch (state) {
-    case 'AVAILABLE':
-      return `${formatShortVnd(slot.pricePerDay)}/ngày`;
+    case 'AVAILABLE': {
+      const price = rentPrice(slot);
+      return `${formatShortVnd(price.amount)}/${price.unit}`;
+    }
     case 'HELD': {
       const left = formatCountdown(secondsUntil(slot.holdExpiresAt!, nowMs));
       return mine ? `Bạn giữ chỗ: ${left}` : `Giữ chỗ: ${left}`;

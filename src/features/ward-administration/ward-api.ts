@@ -203,6 +203,11 @@ export type WardRentalApplicationDetail = WardRentalApplicationItem & {
   reviewedAt: string | null;
   canApprove: boolean;
   blockers: string[];
+  /** What approving it bills, from the same quote the vendor applied against (absent from an
+   * older server). rentFee is after any quarterly discount; deposit is refundable. */
+  totalFee?: number;
+  rentFee?: number;
+  deposit?: number;
 };
 
 export type AiEncroachment = {
@@ -523,12 +528,16 @@ export const complianceApi = {
     decisionNumber: string,
     notes?: string,
     acknowledgeEarlySanction?: boolean,
+    /** Only inside the legal bracket of the chosen rate, with a reason (checked server-side). */
+    amountOverride?: { amount: number; reason: string },
   ) =>
     apiPost<WardViolationDetail>(`/ward/violations/${id}/sanction`, {
       penaltyScheduleId,
       decisionNumber,
       notes,
       acknowledgeEarlySanction,
+      amountOverride: amountOverride?.amount,
+      amountReason: amountOverride?.reason,
     }),
 
   riskQueue: () => apiGet<WardRiskQueueItem[]>('/ward/insights/risk-queue'),

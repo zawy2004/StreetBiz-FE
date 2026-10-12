@@ -7,7 +7,7 @@ import { SegmentedControl, SelectField, TextField } from '@/components/forms';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { useAuthStore } from '@/store/auth-store';
-import { DateInput, MoneyInput, TimeInput } from '../components/ConfigFields';
+import { DateInput, MoneyInput, PercentInput, TimeInput } from '../components/ConfigFields';
 import { WardGate } from '../components/WardGate';
 import {
   ConflictBand,
@@ -252,6 +252,9 @@ function ZoneTags({ zone }: { zone: WardZone }) {
       {zone.priceDisplayUnit === 'MONTH' && zone.pricePerMonth ? (
         <SignTag>Theo tháng {formatVnd(zone.pricePerMonth)}</SignTag>
       ) : null}
+      {zone.quarterDiscountPercent ? (
+        <SignTag tone="mango">-{zone.quarterDiscountPercent}% theo quý</SignTag>
+      ) : null}
       {zone.feeComponents.length > 0 && (
         <SignTag tone="warm">+{zone.feeComponents.length} phụ phí</SignTag>
       )}
@@ -268,6 +271,7 @@ type Draft = {
   pricePerDay: number | null;
   priceDisplayUnit: 'DAY' | 'MONTH';
   pricePerMonth: number | null;
+  quarterDiscountPercent: number | null;
   rentalMode: 'STANDARD' | 'EVENT';
   eventStartDate: string;
   eventEndDate: string;
@@ -289,6 +293,7 @@ function draftOf(zone: WardZone | null): Draft {
     pricePerDay: zone?.pricePerDay ?? null,
     priceDisplayUnit: zone?.priceDisplayUnit ?? 'DAY',
     pricePerMonth: zone?.pricePerMonth ?? null,
+    quarterDiscountPercent: zone?.quarterDiscountPercent ?? null,
     rentalMode: zone?.rentalMode ?? 'STANDARD',
     eventStartDate: zone?.eventStartDate ?? '',
     eventEndDate: zone?.eventEndDate ?? '',
@@ -364,14 +369,21 @@ function ZoneEditor({
   const feeComponentsKey = JSON.stringify(
     draft.feeComponents.map((c) => ({ ...c, componentName: c.componentName.trim() })),
   );
-  const previewKey = `${draft.pricePerDay}|${draft.from}|${draft.to}|${feeComponentsKey}`;
+  const discount = draft.rentalMode === 'STANDARD' ? draft.quarterDiscountPercent : null;
+  const monthPrice = draft.priceDisplayUnit === 'MONTH' ? (draft.pricePerMonth ?? 0) : null;
+  // When a monthly price is entered, the server derives the day rate the same way.
+  const dayPrice =
+    monthPrice != null ? Math.round(monthPrice / 30) : (draft.pricePerDay ?? 0);
+  const previewKey = `${dayPrice}|${monthPrice}|${discount}|${draft.from}|${draft.to}|${feeComponentsKey}`;
   const previewCurrent = preview?.key === previewKey;
-  // Only price, hours or fee components change what a pending application/renewal is billed
-  // (BR-32-adjacent: the real fee schedule includes fee components, not just price-per-day) --
-  // a pure metadata edit (name, segment, permitting document) needs no impact review or reason.
+  // Only price, discount, hours or fee components change what a pending application/renewal
+  // is billed (the real fee schedule includes fee components, not just the rent) -- a pure
+  // metadata edit (name, segment, permitting document) needs no impact review or reason.
   const amountOrHoursChanged =
     !isNew &&
-    (zone!.pricePerDay !== (draft.pricePerDay ?? 0) ||
+    (zone!.pricePerDay !== dayPrice ||
+      (zone!.priceDisplayUnit === 'MONTH' ? zone!.pricePerMonth : null) !== monthPrice ||
+      (zone!.quarterDiscountPercent ?? null) !== discount ||
       toApiTime(draft.from) !== zone!.availableFrom ||
       toApiTime(draft.to) !== zone!.availableTo ||
       feeComponentsKey !==
@@ -390,7 +402,8 @@ function ZoneEditor({
     // pricePerMonth instead) -- see WardConfigurationService.ApplyZoneFields.
     pricePerDay: draft.pricePerDay ?? 0,
     priceDisplayUnit: draft.priceDisplayUnit,
-    pricePerMonth: draft.priceDisplayUnit === 'MONTH' ? (draft.pricePerMonth ?? 0) : null,
+    pricePerMonth: monthPrice,
+    quarterDiscountPercent: discount,
     rentalMode: draft.rentalMode,
     eventStartDate: draft.rentalMode === 'EVENT' ? draft.eventStartDate || null : null,
     eventEndDate: draft.rentalMode === 'EVENT' ? draft.eventEndDate || null : null,
@@ -414,10 +427,15 @@ function ZoneEditor({
     mutationFn: () =>
       wardConfigApi.previewZoneImpact(
         zone!.zoneId,
-        draft.pricePerDay ?? 0,
+        dayPrice,
         toApiTime(draft.from),
         toApiTime(draft.to),
         draft.feeComponents.map((c) => ({ ...c, componentName: c.componentName.trim() })),
+        {
+          priceDisplayUnit: draft.priceDisplayUnit,
+          pricePerMonth: monthPrice,
+          quarterDiscountPercent: discount,
+        },
       ),
     onSuccess: (data) => setPreview({ key: previewKey, data }),
     onError: (error) => showToast(errorMessage(error)),
@@ -496,6 +514,7 @@ function ZoneEditor({
                 <>
                   {overnight && <SignTag tone="mango">QUA ĐÊM</SignTag>}
                   {draft.rentalMode === 'EVENT' && <SignTag tone="mango">Sự kiện</SignTag>}
+                  {discount ? <SignTag tone="mango">-{discount}% theo quý</SignTag> : null}
                   {draft.feeComponents.length > 0 && (
                     <SignTag tone="warm">+{draft.feeComponents.length} phụ phí</SignTag>
                   )}
@@ -530,7 +549,11 @@ function ZoneEditor({
                 onChange={(v) => {
                   set('rentalMode', v);
                   // An event's day-by-day pricing has no monthly equivalent worth entering.
-                  if (v === 'EVENT') set('priceDisplayUnit', 'DAY');
+                  // ...and an event has no quarter to discount.
+                  if (v === 'EVENT') {
+                    set('priceDisplayUnit', 'DAY');
+                    set('quarterDiscountPercent', null);
+                  }
                 }}
                 options={[
                   { value: 'STANDARD', label: 'Dài hạn (tháng/quý/năm)' },
@@ -579,6 +602,14 @@ function ZoneEditor({
                 label="Giá thuê mỗi ngày"
                 value={draft.pricePerDay}
                 onChange={(v) => set('pricePerDay', v)}
+              />
+            )}
+            {draft.rentalMode === 'STANDARD' && (
+              <PercentInput
+                label="Giảm giá khi thuê theo quý (không bắt buộc)"
+                value={draft.quarterDiscountPercent}
+                onChange={(v) => set('quarterDiscountPercent', v)}
+                helperText="Trừ vào tiền thuê ô (không trừ phụ phí) khi thuê 3, 6 hoặc 12 tháng. Để trống nếu không khuyến mãi."
               />
             )}
           </EditorGroup>
@@ -777,7 +808,7 @@ function FeeComponentsEditor({
     <EditorGroup
       title="Phụ phí cố định"
       icon="receipt-text-outline"
-      description="Các khoản này được cộng thẳng vào hoá đơn chính thức của hộ kinh doanh khi hợp đồng được duyệt (theo ngày × số ngày thuê, hoặc một lần mỗi kỳ) — không phải chỉ để tham khảo."
+      description="Các khoản này được cộng thẳng vào hoá đơn chính thức của hộ kinh doanh khi hợp đồng được duyệt — không phải chỉ để tham khảo. Khoản “một lần” và tiền cọc chỉ thu ở hợp đồng đầu, không thu lại khi gia hạn; tiền cọc được hoàn lại khi kết thúc."
     >
       {value.map((c, i) => (
         <div
@@ -797,7 +828,9 @@ function FeeComponentsEditor({
             onChange={(v) => update(i, { calcBasis: v })}
             options={[
               { value: 'PER_DAY', label: 'Theo ngày' },
-              { value: 'PER_TERM', label: 'Một lần mỗi kỳ' },
+              { value: 'PER_TERM', label: 'Một lần mỗi kỳ (cả khi gia hạn)' },
+              { value: 'ONE_TIME', label: 'Một lần (chỉ hợp đồng đầu)' },
+              { value: 'DEPOSIT', label: 'Tiền cọc (hoàn lại)' },
             ]}
           />
           <MoneyInput

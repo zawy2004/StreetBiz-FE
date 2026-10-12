@@ -27,12 +27,27 @@ export const COMMITMENTS = [
 
 type Props = { slot: SidewalkSlot };
 
-function quoteLineLabel(line: FeeQuoteLine): string {
-  if (line.kind === 'RENT')
-    return `Tiền thuê ô (${formatShortVnd(line.unitAmount)}/ngày × ${line.quantity} ngày)`;
-  return line.calcBasis === 'PER_DAY'
-    ? `${line.label} (${formatShortVnd(line.unitAmount)}/ngày × ${line.quantity} ngày)`
-    : `${line.label} (một lần)`;
+/** A STANDARD zone rents by whole months: 1 / 3 / 6 / 12 of them, 30 days each. */
+const TERM_MONTHS = [1, 3, 6, 12] as const;
+const MONTH_DAYS = 30;
+
+function quoteLineLabel(line: FeeQuoteLine, termDays: number): string {
+  switch (line.kind) {
+    case 'RENT':
+      return line.calcBasis === 'PER_MONTH'
+        ? `Tiền thuê ô (${formatShortVnd(line.unitAmount)}/tháng × ${line.quantity} tháng)`
+        : `Tiền thuê ô (${formatShortVnd(line.unitAmount)}/ngày × ${line.quantity} ngày)`;
+    case 'DISCOUNT':
+      return line.label ?? 'Khuyến mãi';
+    case 'DEPOSIT':
+      return `${line.label} (hoàn lại khi kết thúc)`;
+    default:
+      if (line.calcBasis !== 'PER_DAY') return `${line.label} (một lần)`;
+      // A per-day fee on a whole-month term reads better as a monthly figure.
+      return termDays % MONTH_DAYS === 0
+        ? `${line.label} (${formatShortVnd(line.unitAmount * MONTH_DAYS)}/tháng × ${termDays / MONTH_DAYS} tháng)`
+        : `${line.label} (${formatShortVnd(line.unitAmount)}/ngày × ${line.quantity} ngày)`;
+  }
 }
 
 /**
@@ -61,10 +76,14 @@ export function SlotApplyForm({ slot }: Props) {
 
   const days = Number(termDays);
   const validDays = Number.isInteger(days) && days >= 1 && days <= maxTermDays;
-  // Phase B: STANDARD zones priced by the month offer a quick-select instead of a free-text
-  // day count; EVENT zones keep the free-text input (their rental stays day-by-day).
-  const isMonthly = slot.rentalMode === 'STANDARD' && slot.priceDisplayUnit === 'MONTH';
-  const debouncedDays = useDebouncedValue(days);
+  // A fixed location (STANDARD) is rented by the month only; an EVENT zone keeps the
+  // free-text day count (its rental stays day by day).
+  const isMonthly = slot.rentalMode === 'STANDARD';
+  const discount = isMonthly ? slot.quarterDiscountPercent : null;
+  // Typed days are debounced; a month button is a single deliberate click, so its price
+  // follows at once.
+  const typedDays = useDebouncedValue(days);
+  const debouncedDays = isMonthly ? days : typedDays;
 
   const state = slotDisplayState(slot, nowMs);
   const myHold = holds.find((h) => h.slotId === slot.slotId);
@@ -141,25 +160,36 @@ export function SlotApplyForm({ slot }: Props) {
         <div className="flex flex-col gap-xs">
           <span className="text-label text-text">Thời hạn thuê</span>
           <div className="grid grid-cols-4 gap-xs">
-            {[1, 3, 6, 12].map((months) => {
-              const on = days === months * 30;
+            {TERM_MONTHS.map((months) => {
+              const on = days === months * MONTH_DAYS;
+              const discounted = discount != null && months % 3 === 0;
               return (
                 <button
                   key={months}
                   type="button"
                   aria-pressed={on}
-                  onClick={() => setTermDays(String(months * 30))}
-                  className={`h-12 rounded-[12px] px-xs text-label transition-[background-color,box-shadow,color] duration-150 active:scale-[0.98] ${
+                  onClick={() => setTermDays(String(months * MONTH_DAYS))}
+                  className={`flex min-h-12 flex-col items-center justify-center rounded-[12px] px-xs py-1 text-label transition-[background-color,box-shadow,color] duration-150 active:scale-[0.98] ${
                     on
                       ? 'bg-tint-primary font-bold text-primary ring-2 ring-inset ring-primary'
                       : 'bg-card text-text ring-1 ring-inset ring-border hover:ring-text/25'
                   }`}
                 >
                   {months} tháng
+                  {discounted && (
+                    <span className="text-body-xs font-semibold text-[#0B5D33] dark:text-[#8BE3B0]">
+                      -{discount}%
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
+          {discount != null && (
+            <p className="text-body-sm text-muted">
+              Thuê theo quý (3, 6 hoặc 12 tháng) được giảm {discount}% tiền thuê ô.
+            </p>
+          )}
         </div>
       ) : (
         <label className="flex flex-col gap-xs text-label text-text">
@@ -190,7 +220,7 @@ export function SlotApplyForm({ slot }: Props) {
         {!validDays ? (
           <p className="flex items-center gap-xs p-md text-body-sm font-semibold text-error">
             <Icon name="alert-circle-outline" size={18} color="currentColor" />
-            Nhập 1 – {maxTermDays} ngày.
+            {isMonthly ? 'Chọn thời hạn thuê.' : `Nhập 1 – ${maxTermDays} ngày.`}
           </p>
         ) : quote.error ? (
           <p className="p-md text-body-sm text-error">
@@ -203,11 +233,22 @@ export function SlotApplyForm({ slot }: Props) {
                 key={`${line.kind}-${i}`}
                 className="flex items-baseline justify-between gap-sm px-md py-xs"
               >
-                <span className="min-w-0 text-body-sm text-text">
-                  {quoteLineLabel(line)}
-                  {line.kind === 'FEE' ? ' (tham khảo)' : ''}
+                <span
+                  className={`min-w-0 text-body-sm ${
+                    line.kind === 'DISCOUNT'
+                      ? 'font-semibold text-[#0B5D33] dark:text-[#8BE3B0]'
+                      : 'text-text'
+                  }`}
+                >
+                  {quoteLineLabel(line, quote.data.termDays)}
+                  {line.kind === 'FEE' && quote.data.isReferenceOnly ? ' (tham khảo)' : ''}
                 </span>
-                <Money amountVnd={line.amount} className="shrink-0 whitespace-nowrap" />
+                <Money
+                  amountVnd={line.amount}
+                  className={`shrink-0 whitespace-nowrap ${
+                    line.kind === 'DISCOUNT' ? 'text-[#0B5D33] dark:text-[#8BE3B0]' : ''
+                  }`}
+                />
               </li>
             ))}
           </ul>
@@ -235,11 +276,18 @@ export function SlotApplyForm({ slot }: Props) {
             <p className="text-body-sm text-text">Tiền thuê tính vào hợp đồng</p>
             <Money amountVnd={quote.data.baseFee} className="whitespace-nowrap" />
           </div>
+          {quote.data.deposit > 0 && (
+            <div className="flex items-baseline justify-between gap-sm">
+              <p className="text-body-sm text-text">Trong đó tiền cọc (hoàn lại)</p>
+              <Money amountVnd={quote.data.deposit} className="whitespace-nowrap" />
+            </div>
+          )}
           {quote.data.isReferenceOnly && (
             <p className="text-body-sm text-muted">
               Phụ phí tham khảo {quote.data.referenceFees.toLocaleString('vi-VN')}đ chưa tính vào
-              hợp đồng; tiền hợp đồng chính thức là giá thuê mỗi ngày × số ngày, chốt theo giá khu
-              vực tại thời điểm duyệt.
+              hợp đồng; tiền hợp đồng chính thức là giá thuê{' '}
+              {isMonthly ? 'mỗi tháng × số tháng' : 'mỗi ngày × số ngày'}, chốt theo giá khu vực
+              tại thời điểm duyệt.
             </p>
           )}
           <p className="flex items-center gap-1 text-body-sm text-muted">

@@ -5,7 +5,7 @@ import { Icon, Money } from '@/components/common';
 import type { IconName } from '@/components/common/Icon';
 import type { SidewalkSlot, SidewalkZone } from '@/core/api/side-api';
 import { reverseGeocode } from '@/services/map/reverse-geocode';
-import { formatAreaSqm, formatHours, formatSize, toDms } from '../slot-format';
+import { formatAreaSqm, formatHours, formatSize, rentPrice, toDms } from '../slot-format';
 import { BUSINESS_CATEGORY_LABELS, slotDisplayState, type SlotDisplayState } from '../slot-stats';
 import { DISPLAY_STATE_LABELS, SLOT_TONES } from '../slot-visuals';
 import { useNow } from '../useNow';
@@ -233,22 +233,17 @@ function PriceLine({
   state: SlotDisplayState;
   large: boolean;
 }) {
-  const monthly = slot.priceDisplayUnit === 'MONTH' && slot.pricePerMonth != null;
+  const price = rentPrice(slot);
   return (
     <div className="flex items-start justify-between gap-sm">
       <div className="min-w-0">
         <p className="flex flex-wrap items-baseline gap-x-1">
-          <Money
-            amountVnd={slot.pricePerDay}
-            size={large ? 'lg' : 'md'}
-            className="font-sign font-bold"
-          />
-          <span className="text-body-sm text-muted">/ ngày</span>
+          <Money amountVnd={price.amount} size={large ? 'lg' : 'md'} className="font-sign font-bold" />
+          <span className="text-body-sm text-muted">/ {price.unit}</span>
         </p>
-        {monthly ? (
-          <p className="flex items-baseline gap-x-1 text-muted">
-            <Money amountVnd={slot.pricePerMonth!} color="currentColor" />
-            <span className="text-body-sm">/ tháng</span>
+        {slot.rentalMode === 'STANDARD' && slot.quarterDiscountPercent ? (
+          <p className="text-body-sm font-semibold text-[#0B5D33] dark:text-[#8BE3B0]">
+            Giảm {slot.quarterDiscountPercent}% khi thuê 3, 6 hoặc 12 tháng
           </p>
         ) : null}
       </div>

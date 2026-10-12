@@ -31,7 +31,7 @@ export function Screen({ children, scroll = true, padded = true, footer, width =
         {padded ? (
           <div
             className={[
-              'cq mx-auto flex w-full flex-col gap-md p-md pb-xl md:px-lg lg:px-xl lg:py-lg',
+              'cq sb-clear-launcher mx-auto flex w-full flex-col gap-md p-md pb-xl md:px-lg lg:px-xl lg:py-lg',
               SCREEN_WIDTH[width],
             ].join(' ')}
           >

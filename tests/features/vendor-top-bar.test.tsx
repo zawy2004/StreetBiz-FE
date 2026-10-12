@@ -51,7 +51,7 @@ beforeEach(() => {
     distanceMeters: null, imageUrl: null, hasPower: false, hasWater: false,
     hasTrashBin: false, businessCategory: null, tenantName: null,
     holdExpiresAt: isoIn(14), priceDisplayUnit: 'DAY', pricePerMonth: null,
-    rentalMode: 'STANDARD', eventEndDate: null,
+    rentalMode: 'STANDARD', eventEndDate: null, monthlyPrice: 900000, quarterDiscountPercent: null,
   }));
   useAuthStore.setState({
     user: {

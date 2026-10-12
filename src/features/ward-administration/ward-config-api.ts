@@ -1,4 +1,5 @@
 import { ApiError, apiDelete, apiGet, apiPost, apiPut } from '@/core/api';
+import type { FeeCalcBasis } from '@/core/api/side-api';
 
 // WARD-01/02/03 Ward Configuration. Mirrors StreetBiz-BE Features/WardConfiguration/Contracts.cs.
 
@@ -95,7 +96,7 @@ export type StreetFeatureInput = {
 
 export type ZoneFeeComponentInput = {
   componentName: string;
-  calcBasis: 'PER_DAY' | 'PER_TERM';
+  calcBasis: FeeCalcBasis;
   unitAmount: number;
 };
 export type ZoneFeeComponent = ZoneFeeComponentInput & { componentId: number; sortOrder: number };
@@ -117,13 +118,15 @@ export type WardZone = {
   featureCount: number;
   feeComponents: ZoneFeeComponent[];
   versionToken: string;
-  /** price_per_day stays the only value the fee engine reads; this + pricePerMonth are just
-   * how the officer entered/sees the price. */
+  /** MONTH: the officer entered pricePerMonth, which whole-month STANDARD terms are billed at;
+   * pricePerDay is then derived from it for EVENT and part-month terms. */
   priceDisplayUnit: 'DAY' | 'MONTH';
   pricePerMonth: number | null;
   rentalMode: 'STANDARD' | 'EVENT';
   eventStartDate: string | null;
   eventEndDate: string | null;
+  /** STANDARD only: % off the rent of a 3/6/12-month term; null = no discount. */
+  quarterDiscountPercent: number | null;
 };
 
 export type UpsertZoneRequest = {
@@ -147,6 +150,7 @@ export type UpsertZoneRequest = {
   rentalMode: 'STANDARD' | 'EVENT';
   eventStartDate: string | null;
   eventEndDate: string | null;
+  quarterDiscountPercent: number | null;
 };
 
 export type ZoneImpactItem = {
@@ -252,12 +256,18 @@ export const wardConfigApi = {
     availableFrom: string | null,
     availableTo: string | null,
     feeComponents: ZoneFeeComponentInput[],
+    pricing?: {
+      priceDisplayUnit: 'DAY' | 'MONTH';
+      pricePerMonth: number | null;
+      quarterDiscountPercent: number | null;
+    },
   ) =>
     apiPost<ZoneImpactPreview>(`/ward/pricing-zones/${zoneId}/impact-preview`, {
       pricePerDay,
       availableFrom,
       availableTo,
       feeComponents,
+      ...pricing,
     }),
   zoneHistory: (zoneId: number) =>
     apiGet<ConfigHistoryEntry[]>(`/ward/pricing-zones/${zoneId}/history`),

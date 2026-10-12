@@ -41,14 +41,22 @@ export type SidewalkSlot = {
   pricePerMonth: number | null;
   rentalMode: 'STANDARD' | 'EVENT';
   eventEndDate: string | null;
+  /** Rent of one month of a STANDARD zone (pricePerMonth, else pricePerDay x 30). */
+  monthlyPrice: number;
+  /** STANDARD only: % off the rent of a 3/6/12-month term; null = no discount. */
+  quarterDiscountPercent: number | null;
 };
 
 export type BusinessCategory = 'FOOD_BEVERAGE' | 'RETAIL' | 'SERVICES' | 'CRAFTS' | 'GENERAL';
 
+/** PER_DAY x term days; PER_TERM once per term (again on renewal); ONE_TIME and the
+ * refundable DEPOSIT once, on the first contract only. */
+export type FeeCalcBasis = 'PER_DAY' | 'PER_TERM' | 'ONE_TIME' | 'DEPOSIT';
+
 export type FeeComponent = {
   componentId: number;
   componentName: string;
-  calcBasis: 'PER_DAY' | 'PER_TERM';
+  calcBasis: FeeCalcBasis;
   unitAmount: number;
 };
 
@@ -89,13 +97,18 @@ export type SidewalkZone = {
   availableTo: string | null;
   feeComponents: FeeComponent[];
   features: StreetFeature[];
+  rentalMode: 'STANDARD' | 'EVENT';
+  /** Rent of one month of a STANDARD zone. */
+  monthlyPrice: number;
+  quarterDiscountPercent: number | null;
 };
 
 export type FeeQuoteLine = {
-  /** RENT is price_per_day x days; FEE is one of the zone's fee components. */
-  kind: 'RENT' | 'FEE';
+  /** RENT is by the day, or by the month (PER_MONTH) for a STANDARD zone; DISCOUNT is the
+   * quarterly discount (negative); FEE is a zone fee component; DEPOSIT the refundable deposit. */
+  kind: 'RENT' | 'DISCOUNT' | 'FEE' | 'DEPOSIT';
   label: string | null;
-  calcBasis: 'PER_DAY' | 'PER_TERM';
+  calcBasis: FeeCalcBasis | 'PER_MONTH';
   unitAmount: number;
   quantity: number;
   amount: number;
@@ -106,11 +119,14 @@ export type FeeQuote = {
   termDays: number;
   lines: FeeQuoteLine[];
   total: number;
-  /** price_per_day x days: what the contract is billed at approval. */
+  /** The rent after any quarterly discount. */
   baseFee: number;
-  /** Zone fee components, shown for transparency; not yet charged on the contract. */
+  /** Zone fee components (deposit excluded). */
   referenceFees: number;
+  /** Always false now that approval bills the fees too; kept for older servers. */
   isReferenceOnly: boolean;
+  /** Refundable deposit: part of total, but not a fee. */
+  deposit: number;
 };
 
 export type SlotHold = {

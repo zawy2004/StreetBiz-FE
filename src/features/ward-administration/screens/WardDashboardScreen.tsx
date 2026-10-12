@@ -75,6 +75,11 @@ export function WardDashboardScreen() {
         right={
           <>
             <IconButton
+              icon="cash-multiple"
+              accessibilityLabel="Thu phí và điều chỉnh"
+              onPress={() => navigate('/ward/finance')}
+            />
+            <IconButton
               icon="cog-outline"
               accessibilityLabel="Cấu hình"
               onPress={() => navigate('/ward/settings/pricing')}

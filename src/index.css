@@ -614,6 +614,14 @@ body:has([data-sticky-actions]) .sb-launcher {
   }
 }
 
+/* The launcher floats over the bottom-right of the scroll area, so the last row of a page
+   (e.g. a "Gọi hỗ trợ" button) would sit under it at the end of the scroll. A scroll body
+   marked sb-clear-launcher ends with enough room to scroll that row clear of it:
+   launcher height (~52px) + its 16-24px offset + a gap. */
+body:has(.sb-launcher) .sb-clear-launcher {
+  padding-bottom: 96px;
+}
+
 /* Steam off a hot bowl: three wisps drift up and thin out, out of step. */
 .sb-steam path {
   animation: sb-steam 4.8s ease-in-out infinite;

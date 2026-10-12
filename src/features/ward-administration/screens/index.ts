@@ -14,6 +14,7 @@ export * from './SlotGridEditorScreen';
 export * from './PricingScheduleScreen';
 export * from './PenaltyScheduleScreen';
 export * from './CollectionReportScreen';
+export * from './WardFinanceScreen';
 export * from './PermitScanScreen';
 export * from './RecordViolationScreen';
 export * from './PermitActionScreen';

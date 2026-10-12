@@ -83,3 +83,17 @@ export function formatShortVnd(amount: number): string {
   if (amount >= 1000) return `${Math.round(amount / 1000).toLocaleString('vi-VN')}k`;
   return String(amount);
 }
+
+type Priced = {
+  rentalMode: 'STANDARD' | 'EVENT';
+  pricePerDay: number;
+  /** Absent from an older server: falls back to pricePerDay x 30. */
+  monthlyPrice?: number;
+};
+
+/** A fixed location (STANDARD) is rented and priced by the month; an EVENT zone by the day. */
+export function rentPrice(p: Priced): { amount: number; unit: 'tháng' | 'ngày' } {
+  return p.rentalMode === 'STANDARD'
+    ? { amount: p.monthlyPrice ?? p.pricePerDay * 30, unit: 'tháng' }
+    : { amount: p.pricePerDay, unit: 'ngày' };
+}

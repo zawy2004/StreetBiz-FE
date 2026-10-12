@@ -75,6 +75,7 @@ const zone: WardZone = {
   priceDisplayUnit: 'DAY',
   pricePerMonth: null,
   rentalMode: 'STANDARD',
+  quarterDiscountPercent: null,
   eventStartDate: null,
   eventEndDate: null,
 };
@@ -218,7 +219,11 @@ describe('WARD-02 pricing & hours', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Xem tác động trước khi lưu' }));
     expect(await screen.findByText(/Tổng chênh lệch/)).toBeInTheDocument();
-    expect(preview).toHaveBeenCalledWith(1, 40000, '05:00:00', '22:00:00', []);
+    expect(preview).toHaveBeenCalledWith(1, 40000, '05:00:00', '22:00:00', [], {
+      priceDisplayUnit: 'DAY',
+      pricePerMonth: null,
+      quarterDiscountPercent: null,
+    });
     expect(save).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText('Lý do thay đổi'), { target: { value: 'Theo quyết định mới' } });
@@ -228,6 +233,38 @@ describe('WARD-02 pricing & hours', () => {
         1,
         expect.objectContaining({ pricePerDay: 40000, versionToken: 'zone-v1', changeReason: 'Theo quyết định mới', regulationNumber: null }),
       ),
+    );
+  });
+
+  it('treats a new quarterly discount as a price change and sends it with the zone', async () => {
+    vi.spyOn(wardConfigApi, 'listZones').mockResolvedValue([zone]);
+    const preview = vi.spyOn(wardConfigApi, 'previewZoneImpact').mockResolvedValue({
+      amountChanged: true,
+      hoursChanged: false,
+      pendingApplications: [],
+      openRenewals: [],
+      activeContractsAffectedByHours: 0,
+      totalDelta: 0,
+      vendorsToNotify: 0,
+    });
+    const update = vi.spyOn(wardConfigApi, 'updateZone').mockResolvedValue(zone);
+    mount(<PricingScheduleScreen />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Đường Nguyễn Văn Linh/ }));
+    fireEvent.change(screen.getByLabelText(/Giảm giá khi thuê theo quý/), { target: { value: '10' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Xem tác động trước khi lưu' }));
+    expect(await screen.findByText(/Tổng chênh lệch/)).toBeInTheDocument();
+    expect(preview).toHaveBeenCalledWith(1, 30000, '05:00:00', '22:00:00', [], {
+      priceDisplayUnit: 'DAY',
+      pricePerMonth: null,
+      quarterDiscountPercent: 10,
+    });
+
+    fireEvent.change(screen.getByLabelText('Lý do thay đổi'), { target: { value: 'Khuyến mãi quý' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith(1, expect.objectContaining({ quarterDiscountPercent: 10 })),
     );
   });
 

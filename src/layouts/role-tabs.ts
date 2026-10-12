@@ -26,6 +26,7 @@ export const WARD_TABS: RoleTabItem[] = [
   { to: '/ward/inbox', label: 'Hộp duyệt', icon: 'inbox-outline' },
   { to: '/ward/slots', label: 'Lưới ô', icon: 'map-marker-radius-outline' },
   { to: '/ward/patrol', label: 'Tuần tra', icon: 'qrcode-scan' },
+  { to: '/ward/finance', label: 'Thu phí', icon: 'cash-multiple' },
   { to: '/ward/reports', label: 'Báo cáo', icon: 'chart-bar' },
 ];
 
