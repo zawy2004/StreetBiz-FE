@@ -1,26 +1,43 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button, Card, Divider, ListRow } from '@/components/common';
-import { Money } from '@/components/common';
+import { Button, formatVnd, Icon, KerbTag, Money } from '@/components/common';
 import { TextField } from '@/components/forms';
-import { AppHeader, Screen, Section, StickyActions } from '@/components/layout';
+import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { ErrorState, showToast } from '@/components/feedback';
+import { ErrorState, showToast, Skeleton } from '@/components/feedback';
 import { isLiveApi } from '@/core/config/env';
+import { useMediaQuery } from '@/hooks/useBreakpoint';
 import { useMockDb } from '@/mocks/db';
 import { complianceApi, type WardRenewalDetail } from '../ward-api';
+import { formatDateTimeVi, formatDueVi } from '../components/review/format';
+import { DossierBlock, FactGrid, LegalNote } from '../components/review/Primitives';
+import {
+  ComplianceScorecard,
+  ContractTimeline,
+  DecisionDeskCard,
+  DecisionRecord,
+  FeeReceipt,
+  PrerequisiteLock,
+} from '../components/review/PermitDossierParts';
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '-';
-  return new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 }
 
 function fmtDateTime(iso: string | null | undefined): string {
   if (!iso) return '-';
   return new Date(iso).toLocaleString('vi-VN', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
@@ -28,7 +45,8 @@ function vendorTypeLabel(type: string): string {
   return type === 'FIXED_STOREFRONT' ? 'Cửa hàng cố định' : 'Hàng rong lưu động';
 }
 
-const isReviewableRenewalStatus = (status: string) => status === 'PENDING' || status === 'UNDER_REVIEW';
+const isReviewableRenewalStatus = (status: string) =>
+  status === 'PENDING' || status === 'UNDER_REVIEW';
 
 export function RenewalReviewScreen() {
   const { id } = useParams<{ id: string }>();
@@ -56,16 +74,48 @@ export function RenewalReviewScreen() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Where the decision desk goes: the right column on wide screens, the bottom bar
+  // otherwise. Exactly one set of decision buttons is rendered at any time.
+  const wide = useMediaQuery('(min-width: 1280px)');
+
   if (!mockRenewal && !detail && !loading) {
-    return <ErrorState message="Không tìm thấy yêu cầu gia hạn tại địa bàn." />;
+    return (
+      <Screen>
+        <ErrorState message="Không tìm thấy yêu cầu gia hạn tại địa bàn." />
+        <div className="flex justify-center">
+          <Button
+            label="Quay lại"
+            variant="outline"
+            fullWidth={false}
+            onPress={() => navigate(-1)}
+          />
+        </div>
+      </Screen>
+    );
   }
 
   if (loading) {
     return (
-      <Screen>
+      <Screen width="wide">
         <AppHeader title="Đang tải..." back />
-        <div className="flex items-center justify-center py-xl">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+        <div role="status" className="flex flex-col gap-lg">
+          <span className="sr-only">Đang tải yêu cầu gia hạn…</span>
+          <div className="flex flex-wrap gap-xs">
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-6 w-36" />
+          </div>
+          <div className="grid items-start gap-lg xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-xl">
+            <div className="flex flex-col gap-lg">
+              <Skeleton className="h-[220px] rounded-[24px]" />
+              <div className="grid grid-cols-2 gap-sm md:grid-cols-3">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <Skeleton key={i} className="h-[92px] rounded-[16px]" />
+                ))}
+              </div>
+            </div>
+            <Skeleton className="h-[260px] rounded-[24px]" />
+          </div>
         </div>
       </Screen>
     );
@@ -145,10 +195,58 @@ export function RenewalReviewScreen() {
     }
   };
 
+  // Display only: loaded fields the review now shows.
+  const submittedAt = formatDateTimeVi(detail?.createdAt ?? mockRenewal?.requested_at);
+  const due = isOpen && detail ? formatDueVi(detail.slaDueAt) : null;
+  const overdue = isOpen && !!detail?.isOverdue;
+  const registrationLink =
+    isLiveApi && detail?.registrationId
+      ? `/ward/inbox/registrations/${detail.registrationId}`
+      : null;
+
+  const receipt = (
+    <FeeReceipt
+      title="Dự toán phí gia hạn sử dụng hè phố"
+      rows={[
+        { label: 'Mức thu theo ngày:', value: <Money amountVnd={pricePerDay} /> },
+        { label: 'Thời hạn gia hạn:', value: `${requestedTermDays} ngày` },
+      ]}
+      totalLabel="Tổng phí gia hạn dự kiến:"
+      totalValue={formatVnd(totalEstimatedFee)}
+      totalAria={`Tổng phí gia hạn dự kiến ${totalEstimatedFee.toLocaleString('vi-VN')} đồng`}
+      footnotes={<p>Theo biểu giá khu vực Phường</p>}
+    />
+  );
+  const noteField = isOpen ? (
+    <TextField
+      label="Ghi chú phản hồi / Căn cứ quyết định"
+      value={note}
+      onChangeText={setNote}
+      multiline
+      placeholder="Nhập ghi chú hoặc lý do từ chối gia hạn (bắt buộc khi từ chối)..."
+    />
+  ) : null;
+  const approveIcon = (
+    <Icon
+      name={canApprove ? 'check-circle-outline' : 'lock-outline'}
+      size={19}
+      color="currentColor"
+    />
+  );
+  const decisionRecord =
+    isDecided && reviewReason ? (
+      <DecisionRecord
+        status={status}
+        reason={reviewReason}
+        officerLine={`Cán bộ: ${reviewedBy ?? '-'} · ${fmtDateTime(reviewedAt)}`}
+      />
+    ) : null;
+
   return (
     <Screen
+      width="wide"
       footer={
-        isOpen ? (
+        isOpen && !wide ? (
           <StickyActions>
             <div className="flex-1">
               <Button
@@ -162,6 +260,7 @@ export function RenewalReviewScreen() {
               <Button
                 label="Duyệt gia hạn"
                 variant="approve"
+                icon={approveIcon}
                 disabled={!canApprove || submitting}
                 onPress={() => act('APPROVE')}
               />
@@ -184,212 +283,216 @@ export function RenewalReviewScreen() {
         {remainingDays <= 7 && remainingDays > 0 ? (
           <StatusChip label={`Còn ${remainingDays} ngày`} tone="pending" />
         ) : null}
-        {remainingDays <= 0 && isOpen ? (
-          <StatusChip label="Đã hết hạn" tone="danger" />
+        {remainingDays <= 0 && isOpen ? <StatusChip label="Đã hết hạn" tone="danger" /> : null}
+        {overdue ? <StatusChip label="Quá hạn xử lý" tone="danger" /> : null}
+        {due && !overdue ? (
+          <span className="flex items-center gap-1 text-body-sm font-medium text-text/80">
+            <Icon name="timer-outline" size={15} color="currentColor" />
+            {due}
+          </span>
+        ) : null}
+        {submittedAt ? (
+          <span className="flex items-center gap-1 text-body-sm text-muted">
+            <Icon name="clock-outline" size={15} color="currentColor" />
+            Nộp lúc <span className="font-tabular">{submittedAt}</span>
+          </span>
         ) : null}
       </div>
 
-      {/* Decided review reason */}
-      {isDecided && reviewReason ? (
-        <div className="rounded-xl border border-border bg-surface-variant p-4">
-          <p className="text-body-sm font-semibold text-foreground">Quyết định của cán bộ</p>
-          <p className="mt-1 text-body-md text-text">{reviewReason}</p>
-          <p className="mt-1 text-body-xs text-muted">
-            Cán bộ: {reviewedBy ?? '-'} · {fmtDateTime(reviewedAt)}
-          </p>
-        </div>
-      ) : null}
-
-      {/* Blocker alerts */}
-      {blockers.length > 0 ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800/50 dark:bg-red-950/30">
-          <div className="flex items-center gap-2 font-semibold text-danger">
-            <span>Chưa đủ điều kiện gia hạn</span>
-          </div>
-          <ul className="mt-1 list-disc pl-5 text-body-sm text-danger/90 space-y-1">
-            {blockers.map((b, i) => (
-              <li key={i}>{b}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {/* Contract & Vendor Info */}
-      <Section title="Thông tin hợp đồng & hộ kinh doanh">
-        <Card padded={false}>
-          <div className="px-md">
-            <ListRow title="Tên hộ kinh doanh" subtitle={vendorName} />
-            <Divider />
-            <ListRow title="Số điện thoại" subtitle={vendorPhone || 'Đã liên kết tài khoản'} />
-            <Divider />
-            <ListRow title="Loại hình kinh doanh" subtitle={vendorTypeLabel(vendorType)} />
-            <Divider />
-            <div className="flex items-center justify-between py-sm">
-              <div>
-                <p className="text-body-sm font-medium text-foreground">Hồ sơ điểm kinh doanh (BR-16)</p>
-                <p className="text-body-xs text-muted">
-                  Mã hồ sơ: {detail?.registrationId ?? '-'}
-                </p>
-              </div>
-              <StatusChip code={registrationStatus} />
+      <div className="grid items-start gap-lg xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-xl">
+        <div className="flex min-w-0 flex-col gap-lg">
+          {/* Contract term ruler */}
+          <section
+            aria-labelledby="renewal-term-title"
+            className="flex flex-col gap-md rounded-[24px] bg-card p-md shadow-card ring-1 ring-border md:p-lg"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-xs">
+              <h2 id="renewal-term-title" className="font-sign text-[19px] font-bold text-text">
+                Thời hạn gia hạn đề nghị
+              </h2>
+              {slotCode ? <KerbTag code={slotCode} place={slotStreet} /> : null}
             </div>
-          </div>
-        </Card>
-      </Section>
-
-      {/* Sidewalk slot */}
-      <Section title="Vị trí ô hè phố hiện tại">
-        <Card padded={false}>
-          <div className="px-md">
-            <ListRow title="Mã ô" subtitle={`${slotCode} · Đường ${slotStreet}`} />
-            <Divider />
-            <ListRow
-              title="Kích thước ô"
-              subtitle={`${slotWidth}m rộng × ${slotLength}m dài`}
+            <ContractTimeline
+              currentEnd={currentEndDate}
+              proposedEnd={proposedEndDate}
+              currentLabel={fmtDate(currentEndDate)}
+              proposedLabel={fmtDate(proposedEndDate)}
+              remainingDays={remainingDays}
+              termDays={requestedTermDays}
+              isOpen={isOpen}
             />
-            <Divider />
-            <ListRow title="Số hợp đồng" subtitle={`#${contractId}`} />
-          </div>
-        </Card>
-      </Section>
-
-      {/* Renewal Time Comparison */}
-      <Section title="Thời hạn gia hạn đề nghị">
-        <Card>
-          <div className="grid grid-cols-2 gap-md">
-            <div>
-              <p className="text-body-sm text-muted">Hết hạn hiện tại</p>
-              <p className="text-headline-sm text-text">{fmtDate(currentEndDate)}</p>
-            </div>
-            <div>
-              <p className="text-body-sm text-muted">Hết hạn mới (đề nghị)</p>
-              <p className="text-headline-sm text-primary font-semibold">{fmtDate(proposedEndDate)}</p>
-            </div>
-          </div>
-          <Divider />
-          <div className="flex items-center justify-between pt-sm">
-            <span className="text-body-sm text-muted">Thời hạn gia hạn thêm</span>
-            <span className="text-headline-sm font-bold text-primary">+{requestedTermDays} ngày</span>
-          </div>
-          {remainingDays > 0 ? (
-            <div className="flex items-center justify-between">
-              <span className="text-body-sm text-muted">Còn lại trên hợp đồng hiện tại</span>
-              <span className={`text-body-md font-semibold ${remainingDays <= 7 ? 'text-danger' : 'text-foreground'}`}>
-                {remainingDays} ngày
-              </span>
-            </div>
-          ) : null}
-        </Card>
-      </Section>
-
-      {/* Fee Calculation */}
-      <Section title="Dự toán phí gia hạn sử dụng hè phố">
-        <Card>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-body-sm text-muted">Mức thu theo ngày:</span>
-              <Money amountVnd={pricePerDay} />
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-body-sm text-muted">Thời hạn gia hạn:</span>
-              <span className="text-body-md font-semibold text-foreground">{requestedTermDays} ngày</span>
-            </div>
-            <Divider />
-            <div className="flex items-center justify-between pt-1">
+            <dl className="grid grid-cols-2 gap-sm border-t border-border pt-md md:grid-cols-4">
               <div>
-                <p className="text-body-sm font-semibold text-foreground">Tổng phí gia hạn dự kiến:</p>
-                <p className="text-body-xs text-muted">Theo biểu giá khu vực Phường</p>
+                <dt className="text-body-sm text-muted">Hết hạn hiện tại</dt>
+                <dd className="font-sign text-[18px] font-bold text-text font-tabular">
+                  {fmtDate(currentEndDate)}
+                </dd>
               </div>
-              <Money amountVnd={totalEstimatedFee} size="lg" color="var(--color-primary)" />
-            </div>
+              <div>
+                <dt className="text-body-sm text-muted">Hết hạn mới (đề nghị)</dt>
+                <dd className="font-sign text-[18px] font-bold text-[#8A3200] font-tabular dark:text-[#FFB98A]">
+                  {fmtDate(proposedEndDate)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-body-sm text-muted">Thời hạn gia hạn thêm</dt>
+                <dd className="font-sign text-[18px] font-bold text-text font-tabular">
+                  +{requestedTermDays} ngày
+                </dd>
+              </div>
+              {remainingDays > 0 ? (
+                <div>
+                  <dt className="text-body-sm text-muted">Còn lại trên hợp đồng hiện tại</dt>
+                  <dd
+                    className={`font-sign text-[18px] font-bold font-tabular ${remainingDays <= 7 ? 'text-[#8F1717] dark:text-[#FF9A90]' : 'text-text'}`}
+                  >
+                    {remainingDays} ngày
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          </section>
+
+          {/* Blocker alerts */}
+          {blockers.length > 0 ? (
+            <PrerequisiteLock title="Chưa đủ điều kiện gia hạn" blockers={blockers} />
+          ) : null}
+
+          {/* Vendor Compliance Scorecard */}
+          {scorecard ? (
+            <DossierBlock title="Lịch sử tuân thủ hộ kinh doanh" icon="shield-check-outline">
+              <ComplianceScorecard
+                clean={scorecard.isCleanRecord}
+                cells={[
+                  { label: 'Lần kiểm tra', value: scorecard.totalInspections },
+                  {
+                    label: 'Vi phạm',
+                    value: scorecard.violationCount,
+                    alert: scorecard.violationCount > 0,
+                  },
+                  {
+                    label: 'Phạt chưa nộp',
+                    value: scorecard.unpaidPenaltyCount,
+                    alert: scorecard.unpaidPenaltyCount > 0,
+                  },
+                  {
+                    label: 'Tổng tiền phạt',
+                    value: (
+                      <span className="text-[20px] md:text-[24px]">
+                        {scorecard.totalPenaltyAmount > 0
+                          ? `${scorecard.totalPenaltyAmount.toLocaleString('vi-VN')} đ`
+                          : '0 đ'}
+                      </span>
+                    ),
+                  },
+                  { label: 'Phản ánh cộng đồng', value: scorecard.reportCount },
+                  {
+                    label: 'Trạng thái giấy phép',
+                    value: (
+                      <span className="block pt-1">
+                        <StatusChip code={scorecard.currentPermitStatus} />
+                      </span>
+                    ),
+                  },
+                ]}
+              />
+            </DossierBlock>
+          ) : null}
+
+          {wide ? null : receipt}
+          {wide ? null : decisionRecord}
+
+          {/* Contract & Vendor Info */}
+          <DossierBlock
+            title="Thông tin hợp đồng & hộ kinh doanh"
+            icon="storefront-outline"
+            aside={
+              registrationLink ? (
+                <button
+                  type="button"
+                  onClick={() => navigate(registrationLink)}
+                  className="inline-flex min-h-11 items-center gap-1 rounded-full px-sm text-body-sm font-semibold text-indigo transition-colors hover:bg-tint-indigo"
+                >
+                  <Icon name="file-document-outline" size={16} color="currentColor" />
+                  Mở hồ sơ điểm kinh doanh
+                </button>
+              ) : null
+            }
+          >
+            <FactGrid
+              columns={3}
+              facts={[
+                { label: 'Tên hộ kinh doanh', value: vendorName, emphasis: true },
+                { label: 'Số điện thoại', value: vendorPhone || 'Đã liên kết tài khoản' },
+                { label: 'Loại hình kinh doanh', value: vendorTypeLabel(vendorType) },
+                {
+                  label: 'Hồ sơ điểm kinh doanh (BR-16)',
+                  value: (
+                    <span className="flex flex-wrap items-center gap-xs">
+                      <span>Mã hồ sơ: {detail?.registrationId ?? '-'}</span>
+                      <StatusChip code={registrationStatus} />
+                    </span>
+                  ),
+                },
+                { label: 'Mã ô', value: `${slotCode} · Đường ${slotStreet}` },
+                { label: 'Kích thước ô', value: `${slotWidth}m rộng × ${slotLength}m dài` },
+                { label: 'Số hợp đồng', value: `#${contractId}` },
+              ]}
+            />
+          </DossierBlock>
+
+          {/* Legal basis */}
+          <LegalNote title="Căn cứ pháp lý">
+            * Thẩm quyền quyết định hành chính, trình tự thủ tục và hạn xử lý hồ sơ (≤3 ngày làm
+            việc) căn cứ <strong>Luật Đường bộ 2024 (Điều 77)</strong>,{' '}
+            <strong>Nghị định 165/2024/NĐ-CP (Điều 21)</strong> được sửa đổi bởi{' '}
+            <strong>Nghị định 241/2026/NĐ-CP</strong>. Việc thu phí sử dụng hè phố cho hoạt động
+            kinh doanh thực hiện theo{' '}
+            <strong>
+              Đề án/Quyết định thí điểm quản lý, khai thác hè phố của UBND thành phố Đà Nẵng
+            </strong>{' '}
+            (cần cập nhật số hiệu văn bản chính thức khi ban hành) — các trường hợp liệt kê tại Điều
+            21 NĐ 165/2024 là trường hợp phi thương mại (sự kiện, phòng chống thiên tai, thi
+            công...), không trực tiếp bao gồm kinh doanh hàng hóa. Sau khi phê duyệt, hệ thống tự
+            động gia hạn hợp đồng, cập nhật giấy phép số QR và tạo lịch thu phí gia hạn mới.
+          </LegalNote>
+
+          {/* Officer note */}
+          {wide ? null : noteField}
+        </div>
+
+        {wide ? (
+          <div className="flex flex-col gap-md pb-[88px] xl:sticky xl:top-md">
+            {receipt}
+            {isOpen ? (
+              <DecisionDeskCard title="Quyết định gia hạn">
+                {noteField}
+                <div className="flex flex-col gap-sm">
+                  <span className="block" title={!canApprove ? blockers[0] : undefined}>
+                    <Button
+                      label="Duyệt gia hạn"
+                      variant="approve"
+                      icon={approveIcon}
+                      disabled={!canApprove || submitting}
+                      onPress={() => act('APPROVE')}
+                    />
+                  </span>
+                  <div className="pt-xs">
+                    <Button
+                      label="Từ chối"
+                      variant="danger"
+                      disabled={submitting}
+                      onPress={() => act('REJECT')}
+                    />
+                  </div>
+                </div>
+              </DecisionDeskCard>
+            ) : (
+              decisionRecord
+            )}
           </div>
-        </Card>
-      </Section>
-
-      {/* Vendor Compliance Scorecard */}
-      {scorecard ? (
-        <Section title="Lịch sử tuân thủ hộ kinh doanh">
-          <Card>
-            <div className="space-y-2">
-              {scorecard.isCleanRecord ? (
-                <div className="flex items-center justify-between gap-2 rounded-lg bg-green-50 px-3 py-2 dark:bg-green-950/30">
-                  <span className="text-body-sm font-semibold text-green-700 dark:text-green-400">
-                    Hồ sơ sạch, chưa có vi phạm
-                  </span>
-                  <StatusChip label="[AI] Đề xuất: Phê duyệt nhanh" tone="ok" />
-                </div>
-              ) : (
-                <div className="flex items-center justify-between gap-2 rounded-lg bg-amber-50 px-3 py-2 dark:bg-amber-950/30">
-                  <span className="text-body-sm font-semibold text-amber-700 dark:text-amber-400">
-                    Có lịch sử cần rà soát trước khi quyết định
-                  </span>
-                  <StatusChip label="Cần xem xét kỹ" tone="pending" />
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-x-md gap-y-sm text-body-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">Lần kiểm tra:</span>
-                  <span className="font-semibold text-foreground">{scorecard.totalInspections}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">Vi phạm:</span>
-                  <span className={`font-semibold ${scorecard.violationCount > 0 ? 'text-danger' : 'text-foreground'}`}>
-                    {scorecard.violationCount}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">Phạt chưa nộp:</span>
-                  <span className={`font-semibold ${scorecard.unpaidPenaltyCount > 0 ? 'text-danger' : 'text-foreground'}`}>
-                    {scorecard.unpaidPenaltyCount}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">Tổng tiền phạt:</span>
-                  <span className="font-semibold text-foreground">
-                    {scorecard.totalPenaltyAmount > 0 ? `${scorecard.totalPenaltyAmount.toLocaleString('vi-VN')} đ` : '0 đ'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">Phản ánh cộng đồng:</span>
-                  <span className="font-semibold text-foreground">{scorecard.reportCount}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted">Trạng thái giấy phép:</span>
-                  <StatusChip code={scorecard.currentPermitStatus} />
-                </div>
-              </div>
-            </div>
-          </Card>
-        </Section>
-      ) : null}
-
-      {/* Legal basis */}
-      <Section title="Căn cứ pháp lý">
-        <Card>
-          <p className="text-body-sm text-muted">
-            * Thẩm quyền quyết định hành chính, trình tự thủ tục và hạn xử lý hồ sơ (≤3 ngày làm việc) căn cứ{' '}
-            <strong>Luật Đường bộ 2024 (Điều 77)</strong>, <strong>Nghị định 165/2024/NĐ-CP (Điều 21)</strong> được sửa
-            đổi bởi <strong>Nghị định 241/2026/NĐ-CP</strong>. Việc thu phí sử dụng hè phố cho hoạt động kinh doanh
-            thực hiện theo <strong>Đề án/Quyết định thí điểm quản lý, khai thác hè phố của UBND thành phố Đà Nẵng</strong>{' '}
-            (cần cập nhật số hiệu văn bản chính thức khi ban hành) — các trường hợp liệt kê tại Điều 21 NĐ 165/2024 là
-            trường hợp phi thương mại (sự kiện, phòng chống thiên tai, thi công...), không trực tiếp bao gồm kinh doanh
-            hàng hóa. Sau khi phê duyệt, hệ thống tự động gia hạn hợp đồng, cập nhật giấy phép số QR và tạo lịch thu phí
-            gia hạn mới.
-          </p>
-        </Card>
-      </Section>
-
-      {/* Officer note */}
-      {isOpen ? (
-        <Section title="Ghi chú phản hồi / Căn cứ quyết định">
-          <TextField
-            value={note}
-            onChangeText={setNote}
-            multiline
-            placeholder="Nhập ghi chú hoặc lý do từ chối gia hạn (bắt buộc khi từ chối)..."
-          />
-        </Section>
-      ) : null}
+        ) : null}
+      </div>
     </Screen>
   );
 }

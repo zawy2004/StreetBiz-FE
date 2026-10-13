@@ -14,6 +14,7 @@ export const env = {
    */
   useMockApi: bool(import.meta.env.VITE_USE_MOCK_API),
   enableAiCompliance: bool(import.meta.env.VITE_ENABLE_AI_COMPLIANCE),
+  enableChatbot: bool(import.meta.env.VITE_ENABLE_CHATBOT, true),
   enablePhase2: bool(import.meta.env.VITE_ENABLE_PHASE_2),
   enablePushNotifications: bool(import.meta.env.VITE_ENABLE_PUSH_NOTIFICATIONS),
   enablePaymentSandbox: bool(import.meta.env.VITE_ENABLE_PAYMENT_SANDBOX),

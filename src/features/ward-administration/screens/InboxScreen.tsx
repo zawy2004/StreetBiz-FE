@@ -1,11 +1,8 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Card, Icon } from '@/components/common';
-import { DataTable, type Column } from '@/components/data';
-import { colors } from '@/theme';
+import { Button, Icon, Spinner } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
-import { StatusChip } from '@/components/status';
 import { FilterChips } from '@/components/forms';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
@@ -16,6 +13,14 @@ import {
   type WardRenewalItem,
   type WardRiskQueueItem,
 } from '../ward-api';
+import {
+  InboxCounters,
+  InboxSignposts,
+  PriorityExplainer,
+  QueueBoard,
+  type BoardItem,
+  type Counter,
+} from '../components/review/InboxParts';
 
 /**
  * Idea 4 (WARD-09): lets an officer select several Fast-track-eligible renewals from the
@@ -50,7 +55,9 @@ function FastTrackBatchPanel({
     });
 
   const toggleAll = () =>
-    setSelected((prev) => (prev.size === candidates.length ? new Set() : new Set(candidates.map((c) => c.id))));
+    setSelected((prev) =>
+      prev.size === candidates.length ? new Set() : new Set(candidates.map((c) => c.id)),
+    );
 
   const submit = async () => {
     if (selected.size === 0 || !reason.trim()) return;
@@ -70,68 +77,108 @@ function FastTrackBatchPanel({
     }
   };
 
+  const totalFee = candidates
+    .filter((c) => selected.has(c.id))
+    .reduce((sum, c) => sum + c.totalFee, 0);
+
   return (
-    <Card>
-      <div className="flex items-center justify-between gap-sm">
-        <div>
-          <h2 className="text-headline-sm text-text">[AI] Duyệt nhanh hàng loạt</h2>
-          <p className="text-body-sm text-muted">
-            Chọn các hồ sơ gia hạn đủ điều kiện xét nhanh để phê duyệt cùng một lý do. Từng hồ sơ vẫn được kiểm tra điều
-            kiện riêng như duyệt thủ công.
-          </p>
+    <section
+      aria-labelledby="fast-track-title"
+      className="sb-pop relative overflow-hidden rounded-[20px] bg-card shadow-sheet ring-1 ring-border"
+    >
+      <span aria-hidden="true" className="absolute inset-y-0 left-0 w-[5px] bg-secondary" />
+      <div className="flex flex-col gap-md p-md pl-lg md:p-lg md:pl-xl">
+        <div className="flex flex-wrap items-start justify-between gap-sm">
+          <div className="min-w-0 max-w-[70ch]">
+            <h2
+              id="fast-track-title"
+              className="flex items-center gap-xs font-sign text-[19px] font-bold text-text"
+            >
+              <Icon
+                name="creation"
+                size={19}
+                color="currentColor"
+                weight="fill"
+                className="text-on-secondary"
+              />
+              [AI] Duyệt nhanh hàng loạt
+            </h2>
+            <p className="mt-1 text-[14px] leading-[22px] text-muted">
+              Chọn các hồ sơ gia hạn đủ điều kiện xét nhanh để phê duyệt cùng một lý do. Từng hồ sơ
+              vẫn được kiểm tra điều kiện riêng như duyệt thủ công.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={toggleAll}
+            className="min-h-11 whitespace-nowrap rounded-full bg-secondary-bg px-md text-body-sm font-semibold text-on-secondary transition-colors hover:bg-secondary/25"
+          >
+            {selected.size === candidates.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={toggleAll}
-          className="whitespace-nowrap text-body-sm font-semibold text-on-secondary"
-        >
-          {selected.size === candidates.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
-        </button>
-      </div>
 
-      <ul className="mt-sm divide-y divide-border">
-        {candidates.map((c) => (
-          <li key={c.id} className="flex items-center gap-sm py-xs">
-            <input
-              type="checkbox"
-              checked={selected.has(c.id)}
-              onChange={() => toggle(c.id)}
-              aria-label={`Chọn gia hạn ${c.vendorName} - ô ${c.slotCode}`}
-              className="h-4 w-4"
-            />
-            <span className="min-w-0 flex-1 truncate text-body-sm text-text">
-              {c.vendorName} - Gia hạn ô {c.slotCode} · +{c.requestedTermDays} ngày ·{' '}
-              {c.totalFee.toLocaleString('vi-VN')} đ
+        <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-[14px] ring-1 ring-border">
+          {candidates.map((c) => (
+            <li key={c.id}>
+              <label className="flex min-h-12 cursor-pointer items-center gap-sm px-sm py-xs transition-colors hover:bg-sunken/60">
+                <input
+                  type="checkbox"
+                  checked={selected.has(c.id)}
+                  onChange={() => toggle(c.id)}
+                  aria-label={`Chọn gia hạn ${c.vendorName} - ô ${c.slotCode}`}
+                  className="h-5 w-5 shrink-0 accent-[rgb(var(--c-tertiary))]"
+                />
+                <span className="min-w-0 flex-1 truncate text-[14px] text-text">
+                  {c.vendorName} - Gia hạn ô {c.slotCode} · +{c.requestedTermDays} ngày ·{' '}
+                  {c.totalFee.toLocaleString('vi-VN')} đ
+                </span>
+              </label>
+            </li>
+          ))}
+        </ul>
+
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Lý do phê duyệt chung (bắt buộc)"
+          aria-label="Lý do phê duyệt chung (bắt buộc)"
+          rows={2}
+          className="input-shell w-full rounded-sm border border-border bg-card p-sm text-[16px] leading-6 text-text placeholder:text-muted/80"
+        />
+
+        {result ? (
+          <p
+            role="status"
+            className="sb-pop flex items-center gap-xs rounded-[12px] bg-[#E6F6EC] px-sm py-xs text-[14px] font-semibold text-[#0B5D33] dark:bg-[#10301F] dark:text-[#8BE3B0]"
+          >
+            <Icon name="check-circle" size={18} color="currentColor" />
+            Đã xử lý: {result.successCount} thành công, {result.failureCount} thất bại.
+          </p>
+        ) : null}
+
+        <div className="flex flex-col gap-sm border-t border-border pt-md sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[14px] text-muted">
+            Đã chọn{' '}
+            <span className="font-sign font-bold text-text font-tabular">
+              {selected.size}/{candidates.length}
+            </span>{' '}
+            · Tổng phí{' '}
+            <span className="font-sign font-bold text-text font-tabular">
+              {totalFee.toLocaleString('vi-VN')} đ
             </span>
-          </li>
-        ))}
-      </ul>
-
-      <textarea
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-        placeholder="Lý do phê duyệt chung (bắt buộc)"
-        rows={2}
-        className="mt-sm w-full rounded-md border border-border bg-sunken/40 p-sm text-body-sm text-text"
-      />
-
-      {result ? (
-        <p className="mt-xs text-body-sm text-muted">
-          Đã xử lý: {result.successCount} thành công, {result.failureCount} thất bại.
-        </p>
-      ) : null}
-
-      <div className="mt-sm flex justify-end">
-        <button
-          type="button"
-          disabled={selected.size === 0 || !reason.trim() || submitting}
-          onClick={submit}
-          className="rounded-md bg-primary px-md py-xs text-body-sm font-semibold text-on-primary disabled:opacity-40"
-        >
-          {submitting ? 'Đang xử lý...' : `Duyệt ${selected.size || ''} hồ sơ`.trim()}
-        </button>
+          </p>
+          <div className="sm:min-w-[220px]">
+            <Button
+              variant="approve"
+              disabled={selected.size === 0 || !reason.trim() || submitting}
+              onPress={submit}
+              icon={submitting ? <Spinner size={16} /> : undefined}
+              label={submitting ? 'Đang xử lý...' : `Duyệt ${selected.size || ''} hồ sơ`.trim()}
+            />
+          </div>
+        </div>
       </div>
-    </Card>
+    </section>
   );
 }
 
@@ -163,74 +210,39 @@ type QueueItem = {
   fastTrack?: boolean;
   riskBreakdown: (string | { reason: string; points: number })[];
   onPress: () => void;
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  REG: 'Đăng ký điểm bán',
-  RENTAL: 'Cấp phép hè phố',
-  RENEWAL: 'Gia hạn',
-  REPORT: 'Phản ánh',
+  /** Display only: shown on the board, never used for ordering. */
+  slotCode?: string;
+  submittedAt?: string;
+  slaDueAt?: string;
+  isOverdue?: boolean;
 };
 
 const riskReasons = (item: QueueItem) =>
-  item.riskBreakdown.map((b) => (typeof b === 'string' ? b : `${b.reason} (+${b.points}đ)`)).join(', ');
+  item.riskBreakdown
+    .map((b) => (typeof b === 'string' ? b : `${b.reason} (+${b.points}đ)`))
+    .join(', ');
 
-const QUEUE_COLUMNS: Column<QueueItem>[] = [
-  {
-    key: 'title',
-    header: 'Hồ sơ',
-    render: (item) => (
-      <div className="min-w-0">
-        <p className="truncate font-semibold text-text">{item.title}</p>
-        <p className="truncate text-body-sm font-normal text-muted">{item.subtitle}</p>
-        {item.riskBreakdown.length > 0 ? (
-          <p className="mt-0.5 text-body-xs font-normal text-on-secondary">Lý do: {riskReasons(item)}</p>
-        ) : null}
-      </div>
-    ),
-  },
-  {
-    key: 'category',
-    header: 'Loại',
-    width: '170px',
-    hideOnMobile: true,
-    render: (item) => <span className="text-body-sm text-muted">{CATEGORY_LABELS[item.category] ?? item.category}</span>,
-  },
-  {
-    key: 'risk',
-    header: 'Mức ưu tiên',
-    width: '190px',
-    render: (item) =>
-      item.riskScore > 0 ? (
-        <span className="inline-flex items-center gap-1 rounded-full bg-tint-secondary px-2 py-0.5 text-body-xs font-semibold text-on-secondary">
-          Cần xem kỹ (+{item.riskScore}đ)
-        </span>
-      ) : (
-        <span className="text-body-sm text-muted">Bình thường</span>
-      ),
-  },
-  { key: 'status', header: 'Trạng thái', width: '150px', render: (item) => <StatusChip code={item.status} /> },
-];
+const toBoard = (item: QueueItem): BoardItem => ({
+  key: item.key,
+  category: item.category,
+  title: item.title,
+  subtitle: item.subtitle,
+  status: item.status,
+  riskScore: item.riskScore,
+  reasons: item.riskBreakdown.length > 0 ? riskReasons(item) : '',
+  slotCode: item.slotCode,
+  submittedAt: item.submittedAt,
+  slaDueAt: item.slaDueAt,
+  isOverdue: item.isOverdue,
+  onPress: item.onPress,
+});
 
-type QueueTableProps = { items: QueueItem[]; loading?: boolean; emptyTitle: string; toolbar?: ReactNode };
-
-function QueueTable({ items, loading, emptyTitle, toolbar }: QueueTableProps) {
+/** Chips stay in their own horizontal scroller; on desktop they stick while the board scrolls. */
+function ChipRail({ children }: { children: ReactNode }) {
   return (
-    <DataTable
-      caption="Hồ sơ cần xử lý"
-      rows={items}
-      columns={QUEUE_COLUMNS}
-      rowKey={(item) => item.key}
-      rowLabel={(item) => `Mở hồ sơ ${item.title}`}
-      onRowClick={(item) => item.onPress()}
-      loading={loading}
-      toolbar={toolbar}
-      empty={{
-        icon: 'check-circle-outline',
-        title: emptyTitle,
-        description: 'Hồ sơ mới sẽ hiện ở đây ngay khi được nộp.',
-      }}
-    />
+    <div className="min-w-0 max-w-full py-1 md:sticky md:top-0 md:z-10 md:-mx-xs md:bg-bg/85 md:px-xs md:backdrop-blur">
+      {children}
+    </div>
   );
 }
 
@@ -244,7 +256,9 @@ function LiveInboxScreen() {
   const [renewals, setRenewals] = useState<WardRenewalItem[]>([]);
   const [riskQueue, setRiskQueue] = useState<WardRiskQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState<'ALL' | 'REG' | 'RENTAL' | 'RENEWAL' | 'FAST_RENEWAL'>('ALL');
+  const [category, setCategory] = useState<'ALL' | 'REG' | 'RENTAL' | 'RENEWAL' | 'FAST_RENEWAL'>(
+    'ALL',
+  );
 
   const reload = () => {
     setLoading(true);
@@ -257,21 +271,31 @@ function LiveInboxScreen() {
       complianceApi.listRenewals('UNDER_REVIEW'),
       complianceApi.riskQueue(),
     ])
-      .then(([enrollRes, pendingAppRes, reviewingAppRes, moreInfoAppRes, pendingRenewalRes, reviewingRenewalRes, riskRes]) => {
-        if (enrollRes.status === 'fulfilled') setEnrollments(enrollRes.value);
-        const mergedApps = [
-          ...(pendingAppRes.status === 'fulfilled' ? pendingAppRes.value : []),
-          ...(reviewingAppRes.status === 'fulfilled' ? reviewingAppRes.value : []),
-          ...(moreInfoAppRes.status === 'fulfilled' ? moreInfoAppRes.value : []),
-        ];
-        setRentalApplications([...new Map(mergedApps.map((item) => [item.id, item])).values()]);
-        const mergedRenewals = [
-          ...(pendingRenewalRes.status === 'fulfilled' ? pendingRenewalRes.value : []),
-          ...(reviewingRenewalRes.status === 'fulfilled' ? reviewingRenewalRes.value : []),
-        ];
-        setRenewals([...new Map(mergedRenewals.map((item) => [item.id, item])).values()]);
-        if (riskRes.status === 'fulfilled') setRiskQueue(riskRes.value);
-      })
+      .then(
+        ([
+          enrollRes,
+          pendingAppRes,
+          reviewingAppRes,
+          moreInfoAppRes,
+          pendingRenewalRes,
+          reviewingRenewalRes,
+          riskRes,
+        ]) => {
+          if (enrollRes.status === 'fulfilled') setEnrollments(enrollRes.value);
+          const mergedApps = [
+            ...(pendingAppRes.status === 'fulfilled' ? pendingAppRes.value : []),
+            ...(reviewingAppRes.status === 'fulfilled' ? reviewingAppRes.value : []),
+            ...(moreInfoAppRes.status === 'fulfilled' ? moreInfoAppRes.value : []),
+          ];
+          setRentalApplications([...new Map(mergedApps.map((item) => [item.id, item])).values()]);
+          const mergedRenewals = [
+            ...(pendingRenewalRes.status === 'fulfilled' ? pendingRenewalRes.value : []),
+            ...(reviewingRenewalRes.status === 'fulfilled' ? reviewingRenewalRes.value : []),
+          ];
+          setRenewals([...new Map(mergedRenewals.map((item) => [item.id, item])).values()]);
+          if (riskRes.status === 'fulfilled') setRiskQueue(riskRes.value);
+        },
+      )
       .finally(() => setLoading(false));
   };
 
@@ -291,6 +315,7 @@ function LiveInboxScreen() {
         riskScore: risk?.score ?? 0,
         riskBreakdown: risk?.breakdown ?? [],
         onPress: () => navigate(`/ward/inbox/registrations/${r.id}`),
+        submittedAt: r.createdAt,
       };
     });
 
@@ -303,6 +328,8 @@ function LiveInboxScreen() {
       riskScore: 0,
       riskBreakdown: [],
       onPress: () => navigate(`/ward/inbox/rental-applications/${a.id}`),
+      slotCode: a.slotCode,
+      submittedAt: a.createdAt,
     }));
 
     const renewalItems: QueueItem[] = renewals.map((rn) => {
@@ -310,7 +337,9 @@ function LiveInboxScreen() {
       let riskScore = 0;
       if (rn.violationCount > 0) {
         riskScore += rn.violationCount * 20;
-        riskBreakdown.push(`${rn.violationCount} vi phạm trong hợp đồng (+${rn.violationCount * 20}đ)`);
+        riskBreakdown.push(
+          `${rn.violationCount} vi phạm trong hợp đồng (+${rn.violationCount * 20}đ)`,
+        );
       }
       if (rn.isOverdue) {
         riskScore += 100;
@@ -326,71 +355,83 @@ function LiveInboxScreen() {
         fastTrack: rn.isFastTrackEligible,
         riskBreakdown,
         onPress: () => navigate(`/ward/inbox/renewals/${rn.id}`),
+        slotCode: rn.slotCode,
+        submittedAt: rn.createdAt,
+        slaDueAt: rn.slaDueAt,
+        isOverdue: rn.isOverdue,
       };
     });
 
-    return [...regItems, ...rentalAppItems, ...renewalItems].sort((a, b) => b.riskScore - a.riskScore);
+    return [...regItems, ...rentalAppItems, ...renewalItems].sort(
+      (a, b) => b.riskScore - a.riskScore,
+    );
   }, [enrollments, rentalApplications, renewals, riskQueue, navigate]);
 
-  const visible = category === 'ALL'
-    ? items
-    : category === 'FAST_RENEWAL'
-      ? items.filter((i) => i.category === 'RENEWAL' && i.fastTrack)
-      : items.filter((i) => i.category === category);
+  const visible =
+    category === 'ALL'
+      ? items
+      : category === 'FAST_RENEWAL'
+        ? items.filter((i) => i.category === 'RENEWAL' && i.fastTrack)
+        : items.filter((i) => i.category === category);
   const regCount = items.filter((i) => i.category === 'REG').length;
   const rentalCount = items.filter((i) => i.category === 'RENTAL').length;
   const renewalCount = items.filter((i) => i.category === 'RENEWAL').length;
   const fastTrackRenewals = renewals.filter((r) => r.isFastTrackEligible);
   const fastRenewalCount = fastTrackRenewals.length;
 
+  const counters: Counter[] = [
+    { label: 'Đang chờ', value: items.length, tone: 'ink' },
+    { label: 'Cần xem kỹ', value: items.filter((i) => i.riskScore > 0).length, tone: 'pending' },
+    {
+      label: 'Quá hạn xử lý',
+      value: renewals.filter((r) => r.isOverdue).length,
+      tone: 'danger',
+      icon: 'timer-outline',
+    },
+    { label: '[AI] Xét nhanh', value: fastRenewalCount, tone: 'ai', icon: 'creation' },
+  ];
+
   return (
     <Screen width="wide">
       <AppHeader title="Hộp duyệt" subtitle="Tất cả hồ sơ cần thẩm định & cấp phép" />
 
-      <Card onPress={() => navigate('/ward/inbox/reviews')}>
-        <div className="flex items-center justify-between gap-sm">
-          <div className="min-w-0">
-            <h2 className="text-headline-sm text-text">Hồ sơ vị trí</h2>
-            <p className="text-body-sm text-muted">Đề xuất ô, xung đột địa chỉ, chuyển nhượng và kiểm tra ranh giới</p>
-          </div>
-          <Icon name="chevron-right" size={20} color={colors.muted} />
-        </div>
-      </Card>
+      <div className="grid items-start gap-md xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-lg">
+        <InboxCounters counters={counters} loading={loading} />
+        {isLiveApi ? (
+          <InboxSignposts
+            onSlots={() => navigate('/ward/inbox/reviews')}
+            onFoodSafety={() => navigate('/ward/inbox/food-safety')}
+          />
+        ) : null}
+      </div>
 
-      {isLiveApi ? (
-        <Card onPress={() => navigate('/ward/inbox/food-safety')}>
-          <div className="flex items-center justify-between gap-sm">
-            <div className="min-w-0">
-              <h2 className="text-headline-sm text-text">Hồ sơ an toàn thực phẩm (ATTP)</h2>
-              <p className="text-body-sm text-muted">Xét hồ sơ, chuyển Chi cục ATTP kiểm tra và cập nhật kết quả</p>
-            </div>
-            <Icon name="chevron-right" size={20} color={colors.muted} />
-          </div>
-        </Card>
-      ) : null}
+      <Section
+        title="Hồ sơ đăng ký, cấp phép & gia hạn"
+        description="Hồ sơ cần xem kỹ được xếp lên đầu."
+        action={<PriorityExplainer live />}
+      >
+        <ChipRail>
+          <FilterChips
+            value={category}
+            onChange={setCategory}
+            options={[
+              { value: 'ALL', label: 'Tất cả' },
+              { value: 'REG', label: 'Đăng ký điểm bán', count: regCount },
+              { value: 'RENTAL', label: 'Cấp phép hè phố', count: rentalCount },
+              { value: 'RENEWAL', label: 'Gia hạn', count: renewalCount },
+              { value: 'FAST_RENEWAL', label: '[AI] Xét nhanh', count: fastRenewalCount },
+            ]}
+          />
+        </ChipRail>
 
-      {category === 'FAST_RENEWAL' ? (
-        <FastTrackBatchPanel candidates={fastTrackRenewals} onDone={reload} />
-      ) : null}
+        {category === 'FAST_RENEWAL' ? (
+          <FastTrackBatchPanel candidates={fastTrackRenewals} onDone={reload} />
+        ) : null}
 
-      <Section title="Hồ sơ đăng ký, cấp phép & gia hạn" description="Hồ sơ cần xem kỹ được xếp lên đầu.">
-        <QueueTable
-          items={visible}
+        <QueueBoard
+          items={visible.map(toBoard)}
           loading={loading}
           emptyTitle="Không có hồ sơ cần xử lý"
-          toolbar={
-            <FilterChips
-              value={category}
-              onChange={setCategory}
-              options={[
-                { value: 'ALL', label: 'Tất cả' },
-                { value: 'REG', label: 'Đăng ký điểm bán', count: regCount },
-                { value: 'RENTAL', label: 'Cấp phép hè phố', count: rentalCount },
-                { value: 'RENEWAL', label: 'Gia hạn', count: renewalCount },
-                { value: 'FAST_RENEWAL', label: '[AI] Xét nhanh', count: fastRenewalCount },
-              ]}
-            />
-          }
         />
       </Section>
     </Screen>
@@ -423,23 +464,32 @@ function MockInboxScreen() {
             status: r.registration_status,
             riskScore: isDemoHighRisk ? 60 : 0,
             riskBreakdown: isDemoHighRisk
-              ? ['Điểm bán từng có 1 biên bản nhắc nhở lấn chiếm hè phố (+40đ)', 'Tuyến đường trọng điểm trật tự đô thị (+20đ)']
+              ? [
+                  'Điểm bán từng có 1 biên bản nhắc nhở lấn chiếm hè phố (+40đ)',
+                  'Tuyến đường trọng điểm trật tự đô thị (+20đ)',
+                ]
               : [],
             onPress: () => navigate(`/ward/inbox/registrations/${r.id}`),
+            submittedAt: r.submitted_at,
           };
         }),
       ...applications
         .filter((a) => a.application_status === 'PENDING')
-        .map((a) => ({
-          key: `APP-${a.id}`,
-          category: 'RENTAL',
-          title: a.slotIds.map((id) => slots.find((s) => s.id === id)?.slot_code).join(', ') || 'Đề nghị cấp phép',
-          subtitle: 'Giấy phép sử dụng tạm thời hè phố (WARD-07/08)',
-          status: a.application_status,
-          riskScore: 0,
-          riskBreakdown: [],
-          onPress: () => navigate(`/ward/inbox/rental-applications/${a.id}`),
-        })),
+        .map((a) => {
+          const codes = a.slotIds.map((id) => slots.find((s) => s.id === id)?.slot_code);
+          return {
+            key: `APP-${a.id}`,
+            category: 'RENTAL',
+            title: codes.join(', ') || 'Đề nghị cấp phép',
+            subtitle: 'Giấy phép sử dụng tạm thời hè phố (WARD-07/08)',
+            status: a.application_status,
+            riskScore: 0,
+            riskBreakdown: [],
+            onPress: () => navigate(`/ward/inbox/rental-applications/${a.id}`),
+            slotCode: codes.length === 1 ? codes[0] : undefined,
+            submittedAt: a.submitted_at,
+          };
+        }),
       ...renewals
         .filter((r) => r.renewal_status === 'PENDING')
         .map((r) => ({
@@ -451,6 +501,7 @@ function MockInboxScreen() {
           riskScore: 0,
           riskBreakdown: [],
           onPress: () => navigate(`/ward/inbox/renewals/${r.id}`),
+          submittedAt: r.requested_at,
         })),
       ...reports
         .filter((r) => r.report_status === 'PENDING')
@@ -463,6 +514,7 @@ function MockInboxScreen() {
           riskScore: 0,
           riskBreakdown: [],
           onPress: () => navigate(`/ward/inbox/vendor-reports/${r.id}`),
+          submittedAt: r.created_at,
         })),
     ];
 
@@ -473,26 +525,36 @@ function MockInboxScreen() {
   const visible = category === 'ALL' ? items : items.filter((i) => i.category === category);
   const count = (c: Exclude<Category, 'ALL'>) => items.filter((i) => i.category === c).length;
 
+  const counters: Counter[] = [
+    { label: 'Đang chờ', value: items.length, tone: 'ink' },
+    { label: 'Cần xem kỹ', value: items.filter((i) => i.riskScore > 0).length, tone: 'pending' },
+    { label: 'Gia hạn', value: count('RENEWAL'), tone: 'ink', icon: 'history' },
+    { label: 'Phản ánh', value: count('REPORT'), tone: 'danger', icon: 'flag-outline' },
+  ];
+
   return (
     <Screen width="wide">
       <AppHeader title="Hộp duyệt" subtitle="Dữ liệu giả lập (không có Backend)" />
-      <QueueTable
-        items={visible}
-        emptyTitle="Không có việc cần xử lý"
-        toolbar={
-          <FilterChips
-            value={category}
-            onChange={setCategory}
-            options={[
-              { value: 'ALL', label: 'Tất cả' },
-              { value: 'REG', label: 'Điểm bán', count: count('REG') },
-              { value: 'RENTAL', label: 'Cấp phép hè phố', count: count('RENTAL') },
-              { value: 'RENEWAL', label: 'Gia hạn', count: count('RENEWAL') },
-              { value: 'REPORT', label: 'Phản ánh', count: count('REPORT') },
-            ]}
-          />
-        }
-      />
+      <InboxCounters counters={counters} />
+      <div className="flex flex-col gap-sm">
+        <div className="flex flex-col gap-xs md:flex-row md:items-center md:justify-between">
+          <ChipRail>
+            <FilterChips
+              value={category}
+              onChange={setCategory}
+              options={[
+                { value: 'ALL', label: 'Tất cả' },
+                { value: 'REG', label: 'Điểm bán', count: count('REG') },
+                { value: 'RENTAL', label: 'Cấp phép hè phố', count: count('RENTAL') },
+                { value: 'RENEWAL', label: 'Gia hạn', count: count('RENEWAL') },
+                { value: 'REPORT', label: 'Phản ánh', count: count('REPORT') },
+              ]}
+            />
+          </ChipRail>
+          <PriorityExplainer live={false} />
+        </div>
+        <QueueBoard items={visible.map(toBoard)} emptyTitle="Không có việc cần xử lý" />
+      </div>
     </Screen>
   );
 }

@@ -11,9 +11,9 @@ type Props = {
 
 export function Card({ children, onPress, style, padded = true, className, testID }: Props) {
   const classes = [
-    'rounded-md border border-border bg-card shadow-card',
+    'rounded-[20px] bg-card shadow-card ring-1 ring-border/80',
     onPress
-      ? 'cursor-pointer transition-[box-shadow,border-color] duration-150 hover:border-muted/40 hover:shadow-card-hover'
+      ? 'cursor-pointer transition-[box-shadow,transform] duration-200 [transition-timing-function:var(--ease-out)] hover:-translate-y-0.5 hover:shadow-card-hover active:translate-y-0'
       : '',
     padded ? 'p-md' : '',
     className ?? '',

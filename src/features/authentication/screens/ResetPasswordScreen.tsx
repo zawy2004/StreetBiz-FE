@@ -1,10 +1,11 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { AccountPlate } from '../components/AccountPlate';
 import { AuthShell } from '../components/AuthShell';
-import { PasswordChecklist } from '../components/PasswordChecklist';
+import { PasswordStrength } from '../components/PasswordStrength';
 import { usePendingAuthStore } from '../pending-auth-store';
-import { Button } from '@/components/common';
+import { Button, Icon } from '@/components/common';
 import { PasswordField } from '@/components/forms';
 import { showToast } from '@/components/feedback';
 import { ApiError, authApi, errorMessage, OTP_PURPOSE } from '@/core/api';
@@ -68,7 +69,10 @@ export function ResetPasswordScreen() {
     } catch (err) {
       if (err instanceof ApiError && err.isValidation && err.fieldError('NewPassword')) {
         setPasswordMessage(err.fieldError('NewPassword'));
-      } else if (err instanceof ApiError && (err.code === 'unauthorized' || err.fieldError('Otp'))) {
+      } else if (
+        err instanceof ApiError &&
+        (err.code === 'unauthorized' || err.fieldError('Otp'))
+      ) {
         // Wrong, expired or locked code (OtpService answers 401 on this anonymous call).
         setError(err.fieldError('Otp') ?? err.message);
         setOtpRejected(true);
@@ -81,7 +85,14 @@ export function ResetPasswordScreen() {
   };
 
   return (
-    <AuthShell title="Đặt mật khẩu mới" subtitle={`Cho tài khoản ${formatPhone(phone)}`} back>
+    <AuthShell
+      title="Đặt mật khẩu mới"
+      subtitle={`Cho tài khoản ${formatPhone(phone)}`}
+      back
+      scene="reset"
+      progress={{ current: 3, labels: ['Số điện thoại', 'Mã OTP', 'Mật khẩu mới'] }}
+    >
+      <AccountPlate phone={formatPhone(phone)} unlocked={isPasswordValid(password)} />
       <form className="flex flex-col gap-md" onSubmit={submit} noValidate>
         <PasswordField
           label="Mật khẩu mới"
@@ -91,7 +102,7 @@ export function ResetPasswordScreen() {
           placeholder="Tối thiểu 8 ký tự"
           autoComplete="new-password"
         />
-        <PasswordChecklist value={password} visible={password.length > 0} />
+        <PasswordStrength value={password} visible={password.length > 0} announceStrong={false} />
         <PasswordField
           label="Nhập lại mật khẩu"
           value={confirm}
@@ -100,13 +111,25 @@ export function ResetPasswordScreen() {
         />
         <Button label="Xác nhận" type="submit" loading={submitting} onPress={submit} />
         {otpRejected ? (
-          <Button
-            label="Nhập lại mã OTP"
-            variant="outline"
-            onPress={() =>
-              navigate(`/auth/verify-phone?purpose=${OTP_PURPOSE.passwordReset}`, { replace: true })
-            }
-          />
+          <div className="sb-rise flex flex-col gap-sm rounded-[14px] bg-[#FFF3D1] p-sm text-[#6B4100] ring-1 ring-inset ring-[#6B4100]/15 dark:bg-[#3A2A08] dark:text-[#FFD27A] sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-start gap-xs text-body-md font-medium">
+              <span className="mt-[2px] shrink-0">
+                <Icon name="alert-circle-outline" size={18} color="currentColor" />
+              </span>
+              Mã không còn dùng được. Nhập lại mã để tiếp tục.
+            </p>
+            <div className="shrink-0 sm:w-[180px]">
+              <Button
+                label="Nhập lại mã OTP"
+                variant="outline"
+                onPress={() =>
+                  navigate(`/auth/verify-phone?purpose=${OTP_PURPOSE.passwordReset}`, {
+                    replace: true,
+                  })
+                }
+              />
+            </div>
+          </div>
         ) : null}
       </form>
     </AuthShell>

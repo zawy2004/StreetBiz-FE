@@ -31,20 +31,27 @@ export function VendorTopBar() {
   const onWorkspace = zones.length > 0;
 
   return (
-    <header className="flex shrink-0 flex-col border-b border-border bg-card">
-      <div className="flex h-16 items-center gap-sm px-md">
+    <header className="flex shrink-0 flex-col border-b border-border bg-card/95 backdrop-blur">
+      <div className="flex h-16 items-center gap-sm px-md lg:px-lg">
         {onWorkspace && <RouteSelect />}
         {onWorkspace && isDesktop && <SlotSearch />}
         <div className="ml-auto flex items-center gap-xs">
           {onWorkspace && <LayersToggle />}
           <HoldBasket />
           <NotificationBell />
-          <div className="ml-xs flex items-center gap-xs">
+          <div className="ml-xs flex items-center gap-xs border-l border-border pl-sm">
             {isDesktop && (
               <div className="text-right">
-                <p className="max-w-[180px] truncate text-label font-medium text-text">{user?.fullName ?? 'Hộ kinh doanh'}</p>
+                <p
+                  title={user?.fullName ?? 'Hộ kinh doanh'}
+                  className="max-w-[180px] truncate text-label font-semibold text-text"
+                >
+                  {user?.fullName ?? 'Hộ kinh doanh'}
+                </p>
                 {registration && (
-                  <p className="text-body-sm font-semibold text-primary">{hkdCode(registration.registrationId)}</p>
+                  <p className="mt-0.5 font-sign text-[13px] font-bold tracking-[0.02em] text-primary-pressed [font-stretch:88%]">
+                    {hkdCode(registration.registrationId)}
+                  </p>
                 )}
               </div>
             )}
@@ -68,11 +75,18 @@ function NotificationBell() {
     <Link
       to="/account/notifications"
       aria-label={unread > 0 ? `Thông báo, ${unread} chưa đọc` : 'Thông báo'}
-      className="relative flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-sunken"
+      className="relative flex h-12 w-12 items-center justify-center rounded-full bg-card ring-1 ring-border transition-colors hover:bg-sunken lg:h-11 lg:w-11"
     >
-      <Icon name="bell-outline" size={22} color={colors.text} />
+      <Icon
+        name="bell-outline"
+        size={22}
+        color={colors.text}
+        weight={unread > 0 ? 'fill' : 'regular'}
+      />
       {unread > 0 && (
-        <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-primary" />
+        <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-card bg-brand">
+          <span className="sb-ping absolute inset-0 rounded-full bg-brand" />
+        </span>
       )}
     </Link>
   );
@@ -84,8 +98,8 @@ function RouteSelect() {
   const selectZone = useWorkspaceStore((s) => s.selectZone);
 
   return (
-    <label className="flex h-10 min-w-0 max-w-[280px] items-center gap-xs rounded-full border border-border bg-card px-sm text-label text-text transition-colors hover:border-muted/50">
-      <Icon name="map-marker-outline" size={18} color={colors.muted} />
+    <label className="flex h-11 min-w-0 max-w-[280px] items-center gap-xs rounded-full bg-card px-sm text-label font-semibold text-text shadow-card ring-1 ring-border transition-colors hover:ring-text/25">
+      <Icon name="map-marker" size={18} color={colors.primary} weight="fill" />
       <span className="sr-only">Tuyến</span>
       <select
         aria-label="Tuyến"
@@ -116,7 +130,7 @@ function SlotSearch() {
 
   return (
     <div className="relative min-w-0 flex-1 md:max-w-md">
-      <div className="flex h-10 items-center gap-xs rounded-full border border-border bg-sunken px-sm">
+      <div className="flex h-11 items-center gap-xs rounded-full bg-sunken px-sm ring-1 ring-transparent transition-shadow focus-within:bg-card focus-within:ring-primary/50">
         <Icon name="magnify" size={18} color={colors.muted} />
         <input
           className="min-w-0 flex-1 bg-transparent text-body-sm text-text outline-none"
@@ -127,23 +141,23 @@ function SlotSearch() {
         />
       </div>
       {query.trim() !== '' && (
-        <ul className="absolute inset-x-0 top-11 z-50 max-h-64 overflow-y-auto rounded-md border border-border bg-card shadow-sheet">
+        <ul className="sb-pop absolute inset-x-0 top-12 z-50 max-h-64 overflow-y-auto rounded-[16px] bg-card p-1 shadow-sheet ring-1 ring-border">
           {matches.length === 0 ? (
-            <li className="px-sm py-xs text-body-sm text-muted">Không tìm thấy ô nào.</li>
+            <li className="px-sm py-sm text-body-sm text-muted">Không tìm thấy ô nào.</li>
           ) : (
             matches.map((s) => (
               <li key={s.slotId}>
                 <button
                   type="button"
-                  className="flex w-full flex-col px-sm py-xs text-left hover:bg-sunken"
+                  className="flex w-full items-center gap-sm rounded-[12px] px-sm py-xs text-left transition-colors hover:bg-tint-primary"
                   onClick={() => {
                     focusSlot(s.zoneId, s.slotId);
                     if (location.pathname !== WORKSPACE_PATH) navigate(WORKSPACE_PATH);
                     setQuery('');
                   }}
                 >
-                  <span className="text-body-sm font-semibold text-text">{s.slotCode}</span>
-                  <span className="text-body-sm text-muted">{s.zoneName}</span>
+                  <span className="kerb-tag">{s.slotCode}</span>
+                  <span className="min-w-0 truncate text-body-sm text-muted">{s.zoneName}</span>
                 </button>
               </li>
             ))
@@ -165,11 +179,16 @@ function LayersToggle() {
       title="Hiện/ẩn hành lang kỹ thuật và tiện ích"
       onClick={toggle}
       className={[
-        'flex h-10 w-10 items-center justify-center rounded-full',
-        showFeatures ? 'bg-tint-indigo' : 'hover:bg-sunken',
+        'flex h-12 w-12 items-center justify-center rounded-full ring-1 transition-colors lg:h-11 lg:w-11',
+        showFeatures ? 'bg-tint-primary ring-primary/40' : 'bg-card ring-border hover:bg-sunken',
       ].join(' ')}
     >
-      <Icon name="layers-outline" size={22} color={showFeatures ? colors.indigo : colors.muted} />
+      <Icon
+        name="layers-outline"
+        size={22}
+        color={showFeatures ? colors.primaryPressed : colors.muted}
+        weight={showFeatures ? 'fill' : 'regular'}
+      />
     </button>
   );
 }
@@ -211,11 +230,16 @@ function HoldBasket() {
         aria-label={`Giỏ giữ chỗ (${holds.length})`}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="relative flex h-10 w-10 items-center justify-center rounded-full hover:bg-sunken"
+        className="relative flex h-12 w-12 items-center justify-center rounded-full bg-card ring-1 ring-border transition-colors hover:bg-sunken lg:h-11 lg:w-11"
       >
-        <Icon name="bookmark-outline" size={22} color={colors.text} />
+        <Icon
+          name="bookmark-outline"
+          size={22}
+          color={colors.text}
+          weight={holds.length > 0 ? 'fill' : 'regular'}
+        />
         {holds.length > 0 && (
-          <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-badge text-white">
+          <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-badge font-tabular text-on-accent ring-2 ring-card">
             {holds.length}
           </span>
         )}
@@ -229,47 +253,59 @@ function HoldBasket() {
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute right-0 top-12 z-50 w-80 max-w-[90vw] rounded-md border border-border bg-card p-sm shadow-sheet">
-            <p className="mb-xs text-headline-sm text-text">Giỏ giữ chỗ</p>
-            {holds.length === 0 ? (
-              <p className="text-body-sm text-muted">Bạn chưa giữ chỗ ô nào.</p>
-            ) : (
-              <ul className="flex flex-col gap-xs">
-                {holds.map((hold) => {
-                  const slot = slotById.get(hold.slotId);
-                  return (
-                    <li key={hold.slotId} className="flex items-center justify-between gap-xs rounded-md bg-bg p-xs">
-                      <div className="min-w-0">
-                        <p className="truncate text-body-sm font-semibold text-text">
-                          {slot?.slotCode ?? `Ô #${hold.slotId}`}
-                        </p>
-                        <p className="truncate text-body-sm text-muted">
-                          Còn {formatCountdown(secondsUntil(hold.expiresAt, nowMs))}
-                          {slot ? ` · ${slot.zoneName}` : ''}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 gap-1">
-                        <button
-                          type="button"
-                          disabled={!slot}
-                          className="rounded-sm border border-border bg-card px-xs py-1 text-label text-indigo disabled:opacity-50"
-                          onClick={() => openHold(hold)}
-                        >
-                          Nộp hồ sơ
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded-sm border border-border bg-card px-xs py-1 text-label text-primary"
-                          onClick={() => release.mutate(hold.slotId)}
-                        >
-                          Nhả
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+          <div className="sb-pop absolute right-0 top-14 z-50 w-[22rem] max-w-[90vw] overflow-hidden rounded-[20px] bg-card shadow-sheet ring-1 ring-border">
+            <div aria-hidden="true" className="sb-kerb sb-kerb-thin" />
+            <div className="p-sm">
+              <p className="mb-sm font-sign text-[17px] font-bold text-text [font-stretch:92%]">
+                Giỏ giữ chỗ
+              </p>
+              {holds.length === 0 ? (
+                <p className="rounded-[14px] border-2 border-dashed border-brand/40 bg-tint-primary/40 px-sm py-md text-center text-body-sm text-muted">
+                  Bạn chưa giữ chỗ ô nào.
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-xs">
+                  {holds.map((hold) => {
+                    const slot = slotById.get(hold.slotId);
+                    return (
+                      <li
+                        key={hold.slotId}
+                        className="flex items-center justify-between gap-xs rounded-[14px] bg-bg p-xs pl-sm ring-1 ring-border"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate">
+                            <span className="kerb-tag">
+                              {slot?.slotCode ?? `Ô #${hold.slotId}`}
+                            </span>
+                          </p>
+                          <p className="mt-1 truncate text-body-sm font-medium text-text/80">
+                            Còn {formatCountdown(secondsUntil(hold.expiresAt, nowMs))}
+                            {slot ? ` · ${slot.zoneName}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                          <button
+                            type="button"
+                            disabled={!slot}
+                            className="h-9 rounded-full bg-primary px-sm text-label font-semibold text-on-primary transition-colors hover:bg-primary-pressed disabled:opacity-50"
+                            onClick={() => openHold(hold)}
+                          >
+                            Nộp hồ sơ
+                          </button>
+                          <button
+                            type="button"
+                            className="h-9 rounded-full px-sm text-label font-semibold text-error ring-1 ring-error/30 transition-colors hover:bg-tint-error"
+                            onClick={() => release.mutate(hold.slotId)}
+                          >
+                            Nhả
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
           </div>
         </>
       )}

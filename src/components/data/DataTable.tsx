@@ -74,7 +74,7 @@ export function DataTable<T>({
       <table className="w-full border-collapse text-body-md">
         <caption className="sr-only">{caption}</caption>
         <thead>
-          <tr className="border-b border-border bg-sunken/60">
+          <tr className="border-b border-border bg-sunken/70">
             {columns.map((col) => (
               <th
                 key={col.key}
@@ -98,7 +98,9 @@ export function DataTable<T>({
               aria-label={onRowClick && rowLabel ? rowLabel(row) : undefined}
               className={[
                 'group border-b border-border last:border-b-0',
-                onRowClick ? 'cursor-pointer hover:bg-sunken/70 focus-visible:bg-sunken/70' : '',
+                onRowClick
+                  ? 'cursor-pointer transition-colors hover:bg-tint-primary/60 focus-visible:bg-tint-primary/60'
+                  : '',
               ].join(' ')}
             >
               {columns.map((col, i) => (
@@ -131,7 +133,9 @@ export function DataTable<T>({
         const content = (
           <>
             <div className="flex items-start justify-between gap-sm">
-              <div className="min-w-0 flex-1 text-headline-sm text-text">{titleColumn?.render(row)}</div>
+              <div className="min-w-0 flex-1 text-headline-sm text-text">
+                {titleColumn?.render(row)}
+              </div>
               {onRowClick ? <Icon name="chevron-right" size={20} color={colors.muted} /> : null}
             </div>
             <dl className="mt-xs grid grid-cols-[auto_1fr] gap-x-md gap-y-1 text-body-sm">
@@ -153,7 +157,7 @@ export function DataTable<T>({
                 type="button"
                 onClick={() => onRowClick(row)}
                 aria-label={rowLabel ? rowLabel(row) : undefined}
-                className="block w-full px-md py-sm text-left hover:bg-sunken/70"
+                className="block w-full px-md py-sm text-left transition-colors hover:bg-tint-primary/60"
               >
                 {content}
               </button>
@@ -167,9 +171,11 @@ export function DataTable<T>({
   );
 
   return (
-    <div className="overflow-hidden rounded-md border border-border bg-card shadow-card">
+    <div className="overflow-hidden rounded-[20px] bg-card shadow-card ring-1 ring-border/80">
       {toolbar ? (
-        <div className="flex flex-wrap items-center gap-sm border-b border-border px-md py-sm">{toolbar}</div>
+        <div className="flex flex-wrap items-center gap-sm border-b border-border px-md py-sm">
+          {toolbar}
+        </div>
       ) : null}
       {body}
     </div>

@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 import { Button } from '@/components/common';
+import { EmptySlotArt } from '@/components/illustrations';
 
 type Props = { children: ReactNode };
 type State = { error: Error | null; componentStack: string | null };
@@ -32,12 +33,13 @@ export class AppErrorBoundary extends Component<Props, State> {
     if (!error) return this.props.children;
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-md overflow-auto bg-bg px-lg py-xl text-center">
-        <p className="text-headline-lg text-text">Đã xảy ra lỗi</p>
+        <EmptySlotArt variant="barrier" className="h-[160px] w-[240px] shrink-0" />
+        <p className="font-heading text-[22px] font-bold leading-tight text-text">Đã xảy ra lỗi</p>
         <p className="max-w-sm text-body-md text-muted">
           Ứng dụng gặp sự cố không mong muốn. Vui lòng tải lại trang; nếu vẫn lỗi, hãy báo lại kèm
           nội dung bên dưới.
         </p>
-        <pre className="max-w-2xl overflow-auto rounded-lg bg-sunken p-sm text-left text-body-sm text-error">
+        <pre className="max-h-[30vh] w-full max-w-2xl overflow-auto rounded-[16px] bg-sunken p-sm text-left text-body-sm text-error ring-1 ring-border">
           {error.message}
           {error.stack ? `\n\n${error.stack}` : ''}
           {componentStack ? `\n\nComponent stack:${componentStack}` : ''}

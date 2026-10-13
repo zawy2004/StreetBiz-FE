@@ -1,15 +1,14 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button, Card, Divider, ListRow, Money } from '@/components/common';
-import { ConfirmDialog, ErrorState, LoadingState, showToast } from '@/components/feedback';
+import { Button, Icon, Money } from '@/components/common';
+import { ConfirmDialog, ErrorState, showToast } from '@/components/feedback';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { errorMessage } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
-import { colors } from '@/theme';
 import { orderApi } from '../api/orderApi';
 import {
   OrderItemsList,
@@ -19,32 +18,46 @@ import {
   OrderTimeline,
   formatOrderDate,
 } from '../components';
+import {
+  OrderDetailSkeleton,
+  OrderNextStep,
+  OrderReceipt,
+  RefundPanel,
+  RefundStamp,
+} from '../components/OrderDetailParts';
+import { LiveDot, OfflineNotice, Perforation } from '../components/OrderShapes';
+import {
+  SCALLOP_BOTTOM,
+  providerName,
+  refundPresentation,
+  upcomingStages,
+} from '../components/order-display';
 import { useCustomerOrder, useRefreshAfterOrderMutation } from '../hooks/useOrders';
-
-function refundPresentation(status: string) {
-  if (status === 'SUCCESS') {
-    return {
-      label: 'Đã hoàn tiền',
-      tone: 'ok' as const,
-      message: 'Hệ thống đã ghi nhận hoàn tiền thành công.',
-    };
-  }
-  if (status === 'FAILED') {
-    return {
-      label: 'Hoàn tiền thất bại',
-      tone: 'danger' as const,
-      message: 'Hoàn tiền chưa thành công. Vui lòng liên hệ hỗ trợ.',
-    };
-  }
-  return {
-    label: 'Đang hoàn tiền',
-    tone: 'pending' as const,
-    message: 'Yêu cầu hoàn tiền đang chờ cổng thanh toán xử lý.',
-  };
-}
+import { COLLECTABLE_ORDER_STATUSES, TERMINAL_ORDER_STATUSES } from '../types/order.types';
 
 export function OrderDetailScreen() {
   return isLiveApi ? <LiveOrderDetailScreen /> : <MockOrderDetailScreen />;
+}
+
+/**
+ * Two columns on a desktop (receipt left, journey right). On a phone the
+ * column wrappers dissolve (`contents`) and the pieces are ordered for the
+ * counter: the pickup stub first, then the journey, the receipt, the rest.
+ */
+const COLUMN = 'contents lg:flex lg:min-w-0 lg:flex-col';
+
+function Panel({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section
+      aria-label={title}
+      className="rounded-[20px] bg-card p-md shadow-card ring-1 ring-border/80 md:p-lg"
+    >
+      <p className="mb-md font-sign text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">
+        {title}
+      </p>
+      {children}
+    </section>
+  );
 }
 
 function LiveOrderDetailScreen() {
@@ -62,135 +75,201 @@ function LiveOrderDetailScreen() {
     },
     onError: refresh.handleError,
   });
-  if (order.isPending) return <LoadingState />;
+  if (order.isPending) {
+    return (
+      <Screen>
+        <AppHeader title="Đơn hàng" back />
+        <OrderDetailSkeleton />
+      </Screen>
+    );
+  }
   if (order.isError || !order.data) {
-    return <ErrorState message={errorMessage(order.error)} onRetry={() => order.refetch()} />;
+    return (
+      <Screen>
+        <AppHeader title="Đơn hàng" back />
+        <ErrorState message={errorMessage(order.error)} onRetry={() => order.refetch()} />
+      </Screen>
+    );
   }
 
   const data = order.data;
   const canCancel = data.orderStatus === 'PLACED';
   const refund = data.refundStatus ? refundPresentation(data.refundStatus) : null;
+  const pending = data.orderStatus === 'PENDING_PAYMENT';
+  const collectable = COLLECTABLE_ORDER_STATUSES.has(data.orderStatus);
+  const live = !TERMINAL_ORDER_STATUSES.has(data.orderStatus);
+  const canComplain =
+    data.paymentStatus === 'SUCCESS' && !['PENDING_PAYMENT', 'PLACED'].includes(data.orderStatus);
+  const canReview = data.orderStatus === 'COMPLETED';
+
   return (
     <Screen
       footer={
         canCancel ? (
           <StickyActions>
             {canCancel ? (
-              <Button
-                label="Huỷ đơn"
-                variant="outline"
-                disabled={transition.isPending}
-                onPress={() => setConfirmCancel(true)}
-              />
+              <div className="w-full [&>button]:text-error">
+                <Button
+                  label="Huỷ đơn"
+                  variant="outline"
+                  disabled={transition.isPending}
+                  onPress={() => setConfirmCancel(true)}
+                />
+              </div>
             ) : null}
           </StickyActions>
         ) : undefined
       }
     >
       <AppHeader title={`#${data.orderCode}`} back subtitle={data.storefront.storefrontName} />
-      <div className="flex items-center gap-sm">
-        <OrderStatusBadge status={data.orderStatus} />
-        {data.paymentStatus ? <StatusChip code={data.paymentStatus} /> : null}
-      </div>
-      <OrderPickupQr order={data} />
-      {data.orderStatus === 'PENDING_PAYMENT' ? (
-        <Card
-          style={{
-            backgroundColor: 'rgb(var(--c-secondary) / 0.1)',
-            borderColor: 'rgb(var(--c-secondary) / 0.35)',
-          }}
-        >
-          <p className="text-headline-sm text-text">Đang chờ xác nhận thanh toán</p>
-          <p className="mt-2xs text-body-md text-muted">
-            Trạng thái chỉ thay đổi sau khi backend nhận callback hợp lệ từ cổng thanh toán.
-          </p>
-        </Card>
-      ) : null}
-      <Card>
-        <div className="flex items-center gap-sm">
-          {data.storefront.imageUrl ? (
-            <img
-              src={data.storefront.imageUrl}
-              alt=""
-              className="h-16 w-16 rounded-sm object-cover"
-            />
+      <OfflineNotice message="Mất kết nối. Trạng thái đơn có thể chưa mới." />
+
+      <section aria-live="polite" className="flex flex-col gap-sm">
+        {pending ? (
+          <div className="flex flex-col gap-sm rounded-[20px] bg-[#FFF3D1] p-md text-[#6B4100] ring-1 ring-[#6B4100]/15 dark:bg-[#3A2A08] dark:text-[#FFD27A] md:flex-row md:items-center md:p-lg">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-card/80">
+              <Icon name="clock-outline" size={24} color="currentColor" weight="fill" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-editorial text-[24px] font-semibold leading-tight">
+                Đang chờ xác nhận thanh toán
+              </p>
+              <p className="mt-2xs text-body-md">
+                Trạng thái chỉ thay đổi sau khi backend nhận callback hợp lệ từ cổng thanh toán.
+              </p>
+            </div>
+            <div className="md:w-[220px]">
+              <Button
+                label="Kiểm tra thanh toán"
+                variant="outline"
+                onPress={() => navigate(`/customer/orders/${data.orderId}/payment`)}
+              />
+            </div>
+          </div>
+        ) : (
+          <OrderNextStep
+            status={data.orderStatus}
+            aside={live ? <LiveDot>Tự cập nhật</LiveDot> : undefined}
+          />
+        )}
+        <div className="flex flex-wrap items-center gap-sm">
+          <OrderStatusBadge status={data.orderStatus} />
+          {data.paymentStatus ? <StatusChip code={data.paymentStatus} /> : null}
+          {pending && live ? <LiveDot>Tự cập nhật</LiveDot> : null}
+        </div>
+      </section>
+
+      <div className="flex flex-col gap-lg lg:grid lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-start xl:grid-cols-[440px_minmax(0,1fr)]">
+        <div className={COLUMN}>
+          {collectable ? (
+            <div className="order-1 lg:order-none">
+              <OrderPickupQr order={data} />
+            </div>
+          ) : pending ? (
+            <div className="order-1 flex flex-col items-center gap-sm rounded-[28px] border-2 border-dashed border-[#FFB703]/70 bg-card px-md py-lg text-center lg:order-none lg:mb-md">
+              <Icon name="qrcode" size={40} color="rgb(var(--c-muted))" weight="duotone" />
+              <p className="max-w-[30ch] text-body-md text-muted">
+                Mã sẽ hiện khi thanh toán được xác nhận
+              </p>
+            </div>
           ) : null}
-          <div>
-            <p className="text-headline-sm text-text">{data.storefront.storefrontName}</p>
-            {data.storefront.address ? (
-              <p className="text-body-sm text-muted">{data.storefront.address}</p>
-            ) : null}
-            <p className="text-body-sm text-muted">Nhận trực tiếp tại điểm bán</p>
+          <div className="order-3 lg:order-none">
+            <OrderReceipt order={data} attached={collectable}>
+              <p className="font-sign text-[15px] font-semibold tracking-[0.02em] text-text [font-stretch:80%]">
+                #{data.orderCode}
+              </p>
+              <OrderItemsList items={data.items} />
+              <div className="relative">
+                <OrderSummary subtotal={data.subtotalAmount} total={data.totalAmount} />
+                {data.refundStatus === 'SUCCESS' ? (
+                  <RefundStamp className="absolute -top-6 right-0 h-[104px] w-[104px] md:right-sm" />
+                ) : null}
+              </div>
+              <div className="flex flex-col gap-0.5 border-t border-dashed border-border pt-sm">
+                <p className="text-body-sm text-muted">
+                  {providerName(data.paymentProvider) ?? 'Chưa chọn cổng'} · Tạo lúc{' '}
+                  {formatOrderDate(data.createdAt)}
+                </p>
+                {data.placedAt ? (
+                  <p className="text-body-sm text-muted">
+                    Đặt lúc {formatOrderDate(data.placedAt)}
+                  </p>
+                ) : null}
+                {data.completedAt ? (
+                  <p className="text-body-sm text-muted">
+                    Hoàn tất lúc {formatOrderDate(data.completedAt)}
+                  </p>
+                ) : null}
+              </div>
+            </OrderReceipt>
           </div>
         </div>
-      </Card>
-      <Card padded={false}>
-        <OrderItemsList items={data.items} />
-      </Card>
-      <Card>
-        <OrderSummary subtotal={data.subtotalAmount} total={data.totalAmount} />
-        <p className="mt-xs text-body-sm text-muted">
-          {data.paymentProvider ?? 'Chưa chọn cổng'} · Tạo lúc {formatOrderDate(data.createdAt)}
-        </p>
-        {data.placedAt ? (
-          <p className="text-body-sm text-muted">Đặt lúc {formatOrderDate(data.placedAt)}</p>
-        ) : null}
-        {data.completedAt ? (
-          <p className="text-body-sm text-muted">
-            Hoàn tất lúc {formatOrderDate(data.completedAt)}
-          </p>
-        ) : null}
-      </Card>
-      {data.statusHistory.length ? (
-        <Card>
-          <p className="mb-xs text-label text-text">Tiến trình đơn hàng</p>
-          <OrderTimeline history={data.statusHistory} />
-        </Card>
-      ) : null}
-      {data.rejectionReason ? (
-        <Card>
-          <p className="text-label text-text">Lý do từ chối</p>
-          <p className="text-body-md text-muted">{data.rejectionReason}</p>
-        </Card>
-      ) : null}
-      {refund ? (
-        <Card
-          style={{
-            backgroundColor: 'rgb(var(--c-secondary) / 0.1)',
-            borderColor: 'rgb(var(--c-secondary) / 0.35)',
-          }}
-        >
-          <div className="mb-xs flex items-center justify-between gap-sm">
-            <p className="text-label text-text">Hoàn tiền</p>
-            <StatusChip label={refund.label} tone={refund.tone} />
+
+        <div className={`${COLUMN} lg:gap-lg`}>
+          <div className="order-2 lg:order-none">
+            <Panel title="Hành trình đơn">
+              <OrderTimeline
+                history={data.statusHistory}
+                current={data.orderStatus}
+                upcoming={upcomingStages(data.orderStatus)}
+              />
+            </Panel>
           </div>
-          {data.refundAmount != null ? <Money amountVnd={data.refundAmount} /> : null}
-          <p className="mt-xs text-body-md text-muted">{refund.message}</p>
-          {data.refundRequestedAt ? (
-            <p className="mt-2xs text-body-sm text-muted">
-              Yêu cầu lúc {new Date(data.refundRequestedAt).toLocaleString('vi-VN')}
+          {data.rejectionReason ? (
+            <section
+              aria-label="Lý do từ chối"
+              className="order-4 rounded-[20px] bg-[#FDEBEA] p-md text-[#8F1717] dark:bg-[#3A1414] dark:text-[#FF9A90] md:p-lg lg:order-none"
+            >
+              <p className="text-label">Lý do từ chối</p>
+              <p className="mt-2xs whitespace-pre-line text-body-md text-text">
+                {data.rejectionReason}
+              </p>
+            </section>
+          ) : null}
+          {refund ? (
+            <div className="order-4 lg:order-none">
+              <RefundPanel
+                label={refund.label}
+                tone={refund.tone}
+                message={refund.message}
+                amount={data.refundAmount}
+                requestedAt={data.refundRequestedAt}
+              />
+            </div>
+          ) : null}
+          {canComplain || canReview ? (
+            <section
+              aria-label="Việc bạn có thể làm"
+              className="order-5 flex flex-col gap-sm rounded-[20px] bg-card p-md shadow-card ring-1 ring-border/80 md:p-lg lg:order-none"
+            >
+              <p className="font-sign text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">
+                Việc bạn có thể làm
+              </p>
+              <div className="grid gap-sm sm:grid-cols-2">
+                {canComplain ? (
+                  <Button
+                    label="Khiếu nại / Yêu cầu hoàn tiền"
+                    variant="outline"
+                    onPress={() => navigate(`/customer/orders/${data.orderId}/complaint`)}
+                  />
+                ) : null}
+                {canReview ? (
+                  <Button
+                    label="Đánh giá đơn hàng"
+                    variant="outline"
+                    onPress={() => navigate(`/customer/orders/${data.orderId}/review`)}
+                  />
+                ) : null}
+              </div>
+            </section>
+          ) : null}
+          {transition.isError ? (
+            <p className="order-6 text-body-md text-error lg:order-none">
+              {errorMessage(transition.error)}
             </p>
           ) : null}
-        </Card>
-      ) : null}
-      {data.paymentStatus === 'SUCCESS' &&
-      !['PENDING_PAYMENT', 'PLACED'].includes(data.orderStatus) ? (
-        <Button
-          label="Khiếu nại / Yêu cầu hoàn tiền"
-          variant="outline"
-          onPress={() => navigate(`/customer/orders/${data.orderId}/complaint`)}
-        />
-      ) : null}
-      {data.orderStatus === 'COMPLETED' ? (
-        <Button
-          label="Đánh giá đơn hàng"
-          variant="outline"
-          onPress={() => navigate(`/customer/orders/${data.orderId}/review`)}
-        />
-      ) : null}
-      {transition.isError ? (
-        <p className="text-body-md text-error">{errorMessage(transition.error)}</p>
-      ) : null}
+        </div>
+      </div>
       <ConfirmDialog
         visible={confirmCancel}
         title="Huỷ đơn hàng?"
@@ -214,13 +293,21 @@ function MockOrderDetailScreen() {
   const cancelOrder = useMockDb((state) => state.cancelOrder);
   const updateOrderStatus = useMockDb((state) => state.updateOrderStatus);
   const [confirmCancel, setConfirmCancel] = useState(false);
-  if (!order) return <ErrorState message="Không tìm thấy đơn hàng." />;
+  if (!order) {
+    return (
+      <Screen>
+        <AppHeader title="Đơn hàng" back />
+        <ErrorState message="Không tìm thấy đơn hàng." />
+      </Screen>
+    );
+  }
   const canCancel = ['PENDING', 'ACCEPTED'].includes(order.order_status);
   const canConfirmPickup = order.order_status === 'READY_FOR_PICKUP';
   const isDone = order.order_status === 'PICKED_UP';
 
   return (
     <Screen
+      width="narrow"
       footer={
         canCancel || canConfirmPickup || isDone ? (
           <StickyActions>
@@ -248,36 +335,38 @@ function MockOrderDetailScreen() {
     >
       <AppHeader title={`#${order.order_code}`} back subtitle={storefront?.name} />
       <StatusChip code={order.order_status} />
-      <Card padded={false}>
-        <div className="px-md">
-          {order.items.map((item, index) => (
-            <div key={item.menuItemId}>
-              {index ? <Divider /> : null}
-              <ListRow
-                title={`${item.quantity}× ${item.name}`}
-                trailing={<Money amountVnd={item.price * item.quantity} />}
-              />
-            </div>
-          ))}
-        </div>
-      </Card>
-      <Card>
-        <div className="flex items-center justify-between">
-          <span className="text-headline-sm text-text">Tổng đã thanh toán</span>
-          <Money amountVnd={order.total} size="lg" />
-        </div>
-      </Card>
-      {order.order_status === 'REJECTED' || order.order_status === 'CANCELLED' ? (
-        <Card
-          style={{
-            backgroundColor: 'rgb(var(--c-tertiary) / 0.08)',
-            borderColor: 'rgb(var(--c-tertiary) / 0.3)',
-          }}
+      <div className="drop-shadow-[0_22px_30px_rgb(17_28_43/0.12)] dark:drop-shadow-none">
+        <article
+          aria-label="Biên nhận"
+          style={SCALLOP_BOTTOM}
+          className="flex flex-col gap-md rounded-t-[28px] bg-card px-md pb-xl pt-lg ring-1 ring-border md:px-lg"
         >
-          <p className="text-body-md" style={{ color: colors.tertiary }}>
-            Đã tạo yêu cầu hoàn tiền.
+          <p className="font-editorial text-[22px] font-semibold leading-7 text-text">
+            {storefront?.name}
           </p>
-        </Card>
+          <ul className="flex flex-col gap-sm">
+            {order.items.map((item) => (
+              <li key={item.menuItemId} className="flex items-end gap-xs">
+                <span className="text-[15px] font-medium text-text">{`${item.quantity}× ${item.name}`}</span>
+                <span
+                  aria-hidden="true"
+                  className="mb-1.5 flex-1 border-b-2 border-dotted border-border"
+                />
+                <Money amountVnd={item.price * item.quantity} />
+              </li>
+            ))}
+          </ul>
+          <Perforation notchClass="bg-bg" className="-mx-md md:-mx-lg" />
+          <div className="flex items-center justify-between">
+            <span className="text-headline-sm text-text">Tổng đã thanh toán</span>
+            <Money amountVnd={order.total} size="lg" />
+          </div>
+        </article>
+      </div>
+      {order.order_status === 'REJECTED' || order.order_status === 'CANCELLED' ? (
+        <p className="rounded-[16px] bg-[#E6F6EC] px-md py-sm text-body-md font-medium text-[#0B5D33] dark:bg-[#10301F] dark:text-[#8BE3B0]">
+          Đã tạo yêu cầu hoàn tiền.
+        </p>
       ) : null}
       <ConfirmDialog
         visible={confirmCancel}

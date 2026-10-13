@@ -11,7 +11,7 @@ type Props = {
 export function QrCode({ value, size = 200 }: Props) {
   return (
     <div data-testid="qr-code" className="mx-auto w-fit rounded-md bg-white p-md">
-      <QRCodeSVG value={value} size={size} fgColor={palette.light.indigo} bgColor="#FFFFFF" />
+      <QRCodeSVG value={value} size={size} fgColor={palette.light.ink} bgColor="#FFFFFF" />
     </div>
   );
 }

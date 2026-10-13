@@ -35,7 +35,13 @@ export type WardDocument = {
   fileUrl: string;
   uploadedAt: string;
 };
-export type WardProfile = { userId: string; wardId: number; name: string };
+export type WardProfile = {
+  userId: string;
+  wardId: number;
+  name: string;
+  /** Null unless this officer may sign a WARD-13 sanction decision (Chairman/Vice-Chairman, or a written delegate). */
+  sanctionAuthorityTitle: string | null;
+};
 export type CasePage = { items: WardCase[]; page: number; hasMore: boolean };
 
 /**
@@ -121,6 +127,9 @@ export type WardEnrollmentItem = {
   address: string;
   createdAt: string;
   fastTrack: boolean;
+  /** The real vendor_id a violation record (recordViolation's vendorId) must use -- not `id`
+   * above, which is the registration id. */
+  vendorId: number;
 };
 /** Mẫu số 01 Phụ lục II, Thông tư 68/2025/TT-BTC -- chủ hộ kinh doanh. */
 export type WardOwnerProfile = {
@@ -204,6 +213,11 @@ export type WardRentalApplicationDetail = WardRentalApplicationItem & {
   reviewedAt: string | null;
   canApprove: boolean;
   blockers: string[];
+  /** What approving it bills, from the same quote the vendor applied against (absent from an
+   * older server). rentFee is after any quarterly discount; deposit is refundable. */
+  totalFee?: number;
+  rentFee?: number;
+  deposit?: number;
 };
 
 export type AiEncroachment = {
@@ -277,6 +291,44 @@ export type WardViolationDetail = WardViolationItem & {
   sanctionedAt: string | null;
   recentViolationCount90Days: number;
   aiSuggestion: AiLegalSuggestion | null;
+  // Mẫu số 01 (Nghị định 118/2021/NĐ-CP) fields -- WARD-12 legal-completeness.
+  bienBanSo: string | null;
+  preparedLocation: string | null;
+  witnessName: string | null;
+  witnessRole: string | null;
+  witnessOccupation: string | null;
+  witnessAddress: string | null;
+  containmentMeasures: string | null;
+  violatorFullName: string | null;
+  violatorDateOfBirth: string | null;
+  violatorGender: string | null;
+  violatorNationality: string | null;
+  violatorIdNumber: string | null;
+  violatorIdIssuedDate: string | null;
+  violatorIdIssuedPlace: string | null;
+  violatorAddress: string | null;
+  /** Điều 61 Luật XLVPHC: violator's right to giải trình before a sanction may issue. */
+  explanationRequired: boolean;
+  explanationMethod: string | null;
+  explanationDeadlineAt: string | null;
+  explanationReceivedAt: string | null;
+  explanationContent: string | null;
+  deliveredAt: string | null;
+  deliveredToName: string | null;
+  deliveryRefused: boolean;
+  deliveryRefusalReason: string | null;
+  complianceFlag: WardComplianceFlag;
+};
+
+/** Advisory only -- never blocks or auto-triggers anything (BR-41). Null thresholds mean the
+ * ward has not configured that part of the policy. */
+export type WardComplianceFlag = {
+  violationThreshold: number | null;
+  sanctionedViolationCount: number;
+  violationThresholdReached: boolean;
+  unpaidPenaltyGraceDays: number | null;
+  hasOverduePenalty: boolean;
+  overduePenaltyDays: number | null;
 };
 
 export type WardRiskQueueItem = {
@@ -428,6 +480,10 @@ export const complianceApi = {
    * CCCD. The backend refuses decideEnrollment's APPROVE until this has been called. */
   confirmIdentity: (id: string, note: string) =>
     apiPost<WardEnrollmentDetail>(`/ward/enrollments/${id}/confirm-identity`, { note }),
+  /** Mẫu số 01 Phụ lục II, TT 68/2025/TT-BTC -- same content as the vendor's own copy, plus the
+   * reviewing officer's name once approved. Watermarked "BẢN NHÁP" until then. */
+  downloadEnrollmentDocument: (id: string, format: 'docx' | 'pdf'): Promise<Blob> =>
+    apiGetBlob(`/ward/enrollments/${id}/document?format=${format}`),
 
   listRentalApplications: (status?: string, page = 1) =>
     apiGet<WardRentalApplicationItem[]>(
@@ -478,8 +534,17 @@ export const complianceApi = {
       longitude,
       inspectionPhotoUrl,
     }),
-  permitAction: (permitId: number, action: 'SUSPEND' | 'REVOKE', reason: string) =>
-    apiPost<boolean>(`/ward/permits/${permitId}/action`, { action, reason }),
+  permitAction: (
+    permitId: number,
+    action: 'SUSPEND' | 'REVOKE',
+    reason: string,
+    basedOnComplianceThreshold = false,
+  ) =>
+    apiPost<boolean>(`/ward/permits/${permitId}/action`, {
+      action,
+      reason,
+      basedOnComplianceThreshold,
+    }),
 
   /** Rates in force on `asOf` (yyyy-MM-dd, Vietnam date); default today. Sanctioning must use the violation date. */
   listPenaltySchedules: (asOf?: string) =>
@@ -496,21 +561,46 @@ export const complianceApi = {
     violationType: string;
     description: string;
     evidenceUrl?: string;
+    preparedLocation?: string;
+    witnessName?: string;
+    witnessRole?: string;
+    witnessOccupation?: string;
+    witnessAddress?: string;
+    containmentMeasures?: string;
+    explanationRequired?: boolean;
+    explanationMethod?: string;
   }) => apiPost<WardViolationDetail>('/ward/violations', request),
+  /** Điều 61 Luật XLVPHC: records the violator's giải trình before a sanction may issue. */
+  recordExplanation: (id: number, content: string) =>
+    apiPost<WardViolationDetail>(`/ward/violations/${id}/explanation`, { content }),
+  /** Mẫu 01's handover block -- delivered or refused go together with their own reason. */
+  deliverViolation: (id: number, deliveredToName: string | null, refused: boolean, refusalReason: string | null) =>
+    apiPost<WardViolationDetail>(`/ward/violations/${id}/deliver`, {
+      deliveredToName,
+      refused,
+      refusalReason,
+    }),
+  /** Mẫu biên bản số 01 (NĐ 118/2021/NĐ-CP), filled with this violation's data, as a .docx blob. */
+  downloadViolationDocument: (id: number): Promise<Blob> =>
+    apiGetBlob(`/ward/violations/${id}/document`),
+  // Signer is never sent from here: the server takes it from the authenticated officer's own
+  // account (UserAccounts.sanction_authority_title), never from client input.
   sanctionViolation: (
     id: number,
     penaltyScheduleId: number,
     decisionNumber: string,
-    signerName: string,
-    signerTitle: string,
     notes?: string,
+    acknowledgeEarlySanction?: boolean,
+    /** Only inside the legal bracket of the chosen rate, with a reason (checked server-side). */
+    amountOverride?: { amount: number; reason: string },
   ) =>
     apiPost<WardViolationDetail>(`/ward/violations/${id}/sanction`, {
       penaltyScheduleId,
       decisionNumber,
-      signerName,
-      signerTitle,
       notes,
+      acknowledgeEarlySanction,
+      amountOverride: amountOverride?.amount,
+      amountReason: amountOverride?.reason,
     }),
 
   riskQueue: () => apiGet<WardRiskQueueItem[]>('/ward/insights/risk-queue'),

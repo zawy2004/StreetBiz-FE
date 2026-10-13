@@ -41,19 +41,37 @@ export function LocationBar({ showArea = true, tone = 'default' }: Props) {
   return (
     <div className="flex flex-col gap-xs">
       <div className="flex flex-wrap items-center gap-xs">
+        {/* Hold the area picker's place while the areas load, so the bar does not jump. On phones
+            the picker always takes its own line: ward names vary in length, so sharing the line
+            with the locate button would wrap or not depending on the data. */}
+        {showArea && areas.isPending ? (
+          <span
+            aria-hidden="true"
+            className="sb-shimmer h-11 basis-full rounded-full sm:basis-auto sm:w-[210px]"
+          />
+        ) : null}
         {showArea && areaList.length > 0 ? (
           <label
             className={[
-              'flex h-10 min-w-0 max-w-full items-center gap-1.5 rounded-full px-sm text-label font-semibold',
-              onPrimary ? 'bg-white/15 text-white hover:bg-white/20' : 'border border-border bg-card text-text',
+              'flex h-11 min-w-0 max-w-full basis-full items-center gap-1.5 rounded-full px-md sm:basis-auto text-label font-semibold transition-colors focus-within:ring-2 focus-within:ring-primary',
+              onPrimary
+                ? 'bg-white/15 text-white hover:bg-white/20'
+                : 'border border-border bg-card text-text hover:border-text/25',
             ].join(' ')}
           >
-            <Icon name="map-marker" size={18} color={onPrimary ? colors.white : colors.primary} />
+            <Icon
+              name="map-marker"
+              size={18}
+              color={onPrimary ? colors.white : colors.primary}
+              weight="fill"
+            />
             <select
               aria-label="Khu vực"
               value={wardId ?? ''}
-              onChange={(e) => setFilters({ wardId: e.target.value ? Number(e.target.value) : null })}
-              className="min-w-0 cursor-pointer truncate bg-transparent outline-none [&>option]:text-[#17191C]"
+              onChange={(e) =>
+                setFilters({ wardId: e.target.value ? Number(e.target.value) : null })
+              }
+              className="min-w-0 flex-1 cursor-pointer truncate bg-transparent outline-none sm:flex-none [&>option]:text-[#17191C]"
             >
               <option value="">Tất cả khu vực</option>
               {areaList.map((area) => (
@@ -70,14 +88,20 @@ export function LocationBar({ showArea = true, tone = 'default' }: Props) {
           disabled={locateStatus === 'LOCATING'}
           aria-busy={locateStatus === 'LOCATING' || undefined}
           className={[
-            'flex h-10 items-center gap-1.5 rounded-full px-sm text-label font-medium transition-colors disabled:opacity-60',
-            onPrimary ? 'bg-white text-primary hover:bg-white/90' : 'border border-border bg-card text-text hover:bg-sunken',
+            'flex h-11 items-center gap-1.5 rounded-full px-md text-label font-semibold transition-colors disabled:opacity-60',
+            onPrimary
+              ? 'bg-white text-primary hover:bg-white/90'
+              : 'border border-border bg-card text-text hover:border-text/25 hover:bg-sunken',
           ].join(' ')}
         >
           {locateStatus === 'LOCATING' ? (
             <Spinner size={16} />
           ) : (
-            <Icon name="crosshairs-gps" size={17} color={onPrimary ? colors.primary : colors.indigo} />
+            <Icon
+              name="crosshairs-gps"
+              size={17}
+              color={onPrimary ? colors.primary : colors.indigo}
+            />
           )}
           {position ? 'Cập nhật vị trí' : 'Tìm quanh tôi'}
         </button>
@@ -85,23 +109,26 @@ export function LocationBar({ showArea = true, tone = 'default' }: Props) {
           <button
             type="button"
             onClick={clearPosition}
-            className={`h-10 rounded-full px-sm text-label ${onPrimary ? 'text-white/90 hover:bg-white/10' : 'text-primary hover:bg-tint-primary'}`}
+            className={`h-11 rounded-full px-sm text-label font-semibold ${onPrimary ? 'text-white/90 hover:bg-white/10' : 'text-primary hover:bg-tint-primary'}`}
           >
             Xoá vị trí
           </button>
         ) : null}
       </div>
       {failure ? (
-        <p className={`text-body-sm ${onPrimary ? 'font-medium text-white' : 'text-error'}`}>{failure}</p>
+        <p className={`text-body-sm ${onPrimary ? 'font-medium text-white' : 'text-error'}`}>
+          {failure}
+        </p>
       ) : null}
       {showArea && nearest && wardId == null ? (
         <button
           type="button"
           onClick={() => setFilters({ wardId: nearest.wardId })}
-          className={`w-fit text-left text-body-sm underline-offset-2 hover:underline ${onPrimary ? 'text-white' : 'text-primary'}`}
+          className={`w-fit text-left text-body-sm font-medium underline decoration-1 underline-offset-[3px] hover:decoration-2 ${onPrimary ? 'text-white' : 'text-primary'}`}
         >
           Gần bạn nhất: {nearest.wardName}
-          {nearest.distanceMeters != null ? ` · ${formatDistance(nearest.distanceMeters)}` : ''} — chọn khu vực này
+          {nearest.distanceMeters != null ? ` · ${formatDistance(nearest.distanceMeters)}` : ''} —
+          chọn khu vực này
         </button>
       ) : null}
     </div>

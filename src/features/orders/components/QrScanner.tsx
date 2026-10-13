@@ -1,6 +1,8 @@
 import jsQR from 'jsqr';
 import { useEffect, useRef, useState } from 'react';
 
+import { Icon } from '@/components/common';
+
 import {
   cameraUnavailableMessage,
   SCAN_FRAME_SIZE,
@@ -95,15 +97,26 @@ export function QrScanner({ onDetected, paused }: Props) {
     };
   }, []);
 
-  if (error) return <p className="text-body-md text-muted">{error}</p>;
+  if (error) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-sm bg-sunken p-lg text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-muted shadow-card">
+          <Icon name="camera-plus-outline" size={28} color="currentColor" />
+        </span>
+        <p className="max-w-[34ch] text-[16px] font-medium leading-6 text-text">{error}</p>
+      </div>
+    );
+  }
 
+  // The frame, corners and scan line are drawn by the screen around this; the
+  // video just fills it (no black box: before the camera starts the frame shows).
   return (
-    <div className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-md bg-black">
-      <video ref={videoRef} muted playsInline className="h-full w-full" />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-[15%] rounded-md border-2 border-white/80"
-      />
-    </div>
+    <video
+      ref={videoRef}
+      muted
+      playsInline
+      aria-hidden="true"
+      className="h-full w-full object-cover"
+    />
   );
 }

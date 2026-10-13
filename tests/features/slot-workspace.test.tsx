@@ -42,6 +42,7 @@ const quote: FeeQuote = {
   baseFee: 2_700_000,
   referenceFees: 770_000,
   isReferenceOnly: true,
+  deposit: 0,
   lines: [
     { kind: 'RENT', label: null, calcBasis: 'PER_DAY', unitAmount: 30000, quantity: 90, amount: 2_700_000 },
     { kind: 'FEE', label: 'Phí vệ sinh', calcBasis: 'PER_DAY', unitAmount: 3000, quantity: 90, amount: 270_000 },
@@ -89,13 +90,20 @@ beforeEach(() => {
 describe('SlotCard', () => {
   const base = { selected: false, mine: false, matchesFilters: true, widthPx: 136, nowMs: NOW, onSelect: vi.fn() };
 
-  it('shows the daily price on an available slot and reports a click', async () => {
+  it('shows the monthly price on an available fixed slot and reports a click', async () => {
     const onSelect = vi.fn();
     render(<SlotCard {...base} slot={slot} state="AVAILABLE" onSelect={onSelect} />);
 
-    expect(screen.getByText('30k/ngày')).toBeInTheDocument();
+    expect(screen.getByText('900k/tháng')).toBeInTheDocument();
     await userEvent.click(screen.getByTestId('slot-card-NVL-01'));
     expect(onSelect).toHaveBeenCalledWith(slot);
+  });
+
+  it('shows the daily price on an event slot', () => {
+    const event = makeSlot({ slotCode: 'EV-01', latitude: 1, longitude: 1, rentalMode: 'EVENT' });
+    render(<SlotCard {...base} slot={event} state="AVAILABLE" />);
+
+    expect(screen.getByText('30k/ngày')).toBeInTheDocument();
   });
 
   it('shows a countdown on a held slot, saying so when the caller holds it', () => {
@@ -166,10 +174,45 @@ describe('SlotApplyForm', () => {
   it('shows the fee lines and the estimated total from the quote', async () => {
     renderWithProviders(<SlotApplyForm slot={slot} />);
 
-    expect(await screen.findByText(/Phí vệ sinh \(3k\/ngày × 90 ngày\)/)).toBeInTheDocument();
+    // A whole-month term reads per month, even for a per-day fee.
+    expect(await screen.findByText(/Phí vệ sinh \(90k\/tháng × 3 tháng\)/)).toBeInTheDocument();
     expect(screen.getByText(/Tiền đặt cọc \(một lần\)/)).toBeInTheDocument();
     expect(screen.getByText('3.620.000 đ')).toBeInTheDocument();
     expect(api.getSlotQuote).toHaveBeenCalledWith(10, 90);
+  });
+
+  it('rents a fixed slot by the month only and re-prices on each choice', async () => {
+    renderWithProviders(<SlotApplyForm slot={{ ...slot, quarterDiscountPercent: 10 }} />);
+
+    expect(await screen.findByRole('button', { name: /^3 tháng/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByLabelText(/Số ngày thuê/)).not.toBeInTheDocument();
+    expect(screen.getByText(/được giảm 10% tiền thuê ô/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /^12 tháng/ }));
+    await waitFor(() => expect(api.getSlotQuote).toHaveBeenCalledWith(10, 360));
+    await userEvent.click(screen.getByRole('button', { name: /^1 tháng/ }));
+    await waitFor(() => expect(api.getSlotQuote).toHaveBeenCalledWith(10, 30));
+  });
+
+  it('shows the quarterly discount as its own line of the quote', async () => {
+    api.getSlotQuote.mockResolvedValue({
+      ...quote,
+      total: 3_350_000,
+      baseFee: 2_430_000,
+      isReferenceOnly: false,
+      deposit: 500_000,
+      lines: [
+        { kind: 'RENT', label: null, calcBasis: 'PER_MONTH', unitAmount: 900_000, quantity: 3, amount: 2_700_000 },
+        { kind: 'DISCOUNT', label: 'Khuyến mãi thuê theo quý (-10%)', calcBasis: 'PER_MONTH', unitAmount: -270_000, quantity: 1, amount: -270_000 },
+        { kind: 'DEPOSIT', label: 'Tiền đặt cọc', calcBasis: 'DEPOSIT', unitAmount: 500_000, quantity: 1, amount: 500_000 },
+      ],
+    });
+    renderWithProviders(<SlotApplyForm slot={slot} />);
+
+    expect(await screen.findByText('Tiền thuê ô (900k/tháng × 3 tháng)')).toBeInTheDocument();
+    expect(screen.getByText('Khuyến mãi thuê theo quý (-10%)')).toBeInTheDocument();
+    expect(screen.getByText('Tiền đặt cọc (hoàn lại khi kết thúc)')).toBeInTheDocument();
+    expect(screen.getByText('3.350.000 đ')).toBeInTheDocument();
   });
 
   it('holds the slot for the approved registration', async () => {
@@ -209,8 +252,8 @@ describe('SlotApplyForm', () => {
     expect(screen.queryByRole('button', { name: /Đăng ký & nộp hồ sơ/ })).not.toBeInTheDocument();
   });
 
-  it('refuses a term outside 1-365 days', async () => {
-    renderWithProviders(<SlotApplyForm slot={slot} />);
+  it('refuses an event term outside 1-365 days', async () => {
+    renderWithProviders(<SlotApplyForm slot={{ ...slot, rentalMode: 'EVENT' }} />);
     const input = await screen.findByLabelText(/Số ngày thuê/);
 
     await userEvent.clear(input);

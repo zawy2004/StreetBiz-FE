@@ -19,10 +19,10 @@ export function FilterChips<T extends string>({ options, value, onChange }: Prop
             role="tab"
             aria-selected={active}
             className={[
-              'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-md text-label transition-colors',
+              'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-md text-label transition-[background-color,box-shadow,color] duration-150',
               active
-                ? 'border-primary bg-tint-primary font-semibold text-primary'
-                : 'border-border bg-card text-text hover:border-muted/50',
+                ? 'bg-primary font-semibold text-on-primary shadow-[0_8px_18px_-10px_rgb(var(--c-primary)/0.8)]'
+                : 'bg-card text-text shadow-card ring-1 ring-border hover:ring-text/25',
             ].join(' ')}
           >
             {opt.label}
@@ -33,7 +33,7 @@ export function FilterChips<T extends string>({ options, value, onChange }: Prop
                   aria-hidden="true"
                   className={[
                     'min-w-5 rounded-full px-1.5 py-0.5 text-center text-badge font-tabular',
-                    active ? 'bg-primary text-on-primary' : 'bg-sunken text-muted',
+                    active ? 'bg-white/25 text-on-primary' : 'bg-sunken text-muted',
                   ].join(' ')}
                 >
                   {opt.count}

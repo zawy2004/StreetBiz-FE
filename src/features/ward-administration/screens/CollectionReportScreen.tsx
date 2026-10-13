@@ -1,13 +1,22 @@
 import { useMemo, useState } from 'react';
 
-import { Card, formatVnd, Money } from '@/components/common';
 import { SegmentedControl } from '@/components/forms';
 import { AppHeader, Screen, Section } from '@/components/layout';
-import { AiHint } from '@/components/status';
-import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
+import { ErrorState } from '@/components/feedback';
 import { errorMessage } from '@/core/api';
-import { env } from '@/core/config/env';
-import { useCollectionReport, type ReportPeriod } from '../useWardReports';
+import { isLiveApi } from '@/core/config/env';
+import {
+  CollectedHero,
+  DebtColumn,
+  InvoiceLine,
+  PeriodRuler,
+  ReportSkeleton,
+  TopViolations,
+  ViolationLedger,
+} from '../components/ops/report/ReportParts';
+import { ReportSummaryCard } from '../components/ops/report/ReportSummaryCard';
+import { daysInMonth, periodDays } from '../components/ops/report/report-model';
+import { useCollectionReport, useReportSummary, type ReportPeriod } from '../useWardReports';
 
 type PeriodKey = 'THIS_MONTH' | 'LAST_MONTH' | 'LAST_90_DAYS';
 
@@ -36,10 +45,16 @@ const displayDay = (iso: string) => {
   return `${day}/${month}/${year}`;
 };
 
+/**
+ * W19: the ward's collection book. One large figure for what the period took
+ * in, beside it what is owed right now (a snapshot, not tied to the period),
+ * then recent violations as receipt lines. Read-only; one request per period.
+ */
 export function CollectionReportScreen() {
   const [periodKey, setPeriodKey] = useState<PeriodKey>('THIS_MONTH');
   const period = useMemo(() => periodFor(periodKey, new Date()), [periodKey]);
   const { report, isLoading, isError, error, refetch } = useCollectionReport(period);
+  const { summary } = useReportSummary(period);
   const subtitle = `${displayDay(period.from)} – ${displayDay(period.to)}`;
 
   const periodControl = (
@@ -54,87 +69,80 @@ export function CollectionReportScreen() {
     />
   );
 
+  // Display only, from the period already asked for: its length, and how far into this month.
+  const days = periodDays(period.from, period.to);
+  const monthProgress =
+    periodKey === 'THIS_MONTH'
+      ? { done: Number(period.to.slice(8, 10)), total: daysInMonth(period.to) }
+      : null;
+
+  const head = (
+    <div className="flex flex-col gap-sm md:flex-row md:items-end md:justify-between md:gap-lg">
+      <div className="flex min-w-0 flex-col gap-1">
+        <AppHeader title="Báo cáo thu phí" subtitle={subtitle} />
+        <PeriodRuler days={days} monthProgress={monthProgress} />
+      </div>
+      <div className="shrink-0 md:pb-1 [&_[role=tab]]:h-10">{periodControl}</div>
+    </div>
+  );
+
   if (isLoading) {
     return (
-      <Screen>
-        <AppHeader title="Báo cáo thu phí" subtitle={subtitle} />
-        {periodControl}
-        <LoadingState />
+      <Screen width="wide">
+        {head}
+        <ReportSkeleton />
       </Screen>
     );
   }
   if (isError || !report) {
     return (
-      <Screen>
-        <AppHeader title="Báo cáo thu phí" subtitle={subtitle} />
-        {periodControl}
-        <ErrorState message={errorMessage(error)} onRetry={() => refetch()} />
+      <Screen width="wide">
+        {head}
+        <div className="rounded-[24px] bg-card shadow-card ring-1 ring-border">
+          <ErrorState message={errorMessage(error)} onRetry={() => refetch()} />
+        </div>
       </Screen>
     );
   }
 
+  const violations = report.recentViolations;
+
   return (
-    <Screen>
-      <AppHeader title="Báo cáo thu phí" subtitle={subtitle} />
-      {periodControl}
+    <Screen width="wide">
+      {head}
 
-      <div className="flex flex-row gap-sm">
-        <Card style={{ flex: 1 }}>
-          <p className="text-body-sm text-muted">Phí đã thu</p>
-          <Money amountVnd={report.feeCollected} size="lg" />
-        </Card>
-        <Card style={{ flex: 1 }}>
-          <p className="text-body-sm text-muted">Phạt đã thu</p>
-          <Money amountVnd={report.penaltyCollected} size="lg" />
-        </Card>
+      <div
+        aria-live="polite"
+        className="sb-pop grid items-stretch gap-md xl:grid-cols-[minmax(0,1fr)_400px]"
+      >
+        <CollectedHero report={report} />
+        {/* Debt is a snapshot as of now, not tied to the selected period. */}
+        <DebtColumn report={report} />
       </div>
-      {/* Debt is a snapshot as of now, not tied to the selected period. */}
-      <div className="flex flex-row gap-sm">
-        <Card style={{ flex: 1 }}>
-          <p className="text-body-sm text-muted">Phí còn nợ</p>
-          <Money amountVnd={report.feePending + report.feeOverdue} />
-          {report.feeOverdue > 0 ? (
-            <p className="mt-2xs text-body-sm text-error">
-              Quá hạn: {formatVnd(report.feeOverdue)}
-            </p>
-          ) : null}
-        </Card>
-        <Card style={{ flex: 1 }}>
-          <p className="text-body-sm text-muted">Phạt còn nợ</p>
-          <Money amountVnd={report.penaltyPending} />
-        </Card>
+
+      <div className="flex flex-wrap items-center justify-between gap-sm">
+        <InvoiceLine count={report.invoiceCount} />
+        {!isLiveApi ? (
+          <p className="rounded-full bg-sunken px-sm py-1 text-body-xs font-medium text-muted">
+            Dữ liệu mẫu: số không đổi theo kỳ
+          </p>
+        ) : null}
       </div>
-      <p className="text-body-sm text-muted">
-        {report.invoiceCount} hoá đơn đã phát hành trong kỳ · Số nợ tính đến thời điểm hiện tại
-      </p>
 
-      {env.enableAiCompliance ? (
-        <AiHint title="Tóm tắt tự động">
-          Đã ghi nhận {report.recentViolations.length} vi phạm gần đây, chủ yếu là bày biện vượt
-          vạch quy định. Tỷ lệ thu phí đúng hạn đạt mức khá; đề xuất nhắc thanh toán sớm hơn 3 ngày
-          cho các hộ có lịch sử nộp trễ.
-        </AiHint>
-      ) : null}
+      {summary ? <ReportSummaryCard summary={summary} /> : null}
 
-      <Section title="Vi phạm gần đây">
-        {report.recentViolations.length === 0 ? (
-          <EmptyState compact icon="shield-check-outline" title="Không có vi phạm gần đây" />
-        ) : (
-          report.recentViolations.map((v) => (
-            <Card key={`${v.violationId}-${v.recordedAt}`}>
-              <div className="flex items-center justify-between gap-sm">
-                <p className="text-headline-sm text-text">{v.violationLabel}</p>
-                {v.penaltyAmount !== null ? <Money amountVnd={v.penaltyAmount} /> : null}
-              </div>
-              <p className="mt-2xs text-body-sm text-muted">
-                {[v.vendorName, v.slotCode, new Date(v.recordedAt).toLocaleDateString('vi-VN')]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
-            </Card>
-          ))
-        )}
-      </Section>
+      <div
+        className={`grid items-start gap-lg ${violations.length >= 2 ? 'xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]' : ''}`}
+      >
+        <Section title="Vi phạm gần đây">
+          <ViolationLedger items={violations} />
+        </Section>
+        {violations.length >= 2 ? (
+          <Section title="Hành vi hay gặp" description="Đếm trong danh sách vi phạm gần đây.">
+            <TopViolations items={violations} />
+          </Section>
+        ) : null}
+      </div>
     </Screen>
   );
 }

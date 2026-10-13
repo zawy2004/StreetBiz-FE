@@ -23,6 +23,12 @@ export function makeSlot(
     businessCategory: null,
     tenantName: null,
     holdExpiresAt: null,
+    priceDisplayUnit: 'DAY',
+    pricePerMonth: null,
+    rentalMode: 'STANDARD',
+    monthlyPrice: 900000,
+    quarterDiscountPercent: null,
+    eventEndDate: null,
     ...overrides,
   };
 }

@@ -1,4 +1,5 @@
 import { ApiError, apiDelete, apiGet, apiPost, apiPut } from '@/core/api';
+import type { FeeCalcBasis } from '@/core/api/side-api';
 
 // WARD-01/02/03 Ward Configuration. Mirrors StreetBiz-BE Features/WardConfiguration/Contracts.cs.
 
@@ -95,7 +96,7 @@ export type StreetFeatureInput = {
 
 export type ZoneFeeComponentInput = {
   componentName: string;
-  calcBasis: 'PER_DAY' | 'PER_TERM';
+  calcBasis: FeeCalcBasis;
   unitAmount: number;
 };
 export type ZoneFeeComponent = ZoneFeeComponentInput & { componentId: number; sortOrder: number };
@@ -117,6 +118,15 @@ export type WardZone = {
   featureCount: number;
   feeComponents: ZoneFeeComponent[];
   versionToken: string;
+  /** MONTH: the officer entered pricePerMonth, which whole-month STANDARD terms are billed at;
+   * pricePerDay is then derived from it for EVENT and part-month terms. */
+  priceDisplayUnit: 'DAY' | 'MONTH';
+  pricePerMonth: number | null;
+  rentalMode: 'STANDARD' | 'EVENT';
+  eventStartDate: string | null;
+  eventEndDate: string | null;
+  /** STANDARD only: % off the rent of a 3/6/12-month term; null = no discount. */
+  quarterDiscountPercent: number | null;
 };
 
 export type UpsertZoneRequest = {
@@ -135,6 +145,12 @@ export type UpsertZoneRequest = {
   feeComponents: ZoneFeeComponentInput[];
   changeReason: string | null;
   versionToken: string | null;
+  priceDisplayUnit: 'DAY' | 'MONTH';
+  pricePerMonth: number | null;
+  rentalMode: 'STANDARD' | 'EVENT';
+  eventStartDate: string | null;
+  eventEndDate: string | null;
+  quarterDiscountPercent: number | null;
 };
 
 export type ZoneImpactItem = {
@@ -147,7 +163,8 @@ export type ZoneImpactItem = {
   newTotal: number;
 };
 export type ZoneImpactPreview = {
-  priceChanged: boolean;
+  /** Price-per-day OR fee components changed -- either changes what a pending application/renewal is billed. */
+  amountChanged: boolean;
   hoursChanged: boolean;
   pendingApplications: ZoneImpactItem[];
   openRenewals: ZoneImpactItem[];
@@ -198,6 +215,7 @@ export type PenaltyRate = {
   effectiveTo: string | null;
   createdAt: string;
   isInUse: boolean;
+  actorName: string;
 };
 export type WardPenaltyType = {
   violationType: string;
@@ -218,6 +236,21 @@ export type SetPenaltyRateRequest = {
   bracketMax: number;
   effectiveFrom: string;
   expectedCurrentScheduleId: number | null;
+};
+
+/** Null fields mean the feature is off for this ward -- no "consider revoking" banner, no
+ * overdue-penalty reminder sweep. A ward opts in explicitly. */
+export type WardCompliancePolicy = {
+  violationThresholdCount: number | null;
+  violationWindowDays: number | null;
+  unpaidPenaltyGraceDays: number | null;
+  updatedAt: string | null;
+  updatedByName: string | null;
+};
+export type UpsertWardCompliancePolicyRequest = {
+  violationThresholdCount: number | null;
+  violationWindowDays: number | null;
+  unpaidPenaltyGraceDays: number | null;
 };
 
 const token = (versionToken: string) => `versionToken=${encodeURIComponent(versionToken)}`;
@@ -246,11 +279,19 @@ export const wardConfigApi = {
     pricePerDay: number,
     availableFrom: string | null,
     availableTo: string | null,
+    feeComponents: ZoneFeeComponentInput[],
+    pricing?: {
+      priceDisplayUnit: 'DAY' | 'MONTH';
+      pricePerMonth: number | null;
+      quarterDiscountPercent: number | null;
+    },
   ) =>
     apiPost<ZoneImpactPreview>(`/ward/pricing-zones/${zoneId}/impact-preview`, {
       pricePerDay,
       availableFrom,
       availableTo,
+      feeComponents,
+      ...pricing,
     }),
   zoneHistory: (zoneId: number) =>
     apiGet<ConfigHistoryEntry[]>(`/ward/pricing-zones/${zoneId}/history`),
@@ -258,6 +299,11 @@ export const wardConfigApi = {
    * Advisory only -- "Áp dụng" only fills the price field; saving still goes through updateZone. */
   priceSuggestion: (zoneId: number) =>
     apiGet<ZonePriceSuggestion>(`/ward/pricing-zones/${zoneId}/price-suggestion`),
+
+  // Phase A - compliance policy
+  getCompliancePolicy: () => apiGet<WardCompliancePolicy>('/ward/compliance-policy'),
+  upsertCompliancePolicy: (request: UpsertWardCompliancePolicyRequest) =>
+    apiPut<WardCompliancePolicy>('/ward/compliance-policy', request),
 
   // WARD-01
   slotGrid: (zoneId?: number) =>
@@ -307,6 +353,8 @@ export const wardConfigApi = {
     } & SlotFacilities &
       WarningAcknowledgement,
   ) => apiPost<WardSlot[]>('/ward/slot-grid/batch', request),
+  slotHistory: (slotId: number) =>
+    apiGet<ConfigHistoryEntry[]>(`/ward/slot-grid/${slotId}/history`),
   createFeature: (input: StreetFeatureInput) =>
     apiPost<{ feature: WardStreetFeature; affectedSlots: PlacementIssue[] }>(
       '/ward/street-features',
@@ -363,6 +411,31 @@ export const businessCategoryLabels: Record<string, string> = {
   CRAFTS: 'Thủ công',
   GENERAL: 'Tổng hợp',
 };
+
+/** Haversine distance in metres; same formula as the backend's GeoMath.DistanceMeters. */
+export function distanceMeters(
+  a: { latitude: number; longitude: number },
+  b: { latitude: number; longitude: number },
+): number {
+  const rad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = rad(b.latitude - a.latitude);
+  const dLon = rad(b.longitude - a.longitude);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(a.latitude)) * Math.cos(rad(b.latitude)) * Math.sin(dLon / 2) ** 2;
+  return 6_371_000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+export const MAX_BATCH_SLOTS = 50;
+
+/** How many slots SlotLine.Positions will lay along a segment; 0 when the segment is shorter than one slot. */
+export function batchSlotCount(segmentMeters: number, lengthMeters: number, gapMeters: number): number {
+  if (segmentMeters < lengthMeters) return 0;
+  return Math.min(
+    MAX_BATCH_SLOTS,
+    Math.floor((segmentMeters - lengthMeters) / (lengthMeters + gapMeters)) + 1,
+  );
+}
 
 /** Calendar date in Vietnam (UTC+7) of a UTC timestamp the backend sends without a "Z". */
 export function vnDateOf(isoUtc: string): string {

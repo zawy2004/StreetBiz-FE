@@ -4,9 +4,13 @@ type Props<T extends string> = {
   onChange: (value: T) => void;
 };
 
+/** Pill tabs: the chosen one turns ink, like the lit item on a route board. */
 export function SegmentedControl<T extends string>({ options, value, onChange }: Props<T>) {
   return (
-    <div role="tablist" className="flex w-full gap-1 rounded-sm bg-sunken p-1 sm:w-fit">
+    <div
+      role="tablist"
+      className="flex w-full gap-1 rounded-[12px] border border-border bg-card p-1 sm:w-fit"
+    >
       {options.map((opt) => {
         const active = opt.value === value;
         return (
@@ -17,8 +21,10 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
             role="tab"
             aria-selected={active}
             className={[
-              'h-9 flex-1 truncate rounded-[6px] px-md text-label transition-colors sm:flex-none',
-              active ? 'bg-card font-semibold text-text shadow-card' : 'text-muted hover:text-text',
+              'h-9 flex-1 truncate rounded-[9px] px-md text-label transition-colors duration-150 sm:flex-none',
+              active
+                ? 'bg-primary font-semibold text-on-primary shadow-card'
+                : 'text-muted hover:bg-sunken hover:text-text',
             ].join(' ')}
           >
             {opt.label}

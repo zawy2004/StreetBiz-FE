@@ -27,3 +27,6 @@ FE chỉ hiển thị các ảnh này khi quán/món chưa có ảnh riêng (`im
 | nem-nuong.jpg | Index Librorum Permissorum | CC0 | https://commons.wikimedia.org/wiki/File:Nem_Nuong_2018-07-29.jpg |
 | do-nuong.jpg | Hoangha215 | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Thit-Xien-Nuong-Lao-Cai.jpg |
 | tra-da.jpg | Editor at Large | CC BY-SA 2.5 | https://commons.wikimedia.org/wiki/File:Iced_tea_with_ice_cubes.jpg |
+
+## Tối ưu 2026-10-10
+Các ảnh được thu nhỏ còn cạnh dài tối đa 880px và nén lại (JPEG chất lượng 76, progressive) để tải nhanh hơn trên di động; giấy phép và ghi công không đổi. Bản gốc lưu ở `docs_system/ui-redesign/backup/food-originals/`.

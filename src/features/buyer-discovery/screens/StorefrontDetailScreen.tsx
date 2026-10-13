@@ -1,22 +1,29 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button, Card, Icon, Money } from '@/components/common';
-import { EmptyState, ErrorState, LoadingState } from '@/components/feedback';
-import { AppHeader, Screen, Section } from '@/components/layout';
-import { StatusChip } from '@/components/status';
+import { ErrorState, Skeleton } from '@/components/feedback';
+import { Screen } from '@/components/layout';
 import { commerceApi, errorMessage } from '@/core/api';
 import { useCanStartChat, useStartChat } from '@/features/chat/hooks/useChat';
-import { colors } from '@/theme';
-import { FoodSafetyBadge } from '@/features/food-safety/components/FoodSafetyBits';
-import { categoryIcon } from '../category-icons';
-import { FoodImage } from '../components/FoodImage';
-import { OpenBadge } from '../components/StorefrontCard';
-import { directionsUrl, formatDistance, ratingText, vietnamWeekday, weeklySchedule } from '../discovery-format';
+import { BackButton } from '../components/BackButton';
+import { ActionRow } from '../components/storefront/ActionRow';
+import { HoursCard } from '../components/storefront/HoursCard';
+import { SidewalkCard } from '../components/storefront/SidewalkCard';
+import { StorefrontHero } from '../components/storefront/StorefrontHero';
+import { StorefrontMenu } from '../components/storefront/StorefrontMenu';
+import { directionsUrl, todayHoursText } from '../discovery-format';
 import { useDiscoveryStore } from '../discovery-store';
-import { menuItemPhotos, storefrontPhotos } from '../food-photos';
+import { todayStatus } from '../storefront-hours';
 
-/** One storefront in full: where it is, when it opens and what it sells (DISC-06). */
+const BODY =
+  'mx-auto grid w-full max-w-[1320px] gap-lg px-md pb-2xl md:px-lg lg:grid-cols-[minmax(0,1fr)_340px] lg:grid-rows-[auto_1fr] lg:gap-x-xl lg:px-xl lg:[grid-template-areas:"menu_side""menu_hours"] xl:grid-cols-[minmax(0,1fr)_400px]';
+
+/**
+ * One storefront in full (DISC-06), as a magazine page about one stall: the
+ * cover photo with its name, how today looks and the ways on, then the menu
+ * (with a sticky category strip) beside the piece of pavement it stands on and
+ * its week of hours.
+ */
 export function StorefrontDetailScreen() {
   const { storefrontId } = useParams<{ storefrontId: string }>();
   const navigate = useNavigate();
@@ -29,140 +36,112 @@ export function StorefrontDetailScreen() {
     enabled: Boolean(storefrontId),
   });
 
-  if (detail.isPending) return <LoadingState />;
+  if (detail.isPending) return <StorefrontDetailSkeleton />;
   if (detail.isError || !detail.data) {
-    return <ErrorState message={errorMessage(detail.error)} onRetry={() => detail.refetch()} />;
+    return (
+      <Screen>
+        <div>
+          <BackButton />
+        </div>
+        <ErrorState message={errorMessage(detail.error)} onRetry={() => detail.refetch()} />
+      </Screen>
+    );
   }
 
   const { storefront, weeklyHours, menu } = detail.data;
-  const schedule = weeklySchedule(weeklyHours);
-  const today = vietnamWeekday();
-  const distance = formatDistance(storefront.distanceMeters);
+  // The server's "open now" is the truth; when the published hours disagree, fall back to today's window.
+  const status =
+    todayStatus(weeklyHours, storefront.isOpenNow) ??
+    (weeklyHours.length > 0 ? todayLine(todayHoursText(storefront)) : null);
 
   return (
-    <Screen>
-      <AppHeader title={storefront.storefrontName} back />
-      <FoodImage
-        photos={storefrontPhotos(storefront)}
-        icon={categoryIcon(storefront.categories[0])}
-        iconSize={56}
-        iconColor={colors.primary}
-        placeholderClassName="bg-tint-primary"
-        className="aspect-[16/9] w-full rounded-md md:aspect-[21/8]"
-        imgClassName={storefront.isOpenNow ? '' : 'grayscale-[60%]'}
-        showIllustrativeTag
-      />
-      <Card>
-        <div className="flex flex-col gap-sm">
-          <div className="flex flex-wrap items-center gap-sm">
-            <OpenBadge isOpen={storefront.isOpenNow} />
-            <span className="flex items-center gap-1 text-body-md text-text">
-              <Icon name="star" size={16} color={colors.secondary} />
-              {ratingText(storefront.communityRating, storefront.communityCount)}
-            </span>
-          </div>
-          {storefront.description ? <p className="text-body-md text-text">{storefront.description}</p> : null}
-          <div className="flex items-start gap-xs text-body-md text-muted">
-            <Icon name="map-marker-outline" size={18} color={colors.muted} />
-            <span>
-              {storefront.address ? `${storefront.address} · ` : ''}
-              {storefront.zoneName} · Ô {storefront.slotCode} · {storefront.wardName}
-              {distance ? ` · ${distance}` : ''}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-sm">
-            <a
-              href={directionsUrl(storefront.latitude, storefront.longitude)}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-12 items-center justify-center rounded-sm border border-border px-lg text-headline-sm text-indigo"
-            >
-              Chỉ đường
-            </a>
-            <Button
-              label="Hộ kinh doanh"
-              variant="outline"
-              fullWidth={false}
-              onPress={() => navigate(`/customer/explore/vendors/${storefront.vendorId}`)}
-            />
-            {canChat ? (
-              <Button
-                label="Nhắn tin cho người bán"
-                variant="outline"
-                fullWidth={false}
-                loading={startChat.isPending}
-                onPress={() =>
-                  startChat.mutate(storefront.storefrontId, {
-                    onSuccess: (conversation) =>
-                      navigate(`/customer/chat/${conversation.conversationId}`),
-                  })
+    <Screen padded={false}>
+      <StorefrontHero detail={detail.data} />
+
+      <div className="mx-auto w-full max-w-[1320px] px-md pb-lg pt-md md:px-lg md:pt-lg lg:px-xl">
+        <ActionRow
+          status={status}
+          isOpen={storefront.isOpenNow}
+          directionsHref={directionsUrl(storefront.latitude, storefront.longitude)}
+          onVendor={() => navigate(`/customer/explore/vendors/${storefront.vendorId}`)}
+          chat={
+            canChat
+              ? {
+                  loading: startChat.isPending,
+                  onPress: () =>
+                    startChat.mutate(storefront.storefrontId, {
+                      onSuccess: (conversation) =>
+                        navigate(`/customer/chat/${conversation.conversationId}`),
+                    }),
                 }
-              />
-            ) : null}
-          </div>
-          {startChat.isError ? (
-            <p className="text-body-md text-error">{errorMessage(startChat.error)}</p>
-          ) : null}
+              : null
+          }
+          chatError={startChat.isError ? errorMessage(startChat.error) : null}
+        />
+      </div>
+
+      <div className={BODY}>
+        <div className="min-w-0 lg:self-start lg:[grid-area:side]">
+          <SidewalkCard storefront={storefront} />
         </div>
-      </Card>
+        <div className="min-w-0 lg:[grid-area:menu]">
+          <StorefrontMenu
+            menu={menu}
+            onOpenItem={(item) => navigate(`/customer/explore/items/${item.menuItemId}`)}
+          />
+        </div>
+        <div className="min-w-0 lg:self-start lg:[grid-area:hours]">
+          <HoursCard weeklyHours={weeklyHours} />
+        </div>
+      </div>
+    </Screen>
+  );
+}
 
-      <Section title="Giờ mở cửa">
-        <Card>
-          {schedule ? (
-            <ul className="flex flex-col gap-1">
-              {schedule.map((day) => (
-                <li
-                  key={day.day}
-                  className={`flex justify-between text-body-md ${day.day === today ? 'font-semibold text-text' : 'text-muted'}`}
-                >
-                  <span>{day.label}</span>
-                  <span>{day.ranges.length > 0 ? day.ranges.join(', ') : 'Nghỉ'}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-body-md text-muted">Quán chưa đăng giờ mở cửa.</p>
-          )}
-        </Card>
-      </Section>
+function todayLine(text: string | null): string | null {
+  if (!text) return null;
+  return text === 'Nghỉ hôm nay' ? 'Hôm nay quán nghỉ' : `Hôm nay mở ${text}`;
+}
 
-      <Section title="Thực đơn">
-        {menu.length === 0 ? <EmptyState icon="silverware-fork-knife" title="Chưa có món nào" /> : null}
-        {menu.map((category) => (
-          <div key={category.categoryId} className="flex flex-col gap-xs">
-            <h3 className="text-label text-muted">{category.categoryName}</h3>
-            {category.items.map((item) => (
-              <Card key={item.menuItemId} onPress={() => navigate(`/customer/explore/items/${item.menuItemId}`)}>
-                <div className="flex items-center justify-between gap-sm">
-                  <FoodImage
-                    photos={menuItemPhotos(item)}
-                    icon={categoryIcon(item.categoryName)}
-                    iconSize={28}
-                    iconColor={colors.muted}
-                    className="size-20 shrink-0 rounded-sm"
-                    imgClassName={item.availabilityStatus === 'SOLD_OUT' ? 'grayscale' : ''}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-headline-sm text-text">{item.itemName}</p>
-                    {item.description ? (
-                      <p className="line-clamp-2 text-body-sm text-muted">{item.description}</p>
-                    ) : null}
-                    {item.foodSafetyCertified ? (
-                      <div className="mt-1">
-                        <FoodSafetyBadge />
-                      </div>
-                    ) : null}
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <Money amountVnd={item.unitPrice} />
-                    {item.availabilityStatus === 'SOLD_OUT' ? <StatusChip code="SOLD_OUT" /> : null}
-                  </div>
-                </div>
-              </Card>
-            ))}
+/** The page's outline while it loads: cover, name, the three actions, chips and dish rows. */
+function StorefrontDetailSkeleton() {
+  return (
+    <Screen padded={false}>
+      <div role="status" aria-label="Đang tải quán" className="flex flex-col">
+        <div className="mx-auto w-full max-w-[1320px] md:px-lg md:pt-md lg:px-xl lg:pt-lg">
+          <div className="relative aspect-[4/3] overflow-hidden md:aspect-[16/9] md:rounded-[28px] lg:aspect-auto lg:h-[380px] lg:rounded-[32px] xl:h-[460px] xl:rounded-[36px]">
+            <Skeleton className="absolute inset-0 !rounded-none" />
+            <div className="absolute left-sm top-sm md:left-md md:top-md">
+              <BackButton floating />
+            </div>
+            <div className="absolute inset-x-sm bottom-sm flex flex-col gap-sm rounded-[22px] bg-card/80 p-md md:inset-x-auto md:bottom-md md:left-md md:w-[60%]">
+              <Skeleton className="h-9 w-[60%]" />
+              <Skeleton className="h-4 w-1/3" />
+            </div>
           </div>
-        ))}
-      </Section>
+        </div>
+        <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-md px-md pt-lg md:px-lg lg:px-xl">
+          <Skeleton className="h-6 w-56" />
+          <div className="flex gap-sm">
+            <Skeleton className="h-12 w-32 !rounded-[12px]" />
+            <Skeleton className="h-12 w-44 !rounded-[12px]" />
+            <Skeleton className="h-12 w-36 !rounded-[12px]" />
+          </div>
+          <div className="mt-sm flex gap-xs">
+            <Skeleton className="h-11 w-32 !rounded-full" />
+            <Skeleton className="h-11 w-24 !rounded-full" />
+          </div>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="flex items-start gap-md">
+              <Skeleton className="h-[88px] w-[88px] shrink-0 !rounded-[16px] md:h-[112px] md:w-[112px]" />
+              <div className="flex flex-1 flex-col gap-xs pt-1">
+                <Skeleton className="h-5 w-1/2" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </Screen>
   );
 }

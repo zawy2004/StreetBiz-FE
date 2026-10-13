@@ -5,6 +5,7 @@ type Props =
   | { code: string; label?: undefined; tone?: undefined }
   | { code?: undefined; label: string; tone: StatusTone };
 
+/** A status set like a small road sign: squared, ruled, upper-case. */
 export function StatusChip(props: Props) {
   const resolved =
     'tone' in props && props.tone
@@ -15,10 +16,18 @@ export function StatusChip(props: Props) {
 
   return (
     <span
-      style={{ backgroundColor: colorsForTone.bg, color: colorsForTone.fg }}
-      className="inline-flex h-6 w-fit shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full pl-2 pr-2.5 text-badge"
+      style={{
+        backgroundColor: colorsForTone.bg,
+        color: colorsForTone.fg,
+        borderColor: colorsForTone.border,
+      }}
+      className="inline-flex h-6 w-fit shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[6px] border pl-2 pr-2.5 text-badge"
     >
-      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'currentColor' }} />
+      <span
+        aria-hidden="true"
+        className="h-1.5 w-1.5 rounded-full"
+        style={{ backgroundColor: 'currentColor' }}
+      />
       {label.toUpperCase()}
     </span>
   );

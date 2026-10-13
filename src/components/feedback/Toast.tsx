@@ -20,7 +20,7 @@ export function ToastHost() {
       aria-live="polite"
       className="pointer-events-none fixed inset-x-0 bottom-[88px] z-[60] flex justify-center px-md lg:bottom-lg"
     >
-      <div className="max-w-[480px] rounded-md bg-text px-md py-sm text-body-md font-medium text-bg shadow-sheet">
+      <div className="sb-pop max-w-[480px] rounded-[14px] border-l-4 border-l-brand bg-card px-md py-sm text-body-md font-medium text-text shadow-sheet ring-1 ring-border">
         {message}
       </div>
     </div>,

@@ -1,10 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ApiRegistration } from '@/core/api';
+import { financeApi } from '@/core/api/finance-api';
+import { sideApi } from '@/core/api/side-api';
 
 const api = vi.hoisted(() => ({ list: vi.fn() }));
 
@@ -72,6 +74,10 @@ function renderVendorHome() {
 describe('VendorHomeScreen (live API)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    // The home screen also loads fees, penalties and contracts in live mode.
+    vi.spyOn(financeApi, 'fees').mockResolvedValue([]);
+    vi.spyOn(financeApi, 'penalties').mockResolvedValue([]);
+    vi.spyOn(sideApi, 'listContracts').mockResolvedValue([]);
     useAuthStore.setState({
       user: {
         id: '1',
@@ -83,6 +89,12 @@ describe('VendorHomeScreen (live API)', () => {
       },
       sessionExpired: false,
     });
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    useAuthStore.setState({ user: null, sessionExpired: false });
   });
 
   it('surfaces a real registration needing more information as a todo, not the mock-data empty state', async () => {
