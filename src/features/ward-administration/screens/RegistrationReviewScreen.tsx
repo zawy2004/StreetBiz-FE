@@ -9,6 +9,7 @@ import { ErrorState, showToast } from '@/components/feedback';
 import { env, isLiveApi } from '@/core/config/env';
 import { useMediaQuery } from '@/hooks/useBreakpoint';
 import { useMockDb } from '@/mocks/db';
+import { AiSuggestionCard } from '../components/AiSuggestionCard';
 import { complianceApi, type WardEnrollmentDetail } from '../ward-api';
 import { formatDateTimeVi } from '../components/review/format';
 import {
@@ -84,6 +85,7 @@ export function RegistrationReviewScreen() {
           ]
         : [],
       isAiGenerated: false,
+      aiLogId: null,
     };
   }, [id, fallbackIdNumber]);
 
@@ -401,7 +403,10 @@ export function RegistrationReviewScreen() {
                 </ToneBox>
               ) : null}
 
-              <AiHint title="Trợ lý bóc tách & đối chiếu CCCD [AI]">
+              <AiSuggestionCard
+                title="Trợ lý bóc tách & đối chiếu CCCD [AI]"
+                aiLogId={aiCheck.aiLogId}
+              >
                 <div className="flex flex-col gap-sm sm:flex-row sm:items-start">
                   <AiMatchGauge
                     percent={aiCheck.matchPercentage}
@@ -430,7 +435,7 @@ export function RegistrationReviewScreen() {
                     ) : null}
                   </div>
                 </div>
-              </AiHint>
+              </AiSuggestionCard>
             </div>
           ) : env.enableAiCompliance ? (
             <AiHint title="Đối chiếu dữ liệu [Hệ thống — chưa xác minh bằng AI]">

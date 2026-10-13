@@ -6,8 +6,10 @@ import { ConfirmDialog, Skeleton } from '@/components/feedback';
 import { PermitStamp, VERDICT_TONES } from '@/components/illustrations';
 import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
+import { env } from '@/core/config/env';
 import { useAuthStore } from '@/store/auth-store';
 import { LocationReview } from '../components/LocationReview';
+import { ProposalAssessmentPanel } from '../components/ProposalAssessmentPanel';
 import { WardGate } from '../components/WardGate';
 import {
   CaseBlockers,
@@ -307,6 +309,9 @@ function CaseContent({ kind, id }: { kind: CaseKind; id: string }) {
           />
 
           {kind === 'proposals' && <LocationReview record={data} onSaved={refresh} />}
+          {kind === 'proposals' && env.enableAiCompliance && (
+            <ProposalAssessmentPanel record={data} />
+          )}
           {kind === 'transfers' && (
             <>
               <TransferLedgerPlate
