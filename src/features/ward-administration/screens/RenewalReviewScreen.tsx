@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, formatVnd, Icon, KerbTag, Money } from '@/components/common';
@@ -12,6 +12,8 @@ import { useMockDb } from '@/mocks/db';
 import { complianceApi, type WardRenewalDetail } from '../ward-api';
 import { formatDateTimeVi, formatDueVi } from '../components/review/format';
 import { DossierBlock, FactGrid, LegalNote } from '../components/review/Primitives';
+import { LiveReviewFailure } from '../components/review/LiveReviewFailure';
+import { useLiveReviewDetail } from '../components/review/useLiveReviewDetail';
 import {
   ComplianceScorecard,
   ContractTimeline,
@@ -57,28 +59,30 @@ export function RenewalReviewScreen() {
   const mockSlot = useMockDb((s) => s.slots.find((sl) => sl.id === mockContract?.slotId));
   const approveMockRenewal = useMockDb((s) => s.approveRenewal);
 
-  const [detail, setDetail] = useState<WardRenewalDetail | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Live mode decides on the server's record only: a failed load shows the failure, never the
+  // mock seed or default figures under a real id.
+  const live = useLiveReviewDetail<WardRenewalDetail>(id, complianceApi.getRenewal);
+  const detail = live.data;
+  const setDetail = live.setData;
+  const loading = live.loading;
   const [submitting, setSubmitting] = useState(false);
   const [note, setNote] = useState('');
-
-  useEffect(() => {
-    if (!isLiveApi || !id) return;
-    setLoading(true);
-    complianceApi
-      .getRenewal(id)
-      .then(setDetail)
-      .catch((err) => {
-        console.warn('Could not load live renewal detail, falling back to mock:', err);
-      })
-      .finally(() => setLoading(false));
-  }, [id]);
 
   // Where the decision desk goes: the right column on wide screens, the bottom bar
   // otherwise. Exactly one set of decision buttons is rendered at any time.
   const wide = useMediaQuery('(min-width: 1280px)');
 
-  if (!mockRenewal && !detail && !loading) {
+  if (live.failure) {
+    return (
+      <LiveReviewFailure
+        failure={live.failure}
+        notFoundMessage="Không tìm thấy yêu cầu gia hạn tại địa bàn."
+        onRetry={live.retry}
+      />
+    );
+  }
+
+  if (!isLiveApi && !mockRenewal) {
     return (
       <Screen>
         <ErrorState message="Không tìm thấy yêu cầu gia hạn tại địa bàn." />
@@ -94,7 +98,7 @@ export function RenewalReviewScreen() {
     );
   }
 
-  if (loading) {
+  if (loading || (isLiveApi && !detail)) {
     return (
       <Screen width="wide">
         <AppHeader title="Đang tải..." back />
