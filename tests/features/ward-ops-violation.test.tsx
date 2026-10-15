@@ -146,10 +146,12 @@ async function fillAndRecord(user: ReturnType<typeof userEvent.setup>) {
     '  Kê bàn ghế lấn vạch  ',
   );
   await user.click(screen.getByRole('button', { name: STEP1 }));
-  await screen.findByText('Đã lập biên bản vi phạm #77');
+  await screen.findByText('Đã lập biên bản vi phạm #77', undefined, { timeout: 5000 });
 }
 
-describe('RecordViolationScreen (live, WARD-12)', () => {
+// Each case types a multi-step form key by key; with the whole suite running in parallel that
+// outlasts the 5 s default (it failed intermittently on develop too), so the budget is per file.
+describe('RecordViolationScreen (live, WARD-12)', { timeout: 20_000 }, () => {
   beforeEach(() => {
     useToastStore.setState({ message: null });
     URL.createObjectURL = vi.fn(() => 'blob:preview');
