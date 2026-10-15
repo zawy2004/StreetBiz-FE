@@ -25,6 +25,8 @@ import {
   PickupPointArt,
   ProviderTiles,
 } from '../components/CheckoutParts';
+import { PickupRangeNotice } from '@/features/orders/pickup/PickupRangeNotice';
+import { usePickupRange } from '@/features/orders/pickup/usePickupRange';
 
 type Provider = 'MOMO' | 'ZALOPAY';
 
@@ -52,12 +54,17 @@ function LiveCheckoutScreen() {
     enabled: user?.role_code === 'CUSTOMER',
   });
   const place = useCheckoutOrder();
+  // ORD-01: called before any early return, like every hook. Idle (no location prompt) until
+  // there is a cart that can actually be checked out.
+  const range = usePickupRange(
+    cart.data?.items.length && !cart.data.pendingOrderId ? cart.data.storefrontId : undefined,
+  );
   useEffect(() => {
     idempotencyKey.current = null;
     submitting.current = false;
   }, [cart.data?.cartId]);
   const startCheckout = () => {
-    if (!cart.data || submitting.current || place.isPending) return;
+    if (!cart.data || submitting.current || place.isPending || !range.canOrder) return;
     submitting.current = true;
     idempotencyKey.current ??= crypto.randomUUID();
     place.mutate(
@@ -65,6 +72,8 @@ function LiveCheckoutScreen() {
         cartId: cart.data.cartId,
         provider,
         idempotencyKey: idempotencyKey.current,
+        // The position the screen judged; the server re-checks this same one.
+        location: range.location,
       },
       {
         onSuccess: async (checkout) => {
@@ -192,7 +201,7 @@ function LiveCheckoutScreen() {
       <Button
         label={place.isPending ? 'Đang khởi tạo thanh toán…' : 'Thanh toán và đặt món'}
         loading={place.isPending}
-        disabled={place.isPending || blocked}
+        disabled={place.isPending || blocked || !range.canOrder}
         onPress={startCheckout}
       />
       {/* The shared button draws only a spinner while loading, so the words go here. */}
@@ -233,10 +242,13 @@ function LiveCheckoutScreen() {
     <ProviderTiles value={provider} onChange={setProvider} disabled={place.isPending} />
   );
   const pickup = (
-    <PickupPoint
-      address={data.storefrontAddress || 'Địa chỉ điểm bán chưa được cập nhật'}
-      tall={items.length === 1}
-    />
+    <div className="flex flex-col gap-sm">
+      <PickupPoint
+        address={data.storefrontAddress || 'Địa chỉ điểm bán chưa được cập nhật'}
+        tall={items.length === 1}
+      />
+      {range.enforced ? <PickupRangeNotice range={range} /> : null}
+    </div>
   );
 
   return (

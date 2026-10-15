@@ -26,10 +26,12 @@ function forget() {
 
 /**
  * The payment to check on this page, if we are back from MoMo: MoMo appends its own
- * `orderId` (ours is `SB-T{transactionId}`), else the one remembered before leaving.
+ * `orderId` (ours is `SB-T{transactionId}-{8 hex}`, fresh per attempt because MoMo refuses a
+ * repeated one; the bare `SB-T{transactionId}` of older links is still read), else the one
+ * remembered before leaving.
  */
 function returningTransaction(search: string, path: string): number | null {
-  const fromMomo = /^SB-T(\d+)$/.exec(new URLSearchParams(search).get('orderId') ?? '');
+  const fromMomo = /^SB-T(\d+)(?:-[0-9a-f]{8})?$/.exec(new URLSearchParams(search).get('orderId') ?? '');
   if (fromMomo) return Number(fromMomo[1]);
   try {
     const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? 'null') as Pending | null;

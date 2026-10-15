@@ -9,6 +9,7 @@ import { errorMessage } from '@/core/api';
 import { ApiError } from '@/core/api/problem';
 import { OrderLiveBar } from '@/features/orders/alerts/OrderLiveBar';
 import { orderApi } from '@/features/orders/api/orderApi';
+import { useVendorArrivals } from '@/features/orders/hooks/useOrderTracking';
 import {
   RejectOrderDialog,
   type PipelineStage,
@@ -128,6 +129,8 @@ export function VendorOrdersScreen() {
   const [reason, setReason] = useState('');
   const now = useNow(30_000);
   const orders = useVendorOrders({ status: TAB_STATUSES[tab], page, pageSize: PAGE_SIZE });
+  // ORD-02 "Tôi đang đến": customers on their way, shown on their tickets.
+  const arrivals = useVendorArrivals();
   const counts = useVendorOrderCounts(STAGE_STATUSES);
   const totalPages = orders.data?.totalPages ?? 0;
   const live = tab !== 'COMPLETED' && tab !== 'CLOSED';
@@ -390,6 +393,7 @@ export function VendorOrdersScreen() {
                 }
                 primaryAction={actions.primary}
                 secondaryActions={actions.secondary}
+                arrival={arrivals.get(order.orderId)}
               />
             );
           })}

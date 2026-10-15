@@ -19,6 +19,7 @@ const ICON_MAP: Record<string, Glyph> = {
   'inbox-outline': g(Pi.PiTray, Pi.PiTrayFill, Pi.PiTrayDuotone),
   'map-marker-radius-outline': g(Pi.PiMapPinArea, Pi.PiMapPinAreaFill, Pi.PiMapPinAreaDuotone),
   'map-marker-outline': g(Pi.PiMapPin, Pi.PiMapPinFill, Pi.PiMapPinDuotone),
+  directions: g(Pi.PiNavigationArrow, Pi.PiNavigationArrowFill),
   'map-marker-off-outline': g(Pi.PiMapPinSimpleLine, Pi.PiMapPinSimpleLineFill),
   'map-marker': g(Pi.PiMapPinFill, Pi.PiMapPinFill),
   'qrcode-scan': g(Pi.PiScan, Pi.PiScanFill, Pi.PiScanDuotone),

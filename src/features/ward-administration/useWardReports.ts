@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   wardReportApi,
@@ -142,4 +142,83 @@ export function useWardDashboard() {
     error: query.error,
     refetch: query.refetch,
   };
+}
+
+export const WARD_COLLECTION_KEYS = {
+  performance: (from: string, to: string) => ['ward', 'reports', 'performance', from, to] as const,
+  trend: (months: number) => ['ward', 'reports', 'trend', months] as const,
+  debtors: ['ward', 'reports', 'debtors'] as const,
+  receivables: ['ward', 'reports', 'receivables'] as const,
+  refunds: ['ward', 'reports', 'refunds'] as const,
+};
+
+/**
+ * WARD-14 collections: on-time rate and zones for the period. Live only: the demo database keeps
+ * no payment dates, so it cannot say what was on time.
+ */
+export function useCollectionPerformance(period: ReportPeriod) {
+  return useQuery({
+    queryKey: WARD_COLLECTION_KEYS.performance(period.from, period.to),
+    queryFn: () => wardReportApi.performance(period.from, period.to),
+    enabled: isLiveApi,
+    // Keep the last figures on screen while another period loads: no flash, no layout jump.
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Collections month by month (live only, like the on-time rate). */
+export function useCollectionTrend(months = 6) {
+  return useQuery({
+    queryKey: WARD_COLLECTION_KEYS.trend(months),
+    queryFn: () => wardReportApi.trend(months),
+    enabled: isLiveApi,
+  });
+}
+
+/** Households with overdue fees (live only). */
+export function useWardDebtors() {
+  return useQuery({
+    queryKey: WARD_COLLECTION_KEYS.debtors,
+    queryFn: wardReportApi.debtors,
+    enabled: isLiveApi,
+  });
+}
+
+/** Overdue fees by age, what falls due next, and payments owed back (live only). */
+export function useReceivables() {
+  return useQuery({
+    queryKey: WARD_COLLECTION_KEYS.receivables,
+    queryFn: wardReportApi.receivables,
+    enabled: isLiveApi,
+  });
+}
+
+/** Payments received twice: owed back first, then refunded (live only). */
+export function useWardRefunds() {
+  return useQuery({
+    queryKey: WARD_COLLECTION_KEYS.refunds,
+    queryFn: wardReportApi.refunds,
+    enabled: isLiveApi,
+  });
+}
+
+/** The ward paid a payment back; both the list and the counts above it re-read. */
+export function useMarkRefunded() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (transactionId: number) => wardReportApi.markRefunded(transactionId),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: WARD_COLLECTION_KEYS.refunds });
+      void queryClient.invalidateQueries({ queryKey: WARD_COLLECTION_KEYS.receivables });
+    },
+  });
+}
+
+/** One reminder per household per day; the list re-reads so "đã nhắc" shows at once. */
+export function useRemindDebtor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (contractId: number) => wardReportApi.remindDebtor(contractId),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: WARD_COLLECTION_KEYS.debtors }),
+  });
 }

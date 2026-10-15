@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Icon } from '@/components/common';
 import { ConfirmDialog, ErrorState, showToast } from '@/components/feedback';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
+import { CartRangeHint } from '@/features/orders/pickup/CartRangeHint';
 import { commerceApi, errorMessage } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { useIsDesktop } from '@/hooks/useBreakpoint';
@@ -178,7 +179,7 @@ function LiveCartScreen() {
               address={data.storefrontAddress}
             />
           </div>
-          {locked ? <CartLockNotice /> : null}
+          {locked ? <CartLockNotice /> : <CartRangeHint storefrontId={data.storefrontId} />}
           <div className={LAYOUT}>
             <section
               aria-label="Các món trong giỏ"

@@ -33,6 +33,11 @@ import {
   upcomingStages,
 } from '../components/order-display';
 import { useCustomerOrder, useRefreshAfterOrderMutation } from '../hooks/useOrders';
+import { useOrderTracking } from '../hooks/useOrderTracking';
+import { OrderProgressCard } from '../tracking/OrderProgressCard';
+import { PickupPointCard } from '../tracking/PickupPointCard';
+import { hasTrackingJourney, normalizeTrackingStatus } from '../tracking/tracking-steps';
+import { useReadyNotice } from '../tracking/useReadyNotice';
 import { COLLECTABLE_ORDER_STATUSES, TERMINAL_ORDER_STATUSES } from '../types/order.types';
 
 export function OrderDetailScreen() {
@@ -65,6 +70,8 @@ function LiveOrderDetailScreen() {
   const { orderId } = useParams<{ orderId: string }>();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const order = useCustomerOrder(orderId);
+  const tracking = useOrderTracking(order.data?.orderId, order.data?.orderStatus);
+  useReadyNotice(order.data?.orderStatus);
   const refresh = useRefreshAfterOrderMutation('customer', Number(orderId));
   const transition = useMutation({
     mutationFn: () => orderApi.cancel(order.data!.orderId),
@@ -206,14 +213,45 @@ function LiveOrderDetailScreen() {
         </div>
 
         <div className={`${COLUMN} lg:gap-lg`}>
-          <div className="order-2 lg:order-none">
-            <Panel title="Hành trình đơn">
-              <OrderTimeline
+          <div className="order-2 flex flex-col gap-md lg:order-none">
+            {hasTrackingJourney(data.orderStatus) ? (
+              <OrderProgressCard
+                status={data.orderStatus}
                 history={data.statusHistory}
-                current={data.orderStatus}
-                upcoming={upcomingStages(data.orderStatus)}
+                tracking={tracking.data}
               />
-            </Panel>
+            ) : (
+              <Panel title="Hành trình đơn">
+                <OrderTimeline
+                  history={data.statusHistory}
+                  current={data.orderStatus}
+                  upcoming={upcomingStages(data.orderStatus)}
+                />
+              </Panel>
+            )}
+            <PickupPointCard
+              storefront={data.storefront}
+              point={tracking.data?.pickupPoint}
+              active={collectable}
+              orderId={data.orderId}
+              arrivalNotifiedAt={tracking.data?.arrivalNotifiedAt}
+              arrivalAcknowledgedAt={tracking.data?.arrivalAcknowledgedAt}
+              arrivalNoticeCount={tracking.data?.arrivalNoticeCount}
+            />
+            {/* The progress card answers "where is it"; the full log with notes stays one tap away. */}
+            {hasTrackingJourney(data.orderStatus) && data.statusHistory.length ? (
+              <details className="group rounded-[20px] bg-card p-md shadow-card ring-1 ring-border/80 md:p-lg">
+                <summary className="flex cursor-pointer list-none items-center justify-between font-sign text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">
+                  Lịch sử cập nhật
+                  <span className="transition-transform duration-200 group-open:rotate-180">
+                    <Icon name="chevron-down" size={18} />
+                  </span>
+                </summary>
+                <div className="mt-md">
+                  <OrderTimeline history={data.statusHistory} current={data.orderStatus} />
+                </div>
+              </details>
+            ) : null}
           </div>
           {data.rejectionReason ? (
             <section
@@ -335,6 +373,8 @@ function MockOrderDetailScreen() {
     >
       <AppHeader title={`#${order.order_code}`} back subtitle={storefront?.name} />
       <StatusChip code={order.order_status} />
+      {/* The demo keeps no history, so the steps show without times. */}
+      <OrderProgressCard status={normalizeTrackingStatus(order.order_status)} history={[]} />
       <div className="drop-shadow-[0_22px_30px_rgb(17_28_43/0.12)] dark:drop-shadow-none">
         <article
           aria-label="Biên nhận"
