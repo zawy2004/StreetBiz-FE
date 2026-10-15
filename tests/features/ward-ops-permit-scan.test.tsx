@@ -58,6 +58,60 @@ describe('PermitScanScreen display-only bands (W14 tier B)', () => {
     vi.restoreAllMocks();
   });
 
+  it("another ward's permit: validity only, no violation or suspension actions", async () => {
+    vi.spyOn(complianceApi, 'inspectPermit').mockResolvedValueOnce({
+      ...valid,
+      permitId: null,
+      contractId: null,
+      vendorId: null,
+      slotId: null,
+      isOwnWard: false,
+    });
+    const user = userEvent.setup();
+    renderScreen();
+
+    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), 'SB-HC1-2026-0815');
+    await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
+
+    const board = await screen.findByRole('region', { name: 'Kết quả tra cứu giấy phép' });
+    expect(within(board).getByText(/thuộc địa bàn phường khác/)).toBeInTheDocument();
+    expect(within(board).getByText('Bánh mì Cô Lan')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Lập biên bản vi phạm' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Đình chỉ / thu hồi' })).not.toBeInTheDocument();
+  });
+
+  it('own ward: both actions are offered and no other-ward band appears', async () => {
+    vi.spyOn(complianceApi, 'inspectPermit').mockResolvedValueOnce({ ...valid, isOwnWard: true });
+    const user = userEvent.setup();
+    renderScreen();
+
+    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), 'SB-HC1-2026-0815');
+    await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
+
+    await screen.findByRole('region', { name: 'Kết quả tra cứu giấy phép' });
+    expect(screen.getByRole('button', { name: 'Lập biên bản vi phạm' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Đình chỉ / thu hồi' })).toBeInTheDocument();
+    expect(screen.queryByText(/thuộc địa bàn phường khác/)).not.toBeInTheDocument();
+  });
+
+  it('a GPS mismatch is a measured distance, not labelled [AI]', async () => {
+    vi.spyOn(complianceApi, 'inspectPermit').mockResolvedValueOnce({
+      ...valid,
+      distanceMeters: 40,
+      locationWarning:
+        'Cảnh báo lệch vị trí: điểm quét thực tế cách ô cấp phép 40m (vượt dung sai 25m).',
+    });
+    const user = userEvent.setup();
+    renderScreen();
+
+    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), 'SB-HC1-2026-0815');
+    await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
+
+    expect(await screen.findByText(/vượt dung sai 25m/)).toBeInTheDocument();
+    expect(screen.getByText('Cảnh báo toạ độ thực tế')).toBeInTheDocument();
+    expect(screen.queryByText('Cảnh báo toạ độ thực tế [AI]')).not.toBeInTheDocument();
+  });
+
   it('keeps the last result after a failed re-check and says that it is from the earlier lookup', async () => {
     vi.spyOn(complianceApi, 'inspectPermit')
       .mockResolvedValueOnce(valid)

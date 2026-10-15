@@ -236,6 +236,9 @@ export type InspectPermitResult = {
   isLocationMatched: boolean;
   locationWarning: string | null;
   aiVisionResult: AiEncroachment | null;
+  /** False when the slot belongs to another ward: the permit's validity is shown, but the ids
+   * to act on are withheld and acting on it is that ward's job (absent from an older server). */
+  isOwnWard?: boolean;
 };
 
 export type PenaltyScheduleItem = {
@@ -511,7 +514,12 @@ export const complianceApi = {
   recordExplanation: (id: number, content: string) =>
     apiPost<WardViolationDetail>(`/ward/violations/${id}/explanation`, { content }),
   /** Mẫu 01's handover block -- delivered or refused go together with their own reason. */
-  deliverViolation: (id: number, deliveredToName: string | null, refused: boolean, refusalReason: string | null) =>
+  deliverViolation: (
+    id: number,
+    deliveredToName: string | null,
+    refused: boolean,
+    refusalReason: string | null,
+  ) =>
     apiPost<WardViolationDetail>(`/ward/violations/${id}/deliver`, {
       deliveredToName,
       refused,
@@ -554,12 +562,6 @@ export const complianceApi = {
 
   aiEncroachmentCheck: (photoUrl: string, slotWidth?: number, slotLength?: number) =>
     apiPost<AiEncroachment>('/ward/ai/encroachment-check', { photoUrl, slotWidth, slotLength }),
-
-  askVendorAssistant: (question: string, context?: string) =>
-    apiPost<{ answer: string; isAiGenerated: boolean }>('/ward/ai/vendor-assistant', {
-      question,
-      context,
-    }),
 
   /** Shared with REG-02; UploadsController also authorizes WARD_AUTHORITY for WARD-11/12 evidence. */
   uploadEvidence: (file: File): Promise<{ fileUrl: string }> => {
