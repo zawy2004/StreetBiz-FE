@@ -35,7 +35,6 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.1.5",
     "remark-gfm": "^4.0.1",
-    "three": "^0.180.0",
     "zod": "^4.5.4",
     "zustand": "^5.0.15"
   },
@@ -47,9 +46,9 @@
     "@types/node": "^22.20.3",
     "@types/react": "~19.2.2",
     "@types/react-dom": "~19.2.2",
-    "@types/three": "^0.180.0",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "axe-core": "^4.10.3",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^5.1.0",
