@@ -117,6 +117,10 @@ export interface OrderTracking {
   readyAt: string | null;
   /** When the customer last told the stall they were on the way. */
   arrivalNotifiedAt?: string | null;
+  /** Notices sent so far (at most 3 per order). */
+  arrivalNoticeCount?: number;
+  /** When the stall answered "Đã thấy" to the latest notice. */
+  arrivalAcknowledgedAt?: string | null;
 }
 
 /** POST /orders/{id}/arriving: the stall has been told; `alreadySent` when within the 2-minute window. */
@@ -133,6 +137,16 @@ export interface OrderArrival {
   orderCode: string;
   notifiedAt: string;
   message: string;
+  /** When the stall answered "Đã thấy" to this notice, if it has. */
+  acknowledgedAt?: string | null;
+}
+
+/** POST /vendor/orders/{id}/arrival-seen. */
+export interface ArrivalAck {
+  orderId: number;
+  orderStatus: OrderStatus;
+  acknowledgedAt: string;
+  alreadyAcknowledged: boolean;
 }
 
 export interface CheckoutResponse {

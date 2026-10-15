@@ -54,6 +54,34 @@ describe('fee schedule progress', () => {
     expect(dueBadge(item({ itemStatus: 'PAID' }))).toEqual({ label: 'Đã thanh toán', tone: 'ok' });
   });
 
+  it('treats a cancelled instalment as neither owed nor paid, and sorts it last', () => {
+    expect(dueBadge(item({ itemStatus: 'CANCELLED' }))).toEqual({ label: 'Đã huỷ', tone: 'neutral' });
+    expect(withDueDays({ itemStatus: 'CANCELLED', dueDate: '2026-09-30' }, '2026-10-02')).toMatchObject({
+      daysOverdue: null,
+      daysUntilDue: null,
+    });
+    const rows = [
+      item({ feeItemId: 1, itemStatus: 'CANCELLED' }),
+      item({ feeItemId: 2, itemStatus: 'PAID', paidAt: '2026-09-01T03:00:00Z' }),
+      item({ feeItemId: 3, dueDate: '2026-10-20' }),
+    ];
+    expect([...rows].sort(byUrgency).map((r) => r.feeItemId)).toEqual([3, 2, 1]);
+  });
+
+  it('counts cancelled instalments out of a demo contract and lets only the oldest unpaid one be paid', () => {
+    const [schedule] = buildSchedules(
+      [
+        { feeItemId: 1, contractId: 7, dueDate: '2026-09-02', amount: 1_000_000, itemStatus: 'PENDING', paidAt: null, periodLabel: 'Kỳ 1/3' },
+        { feeItemId: 2, contractId: 7, dueDate: '2026-10-02', amount: 1_000_000, itemStatus: 'PENDING', paidAt: null, periodLabel: 'Kỳ 2/3' },
+        { feeItemId: 3, contractId: 7, dueDate: '2026-11-02', amount: 1_000_000, itemStatus: 'CANCELLED', paidAt: null, periodLabel: 'Kỳ 3/3' },
+      ],
+      () => ({ slotCode: 'NVL-01', zoneName: null, wardName: null, address: null, startDate: '2026-09-01', endDate: '2026-10-30', contractStatus: 'CANCELLED' }),
+      '2026-10-01',
+    );
+    expect(schedule!.contract).toMatchObject({ instalmentCount: 2, totalAmount: 2_000_000, outstandingAmount: 2_000_000 });
+    expect(schedule!.items.map((row) => row.payableNow)).toEqual([true, false, false]);
+  });
+
   it('counts calendar days, not hours, and fills them in for a flat fee list', () => {
     expect(dayDiff('2026-10-02', '2026-10-05')).toBe(3);
     expect(dayDiff('2026-10-02', '2026-09-30')).toBe(-2);
@@ -192,5 +220,107 @@ describe('contract schedule screen', () => {
     expect(within(rows[1]!).getByRole('button', { name: 'Thanh toán' })).toBeInTheDocument();
     await userEvent.click(within(rows[0]!).getByRole('button', { name: 'Hoá đơn' }));
     expect(await screen.findByText('INVOICE PAGE')).toBeInTheDocument();
+  });
+});
+
+describe('instalments are paid in order', () => {
+  it('offers payment only on the oldest unpaid instalment and says why on the others', async () => {
+    const schedule: ContractScheduleDto = {
+      contract: {
+        contractId: 1,
+        slotCode: 'NVL-01',
+        zoneName: null,
+        wardName: null,
+        address: null,
+        startDate: '2026-09-02',
+        endDate: '2026-12-01',
+        contractStatus: 'CANCELLED',
+        totalAmount: 2_000_000,
+        paidAmount: 0,
+        outstandingAmount: 2_000_000,
+        instalmentCount: 2,
+        paidCount: 0,
+        overdueCount: 1,
+        nextDue: null,
+      },
+      items: [
+        item({ feeItemId: 2, ordinal: 1, itemStatus: 'OVERDUE', daysOverdue: 2, payableNow: true, periodLabel: 'Kỳ 1/3' }),
+        item({ feeItemId: 3, ordinal: 2, daysUntilDue: 29, dueDate: '2026-10-31', payableNow: false, periodLabel: 'Kỳ 2/3' }),
+        item({ feeItemId: 4, ordinal: 3, itemStatus: 'CANCELLED', dueDate: '2026-11-30', periodLabel: 'Kỳ 3/3' }),
+      ],
+    };
+    client.apiGet.mockResolvedValue(schedule);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/vendor/finance/contracts/1']}>
+          <Routes>
+            <Route path="/vendor/finance/contracts/:id" element={<ContractScheduleScreen />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const rows = within(await screen.findByRole('list', { name: 'Các kỳ phí' })).getAllByRole('listitem');
+    expect(within(rows[0]!).getByRole('button', { name: 'Thanh toán' })).toBeInTheDocument();
+    expect(within(rows[1]!).queryByRole('button', { name: 'Thanh toán' })).not.toBeInTheDocument();
+    expect(within(rows[1]!).getByText('Sau kỳ trước')).toBeInTheDocument();
+    expect(within(rows[2]!).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(rows[2]!).getByText(/đã huỷ/i)).toBeInTheDocument();
+  });
+});
+
+describe('ward receivables and refunds', () => {
+  it('shows overdue fees by age and lets the officer record a refund', async () => {
+    const { ReceivablesPanel } = await import('@/features/ward-administration/components/ReceivablesPanel');
+    client.apiGet.mockImplementation(async (path: string) =>
+      path.endsWith('/receivables')
+        ? {
+            asOf: '2026-10-11',
+            overdueAmount: 3_000_000,
+            aging: [
+              { key: '1-30', label: '1–30 ngày', minDays: 1, maxDays: 30, instalments: 2, households: 1, amount: 2_000_000 },
+              { key: '31-60', label: '31–60 ngày', minDays: 31, maxDays: 60, instalments: 1, households: 1, amount: 1_000_000 },
+              { key: '61+', label: 'Trên 60 ngày', minDays: 61, maxDays: null, instalments: 0, households: 0, amount: 0 },
+            ],
+            dueNext30Count: 2,
+            dueNext30Amount: 1_940_000,
+            refundsPending: 1,
+            refundsPendingAmount: 1_040_000,
+          }
+        : [
+            {
+              transactionId: 9,
+              kind: 'FEE',
+              vendorName: 'Phạm Thị Lan',
+              vendorPhone: '0905000101',
+              slotCode: 'NVL-01',
+              label: 'phí thuê ô NVL-01 hạn 09/10/2026',
+              provider: 'MOMO',
+              providerReference: null,
+              amount: 1_040_000,
+              receivedAt: '2026-10-11T07:00:00Z',
+              status: 'REFUND_REQUIRED',
+              refundedAt: null,
+            },
+          ],
+    );
+    client.apiPost.mockResolvedValue({});
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ReceivablesPanel />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('Tuổi nợ quá hạn')).toBeInTheDocument();
+    expect(screen.getByText('31–60 ngày')).toBeInTheDocument();
+    expect(screen.getByText(/Sắp đến hạn trong 30 ngày: 2 kỳ/)).toBeInTheDocument();
+    expect(await screen.findByText('Phạm Thị Lan')).toBeInTheDocument();
+    expect(screen.getByText(/chờ hoàn tiền/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Đã hoàn tiền' }));
+
+    expect(client.apiPost).toHaveBeenCalledWith('/ward/reports/refunds/9/mark-refunded', { note: null });
   });
 });

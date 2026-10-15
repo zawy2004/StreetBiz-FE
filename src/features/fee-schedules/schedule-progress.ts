@@ -14,6 +14,7 @@ export function dueBadge(item: Pick<ScheduleItemDto, 'itemStatus' | 'daysOverdue
   tone: StatusTone;
 } {
   if (item.itemStatus === 'PAID') return { label: 'Đã thanh toán', tone: 'ok' };
+  if (item.itemStatus === 'CANCELLED') return { label: 'Đã huỷ', tone: 'neutral' };
   if (item.daysOverdue != null) {
     return { label: item.daysOverdue === 0 ? 'Quá hạn' : `Quá hạn ${item.daysOverdue} ngày`, tone: 'danger' };
   }
@@ -23,6 +24,9 @@ export function dueBadge(item: Pick<ScheduleItemDto, 'itemStatus' | 'daysOverdue
   }
   return { label: `Hạn ${formatDay(item.dueDate)}`, tone: 'neutral' };
 }
+
+/** Still to be paid. A cancelled instalment (the contract ended before its period) is neither owed nor paid. */
+export const isOwed = (status: string) => status === 'PENDING' || status === 'OVERDUE';
 
 /** "25/10/2026" from an ISO date, without a time-zone shift (a due date is a calendar day). */
 export function formatDay(isoDate: string): string {
@@ -44,7 +48,7 @@ export function withDueDays<T extends { itemStatus: string; dueDate: string }>(
   item: T,
   today: string,
 ): T & { daysOverdue: number | null; daysUntilDue: number | null } {
-  const outstanding = item.itemStatus !== 'PAID';
+  const outstanding = isOwed(item.itemStatus);
   const diff = dayDiff(today, item.dueDate);
   return {
     ...item,
@@ -69,6 +73,9 @@ export function paidShare(contract: Pick<VendorContractFinanceDto, 'paidAmount' 
 export function byUrgency(a: ScheduleItemDto, b: ScheduleItemDto): number {
   const paidA = a.itemStatus === 'PAID';
   const paidB = b.itemStatus === 'PAID';
+  const closedA = a.itemStatus === 'CANCELLED';
+  const closedB = b.itemStatus === 'CANCELLED';
+  if (closedA !== closedB) return closedA ? 1 : -1;
   if (paidA !== paidB) return paidA ? 1 : -1;
   if (paidA) return (b.paidAt ?? '').localeCompare(a.paidAt ?? '');
   return a.dueDate.localeCompare(b.dueDate);
@@ -104,7 +111,7 @@ export function buildSchedules(
   return [...byContract.entries()].map(([contractId, rows]) => {
     const ordered = [...rows].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
     const items: ScheduleItemDto[] = ordered.map((row, index) => {
-      const outstanding = row.itemStatus !== 'PAID';
+      const outstanding = isOwed(row.itemStatus);
       const diff = dayDiff(today, row.dueDate);
       const late = outstanding && diff < 0;
       return {
@@ -122,16 +129,20 @@ export function buildSchedules(
         daysUntilDue: outstanding && !late ? diff : null,
       };
     });
-    const paid = items.filter((item) => item.itemStatus === 'PAID');
-    const owed = items.filter((item) => item.itemStatus !== 'PAID');
+    // The oldest unpaid instalment is the only one payable: they are settled in order.
+    const firstOwed = items.find((item) => isOwed(item.itemStatus));
+    for (const item of items) item.payableNow = item === firstOwed;
+    const live = items.filter((item) => item.itemStatus !== 'CANCELLED');
+    const paid = live.filter((item) => item.itemStatus === 'PAID');
+    const owed = live.filter((item) => isOwed(item.itemStatus));
     return {
       contract: {
         contractId,
         ...contractInfo(contractId),
-        totalAmount: items.reduce((sum, item) => sum + item.amount, 0),
+        totalAmount: live.reduce((sum, item) => sum + item.amount, 0),
         paidAmount: paid.reduce((sum, item) => sum + item.amount, 0),
         outstandingAmount: owed.reduce((sum, item) => sum + item.amount, 0),
-        instalmentCount: items.length,
+        instalmentCount: live.length,
         paidCount: paid.length,
         overdueCount: owed.filter((item) => item.daysOverdue != null).length,
         nextDue: owed[0] ?? null,

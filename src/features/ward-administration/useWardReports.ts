@@ -123,6 +123,8 @@ export const WARD_COLLECTION_KEYS = {
   performance: (from: string, to: string) => ['ward', 'reports', 'performance', from, to] as const,
   trend: (months: number) => ['ward', 'reports', 'trend', months] as const,
   debtors: ['ward', 'reports', 'debtors'] as const,
+  receivables: ['ward', 'reports', 'receivables'] as const,
+  refunds: ['ward', 'reports', 'refunds'] as const,
 };
 
 /**
@@ -154,6 +156,36 @@ export function useWardDebtors() {
     queryKey: WARD_COLLECTION_KEYS.debtors,
     queryFn: wardReportApi.debtors,
     enabled: isLiveApi,
+  });
+}
+
+/** Overdue fees by age, what falls due next, and payments owed back (live only). */
+export function useReceivables() {
+  return useQuery({
+    queryKey: WARD_COLLECTION_KEYS.receivables,
+    queryFn: wardReportApi.receivables,
+    enabled: isLiveApi,
+  });
+}
+
+/** Payments received twice: owed back first, then refunded (live only). */
+export function useWardRefunds() {
+  return useQuery({
+    queryKey: WARD_COLLECTION_KEYS.refunds,
+    queryFn: wardReportApi.refunds,
+    enabled: isLiveApi,
+  });
+}
+
+/** The ward paid a payment back; both the list and the counts above it re-read. */
+export function useMarkRefunded() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (transactionId: number) => wardReportApi.markRefunded(transactionId),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: WARD_COLLECTION_KEYS.refunds });
+      void queryClient.invalidateQueries({ queryKey: WARD_COLLECTION_KEYS.receivables });
+    },
   });
 }
 

@@ -127,6 +127,8 @@ function LiveOrderDetailScreen() {
         active={COLLECTABLE_ORDER_STATUSES.has(data.orderStatus)}
         orderId={data.orderId}
         arrivalNotifiedAt={tracking.data?.arrivalNotifiedAt}
+        arrivalAcknowledgedAt={tracking.data?.arrivalAcknowledgedAt}
+        arrivalNoticeCount={tracking.data?.arrivalNoticeCount}
       />
       <Card padded={false}>
         <OrderItemsList items={data.items} />

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button, Card, Icon } from '@/components/common';
+import { Button, Card } from '@/components/common';
 import { ErrorState, LoadingState, showToast } from '@/components/feedback';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { errorMessage } from '@/core/api';
@@ -16,10 +16,10 @@ import {
   OrderTimeline,
   RejectOrderDialog,
   formatOrderDate,
-  formatOrderTime,
   vendorActionsFor,
   type VendorOrderAction,
 } from '../components';
+import { ArrivalBanner } from '../components/ArrivalBanner';
 import { useRefreshAfterOrderMutation, useVendorOrder } from '../hooks/useOrders';
 import { useVendorArrivals } from '../hooks/useOrderTracking';
 
@@ -153,15 +153,7 @@ export function VendorOrderDetailScreen() {
           {formatOrderDate(data.placedAt ?? data.createdAt)}
         </span>
       </div>
-      {arrival ? (
-        <p className="flex items-start gap-xs rounded-sm bg-tint-tertiary px-sm py-xs text-body-sm text-text">
-          <Icon name="walk" size={16} className="mt-px shrink-0" />
-          <span>
-            <strong className="font-semibold">Khách đang đến</strong> · báo lúc{' '}
-            {formatOrderTime(arrival.notifiedAt)}. {arrival.message}
-          </span>
-        </p>
-      ) : null}
+      {arrival ? <ArrivalBanner arrival={arrival} /> : null}
       <Card>
         <p className="text-label text-text">Khách hàng</p>
         <p className="text-body-md text-muted">{data.customerName ?? 'Khách hàng'}</p>

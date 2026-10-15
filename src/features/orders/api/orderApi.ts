@@ -1,5 +1,6 @@
 import { apiGet, apiPost } from '@/core/api/client';
 import type {
+  ArrivalAck,
   ArrivalNotice,
   CheckoutRequest,
   CheckoutResponse,
@@ -135,6 +136,7 @@ export const orderApi = {
       ...tracking,
       readyAt: normalizeUtc(tracking.readyAt),
       arrivalNotifiedAt: normalizeUtc(tracking.arrivalNotifiedAt),
+      arrivalAcknowledgedAt: normalizeUtc(tracking.arrivalAcknowledgedAt),
       readyEstimate: estimate && {
         ...estimate,
         earliestReadyAt: normalizeUtc(estimate.earliestReadyAt),
@@ -157,7 +159,13 @@ export const orderApi = {
     (await apiGet<OrderArrival[]>('/vendor/orders/arrivals')).map((arrival) => ({
       ...arrival,
       notifiedAt: normalizeUtc(arrival.notifiedAt) ?? arrival.notifiedAt,
+      acknowledgedAt: normalizeUtc(arrival.acknowledgedAt),
     })),
+  /** The stall tells the customer "Đã thấy": the notice was read. */
+  acknowledgeArrival: async (orderId: number): Promise<ArrivalAck> => {
+    const ack = await apiPost<ArrivalAck>(`/vendor/orders/${orderId}/arrival-seen`);
+    return { ...ack, acknowledgedAt: normalizeUtc(ack.acknowledgedAt) ?? ack.acknowledgedAt };
+  },
 
   vendorOrders: async (filters: OrderListFilters = {}) =>
     mapPage(await apiGet<PagedResult<BackendOrder>>(`/vendor/orders?${query(filters)}`)),

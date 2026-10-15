@@ -33,7 +33,8 @@ export function DueBadge({ item }: { item: Parameters<typeof dueBadge>[0] }) {
  * Whether an instalment deserves a chip at all: paid, late or due within a week. A due date far
  * off is said once, in the line under the title; a grey chip repeating it is noise.
  */
-const needsBadge = (item: Parameters<typeof dueBadge>[0]) => dueBadge(item).tone !== 'neutral';
+const needsBadge = (item: Parameters<typeof dueBadge>[0]) =>
+  dueBadge(item).tone !== 'neutral' || item.itemStatus === 'CANCELLED';
 
 /** Only what is late or due soon gets the solid action; the rest stay quiet until their turn. */
 const isUrgent = (item: ScheduleItemDto) => item.daysOverdue != null || (item.daysUntilDue ?? 99) <= 7;
@@ -116,8 +117,11 @@ export function InstalmentRow({
   onOpenInvoice?: () => void;
 }) {
   const paid = item.itemStatus === 'PAID';
+  const cancelled = item.itemStatus === 'CANCELLED';
+  // Instalments are settled oldest first; the server refuses a later one while an earlier is open.
+  const waitsForEarlier = !paid && !cancelled && item.payableNow === false;
   return (
-    <div className="flex items-center justify-between gap-sm py-sm">
+    <div className={`flex items-center justify-between gap-sm py-sm ${cancelled ? 'opacity-60' : ''}`}>
       <div className="min-w-0">
         <p className="truncate text-headline-sm text-text">{item.periodLabel}</p>
         <p className="mt-2xs text-body-sm text-muted">
@@ -135,7 +139,8 @@ export function InstalmentRow({
       </div>
       <div className="flex shrink-0 flex-col items-end gap-xs">
         <Money amountVnd={item.amount} className="whitespace-nowrap" />
-        {!paid && onPay ? (
+        {waitsForEarlier ? <span className="text-body-sm text-muted">Sau kỳ trước</span> : null}
+        {!paid && !cancelled && !waitsForEarlier && onPay ? (
           <Button
             label="Thanh toán"
             size="sm"

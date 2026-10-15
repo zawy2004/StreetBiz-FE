@@ -10,6 +10,7 @@ import {
   ticketItemsShown,
   waitTone,
 } from './order-format';
+import { ArrivalBanner } from './ArrivalBanner';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import type { StageTone } from './OrderPipeline';
 
@@ -109,15 +110,7 @@ export function VendorOrderTicket({
         ) : null}
       </header>
 
-      {live && arrival ? (
-        <p className="mx-md mb-sm flex items-start gap-xs rounded-sm bg-tint-tertiary px-sm py-xs text-body-sm text-text">
-          <Icon name="walk" size={16} className="mt-px shrink-0" />
-          <span>
-            <strong className="font-semibold">Khách đang đến</strong> · báo lúc{' '}
-            {formatOrderTime(arrival.notifiedAt)}. {arrival.message}
-          </span>
-        </p>
-      ) : null}
+      {live && arrival ? <ArrivalBanner arrival={arrival} className="mx-md mb-sm" /> : null}
 
       <ul className="flex flex-col gap-2xs pb-sm pl-md pr-sm">
         {shown.map((item) => (

@@ -28,6 +28,7 @@ export function DirectionsLink({ point, label = 'Chỉ đường' }: { point: Pi
 
 /** The same 2 minutes the server waits before it pings the stall again. */
 const RESEND_AFTER_MS = 2 * 60_000;
+const MAX_NOTICES = 3;
 
 /**
  * "Tôi đang đến": the customer tells the stall they are on the way, with a walking ETA when the
@@ -37,15 +38,23 @@ const RESEND_AFTER_MS = 2 * 60_000;
 function ArrivalNotice({
   orderId,
   notifiedAt,
+  acknowledgedAt,
+  noticeCount,
   etaMinutes,
 }: {
   orderId: number;
   notifiedAt: string | null | undefined;
+  acknowledgedAt: string | null | undefined;
+  noticeCount: number | undefined;
   etaMinutes: number | undefined;
 }) {
   const announce = useAnnounceArrival(orderId);
   const sentAt = announce.data?.notifiedAt ?? notifiedAt ?? null;
-  const canResend = !sentAt || Date.now() - new Date(sentAt).getTime() >= RESEND_AFTER_MS;
+  // At most 3 notices per order (the server refuses more): past that, ringing the stall is the way.
+  const canResend =
+    (!sentAt || Date.now() - new Date(sentAt).getTime() >= RESEND_AFTER_MS) &&
+    (noticeCount ?? 0) < MAX_NOTICES &&
+    !acknowledgedAt;
 
   const send = () =>
     announce.mutate(etaMinutes, {
@@ -59,7 +68,9 @@ function ArrivalNotice({
       <div className="flex flex-wrap items-center justify-between gap-sm">
         <span className="flex items-center gap-2xs text-body-sm text-text">
           <Icon name="check-circle-outline" size={16} color={colors.tertiary} />
-          Đã báo quán bạn đang đến lúc {formatOrderTime(sentAt)}
+          {acknowledgedAt
+            ? `Quán đã thấy tin bạn đang đến (${formatOrderTime(acknowledgedAt)})`
+            : `Đã báo quán bạn đang đến lúc ${formatOrderTime(sentAt)}`}
         </span>
         {canResend ? (
           <Button label="Báo lại" size="sm" variant="ghost" fullWidth={false} loading={announce.isPending} onPress={send} />
@@ -96,12 +107,16 @@ export function PickupPointCard({
   active,
   orderId,
   arrivalNotifiedAt,
+  arrivalAcknowledgedAt,
+  arrivalNoticeCount,
 }: {
   storefront: OrderStorefront;
   point: PickupPoint | undefined;
   active: boolean;
   orderId?: number;
   arrivalNotifiedAt?: string | null;
+  arrivalAcknowledgedAt?: string | null;
+  arrivalNoticeCount?: number;
 }) {
   const permission = useGeolocationPermission();
   const [asked, setAsked] = useState(false);
@@ -154,6 +169,8 @@ export function PickupPointCard({
               <ArrivalNotice
                 orderId={orderId}
                 notifiedAt={arrivalNotifiedAt}
+                acknowledgedAt={arrivalAcknowledgedAt}
+                noticeCount={arrivalNoticeCount}
                 etaMinutes={meters == null ? undefined : walkingMinutes(meters)}
               />
             </div>

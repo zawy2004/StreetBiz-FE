@@ -11,6 +11,7 @@ import { errorMessage, wardReportApi } from '@/core/api';
 import { env, isLiveApi } from '@/core/config/env';
 import { saveFile } from '@/core/utils/save-file';
 import { CollectionTrendChart } from '../components/CollectionTrendChart';
+import { ReceivablesPanel } from '../components/ReceivablesPanel';
 import {
   useCollectionPerformance,
   useCollectionReport,
@@ -268,6 +269,8 @@ export function CollectionReportScreen() {
           />
         </Section>
       ) : null}
+
+      {isLiveApi ? <ReceivablesPanel /> : null}
 
       {perf && perf.byZone.length ? (
         <Section title="Theo khu vực">

@@ -31,6 +31,15 @@ export function useAnnounceArrival(orderId: number | undefined) {
   });
 }
 
+/** The stall answers "Đã thấy": the board re-reads at once so the button gives way to the answer. */
+export function useAcknowledgeArrival() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (orderId: number) => orderApi.acknowledgeArrival(orderId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders', 'vendor', 'arrivals'] }),
+  });
+}
+
 /** How often the seller's board re-reads who is on the way (the same cadence as its order list). */
 export const VENDOR_ARRIVALS_REFRESH_MS = 20_000;
 

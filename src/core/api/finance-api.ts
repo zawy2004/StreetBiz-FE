@@ -123,6 +123,45 @@ export type ScheduleItemDto = {
   invoiceNumber: string | null;
   daysOverdue: number | null;
   daysUntilDue: number | null;
+  /** The contract's oldest unpaid instalment: instalments are paid in order. Absent in the demo build. */
+  payableNow?: boolean;
+};
+
+/** One age band of overdue rental fees; `maxDays` is null for the open-ended last band. */
+export type AgingBucketDto = {
+  key: string;
+  label: string;
+  minDays: number;
+  maxDays: number | null;
+  instalments: number;
+  households: number;
+  amount: number;
+};
+
+export type ReceivablesDto = {
+  asOf: string;
+  overdueAmount: number;
+  aging: AgingBucketDto[];
+  dueNext30Count: number;
+  dueNext30Amount: number;
+  refundsPending: number;
+  refundsPendingAmount: number;
+};
+
+/** A payment owed back to a vendor (REFUND_REQUIRED) or already paid back (REFUNDED). */
+export type WardRefundDto = {
+  transactionId: number;
+  kind: 'FEE' | 'PENALTY';
+  vendorName: string;
+  vendorPhone: string | null;
+  slotCode: string | null;
+  label: string;
+  provider: string;
+  providerReference: string | null;
+  amount: number;
+  receivedAt: string;
+  status: 'REFUND_REQUIRED' | 'REFUNDED';
+  refundedAt: string | null;
 };
 
 /** A rental contract and how far its fee schedule has been paid. */
@@ -353,6 +392,16 @@ export const wardReportApi = {
     apiGet<CollectionPerformanceDto>(`/ward/reports/performance${queryString({ from, to })}`),
 
   /** Collections month by month. */
+  /** Overdue fees by age, fees due in the next 30 days, and payments owed back. */
+  receivables: () => apiGet<ReceivablesDto>('/ward/reports/receivables'),
+
+  /** Payments received twice: owed back to the vendor first, then those already refunded. */
+  refunds: () => apiGet<WardRefundDto[]>('/ward/reports/refunds'),
+
+  /** The ward records that it paid a REFUND_REQUIRED payment back. */
+  markRefunded: (transactionId: number, note?: string) =>
+    apiPost<WardRefundDto>(`/ward/reports/refunds/${transactionId}/mark-refunded`, { note: note ?? null }),
+
   trend: (months = 6) =>
     apiGet<MonthlyCollectionDto[]>(`/ward/reports/trend${queryString({ months: String(months) })}`),
 };

@@ -98,7 +98,7 @@ const settle = (page) => page.waitForTimeout(600);
   const wardCtx = await context(browser, ward, { width: 1280, height: 900 });
   const report = await wardCtx.newPage();
   await report.goto(`${ui}/ward/reports`, { waitUntil: 'networkidle' });
-  await report.getByText('Nộp phí đúng hạn').waitFor();
+  await report.getByText('Nộp phí đúng hạn', { exact: true }).waitFor();
   check('the report leads with the on-time rate and the overdue households',
     await report.getByText('Hộ nợ quá hạn').first().isVisible());
   await report.getByRole('button', { name: /T\d+\/\d+: phí thuê ô/ }).first().waitFor();

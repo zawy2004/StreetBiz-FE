@@ -9,7 +9,12 @@ import type { CommerceCart } from '@/core/api';
 import type { OrderTracking, PickupRangeInfo } from '@/features/orders/types/order.types';
 
 const legacyApi = vi.hoisted(() => ({ cart: vi.fn() }));
-const ordersApi = vi.hoisted(() => ({ checkout: vi.fn(), pickupRange: vi.fn(), announceArrival: vi.fn() }));
+const ordersApi = vi.hoisted(() => ({
+  checkout: vi.fn(),
+  pickupRange: vi.fn(),
+  announceArrival: vi.fn(),
+  acknowledgeArrival: vi.fn(),
+}));
 
 vi.mock('@/core/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/core/api')>();
@@ -292,14 +297,39 @@ describe('arrival notice and list progress (ORD-02)', () => {
   const storefront = { storefrontId: 7, storefrontName: 'Bún chả', imageUrl: null, address: '12 Bạch Đằng' };
   const point = { storefrontId: 7, storefrontName: 'Bún chả', address: '12 Bạch Đằng', ...STALL };
 
-  function renderCard(arrivalNotifiedAt: string | null = null) {
+  function renderCard(
+    arrivalNotifiedAt: string | null = null,
+    extra: { arrivalAcknowledgedAt?: string | null; arrivalNoticeCount?: number } = {},
+  ) {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     return render(
       <QueryClientProvider client={queryClient}>
-        <PickupPointCard storefront={storefront} point={point} active orderId={6} arrivalNotifiedAt={arrivalNotifiedAt} />
+        <PickupPointCard
+          storefront={storefront}
+          point={point}
+          active
+          orderId={6}
+          arrivalNotifiedAt={arrivalNotifiedAt}
+          {...extra}
+        />
       </QueryClientProvider>,
     );
   }
+
+  it('tells the customer the stall has seen their notice, and stops offering a resend', () => {
+    renderCard('2026-10-02T03:00:00Z', {
+      arrivalAcknowledgedAt: '2026-10-02T03:01:00Z',
+      arrivalNoticeCount: 1,
+    });
+    expect(screen.getByText(/Quán đã thấy tin bạn đang đến/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Báo lại' })).not.toBeInTheDocument();
+  });
+
+  it('stops offering a resend after the third notice', () => {
+    renderCard('2026-10-02T03:00:00Z', { arrivalNoticeCount: 3 });
+    expect(screen.getByText(/Đã báo quán bạn đang đến lúc/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Báo lại' })).not.toBeInTheDocument();
+  });
 
   it('tells the stall the customer is on the way, with the walking time when distance is known', async () => {
     // Location was allowed before, so the card follows the customer without asking.
@@ -340,7 +370,15 @@ describe('arrival notice and list progress (ORD-02)', () => {
   });
 
   it('the seller sees who is on the way on the ticket', () => {
-    render(
+    renderTicket();
+    expect(screen.getByText('Khách đang đến')).toBeInTheDocument();
+    expect(screen.getByText(/báo lúc 11:00\. Khoảng 8 phút nữa khách tới quầy\./)).toBeInTheDocument();
+  });
+
+  function renderTicket(acknowledgedAt: string | null = null) {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return render(
+      <QueryClientProvider client={queryClient}>
       <VendorOrderTicket
         order={{
           orderId: 6,
@@ -358,12 +396,38 @@ describe('arrival notice and list progress (ORD-02)', () => {
         tone="turmeric"
         live
         now={Date.parse('2026-10-02T04:01:00Z')}
-        arrival={{ orderId: 6, orderCode: 'SB-6', notifiedAt: '2026-10-02T04:00:00Z', message: 'Khoảng 8 phút nữa khách tới quầy.' }}
-      />,
+        arrival={{
+          orderId: 6,
+          orderCode: 'SB-6',
+          notifiedAt: '2026-10-02T04:00:00Z',
+          message: 'Khoảng 8 phút nữa khách tới quầy.',
+          acknowledgedAt,
+        }}
+      />
+      </QueryClientProvider>,
     );
+  }
 
-    expect(screen.getByText('Khách đang đến')).toBeInTheDocument();
-    expect(screen.getByText(/báo lúc 11:00\. Khoảng 8 phút nữa khách tới quầy\./)).toBeInTheDocument();
+  it('lets the seller answer "Đã thấy" once, and shows the answer afterwards', async () => {
+    ordersApi.acknowledgeArrival.mockResolvedValue({
+      orderId: 6,
+      orderStatus: 'PREPARING',
+      acknowledgedAt: '2026-10-02T04:01:00.000Z',
+      alreadyAcknowledged: false,
+    });
+    renderTicket();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Đã thấy' }));
+
+    expect(ordersApi.acknowledgeArrival).toHaveBeenCalledWith(6);
+    expect(await screen.findByText('Đã thấy')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Đã thấy' })).not.toBeInTheDocument();
+  });
+
+  it('shows an already answered notice without a button', () => {
+    renderTicket('2026-10-02T04:01:00Z');
+    expect(screen.getByText('Đã thấy')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Đã thấy' })).not.toBeInTheDocument();
   });
 
   it('an order in progress shows how far along it is on the list; a finished one does not', () => {

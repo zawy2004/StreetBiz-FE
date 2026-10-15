@@ -36,8 +36,11 @@ List screens use manual refresh and query invalidation after mutations.
 
 ## API contract
 
-- `POST /api/orders/checkout` with `{ cartId, provider }` and a stable
-  `Idempotency-Key` header generated once per cart checkout attempt.
+- `POST /api/orders/checkout` with `{ cartId, provider, location }` and a stable
+  `Idempotency-Key` header generated once per cart checkout attempt. `location`
+  is the position the checkout screen judged (see "Pickup range and tracking").
+- `GET /api/orders/{id}/tracking`,
+  `GET /api/marketplace/storefronts/{id}/pickup-range`.
 - `GET /api/orders/me`, `GET /api/orders/{id}`.
 - `POST /api/orders/{id}/cancel`,
   `POST /api/orders/{id}/confirm-pickup`.
@@ -58,6 +61,44 @@ queries are invalidated/refetched and the user sees a conflict message. Vendor
 rejection requires a non-empty reason of at most 500 characters. Cancellation
 and rejection show refund data reported by the backend without promising that
 the provider has completed the refund.
+
+## Pickup range and tracking (ORD-01, ORD-02)
+
+Orders are pickup-only, so a customer may only order within the stall's pickup
+range (default 2 km; StreetBiz-BE `docs/order-tracking-pickup-range.md`).
+
+- **Checkout** (`usePickupRange`, `PickupRangeNotice`): follows the customer's
+  position with `watchPosition` while the page is visible, judges it with the
+  same rule the server applies (`pickup/pickup-range.ts`, same test cases as the
+  backend) and keeps the pay button disabled until the customer is within range.
+  Every blocked state says why and how to fix it: allow location, enable GPS, or
+  walk closer (with directions). The server re-checks the very position sent.
+- **Storefront page** (`OutOfRangeHint`): a quiet note when discovery already
+  knows the customer is beyond the range. It never asks for location itself.
+- **Order detail** (`OrderProgressCard`, `PickupPointCard`): a five-step tracker
+  (placed → accepted → preparing → ready → collected) with times, the stall's
+  ready-time estimate and the queue ahead from `GET /orders/{id}/tracking`, and
+  live walking distance plus directions while the order is collectable. Distance
+  is only followed if location was allowed before; otherwise a button offers it.
+  The full status log stays in a collapsed "Lịch sử cập nhật". A short toast and
+  vibration mark the moment the order turns ready while the page is open.
+- **"Tôi đang đến"** (`PickupPointCard`): tells the stall the customer is on the
+  way, with the walking ETA when the distance is known; afterwards the card says
+  when the stall was told. The seller's ticket and order detail show "Khách đang
+  đến" (`useVendorArrivals`, refreshed with the board every 20 s) with a "Đã thấy" button
+  (`ArrivalBanner`); once answered, the customer's card reads "Quán đã thấy tin bạn đang đến". The
+  customer can send at most 3 notices per order, after which "Báo lại" is gone.
+- **Order list** (`OrderProgressStrip` in `OrderCard`): orders in progress show
+  five thin segments and one line of what is happening.
+- **Cart** (`CartRangeHint`): if discovery already knows the customer is beyond
+  the range, the cart says so before the pay button; it never asks for location.
+
+Positions are kept in memory only, never in storage. Animations are a slow pulse
+on the current step and a 260 ms settle-in on changed text, both off under
+`prefers-reduced-motion`.
+
+`tests/e2e/order-tracking-live.cjs` is an opt-in browser check on a 390×844
+screen with an emulated GPS position (see its header for the environment).
 
 ## Quality checks
 
