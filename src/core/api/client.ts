@@ -99,8 +99,11 @@ http.interceptors.response.use(
     }
 
     // Only a token failure is worth a refresh: a handler that answers 401 for another
-    // reason would otherwise rotate the session for nothing.
+    // reason would otherwise rotate the session for nothing. In mock mode the signed-in
+    // user is a demo account the backend never issued, so a 401 from a module that still
+    // calls the server is that request's error, not the end of the demo session.
     const canRetry =
+      !env.useMockApi &&
       isTokenFailure(status, error.response?.data) &&
       config &&
       !config._retried &&
