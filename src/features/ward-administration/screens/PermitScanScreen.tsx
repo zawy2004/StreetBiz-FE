@@ -9,6 +9,8 @@ import { showToast } from '@/components/feedback';
 import { errorMessage } from '@/core/api';
 import { env, isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
+import { AiSuggestionCard } from '../components/AiSuggestionCard';
+import { GeofenceDriftPanel } from '../components/GeofenceDriftPanel';
 import { complianceApi, type InspectPermitResult, type WardPatrolHeatmapPoint } from '../ward-api';
 import {
   EncroachmentSketch,
@@ -167,10 +169,12 @@ export function PermitScanScreen() {
   const vendorId = liveResult?.vendorId?.toString() ?? mockVendor?.id ?? '';
 
   const locationHint = liveResult?.locationWarning ? (
-    <AiHint title="Cảnh báo toạ độ thực tế">{liveResult.locationWarning}</AiHint>
+    <AiHint title="Cảnh báo toạ độ thực tế [Hệ thống — chưa xác minh bằng AI]">
+      {liveResult.locationWarning}
+    </AiHint>
   ) : (liveResult?.isLocationMatched && liveResult.distanceMeters !== null) ||
     (!isLiveApi && photoUrl) ? (
-    <AiHint title="Xác minh vị trí chính xác">
+    <AiHint title="Xác minh vị trí chính xác [Hệ thống — chưa xác minh bằng AI]">
       Toạ độ quét hiện trường khớp với ô cấp phép (Cách {liveResult?.distanceMeters ?? 12}m, nằm
       trong dung sai 25m).
     </AiHint>
@@ -178,7 +182,10 @@ export function PermitScanScreen() {
 
   // AI Vision Encroachment Check (Section 7.2 Master Prompt)
   const visionHint = liveResult?.aiVisionResult ? (
-    <AiHint title="Trợ lý thị giác AI Vision [AI]">
+    <AiSuggestionCard
+      title="Trợ lý thị giác AI Vision [AI]"
+      aiLogId={liveResult.aiVisionResult.aiLogId}
+    >
       <p>{liveResult.aiVisionResult.analysis}</p>
       {liveResult.aiVisionResult.visualCues.length > 0 ? (
         <ul className="mt-1 list-disc pl-4 text-body-sm">
@@ -190,7 +197,7 @@ export function PermitScanScreen() {
       {liveResult.aiVisionResult.detectedEncroachment ? (
         <EncroachmentSketch distanceCm={liveResult.aiVisionResult.encroachmentDistanceCm} />
       ) : null}
-    </AiHint>
+    </AiSuggestionCard>
   ) : photoUrl ? (
     <AiHint title="Trợ lý thị giác AI Vision [AI]">
       {photoUrl.includes('lan-chiem') ? (
@@ -465,6 +472,8 @@ export function PermitScanScreen() {
           <PatrolWeekGrid points={heatmap} />
         </Section>
       ) : null}
+
+      {env.enableAiCompliance && isLiveApi ? <GeofenceDriftPanel /> : null}
     </Screen>
   );
 }

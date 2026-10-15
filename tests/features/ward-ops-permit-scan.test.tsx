@@ -94,7 +94,7 @@ describe('PermitScanScreen display-only bands (W14 tier B)', () => {
     expect(screen.queryByText(/thuộc địa bàn phường khác/)).not.toBeInTheDocument();
   });
 
-  it('a GPS mismatch is a measured distance, not labelled [AI]', async () => {
+  it('a GPS mismatch is labelled as a system check, not as AI', async () => {
     vi.spyOn(complianceApi, 'inspectPermit').mockResolvedValueOnce({
       ...valid,
       distanceMeters: 40,
@@ -108,7 +108,9 @@ describe('PermitScanScreen display-only bands (W14 tier B)', () => {
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
 
     expect(await screen.findByText(/vượt dung sai 25m/)).toBeInTheDocument();
-    expect(screen.getByText('Cảnh báo toạ độ thực tế')).toBeInTheDocument();
+    expect(
+      screen.getByText('Cảnh báo toạ độ thực tế [Hệ thống — chưa xác minh bằng AI]'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Cảnh báo toạ độ thực tế [AI]')).not.toBeInTheDocument();
   });
 

@@ -262,6 +262,17 @@ describe('W19 CollectionReportScreen (live)', () => {
     ],
   };
 
+  // The screen also asks for the AIC-08 summary of the period; keep it off the network here.
+  beforeEach(() => {
+    vi.spyOn(wardReportApi, 'summary').mockResolvedValue({
+      from: report.from,
+      to: report.to,
+      headline: 'Tóm tắt kỳ',
+      points: [],
+      basis: '',
+    });
+  });
+
   it('shows the period total, overdue fees and the fine status, from one request', async () => {
     const load = vi.spyOn(wardReportApi, 'collectionReport').mockResolvedValue(report);
     renderAt(

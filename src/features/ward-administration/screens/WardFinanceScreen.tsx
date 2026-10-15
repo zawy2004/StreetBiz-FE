@@ -2,13 +2,29 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { Button, formatVnd, Icon } from '@/components/common';
-import { showToast } from '@/components/feedback';
+import { Button, formatVnd } from '@/components/common';
+import { EmptyState, ErrorState, showToast } from '@/components/feedback';
 import { SegmentedControl, TextField } from '@/components/forms';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { useAuthStore } from '@/store/auth-store';
 import { DateInput, MoneyInput } from '../components/ConfigFields';
+import {
+  ContractHero,
+  ContractLedger,
+  FinanceSkeleton,
+  Ledger,
+  LedgerEmpty,
+  LedgerRow,
+  WardOwedHero,
+} from '../components/finance/FinanceParts';
+import {
+  countByFilter,
+  filterContracts,
+  summariseContracts,
+  type ContractFilter,
+} from '../components/finance/finance-model';
+import { DecisionDeskCard } from '../components/review/PermitDossierParts';
 import { WardGate } from '../components/WardGate';
 import {
   wardFinanceApi,
@@ -61,7 +77,7 @@ function ActionPanel({
     <div
       role="group"
       aria-label={title}
-      className="mt-sm flex flex-col gap-sm rounded-[16px] border border-border bg-bg/60 p-sm md:p-md"
+      className="flex flex-col gap-sm rounded-[16px] bg-sunken p-sm ring-1 ring-border md:p-md"
     >
       <p className="text-label font-semibold text-text">{title}</p>
       {children}
@@ -87,7 +103,6 @@ type Open =
   | null;
 
 function ContractDetail({ contractId }: { contractId: number }) {
-  const navigate = useNavigate();
   const client = useQueryClient();
   const userId = useAuthStore((s) => s.user?.id);
   const key = ['ward', userId, 'finance', 'contract', contractId];
@@ -164,14 +179,12 @@ function ContractDetail({ contractId }: { contractId: number }) {
     ...done,
   });
 
-  if (detail.isPending) {
-    return <p className="text-body-md text-muted">Đang tải hợp đồng…</p>;
-  }
+  if (detail.isPending) return <FinanceSkeleton />;
   if (detail.error || !detail.data) {
     return (
-      <p role="alert" className="text-body-md text-error">
-        {errorMessage(detail.error)}
-      </p>
+      <div className="rounded-[24px] bg-card shadow-card ring-1 ring-border">
+        <ErrorState message={errorMessage(detail.error)} onRetry={() => void detail.refetch()} />
+      </div>
     );
   }
   const d: WardFinanceContractDetail = detail.data;
@@ -315,288 +328,295 @@ function ContractDetail({ contractId }: { contractId: number }) {
 
   return (
     <div className="flex flex-col gap-lg">
-      <div className="flex flex-wrap items-center justify-between gap-sm rounded-[20px] bg-card p-md shadow-card ring-1 ring-border">
-        <div className="min-w-0">
-          <p className="text-headline-sm text-text">
-            Ô {d.slotCode} · {d.vendorName}
-          </p>
-          <p className="text-body-sm text-muted">
-            {d.zoneName} · {formatDateVn(d.startDate)} – {formatDateVn(d.endDate)}
-            {d.vendorPhone ? ` · ${d.vendorPhone}` : ''}
-          </p>
+      <ContractHero detail={d} />
+
+      <div className="grid items-start gap-lg xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="flex min-w-0 flex-col gap-lg">
+          <Section
+            title="Các kỳ phí"
+            description="Sửa số tiền hoặc hạn nộp, miễn một kỳ, hoặc ghi nhận khoản đã thu trực tiếp."
+          >
+            {d.items.length === 0 ? (
+              <LedgerEmpty icon="receipt-text-outline" title="Hợp đồng chưa có lịch thu phí" />
+            ) : (
+              <Ledger>
+                {d.items.map((item) => (
+                  <LedgerRow
+                    key={item.feeItemId}
+                    lead={formatDateVn(item.dueDate)}
+                    title={`Kỳ ${item.ordinal}`}
+                    amount={item.amount}
+                    status={<StatusPill status={item.status} />}
+                    notes={
+                      <>
+                        {item.depositAmount > 0 ? (
+                          <p className="text-body-sm text-muted">
+                            Gồm {formatVnd(item.depositAmount)} tiền cọc (hoàn lại)
+                          </p>
+                        ) : null}
+                        {item.originalAmount != null && item.originalAmount !== item.amount ? (
+                          <p className="text-body-sm text-muted">
+                            Đã sửa từ {formatVnd(item.originalAmount)}
+                            {item.adjustmentReason ? ` — ${item.adjustmentReason}` : ''}
+                          </p>
+                        ) : item.status === 'CANCELLED' && item.adjustmentReason ? (
+                          <p className="text-body-sm text-muted">Lý do miễn: {item.adjustmentReason}</p>
+                        ) : null}
+                      </>
+                    }
+                  >
+                    {feeActions(item)}
+                    {panelFor('FEE', item.feeItemId)}
+                  </LedgerRow>
+                ))}
+              </Ledger>
+            )}
+          </Section>
+
+          <Section title="Tiền phạt của hộ kinh doanh">
+            {d.penalties.length === 0 ? (
+              <LedgerEmpty icon="shield-check-outline" title="Không có khoản phạt nào" />
+            ) : (
+              <Ledger>
+                {d.penalties.map((p) => (
+                  <LedgerRow
+                    key={p.penaltyId}
+                    lead={formatDateVn(p.createdAt.slice(0, 10))}
+                    title={p.violationType}
+                    amount={p.amount}
+                    status={<StatusPill status={p.status} />}
+                    notes={
+                      p.decisionNumber || p.waiverReason ? (
+                        <p className="text-body-sm text-muted">
+                          {p.decisionNumber ? `QĐ số ${p.decisionNumber}` : ''}
+                          {p.decisionNumber && p.waiverReason ? ' · ' : ''}
+                          {p.waiverReason ? `Lý do miễn: ${p.waiverReason}` : ''}
+                        </p>
+                      ) : null
+                    }
+                  >
+                    {penaltyActions(p)}
+                    {panelFor('PENALTY', p.penaltyId)}
+                  </LedgerRow>
+                ))}
+              </Ledger>
+            )}
+          </Section>
         </div>
-        <div className="text-right">
-          <p className="text-body-sm text-muted">Còn phải thu</p>
-          <p className="font-sign text-[22px] font-bold text-text">{formatVnd(d.outstanding)}</p>
-        </div>
-      </div>
 
-      <Section title="Các kỳ phí" description="Sửa số tiền hoặc hạn nộp, miễn một kỳ, hoặc ghi nhận khoản đã thu trực tiếp.">
-        <ul className="flex flex-col gap-sm">
-          {d.items.map((item) => (
-            <li
-              key={item.feeItemId}
-              className="rounded-[16px] bg-card p-md shadow-card ring-1 ring-border"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-sm">
-                <div>
-                  <p className="text-label font-semibold text-text">
-                    Kỳ {item.ordinal} · hạn {formatDateVn(item.dueDate)}
-                  </p>
-                  {item.depositAmount > 0 ? (
-                    <p className="text-body-sm text-muted">
-                      Gồm {formatVnd(item.depositAmount)} tiền cọc (hoàn lại)
-                    </p>
-                  ) : null}
-                  {item.originalAmount != null && item.originalAmount !== item.amount ? (
-                    <p className="text-body-sm text-muted">
-                      Đã sửa từ {formatVnd(item.originalAmount)}
-                      {item.adjustmentReason ? ` — ${item.adjustmentReason}` : ''}
-                    </p>
-                  ) : item.status === 'CANCELLED' && item.adjustmentReason ? (
-                    <p className="text-body-sm text-muted">Lý do miễn: {item.adjustmentReason}</p>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-sm">
-                  <span className="font-tabular text-body-lg font-semibold text-text">
-                    {formatVnd(item.amount)}
-                  </span>
-                  <StatusPill status={item.status} />
-                </div>
-              </div>
-              {feeActions(item)}
-              {panelFor('FEE', item.feeItemId)}
-            </li>
-          ))}
-          {d.items.length === 0 ? (
-            <li className="text-body-md text-muted">Hợp đồng chưa có lịch thu phí.</li>
-          ) : null}
-        </ul>
-      </Section>
-
-      <Section title="Tiền phạt của hộ kinh doanh">
-        <ul className="flex flex-col gap-sm">
-          {d.penalties.map((p) => (
-            <li key={p.penaltyId} className="rounded-[16px] bg-card p-md shadow-card ring-1 ring-border">
-              <div className="flex flex-wrap items-center justify-between gap-sm">
-                <div>
-                  <p className="text-label font-semibold text-text">{p.violationType}</p>
-                  <p className="text-body-sm text-muted">
-                    {p.decisionNumber ? `QĐ số ${p.decisionNumber} · ` : ''}
-                    {formatDateVn(p.createdAt.slice(0, 10))}
-                    {p.waiverReason ? ` · Lý do miễn: ${p.waiverReason}` : ''}
-                  </p>
-                </div>
-                <div className="flex items-center gap-sm">
-                  <span className="font-tabular text-body-lg font-semibold text-text">
-                    {formatVnd(p.amount)}
-                  </span>
-                  <StatusPill status={p.status} />
-                </div>
-              </div>
-              {penaltyActions(p)}
-              {panelFor('PENALTY', p.penaltyId)}
-            </li>
-          ))}
-          {d.penalties.length === 0 ? (
-            <li className="text-body-md text-muted">Không có khoản phạt nào.</li>
-          ) : null}
-        </ul>
-      </Section>
-
-      <Section title="Tiền đặt cọc">
-        <div className="rounded-[16px] bg-card p-md shadow-card ring-1 ring-border">
-          <p className="text-body-md text-text">
-            Đã thu <span className="font-semibold">{formatVnd(d.depositPaid)}</span>
-          </p>
-          {d.depositRefund ? (
-            <p className="mt-xs text-body-md text-text">
-              Đã hoàn <span className="font-semibold">{formatVnd(d.depositRefund.amount)}</span> ngày{' '}
-              {formatDateVn(d.depositRefund.refundedAt.slice(0, 10))}
-              {d.depositRefund.deductionReason
-                ? ` (khấu trừ: ${d.depositRefund.deductionReason})`
-                : ''}
+        <aside className="flex min-w-0 flex-col gap-md">
+          <DecisionDeskCard title="Tiền đặt cọc">
+            <p className="text-body-md text-text">
+              Đã thu <span className="font-semibold">{formatVnd(d.depositPaid)}</span>
             </p>
-          ) : d.canRefundDeposit ? (
-            <div className="mt-sm">
+            {d.depositRefund ? (
+              <p className="text-body-md text-text">
+                Đã hoàn <span className="font-semibold">{formatVnd(d.depositRefund.amount)}</span>{' '}
+                ngày {formatDateVn(d.depositRefund.refundedAt.slice(0, 10))}
+                {d.depositRefund.deductionReason
+                  ? ` (khấu trừ: ${d.depositRefund.deductionReason})`
+                  : ''}
+              </p>
+            ) : d.canRefundDeposit ? (
+              <div>
+                <Button
+                  label="Hoàn cọc"
+                  variant="outline"
+                  fullWidth={false}
+                  onPress={() => {
+                    close();
+                    setAmount(d.depositPaid);
+                    setOpen({ kind: 'REFUND' });
+                  }}
+                />
+              </div>
+            ) : (
+              <p className="text-body-sm text-muted">{d.refundBlockedReason}</p>
+            )}
+            {open?.kind === 'REFUND' ? (
+              <ActionPanel
+                title="Hoàn tiền đặt cọc"
+                confirmLabel="Ghi nhận hoàn cọc"
+                pending={refund.isPending}
+                disabled={
+                  amount == null || amount > d.depositPaid || (amount < d.depositPaid && !hasReason)
+                }
+                onCancel={close}
+                onConfirm={() => refund.mutate()}
+              >
+                <MoneyInput
+                  label="Số tiền hoàn"
+                  value={amount}
+                  onChange={setAmount}
+                  helperText={`Tối đa ${formatVnd(d.depositPaid)}`}
+                />
+                <SegmentedControl value={method} onChange={setMethod} options={METHOD_OPTIONS} />
+                <TextField
+                  label="Số biên lai / mã giao dịch"
+                  value={reference}
+                  onChangeText={setReference}
+                  maxLength={100}
+                />
+                {amount != null && amount < d.depositPaid ? (
+                  <TextField
+                    label="Lý do khấu trừ *"
+                    value={reason}
+                    onChangeText={setReason}
+                    multiline
+                    maxLength={500}
+                  />
+                ) : null}
+              </ActionPanel>
+            ) : null}
+          </DecisionDeskCard>
+
+          <DecisionDeskCard title="Giá riêng của ô">
+            <p className="text-body-md text-text">
+              {d.slotPriceOverride != null ? (
+                <>
+                  Giá riêng: <span className="font-semibold">{formatVnd(d.slotPriceOverride)}</span>/
+                  {unit} (giá khu: {formatVnd(d.zonePrice)}/{unit})
+                </>
+              ) : (
+                <>
+                  Đang theo giá khu: <span className="font-semibold">{formatVnd(d.zonePrice)}</span>/
+                  {unit}
+                </>
+              )}
+            </p>
+            <p className="text-body-sm text-muted">
+              Đặt giá cho riêng ô này thay cho giá chung của khu vực. Áp dụng cho đơn được duyệt từ
+              nay; hợp đồng đang chạy không đổi.
+            </p>
+            <div className="flex flex-wrap gap-xs">
               <Button
-                label="Hoàn cọc"
+                label="Đặt giá riêng"
                 variant="outline"
                 fullWidth={false}
                 onPress={() => {
                   close();
-                  setAmount(d.depositPaid);
-                  setOpen({ kind: 'REFUND' });
+                  setAmount(d.slotPriceOverride ?? d.zonePrice);
+                  setOpen({ kind: 'SLOT_PRICE' });
                 }}
               />
+              {d.slotPriceOverride != null ? (
+                <Button
+                  label="Quay về giá khu"
+                  variant="ghost"
+                  fullWidth={false}
+                  onPress={() => {
+                    close();
+                    setAmount(null);
+                    setOpen({ kind: 'SLOT_PRICE' });
+                  }}
+                />
+              ) : null}
             </div>
-          ) : (
-            <p className="mt-xs text-body-sm text-muted">{d.refundBlockedReason}</p>
-          )}
-          {open?.kind === 'REFUND' ? (
-            <ActionPanel
-              title="Hoàn tiền đặt cọc"
-              confirmLabel="Ghi nhận hoàn cọc"
-              pending={refund.isPending}
-              disabled={amount == null || amount > d.depositPaid || (amount < d.depositPaid && !hasReason)}
-              onCancel={close}
-              onConfirm={() => refund.mutate()}
-            >
-              <MoneyInput
-                label="Số tiền hoàn"
-                value={amount}
-                onChange={setAmount}
-                helperText={`Tối đa ${formatVnd(d.depositPaid)}`}
-              />
-              <SegmentedControl value={method} onChange={setMethod} options={METHOD_OPTIONS} />
-              <TextField label="Số biên lai / mã giao dịch" value={reference} onChangeText={setReference} maxLength={100} />
-              {amount != null && amount < d.depositPaid ? (
+            {open?.kind === 'SLOT_PRICE' ? (
+              <ActionPanel
+                title={amount == null ? 'Quay về giá chung của khu' : `Giá riêng theo ${unit}`}
+                confirmLabel="Lưu giá"
+                pending={slotPrice.isPending}
+                disabled={!hasReason}
+                onCancel={close}
+                onConfirm={() => slotPrice.mutate(amount == null)}
+              >
+                {amount != null ? (
+                  <MoneyInput label={`Giá thuê mỗi ${unit}`} value={amount} onChange={setAmount} />
+                ) : null}
                 <TextField
-                  label="Lý do khấu trừ *"
+                  label="Lý do *"
                   value={reason}
                   onChangeText={setReason}
                   multiline
                   maxLength={500}
                 />
-              ) : null}
-            </ActionPanel>
-          ) : null}
-        </div>
-      </Section>
-
-      <Section
-        title="Giá riêng của ô"
-        description="Đặt giá cho riêng ô này thay cho giá chung của khu vực. Áp dụng cho đơn được duyệt từ nay; hợp đồng đang chạy không đổi."
-      >
-        <div className="rounded-[16px] bg-card p-md shadow-card ring-1 ring-border">
-          <p className="text-body-md text-text">
-            {d.slotPriceOverride != null ? (
-              <>
-                Giá riêng: <span className="font-semibold">{formatVnd(d.slotPriceOverride)}</span>/{unit}
-                {' '}(giá khu: {formatVnd(d.zonePrice)}/{unit})
-              </>
-            ) : (
-              <>
-                Đang theo giá khu: <span className="font-semibold">{formatVnd(d.zonePrice)}</span>/{unit}
-              </>
-            )}
-          </p>
-          <div className="mt-sm flex flex-wrap gap-xs">
-            <Button
-              label="Đặt giá riêng"
-              variant="outline"
-              fullWidth={false}
-              onPress={() => {
-                close();
-                setAmount(d.slotPriceOverride ?? d.zonePrice);
-                setOpen({ kind: 'SLOT_PRICE' });
-              }}
-            />
-            {d.slotPriceOverride != null ? (
-              <Button
-                label="Quay về giá khu"
-                variant="ghost"
-                fullWidth={false}
-                onPress={() => {
-                  close();
-                  setAmount(null);
-                  setOpen({ kind: 'SLOT_PRICE' });
-                }}
-              />
+              </ActionPanel>
             ) : null}
-          </div>
-          {open?.kind === 'SLOT_PRICE' ? (
-            <ActionPanel
-              title={amount == null ? 'Quay về giá chung của khu' : `Giá riêng theo ${unit}`}
-              confirmLabel="Lưu giá"
-              pending={slotPrice.isPending}
-              disabled={!hasReason}
-              onCancel={close}
-              onConfirm={() => slotPrice.mutate(amount == null)}
-            >
-              {amount != null ? (
-                <MoneyInput label={`Giá thuê mỗi ${unit}`} value={amount} onChange={setAmount} />
-              ) : null}
-              <TextField
-                label="Lý do *"
-                value={reason}
-                onChangeText={setReason}
-                multiline
-                maxLength={500}
-              />
-            </ActionPanel>
-          ) : null}
-        </div>
-      </Section>
-
-      <div>
-        <Button
-          label="Quay lại danh sách"
-          variant="ghost"
-          fullWidth={false}
-          icon={<Icon name="arrow-left" size={18} color="currentColor" />}
-          onPress={() => navigate('/ward/finance')}
-        />
+          </DecisionDeskCard>
+        </aside>
       </div>
     </div>
   );
 }
 
+const FILTER_LABEL: Record<ContractFilter, string> = {
+  ALL: 'Tất cả',
+  OVERDUE: 'Quá hạn',
+  PENALTY: 'Có tiền phạt',
+  REFUND: 'Chờ hoàn cọc',
+};
+
 function ContractList() {
   const navigate = useNavigate();
   const userId = useAuthStore((s) => s.user?.id);
+  const [filter, setFilter] = useState<ContractFilter>('ALL');
+  const [query, setQuery] = useState('');
   const list = useQuery({
     queryKey: ['ward', userId, 'finance', 'contracts'],
     queryFn: wardFinanceApi.listContracts,
   });
 
-  if (list.isPending) return <p className="text-body-md text-muted">Đang tải…</p>;
+  if (list.isPending) return <FinanceSkeleton />;
   if (list.error) {
     return (
-      <p role="alert" className="text-body-md text-error">
-        {errorMessage(list.error)}
-      </p>
+      <div className="rounded-[24px] bg-card shadow-card ring-1 ring-border">
+        <ErrorState message={errorMessage(list.error)} onRetry={() => void list.refetch()} />
+      </div>
     );
   }
   if (list.data.length === 0) {
-    return <p className="text-body-md text-muted">Phường chưa có hợp đồng thuê ô nào.</p>;
+    return (
+      <div className="rounded-[24px] bg-card shadow-card ring-1 ring-border">
+        <EmptyState
+          icon="receipt-text-outline"
+          title="Phường chưa có hợp đồng thuê ô nào"
+          description="Khi có hợp đồng, các kỳ phí và tiền phạt sẽ hiện ở đây để điều chỉnh."
+        />
+      </div>
+    );
   }
 
+  const counts = countByFilter(list.data);
+  const shown = filterContracts(list.data, filter, query);
+
   return (
-    <ul className="flex flex-col gap-sm">
-      {list.data.map((c) => (
-        <li key={c.contractId}>
-          <button
-            type="button"
-            onClick={() => navigate(`/ward/finance/${c.contractId}`)}
-            className="flex w-full flex-wrap items-center justify-between gap-sm rounded-[16px] bg-card p-md text-left shadow-card ring-1 ring-border transition-shadow hover:shadow-card-hover"
-          >
-            <div className="min-w-0">
-              <p className="text-label font-semibold text-text">
-                Ô {c.slotCode} · {c.vendorName}
-              </p>
-              <p className="text-body-sm text-muted">
-                {c.zoneName} · đến {formatDateVn(c.endDate)}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-xs">
-              {c.overdueCount > 0 ? (
-                <StatusChip label={`${c.overdueCount} kỳ quá hạn`} tone="danger" />
-              ) : null}
-              {c.unpaidPenalties > 0 ? (
-                <StatusChip label={`Phạt ${formatVnd(c.unpaidPenalties)}`} tone="pending" />
-              ) : null}
-              {c.depositPaid > 0 && !c.depositRefunded && c.contractStatus !== 'ACTIVE' ? (
-                <StatusChip label="Chờ hoàn cọc" tone="pending" />
-              ) : null}
-              <span className="font-tabular text-body-lg font-semibold text-text">
-                {formatVnd(c.outstanding)}
-              </span>
-            </div>
-          </button>
-        </li>
-      ))}
-    </ul>
+    <div className="flex flex-col gap-lg">
+      <div className="sb-pop">
+        <WardOwedHero summary={summariseContracts(list.data)} />
+      </div>
+
+      <div className="flex flex-col gap-sm md:flex-row md:items-center md:justify-between">
+        <SegmentedControl
+          value={filter}
+          onChange={setFilter}
+          options={(Object.keys(FILTER_LABEL) as ContractFilter[]).map((value) => ({
+            value,
+            label: `${FILTER_LABEL[value]} (${counts[value]})`,
+          }))}
+        />
+        <div className="md:w-[320px]">
+          <TextField
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Tìm theo mã ô, tên hộ hoặc số điện thoại"
+          />
+        </div>
+      </div>
+
+      {shown.length === 0 ? (
+        <div className="rounded-[24px] bg-card shadow-card ring-1 ring-border">
+          <EmptyState
+            icon="magnify"
+            title="Không có hợp đồng phù hợp"
+            description="Thử bỏ bộ lọc hoặc đổi từ khoá tìm kiếm."
+            compact
+          />
+        </div>
+      ) : (
+        <ContractLedger items={shown} onOpen={(id) => navigate(`/ward/finance/${id}`)} />
+      )}
+    </div>
   );
 }
 
@@ -605,10 +625,11 @@ export function WardFinanceScreen() {
   const id = contractId ? Number(contractId) : null;
   return (
     <WardGate>
-      <Screen width="default">
+      <Screen width="wide">
         <AppHeader
           title="Thu phí & điều chỉnh"
           subtitle="Sửa tay các khoản tiền: kỳ phí, tiền phạt, tiền cọc, giá riêng của ô"
+          back={Boolean(id)}
         />
         {id ? <ContractDetail contractId={id} /> : <ContractList />}
       </Screen>

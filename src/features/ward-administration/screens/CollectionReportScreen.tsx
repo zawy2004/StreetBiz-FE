@@ -2,10 +2,9 @@ import { useMemo, useState } from 'react';
 
 import { SegmentedControl } from '@/components/forms';
 import { AppHeader, Screen, Section } from '@/components/layout';
-import { AiHint } from '@/components/status';
 import { ErrorState } from '@/components/feedback';
 import { errorMessage } from '@/core/api';
-import { env, isLiveApi } from '@/core/config/env';
+import { isLiveApi } from '@/core/config/env';
 import {
   CollectedHero,
   DebtColumn,
@@ -15,8 +14,9 @@ import {
   TopViolations,
   ViolationLedger,
 } from '../components/ops/report/ReportParts';
+import { ReportSummaryCard } from '../components/ops/report/ReportSummaryCard';
 import { daysInMonth, periodDays } from '../components/ops/report/report-model';
-import { useCollectionReport, type ReportPeriod } from '../useWardReports';
+import { useCollectionReport, useReportSummary, type ReportPeriod } from '../useWardReports';
 
 type PeriodKey = 'THIS_MONTH' | 'LAST_MONTH' | 'LAST_90_DAYS';
 
@@ -54,6 +54,7 @@ export function CollectionReportScreen() {
   const [periodKey, setPeriodKey] = useState<PeriodKey>('THIS_MONTH');
   const period = useMemo(() => periodFor(periodKey, new Date()), [periodKey]);
   const { report, isLoading, isError, error, refetch } = useCollectionReport(period);
+  const { summary } = useReportSummary(period);
   const subtitle = `${displayDay(period.from)} – ${displayDay(period.to)}`;
 
   const periodControl = (
@@ -128,13 +129,7 @@ export function CollectionReportScreen() {
         ) : null}
       </div>
 
-      {env.enableAiCompliance ? (
-        <AiHint title="Tóm tắt tự động">
-          Đã ghi nhận {report.recentViolations.length} vi phạm gần đây, chủ yếu là bày biện vượt
-          vạch quy định. Tỷ lệ thu phí đúng hạn đạt mức khá; đề xuất nhắc thanh toán sớm hơn 3 ngày
-          cho các hộ có lịch sử nộp trễ.
-        </AiHint>
-      ) : null}
+      {summary ? <ReportSummaryCard summary={summary} /> : null}
 
       <div
         className={`grid items-start gap-lg ${violations.length >= 2 ? 'xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]' : ''}`}
