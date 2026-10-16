@@ -32,21 +32,6 @@ export function InvoiceDetailScreen() {
   const numberId = useId();
   const [downloading, setDownloading] = useState(false);
 
-  const downloadPdf = async (invoiceNumber: string) => {
-    if (!isLiveApi) {
-      showToast('Tải PDF chỉ có khi kết nối máy chủ (đang ở chế độ demo).');
-      return;
-    }
-    setDownloading(true);
-    try {
-      saveFile(await financeApi.invoicePdf(invoiceId), `${invoiceNumber}.pdf`);
-    } catch (err) {
-      showToast(errorMessage(err));
-    } finally {
-      setDownloading(false);
-    }
-  };
-
   if (isLoading) {
     return (
       <Screen>
@@ -73,6 +58,21 @@ export function InvoiceDetailScreen() {
     ? (PROVIDER_LABEL[invoice.paymentProvider] ?? invoice.paymentProvider)
     : null;
 
+  const downloadPdf = async () => {
+    if (!isLiveApi) {
+      showToast('Tải hoá đơn chỉ có khi kết nối máy chủ (đang ở chế độ demo).');
+      return;
+    }
+    setDownloading(true);
+    try {
+      saveFile(await financeApi.invoicePdf(invoiceId), `${invoice.invoiceNumber}.pdf`);
+    } catch (err) {
+      showToast(errorMessage(err));
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <Screen
       footer={
@@ -81,8 +81,7 @@ export function InvoiceDetailScreen() {
             label="Tải hoá đơn (PDF)"
             variant="outline"
             loading={downloading}
-            disabled={downloading}
-            onPress={() => void downloadPdf(invoice.invoiceNumber)}
+            onPress={() => void downloadPdf()}
           />
         </StickyActions>
       }
