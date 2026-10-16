@@ -36,6 +36,10 @@ const ResetPasswordScreen = lazyScreen(
   () => import('@/features/authentication/screens'),
   'ResetPasswordScreen',
 );
+const TermsScreen = lazyScreen(() => import('@/features/legal/screens'), 'TermsScreen');
+const PrivacyScreen = lazyScreen(() => import('@/features/legal/screens'), 'PrivacyScreen');
+const SlotRulesScreen = lazyScreen(() => import('@/features/legal/screens'), 'SlotRulesScreen');
+const LegalBasisScreen = lazyScreen(() => import('@/features/legal/screens'), 'LegalBasisScreen');
 
 // Everything past sign-in is split per feature and fetched on first visit.
 const WardCasesScreen = lazyScreen(
@@ -53,10 +57,6 @@ const AccountScreen = lazyScreen(
 const ChangePasswordScreen = lazyScreen(
   () => import('@/features/account-management/screens'),
   'ChangePasswordScreen',
-);
-const NotificationsScreen = lazyScreen(
-  () => import('@/features/account-management/screens'),
-  'NotificationsScreen',
 );
 const SessionsScreen = lazyScreen(
   () => import('@/features/account-management/screens'),
@@ -194,6 +194,10 @@ const VendorViolationsScreen = lazyScreen(
   () => import('@/features/fee-schedules/screens'),
   'VendorViolationsScreen',
 );
+const ContractScheduleScreen = lazyScreen(
+  () => import('@/features/fee-schedules/screens'),
+  'ContractScheduleScreen',
+);
 const MenuScreen = lazyScreen(() => import('@/features/storefronts/screens'), 'MenuScreen');
 const SalesSummaryScreen = lazyScreen(
   () => import('@/features/storefronts/screens'),
@@ -297,6 +301,10 @@ const WardFinanceScreen = lazyScreen(
   () => import('@/features/ward-administration/screens/WardFinanceScreen'),
   'WardFinanceScreen',
 );
+const WardDebtorsScreen = lazyScreen(
+  () => import('@/features/ward-administration/screens'),
+  'WardDebtorsScreen',
+);
 const InboxScreen = lazyScreen(
   () => import('@/features/ward-administration/screens/InboxScreen'),
   'InboxScreen',
@@ -336,6 +344,10 @@ const RenewalReviewScreen = lazyScreen(
 const SlotGridEditorScreen = lazyScreen(
   () => import('@/features/ward-administration/screens/SlotGridEditorScreen'),
   'SlotGridEditorScreen',
+);
+const SlotEditScreen = lazyScreen(
+  () => import('@/features/ward-administration/screens/SlotEditScreen'),
+  'SlotEditScreen',
 );
 const SlotOccupancyScreen = lazyScreen(
   () => import('@/features/ward-administration/screens/SlotOccupancyScreen'),
@@ -432,6 +444,11 @@ export function AppRouter() {
         <Route path="/auth/password/reset-request" element={<ResetPasswordRequestScreen />} />
         <Route path="/auth/password/reset" element={<ResetPasswordScreen />} />
 
+        <Route path="/legal/terms" element={<TermsScreen />} />
+        <Route path="/legal/privacy" element={<PrivacyScreen />} />
+        <Route path="/legal/slot-rules" element={<SlotRulesScreen />} />
+        <Route path="/legal/basis" element={<LegalBasisScreen />} />
+
         <Route
           path="/account"
           element={
@@ -461,14 +478,6 @@ export function AppRouter() {
           element={
             <AuthGuard>
               <LoginHistoryScreen />
-            </AuthGuard>
-          }
-        />
-        <Route
-          path="/account/notifications"
-          element={
-            <AuthGuard>
-              <NotificationsScreen />
             </AuthGuard>
           }
         />
@@ -570,6 +579,7 @@ export function AppRouter() {
           <Route path="finance/invoices/:id" element={<InvoiceDetailScreen />} />
           <Route path="finance/payments" element={<PaymentHistoryScreen />} />
           <Route path="finance/violations" element={<VendorViolationsScreen />} />
+          <Route path="finance/contracts/:id" element={<ContractScheduleScreen />} />
           <Route path="chat" element={<ConversationsScreen />} />
           <Route path="chat/:conversationId" element={<ChatThreadScreen />} />
           <Route path="store" element={<StoreScreen />} />
@@ -593,6 +603,7 @@ export function AppRouter() {
           <Route path="reports" element={<CollectionReportScreen />} />
           <Route path="finance" element={<WardFinanceScreen />} />
           <Route path="finance/:contractId" element={<WardFinanceScreen />} />
+          <Route path="reports/debtors" element={<WardDebtorsScreen />} />
           <Route path="inbox" element={<InboxScreen />} />
           <Route path="inbox/reviews" element={<WardCasesScreen />} />
           <Route path="inbox/reviews/:kind/:id" element={<WardCaseScreen />} />
@@ -607,6 +618,7 @@ export function AppRouter() {
           <Route path="inbox/vendor-reports/:id" element={<VendorReportReviewScreen />} />
           <Route path="slots" element={<SlotOccupancyScreen />} />
           <Route path="slots/editor" element={<SlotGridEditorScreen />} />
+          <Route path="slots/:slotId" element={<SlotEditScreen />} />
           <Route path="patrol" element={<PermitScanScreen />} />
           <Route path="patrol/violations/new" element={<RecordViolationScreen />} />
           <Route path="patrol/permits/:permitId/action" element={<PermitActionScreen />} />

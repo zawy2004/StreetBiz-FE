@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { Icon, Money } from '@/components/common';
-import type { Order } from '../types/order.types';
+import type { Order, OrderArrival } from '../types/order.types';
 import {
   formatOrderDate,
   formatOrderTime,
@@ -10,6 +10,7 @@ import {
   ticketItemsShown,
   waitTone,
 } from './order-format';
+import { ArrivalBanner } from './ArrivalBanner';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import type { StageTone } from './OrderPipeline';
 
@@ -53,6 +54,7 @@ export function VendorOrderTicket({
   now,
   primaryAction,
   secondaryActions,
+  arrival,
 }: {
   order: Order;
   tone: StageTone;
@@ -61,6 +63,8 @@ export function VendorOrderTicket({
   now: number;
   primaryAction?: ReactNode;
   secondaryActions?: ReactNode;
+  /** The customer said they are on the way ("Tôi đang đến"): time to finish their food. */
+  arrival?: OrderArrival;
 }) {
   const waited = minutesSince(enteredStageAt(order), now);
   // Only a new order is urgent by age: once accepted, the buyer has been told.
@@ -105,6 +109,8 @@ export function VendorOrderTicket({
           </span>
         ) : null}
       </header>
+
+      {live && arrival ? <ArrivalBanner arrival={arrival} className="mx-md mb-sm" /> : null}
 
       <ul className="flex flex-col gap-2xs pb-sm pl-md pr-sm">
         {shown.map((item) => (

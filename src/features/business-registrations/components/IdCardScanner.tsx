@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 
+import { LegalBasisLink } from '@/features/legal/components/LegalBasisLink';
 import { Button, Icon } from '@/components/common';
 import { showToast } from '@/components/feedback';
 import { AiHint } from '@/components/status';
@@ -251,9 +252,8 @@ export function IdCardScanner({ id, onExtracted }: Props) {
           invalid={consentMissing}
         >
           Tôi đồng ý <strong>riêng biệt</strong> cho phép hệ thống xử lý ảnh CCCD và ảnh chân dung
-          của tôi bằng công nghệ nhận dạng (OCR, đối chiếu khuôn mặt) theo Luật Bảo vệ dữ liệu cá
-          nhân 2025 (Nghị định 356/2025/NĐ-CP). Không đồng ý vẫn nộp hồ sơ được — bạn tự nhập thông
-          tin và cán bộ phường đối chiếu giấy tờ trực tiếp.
+          của tôi bằng công nghệ nhận dạng (OCR, đối chiếu khuôn mặt). Không đồng ý vẫn nộp hồ sơ được — bạn tự nhập thông tin và cán
+          bộ phường đối chiếu giấy tờ trực tiếp. <LegalBasisLink anchor="du-lieu" />
         </ConsentRow>
       </div>
 

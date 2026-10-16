@@ -5,6 +5,7 @@ import { ErrorState, Skeleton } from '@/components/feedback';
 import { Screen } from '@/components/layout';
 import { commerceApi, errorMessage } from '@/core/api';
 import { useCanStartChat, useStartChat } from '@/features/chat/hooks/useChat';
+import { OutOfRangeHint } from '@/features/orders/pickup/OutOfRangeHint';
 import { BackButton } from '../components/BackButton';
 import { ActionRow } from '../components/storefront/ActionRow';
 import { HoursCard } from '../components/storefront/HoursCard';
@@ -78,6 +79,13 @@ export function StorefrontDetailScreen() {
           }
           chatError={startChat.isError ? errorMessage(startChat.error) : null}
         />
+        {/* ORD-01: renders nothing unless discovery knows the customer is beyond the range. */}
+        <div className="mt-sm empty:hidden">
+          <OutOfRangeHint
+            storefrontId={storefront.storefrontId}
+            distanceMeters={storefront.distanceMeters}
+          />
+        </div>
       </div>
 
       <div className={BODY}>

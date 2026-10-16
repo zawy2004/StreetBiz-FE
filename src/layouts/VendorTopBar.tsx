@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueries } from '@tanstack/react-query';
 
 import { Avatar, Icon } from '@/components/common';
 import { sideApi, type SidewalkSlot, type SlotHold } from '@/core/api/side-api';
-import { useNotificationUnreadCount } from '@/features/account-management/notifications-api';
+import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { formatCountdown, hkdCode, secondsUntil } from '@/features/sidewalk-slots/slot-format';
 import { slotMatchesSearch } from '@/features/sidewalk-slots/slot-stats';
 import { useHolds } from '@/features/sidewalk-slots/useHolds';
@@ -65,30 +65,6 @@ export function VendorTopBar() {
         </div>
       )}
     </header>
-  );
-}
-
-function NotificationBell() {
-  const unread = useNotificationUnreadCount();
-
-  return (
-    <Link
-      to="/account/notifications"
-      aria-label={unread > 0 ? `Thông báo, ${unread} chưa đọc` : 'Thông báo'}
-      className="relative flex h-12 w-12 items-center justify-center rounded-full bg-card ring-1 ring-border transition-colors hover:bg-sunken lg:h-11 lg:w-11"
-    >
-      <Icon
-        name="bell-outline"
-        size={22}
-        color={colors.text}
-        weight={unread > 0 ? 'fill' : 'regular'}
-      />
-      {unread > 0 && (
-        <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-card bg-brand">
-          <span className="sb-ping absolute inset-0 rounded-full bg-brand" />
-        </span>
-      )}
-    </Link>
   );
 }
 

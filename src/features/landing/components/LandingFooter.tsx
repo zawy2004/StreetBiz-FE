@@ -1,4 +1,5 @@
 import { BrandLogo } from '@/components/common';
+import { LegalLinks } from '@/features/legal/components/LegalLinks';
 
 export function LandingFooter() {
   return (
@@ -9,7 +10,10 @@ export function LandingFooter() {
           <span className="font-sign text-[16px] font-bold text-text">StreetBiz</span>
           <span>Vỉa hè có trật tự, quán có khách.</span>
         </span>
-        <span>© {new Date().getFullYear()} StreetBiz</span>
+        <span className="flex flex-wrap items-center gap-x-md">
+          <LegalLinks />
+          <span>© {new Date().getFullYear()} StreetBiz</span>
+        </span>
       </div>
     </footer>
   );

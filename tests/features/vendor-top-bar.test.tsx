@@ -48,7 +48,7 @@ beforeEach(() => {
     wardUnitId: 1, latitude: 16.05, longitude: 108.22,
     widthMeters: 2, lengthMeters: 2, slotStatus: 'HELD', source: 'WARD',
     pricePerDay: 30000, availableFrom: '05:00:00', availableTo: '22:00:00',
-    distanceMeters: null, imageUrl: null, hasPower: false, hasWater: false,
+    distanceMeters: null, imageUrls: [], hasPower: false, hasWater: false,
     hasTrashBin: false, businessCategory: null, tenantName: null,
     holdExpiresAt: isoIn(14), priceDisplayUnit: 'DAY', pricePerMonth: null,
     rentalMode: 'STANDARD', eventEndDate: null, monthlyPrice: 900000, quarterDiscountPercent: null,
@@ -67,7 +67,7 @@ beforeEach(() => {
 });
 
 describe('VendorTopBar', () => {
-  it('shows the derived HKD code, the hold count and a link to notifications', async () => {
+  it('shows the derived HKD code, the hold count and the notification bell', async () => {
     api.listHolds.mockResolvedValue([
       { slotId: 10, registrationId: 7, heldAt: isoIn(-1), expiresAt: isoIn(14) },
       { slotId: 11, registrationId: 7, heldAt: isoIn(-1), expiresAt: isoIn(10) },
@@ -75,7 +75,8 @@ describe('VendorTopBar', () => {
     renderWithProviders(<VendorTopBar />);
 
     expect(await screen.findByLabelText('Giỏ giữ chỗ (2)')).toBeInTheDocument();
-    expect(screen.getByLabelText('Thông báo')).toHaveAttribute('href', '/account/notifications');
+    // The bell opens a dropdown in place; there is no notifications page to link to.
+    expect(screen.getByLabelText('Thông báo')).toHaveAttribute('aria-haspopup', 'dialog');
     expect(screen.getByText('HKD-0007')).toBeInTheDocument();
     expect(screen.getByText('Nguyen Van A')).toBeInTheDocument();
     // No workspace mounted, so there is nothing to select a route from or search in.

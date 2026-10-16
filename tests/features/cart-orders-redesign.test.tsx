@@ -26,6 +26,7 @@ const ordersApi = vi.hoisted(() => ({
   checkout: vi.fn(),
   customerOrders: vi.fn(),
   customerOrder: vi.fn(),
+  pickupRange: vi.fn(),
   pickupCode: vi.fn(),
   syncPayment: vi.fn(),
   vendorOrder: vi.fn(),
@@ -196,6 +197,20 @@ beforeEach(() => {
   vi.unstubAllGlobals();
   legacyApi.paymentOptions.mockResolvedValue({ mode: 'SANDBOX', providers: ['MOMO'], message: '' });
   ordersApi.syncPayment.mockImplementation(async () => order('PENDING_PAYMENT'));
+  // ORD-01: these screens are not about the pickup range, so the rule is off here.
+  ordersApi.pickupRange.mockResolvedValue({
+    pickupPoint: {
+      storefrontId: 1,
+      storefrontName: 'Bếp Việt',
+      address: null,
+      latitude: 10.77,
+      longitude: 106.7,
+    },
+    enforced: false,
+    radiusMeters: 2000,
+    accuracyAllowanceMeters: 150,
+    maxAccuracyMeters: 1000,
+  });
   useAuthStore.setState({
     user: {
       id: '7',

@@ -21,6 +21,7 @@ import {
 } from './fields';
 import { CheckingLine, PlacementVerdict, VerdictSlip } from './PlacementVerdict';
 import { hasBlock, sizeValue, usePlacementCheck } from './placement';
+import { SlotPhotosField } from './SlotPhotosField';
 
 /** A dashed, unpainted slot outline: a slot that does not exist yet. */
 function DraftPlate() {
@@ -55,6 +56,7 @@ export function NewSlotForm({
     hasTrashBin: false,
     businessCategory: null,
   });
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [ack, setAck] = useState(false);
   const [reason, setReason] = useState('');
   const w = sizeValue(width);
@@ -79,6 +81,7 @@ export function NewSlotForm({
         lengthMeters: l!,
         slotCode: code.trim() || null,
         ...facilities,
+        imageUrls,
         acknowledgeWarnings: issues.length > 0,
         warningReason: issues.length > 0 ? reason.trim() : null,
       }),
@@ -133,6 +136,8 @@ export function NewSlotForm({
       />
       <SheetRule>Tiện ích</SheetRule>
       <FacilitiesFields value={facilities} onChange={setFacilities} />
+      <SheetRule>Ảnh ô</SheetRule>
+      <SlotPhotosField value={imageUrls} onChange={setImageUrls} />
       {slipHasContent && (
         <VerdictSlip>
           {check.isFetching && <CheckingLine />}

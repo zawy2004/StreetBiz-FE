@@ -1,30 +1,5 @@
 /** Display formatting for the slot workspace. Pure; the clock is always a parameter. */
 
-/** 16.060558 -> 16°03'38.0"N. Hemisphere letters are for WGS84 lat/lng. */
-function toDmsPart(value: number, positive: string, negative: string): string {
-  const hemisphere = value >= 0 ? positive : negative;
-  const abs = Math.abs(value);
-  const degrees = Math.floor(abs);
-  const minutesFloat = (abs - degrees) * 60;
-  let minutes = Math.floor(minutesFloat);
-  let seconds = Math.round((minutesFloat - minutes) * 60 * 10) / 10;
-  let carriedDegrees = degrees;
-  // Rounding the seconds can land on 60.0; carry instead of printing 60.0".
-  if (seconds >= 60) {
-    seconds = 0;
-    minutes += 1;
-  }
-  if (minutes >= 60) {
-    minutes = 0;
-    carriedDegrees += 1;
-  }
-  return `${carriedDegrees}°${String(minutes).padStart(2, '0')}'${seconds.toFixed(1).padStart(4, '0')}"${hemisphere}`;
-}
-
-export function toDms(latitude: number, longitude: number): string {
-  return `${toDmsPart(latitude, 'N', 'S')} ${toDmsPart(longitude, 'E', 'W')}`;
-}
-
 /** Whole seconds left until `expiresAt`, never negative. */
 export function secondsUntil(expiresAt: string, nowMs: number): number {
   return Math.max(0, Math.ceil((Date.parse(expiresAt) - nowMs) / 1000));

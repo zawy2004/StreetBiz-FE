@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './client';
+import { apiGet, apiGetBlob, apiPost } from './client';
 
 /**
  * Mirrors StreetBiz-BE `FinanceController` (SYS-03..06, FEE-01..05) and
@@ -96,6 +96,101 @@ export type InvoiceDetailDto = InvoiceDto & {
   penaltyId: number | null;
   paymentProvider: string | null;
   paidAt: string | null;
+  /** What the receipt PDF prints; absent from older servers, so optional. */
+  wardName?: string | null;
+  payerName?: string | null;
+  businessName?: string | null;
+  providerReference?: string | null;
+  decisionNumber?: string | null;
+  amountInWords?: string | null;
+};
+
+/**
+ * One instalment on a contract's schedule. `itemStatus` already reads OVERDUE once the due date
+ * has passed unpaid (the server does not wait for its hourly sweep). `daysOverdue` is set while
+ * late, `daysUntilDue` while still ahead; both null once paid.
+ */
+export type ScheduleItemDto = {
+  feeItemId: number;
+  ordinal: number;
+  ofCount: number;
+  periodLabel: string;
+  dueDate: string;
+  amount: number;
+  itemStatus: string;
+  paidAt: string | null;
+  invoiceId: number | null;
+  invoiceNumber: string | null;
+  daysOverdue: number | null;
+  daysUntilDue: number | null;
+  /** The contract's oldest unpaid instalment: instalments are paid in order. Absent in the demo build. */
+  payableNow?: boolean;
+};
+
+/** One age band of overdue rental fees; `maxDays` is null for the open-ended last band. */
+export type AgingBucketDto = {
+  key: string;
+  label: string;
+  minDays: number;
+  maxDays: number | null;
+  instalments: number;
+  households: number;
+  amount: number;
+};
+
+export type ReceivablesDto = {
+  asOf: string;
+  overdueAmount: number;
+  aging: AgingBucketDto[];
+  dueNext30Count: number;
+  dueNext30Amount: number;
+  refundsPending: number;
+  refundsPendingAmount: number;
+};
+
+/** A payment owed back to a vendor (REFUND_REQUIRED) or already paid back (REFUNDED). */
+export type WardRefundDto = {
+  transactionId: number;
+  kind: 'FEE' | 'PENALTY';
+  vendorName: string;
+  vendorPhone: string | null;
+  slotCode: string | null;
+  label: string;
+  provider: string;
+  providerReference: string | null;
+  amount: number;
+  receivedAt: string;
+  status: 'REFUND_REQUIRED' | 'REFUNDED';
+  refundedAt: string | null;
+};
+
+/** A rental contract and how far its fee schedule has been paid. */
+export type VendorContractFinanceDto = {
+  contractId: number;
+  slotCode: string;
+  zoneName: string | null;
+  wardName: string | null;
+  address: string | null;
+  startDate: string;
+  endDate: string;
+  contractStatus: string;
+  totalAmount: number;
+  paidAmount: number;
+  outstandingAmount: number;
+  instalmentCount: number;
+  paidCount: number;
+  overdueCount: number;
+  nextDue: ScheduleItemDto | null;
+};
+
+export type ContractScheduleDto = {
+  contract: VendorContractFinanceDto;
+  items: ScheduleItemDto[];
+};
+
+export type FeeItemDetailDto = {
+  contract: VendorContractFinanceDto;
+  item: ScheduleItemDto;
 };
 
 export type FinanceCheckoutDto = {
@@ -168,6 +263,72 @@ export const financeApi = {
 
   /** FEE-03: one invoice's full detail. */
   invoice: (invoiceId: number) => apiGet<InvoiceDetailDto>(`/vendor/finance/invoices/${invoiceId}`),
+
+  /** FEE-03: the payment receipt as a PDF (fetched with the bearer token, not linked). */
+  invoicePdf: (invoiceId: number) => apiGetBlob(`/vendor/finance/invoices/${invoiceId}/pdf`),
+
+  /** Every contract with a fee schedule and how far it has been paid. */
+  contracts: () => apiGet<VendorContractFinanceDto[]>('/vendor/finance/contracts'),
+
+  /** One contract's schedule, instalment by instalment. */
+  contractSchedule: (contractId: number) =>
+    apiGet<ContractScheduleDto>(`/vendor/finance/contracts/${contractId}/schedule`),
+
+  /** FEE-01: one instalment and its contract, before and after paying it. */
+  feeItem: (feeItemId: number) => apiGet<FeeItemDetailDto>(`/vendor/finance/fees/${feeItemId}`),
+
+  /** A year's receipts and instalments as an .xlsx statement. */
+  statementXlsx: (year?: number) =>
+    apiGetBlob(`/vendor/finance/statement${queryString({ year: year ? String(year) : undefined })}`),
+};
+
+/** WARD-14 collections. */
+export type WardDebtorDto = {
+  contractId: number;
+  vendorName: string;
+  vendorPhone: string | null;
+  businessName: string | null;
+  slotCode: string;
+  zoneName: string;
+  overdueCount: number;
+  overdueAmount: number;
+  upcomingAmount: number;
+  oldestDueDate: string;
+  daysOverdue: number;
+  lastRemindedAt: string | null;
+  remindedToday: boolean;
+};
+
+export type ZoneCollectionDto = {
+  zoneId: number;
+  zoneName: string;
+  slotCount: number;
+  rentedSlots: number;
+  feeCollected: number;
+  outstanding: number;
+};
+
+/** How punctually the fees falling due in a period were paid. `onTimeRate` is null when nothing fell due. */
+export type CollectionPerformanceDto = {
+  from: string;
+  to: string;
+  feeDue: number;
+  dueCount: number;
+  dueCollected: number;
+  paidOnTimeCount: number;
+  paidLateCount: number;
+  unpaidCount: number;
+  onTimeRate: number | null;
+  byZone: ZoneCollectionDto[];
+};
+
+export type MonthlyCollectionDto = {
+  year: number;
+  month: number;
+  feeCollected: number;
+  penaltyCollected: number;
+  feeDue: number;
+  feeDuePaidOnTime: number;
 };
 
 /** WARD-14. */
@@ -228,10 +389,38 @@ export const wardReportApi = {
   collectionReport: (from?: string, to?: string) =>
     apiGet<CollectionReportDto>(`/ward/reports/collection${queryString({ from, to })}`),
 
+  /** WARD-14 as an .xlsx workbook: the same totals plus the receipts behind them. */
+  collectionReportXlsx: (from?: string, to?: string) =>
+    apiGetBlob(`/ward/reports/collection/export${queryString({ from, to })}`),
+
   /** WARD-15. */
   dashboard: () => apiGet<WardDashboardDto>('/ward/dashboard'),
 
   /** AIC-08. Same default period as `collectionReport`. */
   summary: (from?: string, to?: string) =>
     apiGet<ReportSummaryDto>(`/ward/reports/summary${queryString({ from, to })}`),
+  /** Households with overdue rental fees, most overdue first. */
+  debtors: () => apiGet<WardDebtorDto[]>('/ward/reports/debtors'),
+
+  /** In-app reminder to one household; the server allows one per contract per day (409 after). */
+  remindDebtor: (contractId: number) =>
+    apiPost<{ contractId: number; remindedAt: string }>(`/ward/reports/debtors/${contractId}/remind`),
+
+  /** On-time rate for fees falling due in the period, and figures by zone. */
+  performance: (from?: string, to?: string) =>
+    apiGet<CollectionPerformanceDto>(`/ward/reports/performance${queryString({ from, to })}`),
+
+  /** Overdue fees by age, fees due in the next 30 days, and payments owed back. */
+  receivables: () => apiGet<ReceivablesDto>('/ward/reports/receivables'),
+
+  /** Payments received twice: owed back to the vendor first, then those already refunded. */
+  refunds: () => apiGet<WardRefundDto[]>('/ward/reports/refunds'),
+
+  /** The ward records that it paid a REFUND_REQUIRED payment back. */
+  markRefunded: (transactionId: number, note?: string) =>
+    apiPost<WardRefundDto>(`/ward/reports/refunds/${transactionId}/mark-refunded`, { note: note ?? null }),
+
+  /** Collections month by month. */
+  trend: (months = 6) =>
+    apiGet<MonthlyCollectionDto[]>(`/ward/reports/trend${queryString({ months: String(months) })}`),
 };

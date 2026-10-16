@@ -119,24 +119,6 @@
   opacity: 0;
 }
 
-/* AC04: unread marks switching off from the top down after "Đọc hết". */
-.sb-acct-unread-edge {
-  transform-origin: 50% 0;
-  transition:
-    transform 200ms var(--ease-out),
-    opacity 200ms ease;
-  transition-delay: var(--delay, 0ms);
-}
-
-.sb-acct-read .sb-acct-unread-edge {
-  transform: scaleY(0);
-  opacity: 0;
-}
-
-.sb-acct-note {
-  transition: background-color 200ms ease;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .sb-acct-plate,
   .sb-acct-check,
@@ -147,9 +129,7 @@
   }
 
   .sb-acct-shackle,
-  .sb-acct-row,
-  .sb-acct-unread-edge,
-  .sb-acct-note {
+  .sb-acct-row {
     transition: none !important;
   }
 }

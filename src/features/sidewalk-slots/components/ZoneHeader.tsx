@@ -1,7 +1,5 @@
-import { useNavigate } from 'react-router-dom';
-
 import { Icon, formatVnd } from '@/components/common';
-import type { IconName } from '@/components/common/Icon';
+import { LegalBasisLink } from '@/features/legal/components/LegalBasisLink';
 import type { SidewalkZone } from '@/core/api/side-api';
 import { deadlineText, formatHours, rentPrice } from '../slot-format';
 import { occupancyLabel } from '../plan-labels';
@@ -18,26 +16,16 @@ type Props = {
 
 /**
  * The route as a street-name plate (white plate, navy signage letters, a thin
- * painted kerb along its foot), its legal basis, code, segment and deadline,
- * the route's price, and one occupancy bar that doubles as the colour legend.
+ * painted kerb along its foot), the application deadline, the route's price, and one occupancy bar that doubles as the colour legend.
  */
 export function ZoneHeader({ zoneName, zone, counts, nowMs }: Props) {
-  const navigate = useNavigate();
-  const segment =
-    zone?.segmentFrom && zone.segmentTo ? `${zone.segmentFrom} ⇄ ${zone.segmentTo}` : null;
   const deadline = zone?.applicationDeadline ? deadlineText(zone.applicationDeadline, nowMs) : null;
   const closed = deadline === 'Đã hết hạn nộp';
 
   return (
     <header className="flex flex-col gap-md">
       <div className="flex flex-wrap items-center gap-xs">
-        {zone?.regulationRef && (
-          <Pill icon="gavel" tone="civic">
-            {zone.regulationRef}
-          </Pill>
-        )}
-        {zone?.zoneCode && <Pill tone="code">{zone.zoneCode}</Pill>}
-        {segment && <Pill icon="map-marker-outline">{segment}</Pill>}
+        {zone?.regulationRef && <LegalBasisLink title={zone.regulationRef} />}
         {deadline && (
           <span
             className={`inline-flex h-8 items-center gap-1.5 rounded-full px-sm text-label font-semibold ${
@@ -70,41 +58,11 @@ export function ZoneHeader({ zoneName, zone, counts, nowMs }: Props) {
                 </span>
                 /{rentPrice(zone).unit}
               </span>
-              {zone.quarterDiscountPercent ? (
-                <>
-                  <span aria-hidden="true" className="h-1 w-1 rounded-full bg-muted/50" />
-                  <span className="font-semibold text-[#0B5D33] dark:text-[#8BE3B0]">
-                    Giảm {zone.quarterDiscountPercent}% khi thuê theo quý
-                  </span>
-                </>
-              ) : null}
               <span aria-hidden="true" className="h-1 w-1 rounded-full bg-muted/50" />
               <span>Bán {formatHours(zone.availableFrom, zone.availableTo)}</span>
-              {zone.feeComponents.length > 0 ? (
-                <>
-                  <span aria-hidden="true" className="h-1 w-1 rounded-full bg-muted/50" />
-                  <span>{zone.feeComponents.length} khoản phụ phí</span>
-                </>
-              ) : null}
             </p>
           ) : null}
         </div>
-
-        {/* Applications, contracts, transfers and proposals live on one page of their own. */}
-        <button
-          type="button"
-          onClick={() => navigate('/vendor/slots/mine')}
-          className="inline-flex h-12 w-fit shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-card px-md text-label font-semibold text-text shadow-card ring-1 ring-border transition-[transform,box-shadow] hover:shadow-card-hover active:scale-[0.98]"
-        >
-          <Icon
-            name="file-document-outline"
-            size={18}
-            color="currentColor"
-            className="text-primary"
-          />
-          Thuê ô của tôi
-          <Icon name="chevron-right" size={16} color="currentColor" className="text-muted" />
-        </button>
       </div>
 
       <OccupancyBar counts={counts} />
@@ -160,30 +118,5 @@ export function OccupancyBar({ counts }: { counts: SlotCounts }) {
         </ul>
       </div>
     </div>
-  );
-}
-
-function Pill({
-  icon,
-  tone = 'neutral',
-  children,
-}: {
-  icon?: IconName;
-  tone?: 'civic' | 'code' | 'neutral';
-  children: string;
-}) {
-  const toneClass =
-    tone === 'civic'
-      ? 'bg-tint-indigo text-indigo ring-indigo/25'
-      : tone === 'code'
-        ? 'bg-card font-sign font-bold tracking-[0.04em] text-text ring-text/20'
-        : 'bg-card text-muted ring-border';
-  return (
-    <span
-      className={`inline-flex h-8 max-w-full items-center gap-1.5 rounded-full px-sm text-label ring-1 ring-inset ${toneClass}`}
-    >
-      {icon && <Icon name={icon} size={15} color="currentColor" className="shrink-0" />}
-      <span className="truncate">{children}</span>
-    </span>
   );
 }

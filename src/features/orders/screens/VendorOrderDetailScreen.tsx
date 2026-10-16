@@ -30,11 +30,15 @@ import {
 import { useRefreshAfterOrderMutation, useVendorOrder } from '../hooks/useOrders';
 import { TERMINAL_ORDER_STATUSES } from '../types/order.types';
 import { NewOrdersHint } from '../components/vendor/NewOrdersHint';
+import { ArrivalBanner } from '../components/ArrivalBanner';
+import { useVendorArrivals } from '../hooks/useOrderTracking';
 
 export function VendorOrderDetailScreen() {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const order = useVendorOrder(orderId);
+  // ORD-02 "Tôi đang đến": shown while the customer is on the way.
+  const arrival = useVendorArrivals().get(Number(orderId));
   const refresh = useRefreshAfterOrderMutation('vendor', Number(orderId));
   const [rejectOpen, setRejectOpen] = useState(false);
   const [reason, setReason] = useState('');
@@ -190,6 +194,7 @@ export function VendorOrderDetailScreen() {
     >
       <AppHeader title={`#${data.orderCode}`} back subtitle={data.customerName} />
       <OfflineNotice message="Mất kết nối. Không đổi được trạng thái đơn lúc này." />
+      {arrival ? <ArrivalBanner arrival={arrival} /> : null}
 
       <section aria-live="polite" className="flex flex-col gap-md">
         <div className="flex flex-wrap items-center gap-sm">

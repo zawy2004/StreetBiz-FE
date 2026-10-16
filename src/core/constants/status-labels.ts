@@ -44,6 +44,9 @@ export const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> 
   WITHDRAWN: { label: 'Đã rút', tone: 'neutral' },
   FAILED: { label: 'Thất bại', tone: 'danger' },
   SUCCESS: { label: 'Thanh toán thành công', tone: 'ok' },
+  // A payment received for something already paid: the ward pays it back.
+  REFUND_REQUIRED: { label: 'Chờ hoàn tiền', tone: 'pending' },
+  REFUNDED: { label: 'Đã hoàn tiền', tone: 'ok' },
   CLOSED: { label: 'Đã đóng', tone: 'neutral' },
   PAUSED: { label: 'Tạm dừng', tone: 'pending' },
   SOLD_OUT: { label: 'Hết món', tone: 'danger' },

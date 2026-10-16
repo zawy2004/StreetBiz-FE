@@ -6,6 +6,8 @@ import { AppHeader, Screen } from '@/components/layout';
 import { ConfirmDialog } from '@/components/feedback';
 import { isDev, isLiveApi } from '@/core/config/env';
 import { ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
+import { useScreenFooter } from '@/components/layout/screen-footer';
+import { LegalLinks } from '@/features/legal/components/LegalLinks';
 import type { RoleCode } from '@/core/types/role';
 import { useAuthStore } from '@/store/auth-store';
 import {
@@ -30,6 +32,8 @@ function SectionTitle({ id, children }: { id: string; children: string }) {
 export function AccountScreen() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  // Buyers and vendors already get the legal links in the footer at the end of the screen.
+  const shellFooter = useScreenFooter();
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
   const switchRoleDemo = useAuthStore((s) => s.switchRoleDemo);
@@ -96,12 +100,6 @@ export function AccountScreen() {
                 description="Lịch sử đăng nhập và bảo mật"
                 onPress={() => navigate('/account/login-history')}
               />
-              <SecurityTile
-                icon="bell-outline"
-                title="Thông báo"
-                description="Phí, hồ sơ, đơn hàng và kết quả duyệt"
-                onPress={() => navigate('/account/notifications')}
-              />
             </div>
           </section>
 
@@ -134,6 +132,8 @@ export function AccountScreen() {
           <SignOutZone onPress={() => setConfirmSignOut(true)} />
         </div>
       </div>
+
+      {shellFooter ? null : <LegalLinks className="justify-center" />}
 
       <ConfirmDialog
         visible={confirmSignOut}

@@ -25,7 +25,8 @@ export type SidewalkSlot = {
   availableFrom: string | null;
   availableTo: string | null;
   distanceMeters: number | null;
-  imageUrl: string | null;
+  /** The slot photos in order; the first is the cover. Empty when the ward has not added any. */
+  imageUrls: string[];
   hasPower: boolean;
   hasWater: boolean;
   hasTrashBin: boolean;

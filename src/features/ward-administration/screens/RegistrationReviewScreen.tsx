@@ -9,13 +9,13 @@ import { ErrorState, showToast } from '@/components/feedback';
 import { env, isLiveApi } from '@/core/config/env';
 import { useMediaQuery } from '@/hooks/useBreakpoint';
 import { useMockDb } from '@/mocks/db';
+import { LegalBasisLink } from '@/features/legal/components/LegalBasisLink';
 import { AiSuggestionCard } from '../components/AiSuggestionCard';
 import { complianceApi, type WardEnrollmentDetail } from '../ward-api';
 import { formatDateTimeVi } from '../components/review/format';
 import {
   DossierBlock,
   FactGrid,
-  LegalNote,
   LoadingBar,
   RecordedDecision,
   ToneBox,
@@ -648,19 +648,8 @@ export function RegistrationReviewScreen() {
             ) : null}
           </DossierBlock>
 
-          <div id="reg-legal" className="scroll-mt-md">
-            <LegalNote title="Căn cứ pháp lý thẩm quyền cấp phường">
-              * Căn cứ Nghị định 168/2025/NĐ-CP (thay thế Nghị định 01/2021/NĐ-CP từ 01/07/2025) và
-              mô hình chính quyền địa phương 2 cấp: thẩm quyền cấp Giấy chứng nhận đăng ký hộ kinh
-              doanh nay thuộc{' '}
-              <strong>
-                Phòng Kinh tế / Phòng Kinh tế, Hạ tầng và Đô thị thuộc UBND cấp xã (phường)
-              </strong>{' '}
-              — không còn cấp quận/huyện. Thủ tục thẩm định điểm bán vỉa hè này (WARD-04/05/06) xác
-              nhận điều kiện trật tự đô thị, an toàn giao thông và vệ sinh môi trường tại địa bàn
-              phường; nó <strong>không thay thế</strong> Giấy chứng nhận đăng ký hộ kinh doanh — hộ
-              kinh doanh vẫn phải đăng ký riêng theo Mẫu số 01 Phụ lục II, Thông tư 68/2025/TT-BTC.
-            </LegalNote>
+          <div>
+            <LegalBasisLink anchor="cap-phuong" />
           </div>
 
           {wide ? null : noteField}
@@ -716,7 +705,6 @@ const INDEX: IndexEntry[] = [
   { id: 'reg-business', label: 'Điểm bán' },
   { id: 'reg-owner', label: 'Mẫu 01' },
   { id: 'reg-trade', label: 'Ngành nghề' },
-  { id: 'reg-legal', label: 'Căn cứ' },
 ];
 
 function Missing() {

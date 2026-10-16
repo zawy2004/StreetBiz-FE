@@ -70,6 +70,11 @@
   --c-error: 180 35 24;
   --c-error-bg: 254 236 234;
 
+  /* Chart series (categorical, fixed order; validated for CVD and contrast on the card surface).
+     Never reused for status: ok/pending/danger keep tertiary/secondary/error. */
+  --c-series-1: 42 120 214; /* #2a78d6 */
+  --c-series-2: 235 104 52; /* #eb6834 */
+
   --font-heading: 'Archivo', 'Be Vietnam Pro', system-ui, sans-serif;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 
@@ -117,6 +122,9 @@
 
   --c-error: 255 122 110;
   --c-error-bg: 58 29 28;
+
+  --c-series-1: 57 135 229; /* #3987e5, stepped for the dark card surface */
+  --c-series-2: 217 89 38; /* #d95926 */
 
   --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.02);
   --shadow-card-hover: 0 0 0 1px rgb(255 255 255 / 0.06), 0 16px 36px -14px rgb(0 0 0 / 0.7);
@@ -675,6 +683,42 @@ body:has(.sb-launcher) .sb-clear-launcher {
 @keyframes sb-slot-beacon {
   50% {
     opacity: 0.35;
+  }
+}
+
+/* Order tracking: the step an order is at breathes, slowly and softly, in its own tone
+   (--sb-pulse, an "r g b" triplet). One ring, no scaling: a status to notice, not an alarm. */
+.sb-step-current {
+  --sb-pulse: var(--c-primary);
+  animation: sb-step 2.4s ease-in-out infinite;
+}
+
+@keyframes sb-step {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(var(--sb-pulse) / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgb(var(--sb-pulse) / 0);
+  }
+}
+
+/* A status line that has just changed settles in rather than jumping. */
+.sb-fade-in {
+  animation: sb-fade-in 260ms ease-out both;
+}
+
+@keyframes sb-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-step-current,
+  .sb-fade-in {
+    animation: none !important;
   }
 }
 

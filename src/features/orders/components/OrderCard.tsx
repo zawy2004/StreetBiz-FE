@@ -6,6 +6,7 @@ import { formatOrderDate } from './order-format';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { Perforation } from './OrderShapes';
 import { orderItemsSummary, orderStatusHint } from './order-display';
+import { OrderProgressStrip } from '../tracking/OrderProgressStrip';
 
 /**
  * C12: one past order as a ticket stub. The body names the stall and the
@@ -54,6 +55,7 @@ export function OrderCard({
             <p className="mt-0.5 text-body-xs text-muted">
               {itemCount} món · {formatOrderDate(order.placedAt ?? order.createdAt)}
             </p>
+            <OrderProgressStrip status={order.orderStatus} history={order.statusHistory} />
             {hint ? (
               <p className="mt-xs text-body-sm font-semibold text-[#6B4100] dark:text-[#FFD27A]">
                 {hint}

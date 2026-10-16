@@ -108,7 +108,7 @@ function PricingContent() {
   if (zones.error)
     return (
       <Screen width="wide">
-        <AppHeader title="Giá & khung giờ" back />
+        <AppHeader title="Giá & khung giờ" />
         <div className="flex flex-col items-start gap-md rounded-[20px] bg-[#FDEBEA] p-md md:p-lg dark:bg-[#3A1414]">
           <p
             role="alert"
@@ -168,7 +168,7 @@ function PricingContent() {
 
   return (
     <Screen width="wide">
-      <AppHeader title="Giá & khung giờ" back subtitle="WARD-02 · Theo từng khu vực" />
+      <AppHeader title="Giá & khung giờ" subtitle="WARD-02 · Theo từng khu vực" />
       <PricingSummaryLine
         zoneCount={count}
         slotCount={slotCount}

@@ -4,6 +4,7 @@ import { Avatar, BrandLogo, Icon } from '@/components/common';
 import { NavBadge, type RoleTabItem } from '@/components/layout/RoleTabBar';
 import { ThemeSwitchButton } from '@/components/layout/ThemeToggle';
 import { useCartStore } from '@/features/cart/cart-store';
+import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { useAuthStore } from '@/store/auth-store';
 
 type Props = { items: RoleTabItem[] };
@@ -56,6 +57,7 @@ export function ConsumerTopNav({ items }: Props) {
         </button>
 
         <div className="flex items-center gap-1">
+          {user ? <NotificationBell variant="ghost" /> : null}
           <Link
             to="/customer/explore/cart"
             aria-label={`Giỏ hàng, ${cartCount} món`}

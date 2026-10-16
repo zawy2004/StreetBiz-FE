@@ -4,7 +4,6 @@ import { Button } from '@/components/common';
 import { EmptyState } from '@/components/feedback';
 import type { SidewalkSlot, StreetFeature } from '@/core/api/side-api';
 import { buildCorridor } from '../corridor-model';
-import { toDms } from '../slot-format';
 import type { SlotFilters } from '../slot-stats';
 import { PAVING } from '../slot-visuals';
 import { buildStreetLayout } from '../street-geometry';
@@ -67,9 +66,7 @@ export function ZonePlan({ slots, zoneName, features, selectedSlotId, onShowMap,
       <CorridorPlan
         corridor={corridor}
         roadName={zoneName}
-        bearingDegrees={layout.kind === 'strip' ? layout.bearingDegrees : 0}
         selectedSlotId={selectedSlotId}
-        selectedCoordinates={selected ? toDms(selected.latitude, selected.longitude) : null}
         selectedAlongMeters={placed ? Math.round(placed.centerMeters) : null}
         {...rest}
       />

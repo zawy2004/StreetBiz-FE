@@ -1,5 +1,6 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
 
+import { LegalBasisLink } from '@/features/legal/components/LegalBasisLink';
 import { Icon } from '@/components/common';
 import { EVIDENCE_TYPE, VENDOR_TYPE, type ApiVendorType } from '@/core/api';
 import { EVIDENCE_LABELS, requiredEvidence } from '../../new-registration-store';
@@ -357,10 +358,7 @@ export function LegalBasisNote({ vendorType }: { vendorType: ApiVendorType }) {
         </ul>
       )}
 
-      <p className="text-[12px] leading-[18px] text-muted/80">
-        Cơ sở: Nghị định 01/2021/NĐ-CP (Điều 79 khoản 2) và Nghị định 39/2007/NĐ-CP. Thông tin tham
-        khảo, không thay tư vấn pháp lý.
-      </p>
+      <LegalBasisLink anchor="kinh-doanh" />
     </aside>
   );
 }

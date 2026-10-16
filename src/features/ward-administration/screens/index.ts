@@ -18,3 +18,4 @@ export * from './WardFinanceScreen';
 export * from './PermitScanScreen';
 export * from './RecordViolationScreen';
 export * from './PermitActionScreen';
+export * from './WardDebtorsScreen';

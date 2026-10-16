@@ -12,7 +12,8 @@ import {
   type PipelineStage,
   type StageTone,
 } from '@/features/orders/components';
-import type { Order } from '@/features/orders/types/order.types';
+import { ArrivalBanner } from '@/features/orders/components/ArrivalBanner';
+import type { Order, OrderArrival } from '@/features/orders/types/order.types';
 import { playOnce } from '@/features/food-safety/components/motion';
 import { enteredStageAt, providerLabel } from '../../orders-view';
 
@@ -182,6 +183,7 @@ export function KitchenTicket({
   fresh = false,
   primaryAction,
   secondaryActions,
+  arrival,
 }: {
   order: Order;
   tone: StageTone;
@@ -192,6 +194,8 @@ export function KitchenTicket({
   fresh?: boolean;
   primaryAction?: ReactNode;
   secondaryActions?: ReactNode;
+  /** The customer said they are on the way ("Tôi đang đến"): time to finish their food. */
+  arrival?: OrderArrival;
 }) {
   const sheet = useRef<HTMLDivElement>(null);
   const born = useRef(fresh);
@@ -258,6 +262,8 @@ export function KitchenTicket({
             </span>
           ) : null}
         </header>
+
+        {live && arrival ? <ArrivalBanner arrival={arrival} className="mb-sm ml-lg mr-sm" /> : null}
 
         <ul className="flex flex-col gap-xs pb-sm pl-lg pr-sm">
           {shown.map((item) => (

@@ -7,24 +7,7 @@ import {
   formatSize,
   hkdCode,
   secondsUntil,
-  toDms,
 } from '@/features/sidewalk-slots/slot-format';
-
-describe('toDms', () => {
-  it('renders WGS84 degrees, minutes and seconds with hemisphere letters', () => {
-    // 16.060558 = 16° 3' 38.0088"; 108.214412 = 108° 12' 51.9"
-    expect(toDms(16.060558, 108.214412)).toBe(`16°03'38.0"N 108°12'51.9"E`);
-  });
-
-  it('uses S and W for negative coordinates', () => {
-    expect(toDms(-33.5, -70.25)).toBe(`33°30'00.0"S 70°15'00.0"W`);
-  });
-
-  it('carries a seconds value that rounds up to 60 instead of printing 60.0"', () => {
-    // 0.999999 deg = 59.99994 min -> 59' 59.9964" -> rounds to 60.0"
-    expect(toDms(10.999999, 20)).toBe(`11°00'00.0"N 20°00'00.0"E`);
-  });
-});
 
 describe('countdown', () => {
   const now = Date.parse('2026-09-19T08:00:00Z');

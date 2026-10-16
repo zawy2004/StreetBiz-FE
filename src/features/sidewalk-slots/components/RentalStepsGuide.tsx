@@ -4,17 +4,17 @@ const STEPS: { icon: IconName; title: string; text: string }[] = [
   {
     icon: 'bookmark-outline',
     title: 'Giữ chỗ 15 phút',
-    text: 'Chạm một ô còn trống trên sơ đồ để giữ trong lúc cân nhắc. Hộ khác không giữ được ô đó.',
+    text: 'Chạm một ô còn trống trên sơ đồ để giữ trong lúc cân nhắc.',
   },
   {
     icon: 'file-document-outline',
     title: 'Nộp đơn thuê',
-    text: 'Chọn thời hạn, xem tạm tính, đồng ý hai cam kết rồi nộp. Cần hồ sơ kinh doanh đã được Phường duyệt.',
+    text: 'Chọn thời hạn, đồng ý quy định thuê ô rồi nộp.',
   },
   {
     icon: 'shield-check-outline',
     title: 'Phường duyệt',
-    text: 'Duyệt xong là hợp đồng và giấy phép QR được tạo tự động, xem ở "Thuê ô của tôi".',
+    text: 'Hợp đồng và giấy phép QR được tạo tự động.',
   },
 ];
 
