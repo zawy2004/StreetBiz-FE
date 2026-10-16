@@ -6,7 +6,7 @@ import { apiGet, apiGetBlob, apiPost } from './client';
  * from `Application/Common/Security/FinanceConstants.cs`.
  */
 
-export type PaymentProvider = 'MOMO' | 'ZALOPAY';
+export type PaymentProvider = 'MOMO' | 'ZALOPAY' | 'SEPAY';
 
 /** FeeScheduleItems.item_status (DB CHECK). */
 export const FEE_ITEM_STATUS = {
@@ -193,6 +193,19 @@ export type FeeItemDetailDto = {
   item: ScheduleItemDto;
 };
 
+/**
+ * A SePay bank transfer: the VietQR and what to type if the payer cannot scan
+ * it. `transferContent` carries the payment code and must be sent unchanged.
+ */
+export type BankTransferDto = {
+  bankName: string;
+  accountNumber: string;
+  accountName: string | null;
+  amount: number;
+  transferContent: string;
+  qrImageUrl: string;
+};
+
 export type FinanceCheckoutDto = {
   transactionId: number;
   purpose: string;
@@ -200,6 +213,8 @@ export type FinanceCheckoutDto = {
   provider: string;
   amount: number;
   paymentUrl: string;
+  /** Set for SEPAY: show this QR instead of redirecting to `paymentUrl`. */
+  bankTransfer?: BankTransferDto | null;
 };
 
 function queryString(params: Record<string, string | undefined>): string {
@@ -251,6 +266,10 @@ export const financeApi = {
     apiPost<{ transactionId: number; status: 'PENDING' | 'SUCCESS' | 'FAILED' }>(
       `/vendor/finance/payments/${transactionId}/sync`,
     ),
+
+  /** The VietQR of a payment still waiting for its SePay bank transfer (404 once settled). */
+  bankTransfer: (transactionId: number) =>
+    apiGet<BankTransferDto>(`/vendor/finance/payments/${transactionId}/bank-transfer`),
 
   /** FEE-05: the caller's fee/penalty payment attempts, most recent first. */
   payments: () => apiGet<PaymentTransactionDto[]>('/vendor/finance/payments'),

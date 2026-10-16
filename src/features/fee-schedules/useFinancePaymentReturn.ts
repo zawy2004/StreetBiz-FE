@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { errorMessage, financeApi } from '@/core/api';
+import { useBankTransferPolling } from '@/components/payment';
+import { errorMessage, financeApi, type BankTransferDto } from '@/core/api';
 
 const STORAGE_KEY = 'streetbiz.financePayment';
+const TRANSFER_KEY = 'streetbiz.financeBankTransfer';
 
 type Pending = { transactionId: number; path: string };
 
@@ -91,4 +93,106 @@ export function useFinancePaymentReturn(onSuccess: () => void) {
   }, [search, pathname, check]);
 
   return { state, retry: (transactionId: number) => void check(transactionId) };
+}
+
+export type FinanceBankTransfer = { transactionId: number; details: BankTransferDto };
+
+function rememberTransfer(transactionId: number, path: string) {
+  try {
+    sessionStorage.setItem(TRANSFER_KEY, JSON.stringify({ transactionId, path } satisfies Pending));
+  } catch {
+    // Private mode: a reload just shows the wallet choice again.
+  }
+}
+
+function recallTransfer(path: string): number | null {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(TRANSFER_KEY) ?? 'null') as Pending | null;
+    return saved && saved.path === path ? saved.transactionId : null;
+  } catch {
+    return null;
+  }
+}
+
+function forgetTransfer() {
+  try {
+    sessionStorage.removeItem(TRANSFER_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * A fee or penalty paid by SePay bank transfer: there is no page to leave for,
+ * so the VietQR stays on this page while it checks with the backend every few
+ * seconds (SePay's webhook settles the payment there). A reload brings the same
+ * QR back. `onPaid` runs once the backend reports SUCCESS.
+ */
+export function useFinanceBankTransfer(onPaid: () => void) {
+  const { pathname } = useLocation();
+  const [transfer, setTransfer] = useState<FinanceBankTransfer | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [closedMessage, setClosedMessage] = useState<string | null>(null);
+  const inFlight = useRef(false);
+  const onPaidRef = useRef(onPaid);
+  onPaidRef.current = onPaid;
+
+  // Reloaded while a transfer was waiting: show its QR again, unless it is settled by now.
+  useEffect(() => {
+    const transactionId = recallTransfer(pathname);
+    if (!transactionId) return;
+    let cancelled = false;
+    financeApi
+      .bankTransfer(transactionId)
+      .then((details) => {
+        if (!cancelled) setTransfer({ transactionId, details });
+      })
+      .catch(() => forgetTransfer());
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
+  const start = useCallback(
+    (transactionId: number, details: BankTransferDto) => {
+      rememberTransfer(transactionId, pathname);
+      setClosedMessage(null);
+      setTransfer({ transactionId, details });
+    },
+    [pathname],
+  );
+
+  const check = useCallback(async () => {
+    if (!transfer || inFlight.current) return;
+    inFlight.current = true;
+    setChecking(true);
+    try {
+      const result = await financeApi.syncPayment(transfer.transactionId);
+      if (result.status === 'SUCCESS') {
+        forgetTransfer();
+        setTransfer(null);
+        onPaidRef.current();
+      } else if (result.status === 'FAILED') {
+        forgetTransfer();
+        setTransfer(null);
+        setClosedMessage(
+          'Khoản chuyển khoản này đã bị đóng vì quá lâu chưa nhận được tiền. Nếu bạn đã chuyển, tiền vẫn được ghi nhận khi về; nếu chưa, hãy thanh toán lại.',
+        );
+      }
+    } catch {
+      // A failed check is not a failed payment: the next tick asks again.
+    } finally {
+      inFlight.current = false;
+      setChecking(false);
+    }
+  }, [transfer]);
+
+  useBankTransferPolling(transfer !== null, () => void check());
+
+  const cancel = useCallback(() => {
+    forgetTransfer();
+    setTransfer(null);
+  }, []);
+
+  return { transfer, checking, closedMessage, start, check, cancel };
 }

@@ -1,3 +1,5 @@
+import type { BankTransferDto } from '@/core/api/finance-api';
+
 export type OrderStatus =
   | 'PENDING_PAYMENT'
   | 'PLACED'
@@ -8,7 +10,7 @@ export type OrderStatus =
   | 'COMPLETED'
   | 'CANCELLED';
 
-export type PaymentProvider = 'MOMO' | 'ZALOPAY';
+export type PaymentProvider = 'MOMO' | 'ZALOPAY' | 'SEPAY';
 export type RefundStatus = 'PENDING' | 'SUCCESS' | 'FAILED';
 
 export interface OrderItem {
@@ -157,6 +159,8 @@ export interface CheckoutResponse {
   provider: PaymentProvider;
   amount: number;
   paymentUrl: string;
+  /** Set for SEPAY: the payment page shows this QR instead of redirecting. */
+  bankTransfer?: BankTransferDto | null;
 }
 
 export interface OrderListFilters {

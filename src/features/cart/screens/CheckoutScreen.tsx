@@ -28,7 +28,7 @@ import {
 import { PickupRangeNotice } from '@/features/orders/pickup/PickupRangeNotice';
 import { usePickupRange } from '@/features/orders/pickup/usePickupRange';
 
-type Provider = 'MOMO' | 'ZALOPAY';
+type Provider = 'MOMO' | 'ZALOPAY' | 'SEPAY';
 
 export function CheckoutScreen() {
   return isLiveApi ? <LiveCheckoutScreen /> : <MockCheckoutScreen />;
@@ -82,7 +82,8 @@ function LiveCheckoutScreen() {
             queryClient.invalidateQueries({ queryKey: ['commerce', 'cart'] }),
             queryClient.invalidateQueries({ queryKey: ['orders', 'customer', 'list'] }),
           ]);
-          if (isSandboxPaymentUrl(checkout.paymentUrl)) {
+          // The simulator and SePay's VietQR both live on the order's own payment page.
+          if (checkout.bankTransfer || isSandboxPaymentUrl(checkout.paymentUrl)) {
             navigate(`/customer/orders/${checkout.orderId}/payment`, { replace: true });
             return;
           }

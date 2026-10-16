@@ -14,18 +14,25 @@ import type { PaymentProvider } from '@/features/orders/types/order.types';
  * server has confirmed it.
  */
 
-const PROVIDERS: { value: PaymentProvider; label: string; description: string }[] = [
-  { value: 'MOMO', label: 'MoMo', description: 'Thanh toán qua ví MoMo' },
-  { value: 'ZALOPAY', label: 'ZaloPay', description: 'Thanh toán qua ví ZaloPay' },
+const PROVIDERS: { value: PaymentProvider; label: string; description: string; icon: string }[] = [
+  { value: 'MOMO', label: 'MoMo', description: 'Thanh toán qua ví MoMo', icon: 'wallet-outline' },
+  { value: 'ZALOPAY', label: 'ZaloPay', description: 'Thanh toán qua ví ZaloPay', icon: 'wallet-outline' },
+  {
+    value: 'SEPAY',
+    label: 'Chuyển khoản',
+    description: 'Quét VietQR bằng app ngân hàng',
+    icon: 'bank',
+  },
 ];
 
 const providerLabel = (provider: PaymentProvider) =>
   PROVIDERS.find((option) => option.value === provider)?.label ?? provider;
 
 /**
- * The two wallets as large tiles. Each is a real, visible radio input inside
- * its label (name "paymentProvider"), so arrow keys move between them and a
- * test can `.check()` the input itself.
+ * The wallets and bank transfer as large tiles. Each is a real, visible radio
+ * input inside its label (name "paymentProvider"), so arrow keys move between
+ * them and a test can `.check()` the input itself. On two columns the last
+ * tile spans the row rather than sit half-width on its own.
  */
 export function ProviderTiles({
   value,
@@ -48,7 +55,7 @@ export function ProviderTiles({
             <label
               key={provider.value}
               className={[
-                'relative flex min-h-[76px] cursor-pointer items-center gap-sm rounded-[18px] border-2 p-sm pr-md transition-[transform,border-color,background-color,box-shadow] duration-150 [transition-timing-function:var(--ease-out)] has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-primary/25 md:min-h-[88px]',
+                'relative flex min-h-[76px] cursor-pointer items-center gap-sm rounded-[18px] border-2 p-sm pr-md transition-[transform,border-color,background-color,box-shadow] duration-150 [transition-timing-function:var(--ease-out)] has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-primary/25 sm:last:col-span-2 md:min-h-[88px]',
                 selected
                   ? '-translate-y-0.5 border-brand bg-tint-primary shadow-[0_14px_26px_-18px_rgb(var(--c-primary)/0.9)]'
                   : 'border-border bg-card hover:border-text/25',
@@ -70,7 +77,7 @@ export function ProviderTiles({
                   selected ? 'bg-card text-primary' : 'bg-sunken text-muted'
                 }`}
               >
-                <Icon name="wallet-outline" size={24} color="currentColor" weight="duotone" />
+                <Icon name={provider.icon} size={24} color="currentColor" weight="duotone" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block font-sign text-[20px] font-bold leading-6 text-text">
@@ -169,10 +176,19 @@ export function CheckoutBoard({
 
 /** "Sau khi bấm": what happens next, worded for the wallet chosen. */
 export function AfterPayNote({ provider, amount }: { provider: PaymentProvider; amount: number }) {
+  const byBank = provider === 'SEPAY';
   const rows: { icon: string; text: ReactNode }[] = [
     {
-      icon: 'wallet-outline',
-      text: (
+      icon: byBank ? 'qrcode' : 'wallet-outline',
+      text: byBank ? (
+        <>
+          <span key={provider} className="sb-pop inline-block font-semibold text-text">
+            Quét VietQR
+          </span>{' '}
+          bằng app ngân hàng để chuyển{' '}
+          <span className="font-semibold text-text">{amount.toLocaleString('vi-VN')} đ</span>
+        </>
+      ) : (
         <>
           Chuyển sang{' '}
           <span key={provider} className="sb-pop inline-block font-semibold text-text">
@@ -184,7 +200,9 @@ export function AfterPayNote({ provider, amount }: { provider: PaymentProvider; 
     },
     {
       icon: 'shield-check-outline',
-      text: 'Đơn chỉ được gửi cho quán sau khi cổng thanh toán xác nhận',
+      text: byBank
+        ? 'Đơn chỉ được gửi cho quán sau khi tiền về tài khoản'
+        : 'Đơn chỉ được gửi cho quán sau khi cổng thanh toán xác nhận',
     },
     {
       icon: 'lock-outline',

@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Icon } from '@/components/common';
 import { ErrorState, showToast } from '@/components/feedback';
 import { AppHeader, Screen } from '@/components/layout';
+import { BankTransferPanel, useBankTransferPolling } from '@/components/payment';
 import { commerceApi, errorMessage } from '@/core/api';
 import { env, isDev } from '@/core/config/env';
 import { orderApi } from '../api/orderApi';
@@ -46,10 +47,17 @@ export function OrderPaymentScreen() {
     },
     onSuccess: async (next, kind) => {
       await refresh.update(next);
-      // Paying consumes the cart; failing or cancelling unfreezes it.
-      await queryClient.invalidateQueries({ queryKey: ['commerce', 'cart'] });
+      // Paying consumes the cart; failing or cancelling unfreezes it. A check that finds the
+      // order still waiting (every few seconds while a VietQR is shown) changes neither.
+      if (kind !== 'sync' || next.orderStatus !== 'PENDING_PAYMENT') {
+        await queryClient.invalidateQueries({ queryKey: ['commerce', 'cart'] });
+      }
       if (kind === 'sync') {
-        if (next.orderStatus === 'PLACED') showToast('MoMo đã xác nhận thanh toán');
+        if (next.orderStatus === 'PLACED') {
+          showToast(
+            next.paymentProvider === 'SEPAY' ? 'Đã nhận chuyển khoản' : 'MoMo đã xác nhận thanh toán',
+          );
+        }
         return;
       }
       showToast(
@@ -73,6 +81,20 @@ export function OrderPaymentScreen() {
       action.mutate('sync');
     }
   }, [pendingOnLoad, action]);
+
+  // SePay: show the order's VietQR and keep checking until the transfer lands.
+  const awaitingTransfer =
+    order.data?.orderStatus === 'PENDING_PAYMENT' && order.data.paymentProvider === 'SEPAY';
+  const transfer = useQuery({
+    queryKey: ['orders', 'bank-transfer', Number(orderId)],
+    queryFn: () => orderApi.bankTransfer(Number(orderId)),
+    enabled: awaitingTransfer,
+    staleTime: Infinity,
+    retry: false,
+  });
+  useBankTransferPolling(awaitingTransfer, () => {
+    if (!action.isPending) action.mutate('sync');
+  });
 
   if (order.isPending) {
     return (
@@ -152,7 +174,9 @@ export function OrderPaymentScreen() {
                   Đang chờ cổng thanh toán xác nhận
                 </p>
                 <p className="text-body-lg text-text/80">
-                  {viaMomo
+                  {awaitingTransfer
+                    ? 'Quét mã VietQR bên dưới bằng ứng dụng ngân hàng. Trang tự cập nhật khi tiền về.'
+                    : viaMomo
                     ? 'Nếu bạn đã thanh toán trên MoMo, bấm "Kiểm tra lại" để hệ thống hỏi MoMo kết quả.'
                     : showSandbox
                       ? 'Môi trường thử nghiệm chưa nối cổng thanh toán thật. Chọn kết quả thanh toán bên dưới.'
@@ -214,10 +238,18 @@ export function OrderPaymentScreen() {
           {serverNote ? <p className="text-center text-body-xs text-muted">{serverNote}</p> : null}
         </div>
 
+        {awaitingTransfer && transfer.data ? (
+          <BankTransferPanel
+            transfer={transfer.data}
+            checking={syncing}
+            onCheck={() => action.mutate('sync')}
+          />
+        ) : null}
+
         <PaymentReceiptStrip order={data} gateway={gateway} />
 
         <div className="flex flex-col gap-sm">
-          {checkAgain}
+          {awaitingTransfer ? null : checkAgain}
           {toCart}
           {pending ? (
             <div className="grid gap-sm sm:grid-cols-2">

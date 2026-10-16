@@ -25,6 +25,8 @@ const ICON_MAP: Record<string, Glyph> = {
   'qrcode-scan': g(Pi.PiScan, Pi.PiScanFill, Pi.PiScanDuotone),
   'qrcode-remove': g(Pi.PiScan, Pi.PiScanFill),
   qrcode: g(Pi.PiQrCode, Pi.PiQrCodeFill, Pi.PiQrCodeDuotone),
+  'content-copy': g(Pi.PiCopy, Pi.PiCopyFill, Pi.PiCopyDuotone),
+  bank: g(Pi.PiBank, Pi.PiBankFill, Pi.PiBankDuotone),
   'cloud-check-outline': g(Pi.PiCloudCheck, Pi.PiCloudCheckFill, Pi.PiCloudCheckDuotone),
   'clipboard-text-outline': g(
     Pi.PiClipboardText,

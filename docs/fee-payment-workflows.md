@@ -97,6 +97,15 @@ returns:
 - **A sandbox URL** (`streetbiz://payment/sandbox/...`, no MoMo keys): the
   screen calls `sandbox-confirm` right away and returns to FinanceHome; if that
   404s (not Development) it falls back to `redirectToPayment`.
+- **A SePay bank transfer** (the checkout carries `bankTransfer`): there is no
+  page to leave for. `useFinanceBankTransfer` keeps `BankTransferPanel` (the
+  VietQR, the account and the transfer content, each copyable) on the page and
+  calls `sync` every 5 seconds; SePay's webhook settles the payment on the
+  backend, and `SUCCESS` returns to FinanceHome. The transaction is remembered
+  in `sessionStorage`, so a reload fetches the same QR again
+  (`GET /vendor/finance/payments/{id}/bank-transfer`). Orders do the same on
+  `OrderPaymentScreen` (`GET /orders/{id}/payment/bank-transfer`). Backend setup:
+  StreetBiz-BE `docs/sepay-payments.md`.
 - Any other failure (typically `422`: the item was just paid from another tab)
   refreshes the list and summary so the item stops looking payable.
 

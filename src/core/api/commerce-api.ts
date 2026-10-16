@@ -184,7 +184,7 @@ export type SalesSummary = {
 export type PaymentOptions = {
   /** LIVE = MoMo's own (test) gateway is configured; SANDBOX = in-app simulated payment. */
   mode: 'LIVE' | 'SANDBOX' | 'UNAVAILABLE';
-  providers: ('MOMO' | 'ZALOPAY')[];
+  providers: ('MOMO' | 'ZALOPAY' | 'SEPAY')[];
   message: string;
 };
 export type CustomerComplaint = {
