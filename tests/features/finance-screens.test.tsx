@@ -7,6 +7,7 @@ import { vi } from 'vitest';
 
 import { ApiError } from '@/core/api/problem';
 import type {
+  FeeItemDetailDto,
   FeeItemDto,
   FinanceCheckoutDto,
   InvoiceDetailDto,
@@ -187,8 +188,43 @@ describe('V25 Tài chính', () => {
 });
 
 describe('V26 Thanh toán phí thuê ô', () => {
+  // The payment page reads the one instalment with its contract (GET /vendor/finance/fees/{id}).
+  const overdue: FeeItemDetailDto = {
+    contract: {
+      contractId: 1,
+      slotCode: 'NVL-01',
+      zoneName: 'Nguyễn Văn Linh',
+      wardName: 'Hải Châu 1',
+      address: null,
+      startDate: '2026-09-01',
+      endDate: '2026-11-30',
+      contractStatus: 'ACTIVE',
+      totalAmount: 3_120_000,
+      paidAmount: 1_040_000,
+      outstandingAmount: 2_080_000,
+      instalmentCount: 3,
+      paidCount: 1,
+      overdueCount: 1,
+      nextDue: null,
+    },
+    item: {
+      feeItemId: 7,
+      ordinal: 2,
+      ofCount: 3,
+      periodLabel: 'Kỳ 2/3 · Tháng 10/2026',
+      dueDate: '2026-10-04',
+      amount: 1_040_000,
+      itemStatus: 'OVERDUE',
+      paidAt: null,
+      invoiceId: null,
+      invoiceNumber: null,
+      daysOverdue: 12,
+      daysUntilDue: null,
+    },
+  };
+
   it('shows the slot plate on the slip and never says the fee is paid before it is', async () => {
-    answer({ '/vendor/finance/fees': [fees[0]] });
+    answer({ '/vendor/finance/fees/7': overdue });
     renderAt(
       '/vendor/finance/fees/7/payment',
       <Route path="/vendor/finance/fees/:id/payment" element={<screens.FeePaymentScreen />} />,
@@ -200,7 +236,7 @@ describe('V26 Thanh toán phí thuê ô', () => {
   });
 
   it('never lights the "recorded" stop while waiting for the wallet', async () => {
-    answer({ '/vendor/finance/fees': [fees[0]] });
+    answer({ '/vendor/finance/fees/7': overdue });
     client.apiPost.mockResolvedValue({ transactionId: 9, status: 'PENDING' });
     renderAt(
       '/vendor/finance/fees/7/payment?orderId=SB-T9',

@@ -21,12 +21,15 @@ export function OrderTimeline({
   history,
   upcoming = [],
   current,
+  label = 'Tiến trình đơn hàng',
 }: {
   history: OrderStatusHistory[];
   /** Stages not reached yet, drawn as "Sắp tới". */
   upcoming?: OrderStatus[];
   /** The order's status now; marks the matching stage as the current step. */
   current?: OrderStatus;
+  /** The list's name; the full log under a progress card is named apart from its steps. */
+  label?: string;
 }) {
   const live = current ? !TERMINAL_ORDER_STATUSES.has(current) : false;
   // No history yet still shows where the order stands, without a time.
@@ -34,7 +37,7 @@ export function OrderTimeline({
   const total = passed.length + upcoming.length;
 
   return (
-    <ol aria-label="Tiến trình đơn hàng" className="flex flex-col">
+    <ol aria-label={label} className="flex flex-col">
       {passed.map((entry, index) => {
         const isLast = index === passed.length - 1;
         const here = isLast && current === entry.toStatus;

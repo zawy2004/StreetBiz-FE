@@ -248,7 +248,11 @@ function LiveOrderDetailScreen() {
                   </span>
                 </summary>
                 <div className="mt-md">
-                  <OrderTimeline history={data.statusHistory} current={data.orderStatus} />
+                  <OrderTimeline
+                    history={data.statusHistory}
+                    current={data.orderStatus}
+                    label="Lịch sử cập nhật đơn hàng"
+                  />
                 </div>
               </details>
             ) : null}

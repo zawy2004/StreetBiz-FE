@@ -1,16 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
-import { Button } from '@/components/common';
+import { Button, formatVnd, KerbTag } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { ErrorState, Skeleton, showToast } from '@/components/feedback';
-import { ApiError, errorMessage, financeApi } from '@/core/api';
+import { ApiError, errorMessage, financeApi, type FeeItemDetailDto } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
+import { saveFile } from '@/core/utils/save-file';
 import { useMockDb } from '@/mocks/db';
 import { isSandboxPaymentUrl, redirectToPayment } from '@/features/orders/payment-redirect';
 import { rememberFinancePayment, useFinancePaymentReturn } from '../useFinancePaymentReturn';
-import { FINANCE_KEYS, useFeeItems, usePayFeeCheckout } from '../useFinance';
+import { usePayFeeCheckout } from '../useFinance';
+import { useFeeItemDetail } from '../useFeeSchedules';
+import { formatDay, paidShare } from '../schedule-progress';
+import { ProgressBar } from '../components/ScheduleComponents';
+import { PaidStamp, ReceiptFoot, ReceiptPaper, ReceiptRow } from '../components/Receipt';
 import { LoadingBlock } from '../components/FinanceParts';
 import {
   CheckoutError,
@@ -30,21 +35,26 @@ export function FeePaymentScreen() {
 function LiveFeePaymentScreen() {
   const { id } = useParams<{ id: string }>();
   const feeItemId = Number(id);
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [provider, setProvider] = useState<Provider>('MOMO');
   const idempotencyKey = useRef<string | null>(null);
   const submitting = useRef(false);
-  const { feeItems, isLoading, isError, error, refetch } = useFeeItems();
+  const detail = useFeeItemDetail(feeItemId);
   const checkout = usePayFeeCheckout();
   const { pathname } = useLocation();
-  // Back from MoMo on this page: the backend checks with MoMo, then we leave for the finance home.
-  const momoReturn = useFinancePaymentReturn(async () => {
+  // Every finance view (lists, summary, schedules, this item) re-reads after a payment. A read
+  // still in flight is cancelled first: back from MoMo, the page's first read of this instalment
+  // can start before the sync applied the payment, and an invalidation would otherwise just wait
+  // for that stale read instead of asking again.
+  const refreshAll = async () => {
+    await queryClient.cancelQueries({ queryKey: ['finance'] });
     await queryClient.invalidateQueries({ queryKey: ['finance'] });
+  };
+  // Back from MoMo on this page: the backend checks with MoMo, then this page shows the receipt.
+  const momoReturn = useFinancePaymentReturn(async () => {
+    await refreshAll();
     showToast('MoMo đã xác nhận thanh toán');
-    navigate('/vendor/finance', { replace: true });
   });
-  const fee = feeItems.find((f) => f.feeItemId === feeItemId);
 
   useEffect(() => {
     idempotencyKey.current = null;
@@ -52,7 +62,7 @@ function LiveFeePaymentScreen() {
   }, [feeItemId]);
 
   const pay = () => {
-    if (!fee || submitting.current || checkout.isPending) return;
+    if (!detail.data || submitting.current || checkout.isPending) return;
     submitting.current = true;
     idempotencyKey.current ??= crypto.randomUUID();
     checkout.mutate(
@@ -69,15 +79,10 @@ function LiveFeePaymentScreen() {
           try {
             // Development-only: no real MoMo/ZaloPay sandbox account is wired up, so
             // confirm here instead of letting the redirect below hit a dead custom-scheme URL.
+            // The instalment re-reads as PAID, so this page turns into its receipt.
             await financeApi.sandboxConfirmPayment(result.transactionId);
-            await Promise.all([
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.fees() }),
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.summary }),
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.payments }),
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.invoices }),
-            ]);
+            await refreshAll();
             showToast('Thanh toán thành công');
-            navigate(-1);
           } catch (err) {
             if (err instanceof ApiError && err.status === 404) {
               showToast('Đang chuyển đến cổng thanh toán.');
@@ -85,10 +90,7 @@ function LiveFeePaymentScreen() {
               return;
             }
             // e.g. already paid from another tab: refresh so the item stops looking payable.
-            await Promise.all([
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.fees() }),
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.summary }),
-            ]);
+            await refreshAll();
             submitting.current = false;
             showToast(errorMessage(err));
           }
@@ -100,7 +102,7 @@ function LiveFeePaymentScreen() {
     );
   };
 
-  if (isLoading) {
+  if (detail.isLoading) {
     return (
       <Screen>
         <AppHeader title="Thanh toán phí thuê ô" back />
@@ -108,21 +110,24 @@ function LiveFeePaymentScreen() {
       </Screen>
     );
   }
-  if (isError) {
+  if (detail.isError || !detail.data) {
     return (
       <Screen>
         <AppHeader title="Thanh toán phí thuê ô" back />
-        <ErrorState message={errorMessage(error)} onRetry={() => refetch()} />
+        <ErrorState message={errorMessage(detail.error)} onRetry={() => detail.refetch()} />
       </Screen>
     );
   }
-  if (!fee) return <ErrorState message="Không tìm thấy khoản phí." />;
+  if (detail.data.item.itemStatus === 'PAID') {
+    return <PaidReceipt detail={detail.data} />;
+  }
 
+  const { item, contract } = detail.data;
   return (
     <Screen
       footer={
         <StickyActions>
-          <PayBar amount={fee.amount}>
+          <PayBar amount={item.amount}>
             <Button
               label={
                 checkout.isPending ? 'Đang khởi tạo thanh toán…' : 'Thanh toán qua MoMo / ZaloPay'
@@ -138,18 +143,162 @@ function LiveFeePaymentScreen() {
       <AppHeader title="Thanh toán phí thuê ô" back />
       <ReturnCheckTrack state={momoReturn.state} onRetry={momoReturn.retry} />
       <div className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
-        <FeeSlip
-          periodLabel={fee.periodLabel}
-          amount={fee.amount}
-          dueDate={fee.dueDate}
-          slotCode={fee.slotCode}
-          status={fee.itemStatus}
-        />
+        <div className="flex min-w-0 max-w-[640px] flex-col gap-md">
+          <FeeSlip
+            periodLabel={item.periodLabel}
+            amount={item.amount}
+            dueDate={item.dueDate}
+            slotCode={contract.slotCode}
+            status={item.itemStatus}
+          />
+          <ContractProgress detail={detail.data} />
+        </div>
         <div className="flex min-w-0 max-w-[640px] flex-col gap-md">
           <WalletPicker value={provider} onChange={setProvider} disabled={checkout.isPending} />
           {checkout.isError ? <CheckoutError message={errorMessage(checkout.error)} /> : null}
           <SafePaySteps />
         </div>
+      </div>
+    </Screen>
+  );
+}
+
+/** Where this instalment sits in its contract: how many are paid and what is still owed. */
+function ContractProgress({ detail }: { detail: FeeItemDetailDto }) {
+  const { contract } = detail;
+  return (
+    <section
+      aria-label={`Hợp đồng thuê ô ${contract.slotCode}`}
+      className="rounded-[20px] bg-card p-md ring-1 ring-border/80"
+    >
+      <div className="mb-xs flex flex-wrap items-baseline justify-between gap-x-sm gap-y-1 text-body-md">
+        <span className="text-text">
+          Hợp đồng đã nộp {contract.paidCount}/{contract.instalmentCount} kỳ
+        </span>
+        <span className="text-muted">
+          Còn lại{' '}
+          <span className="font-semibold tabular-nums text-text">
+            {formatVnd(contract.outstandingAmount)}
+          </span>
+        </span>
+      </div>
+      <ProgressBar value={paidShare(contract)} label="Tiến độ đóng phí của hợp đồng" />
+    </section>
+  );
+}
+
+/**
+ * After paying: a receipt, not a bounce back to the list. The vendor sees the money was taken,
+ * which invoice it produced, and can open or download it straight away.
+ */
+function PaidReceipt({ detail }: { detail: FeeItemDetailDto }) {
+  const navigate = useNavigate();
+  const titleId = useId();
+  const [downloading, setDownloading] = useState(false);
+  const { item, contract } = detail;
+
+  const download = async () => {
+    if (!item.invoiceId || !item.invoiceNumber) return;
+    setDownloading(true);
+    try {
+      saveFile(await financeApi.invoicePdf(item.invoiceId), `${item.invoiceNumber}.pdf`);
+    } catch (err) {
+      showToast(errorMessage(err));
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <Screen
+      footer={
+        <StickyActions>
+          <Button
+            label="Về trang Tài chính"
+            variant="outline"
+            onPress={() => navigate('/vendor/finance')}
+          />
+        </StickyActions>
+      }
+    >
+      <AppHeader title="Đã thanh toán" back />
+      <div className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+        <ReceiptPaper labelledBy={titleId}>
+          <div className="relative py-sm text-center">
+            {item.paidAt ? <PaidStamp /> : null}
+            <h2 id={titleId} className="font-sign text-[20px] font-bold leading-7 text-text">
+              Thanh toán thành công
+            </h2>
+            <p className="mt-xs whitespace-nowrap font-sign text-[clamp(32px,10.5vw,44px)] font-bold leading-none tabular-nums text-text [font-stretch:88%]">
+              {formatVnd(item.amount)}
+            </p>
+          </div>
+          <dl className="border-t border-border pt-xs">
+            <ReceiptRow label="Kỳ phí">{item.periodLabel}</ReceiptRow>
+            <ReceiptRow label="Ô">
+              <KerbTag code={contract.slotCode} />
+            </ReceiptRow>
+            {item.paidAt ? (
+              <ReceiptRow label="Thanh toán lúc">
+                <span className="tabular-nums">
+                  {new Date(item.paidAt).toLocaleString('vi-VN', {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  })}
+                </span>
+              </ReceiptRow>
+            ) : null}
+            {item.invoiceNumber ? (
+              <ReceiptRow label="Hoá đơn">
+                <span className="break-all tabular-nums">{item.invoiceNumber}</span>
+              </ReceiptRow>
+            ) : null}
+          </dl>
+          {item.invoiceId && item.invoiceNumber ? (
+            <div className="mt-md flex flex-wrap gap-xs">
+              <Button
+                label="Xem hoá đơn"
+                size="sm"
+                fullWidth={false}
+                onPress={() => navigate(`/vendor/finance/invoices/${item.invoiceId}`)}
+              />
+              <Button
+                label="Tải PDF"
+                size="sm"
+                variant="outline"
+                fullWidth={false}
+                loading={downloading}
+                disabled={downloading}
+                onPress={() => void download()}
+              />
+            </div>
+          ) : (
+            <p role="status" className="mt-md text-center text-body-sm text-muted">
+              Hoá đơn đang được phát hành…
+            </p>
+          )}
+          <ReceiptFoot />
+        </ReceiptPaper>
+        {contract.nextDue ? (
+          <button
+            type="button"
+            onClick={() => navigate(`/vendor/finance/contracts/${contract.contractId}`)}
+            className="flex items-center justify-between gap-sm rounded-[20px] bg-card p-md text-left ring-1 ring-border/80 transition-transform duration-150 active:scale-[.98]"
+          >
+            <span className="min-w-0">
+              <span className="block text-body-sm text-muted">Kỳ tiếp theo</span>
+              <span className="block text-headline-sm text-text">
+                {contract.nextDue.periodLabel}
+              </span>
+              <span className="mt-2xs block text-body-sm text-muted">
+                Hạn {formatDay(contract.nextDue.dueDate)}
+              </span>
+            </span>
+            <span className="shrink-0 font-semibold tabular-nums text-text">
+              {formatVnd(contract.nextDue.amount)}
+            </span>
+          </button>
+        ) : null}
       </div>
     </Screen>
   );
