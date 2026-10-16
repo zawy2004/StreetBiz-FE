@@ -23,10 +23,30 @@ export const VENDOR_TABS: RoleTabItem[] = [
 
 export const WARD_TABS: RoleTabItem[] = [
   { to: '/ward/dashboard', label: 'Tổng quan', icon: 'view-dashboard-outline' },
-  { to: '/ward/inbox', label: 'Hộp duyệt', icon: 'inbox-outline' },
+  {
+    to: '/ward/inbox',
+    label: 'Hộp duyệt',
+    icon: 'inbox-outline',
+    children: [
+      // Everything under the inbox not claimed below: registrations, rental
+      // applications, renewals and vendor reports open from the overview.
+      { to: '/ward/inbox', label: 'Tổng quan' },
+      {
+        to: '/ward/inbox/reviews',
+        label: 'Hồ sơ vị trí',
+        match: [
+          '/ward/inbox/slot-proposals',
+          '/ward/inbox/slot-transfers',
+          '/ward/inbox/address-conflicts',
+        ],
+      },
+      { to: '/ward/inbox/food-safety', label: 'Hồ sơ an toàn thực phẩm', match: [] },
+    ],
+  },
   { to: '/ward/slots', label: 'Lưới ô', icon: 'map-marker-radius-outline' },
   { to: '/ward/patrol', label: 'Tuần tra', icon: 'qrcode-scan' },
   { to: '/ward/finance', label: 'Thu phí', icon: 'cash-multiple' },
+  { to: '/ward/settings/pricing', label: 'Giá & khung giờ', icon: 'tag-outline' },
   { to: '/ward/reports', label: 'Báo cáo', icon: 'chart-bar' },
 ];
 
