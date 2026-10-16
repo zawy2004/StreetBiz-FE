@@ -112,11 +112,3 @@ export const FEATURE_LABELS: Record<StreetFeatureType, string> = {
 /** Pavement tiles: a faint 8px paving grid drawn in CSS, for the plan's sidewalks. */
 export const PAVING =
   'bg-[#F7F8FA] bg-[linear-gradient(rgb(17_28_43/0.05)_1px,transparent_1px),linear-gradient(90deg,rgb(17_28_43/0.05)_1px,transparent_1px)] bg-[length:16px_16px] dark:bg-[#17212C] dark:bg-[linear-gradient(rgb(238_242_246/0.05)_1px,transparent_1px),linear-gradient(90deg,rgb(238_242_246/0.05)_1px,transparent_1px)]';
-
-/** Compass word for the direction the plan reads left to right. */
-export function streetHeading(bearingDegrees: number): string {
-  // bearingDegrees is the axis angle above due east (maths convention); a compass heading runs clockwise from north.
-  const heading = (((90 - bearingDegrees) % 360) + 360) % 360;
-  const names = ['Bắc', 'Đông Bắc', 'Đông', 'Đông Nam', 'Nam', 'Tây Nam', 'Tây', 'Tây Bắc'];
-  return names[Math.round(heading / 45) % 8]!;
-}

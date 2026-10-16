@@ -48,7 +48,7 @@ beforeEach(() => {
     wardUnitId: 1, latitude: 16.05, longitude: 108.22,
     widthMeters: 2, lengthMeters: 2, slotStatus: 'HELD', source: 'WARD',
     pricePerDay: 30000, availableFrom: '05:00:00', availableTo: '22:00:00',
-    distanceMeters: null, imageUrl: null, hasPower: false, hasWater: false,
+    distanceMeters: null, imageUrls: [], hasPower: false, hasWater: false,
     hasTrashBin: false, businessCategory: null, tenantName: null,
     holdExpiresAt: isoIn(14), priceDisplayUnit: 'DAY', pricePerMonth: null,
     rentalMode: 'STANDARD', eventEndDate: null, monthlyPrice: 900000, quarterDiscountPercent: null,

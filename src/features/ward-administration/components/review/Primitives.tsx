@@ -127,19 +127,6 @@ export function LoadingBar({ label = 'Đang tải hồ sơ…' }: { label?: stri
   );
 }
 
-/** Legal basis as a quiet note with a ruled left edge (not a big card). */
-export function LegalNote({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-xs border-l-[3px] border-border pl-md">
-      <h2 className="flex items-center gap-xs text-[15px] font-semibold text-text">
-        <Icon name="gavel" size={18} color="currentColor" className="text-muted" />
-        {title}
-      </h2>
-      <div className="max-w-[78ch] text-[14px] leading-[22px] text-muted">{children}</div>
-    </section>
-  );
-}
-
 /** A titled block of the dossier; light card, title in the signage face. */
 export function DossierBlock({
   id,

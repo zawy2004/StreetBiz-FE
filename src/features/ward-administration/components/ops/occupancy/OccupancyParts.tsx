@@ -225,7 +225,16 @@ function StallGlyph() {
  * as colour: dashed outline when free, solid with a stall when rented, a mango
  * wash while applied for, red hatching when suspended.
  */
-export function SlotPlate({ row, delayMs }: { row: OccupancyRow; delayMs?: number }) {
+export function SlotPlate({
+  row,
+  delayMs,
+  onOpen,
+}: {
+  row: OccupancyRow;
+  delayMs?: number;
+  /** When given, the whole plate opens the slot for editing. */
+  onOpen?: (row: OccupancyRow) => void;
+}) {
   const bucket = bucketOf(row.status);
   const plate = PLATE[bucket];
   const size = slotSize(row);
@@ -245,6 +254,14 @@ export function SlotPlate({ row, delayMs }: { row: OccupancyRow; delayMs?: numbe
       style={delayMs != null ? ({ '--delay': `${delayMs}ms` } as CSSProperties) : undefined}
     >
       <span className="sr-only">{spoken}</span>
+      {onOpen ? (
+        <button
+          type="button"
+          aria-label={`Mở ô ${row.code} để sửa`}
+          onClick={() => onOpen(row)}
+          className="absolute inset-0 rounded-[14px] transition-colors hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        />
+      ) : null}
       <div aria-hidden="true" className="flex items-start justify-between gap-xs">
         <span
           title={row.code}
@@ -298,6 +315,7 @@ export function ZoneKerbStrip({
   collapsed,
   onToggle,
   rise,
+  onOpenSlot,
 }: {
   group: PlaceGroup<OccupancyRow>;
   /** The group's rows that pass the current filter. */
@@ -306,6 +324,7 @@ export function ZoneKerbStrip({
   onToggle: () => void;
   /** Stagger the first plates in (only for the first street, once). */
   rise?: boolean;
+  onOpenSlot?: (row: OccupancyRow) => void;
 }) {
   const headingId = useId();
   const { counts } = group;
@@ -354,7 +373,12 @@ export function ZoneKerbStrip({
       ) : (
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-xs md:gap-sm">
           {rows.map((row, i) => (
-            <SlotPlate key={row.key} row={row} delayMs={rise && i < 12 ? i * 30 : undefined} />
+            <SlotPlate
+              key={row.key}
+              row={row}
+              delayMs={rise && i < 12 ? i * 30 : undefined}
+              onOpen={onOpenSlot}
+            />
           ))}
         </ul>
       )}
@@ -363,7 +387,13 @@ export function ZoneKerbStrip({
 }
 
 /** The dense view for cross-checking or printing: one line per slot. */
-export function OccupancyList({ rows }: { rows: OccupancyRow[] }) {
+export function OccupancyList({
+  rows,
+  onOpen,
+}: {
+  rows: OccupancyRow[];
+  onOpen?: (row: OccupancyRow) => void;
+}) {
   return (
     <ul className="overflow-hidden rounded-[20px] bg-card shadow-card ring-1 ring-border">
       {rows.map((row) => {
@@ -372,8 +402,16 @@ export function OccupancyList({ rows }: { rows: OccupancyRow[] }) {
         return (
           <li
             key={row.key}
-            className="flex min-h-14 flex-wrap items-center gap-x-md gap-y-1 border-b border-border px-md py-sm last:border-b-0"
+            className="relative flex min-h-14 flex-wrap items-center gap-x-md gap-y-1 border-b border-border px-md py-sm last:border-b-0"
           >
+            {onOpen ? (
+              <button
+                type="button"
+                aria-label={`Mở ô ${row.code} để sửa`}
+                onClick={() => onOpen(row)}
+                className="absolute inset-0 transition-colors hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+              />
+            ) : null}
             <span className="w-[96px] shrink-0 font-sign text-[18px] font-extrabold leading-none text-text [font-stretch:72%]">
               {row.code}
             </span>

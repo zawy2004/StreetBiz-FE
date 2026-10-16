@@ -2,6 +2,8 @@ import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Outlet } from 'react-router-dom';
 
 import { RoleTabBar, type RoleTabItem } from '@/components/layout/RoleTabBar';
+import { ScreenFooterProvider } from '@/components/layout/screen-footer';
+import { LandingFooter } from '@/features/landing/components/LandingFooter';
 import { isLiveApi } from '@/core/config/env';
 import { RoleGuard } from '@/core/auth/RoleGuard';
 import { ScreenFallback } from '@/core/routing/ScreenFallback';
@@ -12,6 +14,7 @@ import { useVendorOrderAlerts } from '@/features/orders/alerts/useVendorOrderAle
 import { useAuthStore } from '@/store/auth-store';
 import { useIsDesktop } from '@/hooks/useBreakpoint';
 import { ConsumerTopNav } from './ConsumerTopNav';
+import { CompactFooter } from './CompactFooter';
 
 type Props = {
   role: RoleCode;
@@ -55,6 +58,9 @@ export function RoleShell({
     useCanChat() && signedInRole === role,
     role === 'VENDOR' ? '/vendor/chat' : '/customer/chat',
   );
+  // Buyers get the landing footer, vendors a single quiet line; both only at the end of a screen.
+  const screenFooter =
+    role === 'CUSTOMER' ? <LandingFooter /> : role === 'VENDOR' ? <CompactFooter /> : null;
   const navItems = useMemo(
     () =>
       items.map((item) =>
@@ -98,9 +104,11 @@ export function RoleShell({
             className="min-h-0 flex-1 overflow-hidden outline-none"
           >
             {/* Screens are lazy chunks; only the content area waits, the navigation stays. */}
-            <Suspense fallback={<ScreenFallback />}>
-              <Outlet />
-            </Suspense>
+            <ScreenFooterProvider value={screenFooter}>
+              <Suspense fallback={<ScreenFallback />}>
+                <Outlet />
+              </Suspense>
+            </ScreenFooterProvider>
           </main>
         </div>
         {!isDesktop ? <RoleTabBar roleLabel={roleLabel} items={navItems} /> : null}

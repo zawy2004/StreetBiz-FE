@@ -5,12 +5,13 @@ import { Icon, Money } from '@/components/common';
 import type { IconName } from '@/components/common/Icon';
 import type { SidewalkSlot, SidewalkZone } from '@/core/api/side-api';
 import { reverseGeocode } from '@/services/map/reverse-geocode';
-import { formatAreaSqm, formatHours, formatSize, rentPrice, toDms } from '../slot-format';
+import { formatAreaSqm, formatHours, formatSize, rentPrice } from '../slot-format';
 import { BUSINESS_CATEGORY_LABELS, slotDisplayState, type SlotDisplayState } from '../slot-stats';
 import { DISPLAY_STATE_LABELS, SLOT_TONES } from '../slot-visuals';
 import { useNow } from '../useNow';
 import { SlotApplyForm } from './SlotApplyForm';
 import { SlotBayDrawing } from './SlotBayDrawing';
+import { SlotCover } from './SlotCover';
 
 type Props = {
   slot: SidewalkSlot;
@@ -89,25 +90,12 @@ export function SlotDetailPanel({ slot, zone, variant = 'docked', onBackToPlan }
             ? 'Đang tìm địa chỉ…'
             : (address.data ?? `${slot.latitude}, ${slot.longitude}`)}
         </p>
-        <p className="mt-0.5 font-tabular text-body-sm text-muted">
-          {toDms(slot.latitude, slot.longitude)}
-        </p>
       </div>
     </div>
   );
 
-  const media = slot.imageUrl ? (
-    <figure className="flex flex-col gap-xs">
-      <img
-        src={slot.imageUrl}
-        alt={`Ô ${slot.slotCode}`}
-        loading="lazy"
-        width={640}
-        height={360}
-        className="aspect-video w-full rounded-[20px] bg-sunken object-cover ring-1 ring-border"
-      />
-      {page ? <figcaption className="text-body-sm text-muted">Ảnh hiện trạng</figcaption> : null}
-    </figure>
+  const media = slot.imageUrls.length > 0 ? (
+    <SlotCover urls={slot.imageUrls} slotCode={slot.slotCode} caption={page} />
   ) : (
     <div className="flex flex-col gap-1">
       <SlotBayDrawing slot={slot} state={state} variant={page ? 'page' : 'docked'} />
@@ -241,11 +229,6 @@ function PriceLine({
           <Money amountVnd={price.amount} size={large ? 'lg' : 'md'} className="font-sign font-bold" />
           <span className="text-body-sm text-muted">/ {price.unit}</span>
         </p>
-        {slot.rentalMode === 'STANDARD' && slot.quarterDiscountPercent ? (
-          <p className="text-body-sm font-semibold text-[#0B5D33] dark:text-[#8BE3B0]">
-            Giảm {slot.quarterDiscountPercent}% khi thuê 3, 6 hoặc 12 tháng
-          </p>
-        ) : null}
       </div>
       {large ? <StateChip state={state} /> : null}
     </div>

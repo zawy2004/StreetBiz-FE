@@ -419,7 +419,7 @@ describe('WARD-01 slot grid', () => {
       slot: {
         slotId: 9, slotCode: 'HC1-NVL-001', zoneId: 1, zoneName: zone.zoneName, latitude: 16.05, longitude: 108.22,
         widthMeters: 2, lengthMeters: 2, status: 'AVAILABLE', source: 'WARD_DEFINED', hasPower: false, hasWater: false,
-        hasTrashBin: false, businessCategory: null, canHardDelete: true, canEditGeometry: true, versionToken: 't',
+        hasTrashBin: false, businessCategory: null, canHardDelete: true, canEditGeometry: true, versionToken: 't', imageUrls: [],
       },
       check: { boundaryVerified: false, issues: [] },
     });
@@ -443,7 +443,7 @@ describe('WARD-01 slot grid', () => {
   const slot = (over: Partial<WardSlot>): WardSlot => ({
     slotId: 1, slotCode: 'NVL-01', zoneId: 1, zoneName: zone.zoneName, latitude: 16.05, longitude: 108.22,
     widthMeters: 2, lengthMeters: 3, status: 'AVAILABLE', source: 'WARD_DEFINED', hasPower: false, hasWater: false,
-    hasTrashBin: false, businessCategory: null, canHardDelete: false, canEditGeometry: true, versionToken: 'v1',
+    hasTrashBin: false, businessCategory: null, canHardDelete: false, canEditGeometry: true, versionToken: 'v1', imageUrls: [],
     ...over,
   });
 

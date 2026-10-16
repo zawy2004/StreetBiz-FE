@@ -13,6 +13,8 @@ import { PasswordField, PhoneField, TextField } from '@/components/forms';
 import { ApiError, authApi, errorMessage, OTP_PURPOSE } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { isPasswordValid, passwordError } from '@/core/auth/password-policy';
+import { AgreementCheckbox } from '@/features/legal/components/AgreementCheckbox';
+import { LEGAL_ROUTES } from '@/features/legal/legal-content';
 import { phoneError, toLocalPhone } from '@/core/utils/phone';
 
 type SelfRegisterRole = 'CUSTOMER' | 'VENDOR';
@@ -37,6 +39,8 @@ export function RegisterScreen() {
   const [wardUnitId, setWardUnitId] = useState<number>();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  // Checked on the client only: the register API has no consent field.
+  const [agreed, setAgreed] = useState(false);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
   const [error, setError] = useState<string>();
@@ -52,6 +56,7 @@ export function RegisterScreen() {
     next.phone = phoneError(phone);
     if (!isPasswordValid(password)) next.password = passwordError(password);
     else if (password !== confirm) next.confirm = 'Mật khẩu nhập lại không khớp.';
+    if (!agreed) next.agreement = 'Vui lòng đồng ý Điều khoản sử dụng và Chính sách bảo mật.';
 
     setFieldErrors(next);
     if (Object.values(next).some(Boolean)) {
@@ -184,6 +189,18 @@ export function RegisterScreen() {
         </section>
 
         <div className="flex flex-col gap-sm">
+          <AgreementCheckbox
+            checked={agreed}
+            onChange={(value) => {
+              setAgreed(value);
+              if (value) setFieldErrors((prev) => ({ ...prev, agreement: undefined }));
+            }}
+            links={[
+              { label: 'Điều khoản sử dụng', to: LEGAL_ROUTES.terms },
+              { label: 'Chính sách bảo mật', to: LEGAL_ROUTES.privacy },
+            ]}
+            error={fieldErrors.agreement}
+          />
           {error ? (
             <AuthNotice role="alert" tone="danger">
               {error}

@@ -11,7 +11,8 @@ import { useMediaQuery } from '@/hooks/useBreakpoint';
 import { useMockDb } from '@/mocks/db';
 import { complianceApi, type WardRenewalDetail } from '../ward-api';
 import { formatDateTimeVi, formatDueVi } from '../components/review/format';
-import { DossierBlock, FactGrid, LegalNote } from '../components/review/Primitives';
+import { LegalBasisLink } from '@/features/legal/components/LegalBasisLink';
+import { DossierBlock, FactGrid } from '../components/review/Primitives';
 import {
   ComplianceScorecard,
   ContractTimeline,
@@ -441,21 +442,11 @@ export function RenewalReviewScreen() {
             />
           </DossierBlock>
 
-          {/* Legal basis */}
-          <LegalNote title="Căn cứ pháp lý">
-            * Thẩm quyền quyết định hành chính, trình tự thủ tục và hạn xử lý hồ sơ (≤3 ngày làm
-            việc) căn cứ <strong>Luật Đường bộ 2024 (Điều 77)</strong>,{' '}
-            <strong>Nghị định 165/2024/NĐ-CP (Điều 21)</strong> được sửa đổi bởi{' '}
-            <strong>Nghị định 241/2026/NĐ-CP</strong>. Việc thu phí sử dụng hè phố cho hoạt động
-            kinh doanh thực hiện theo{' '}
-            <strong>
-              Đề án/Quyết định thí điểm quản lý, khai thác hè phố của UBND thành phố Đà Nẵng
-            </strong>{' '}
-            (cần cập nhật số hiệu văn bản chính thức khi ban hành) — các trường hợp liệt kê tại Điều
-            21 NĐ 165/2024 là trường hợp phi thương mại (sự kiện, phòng chống thiên tai, thi
-            công...), không trực tiếp bao gồm kinh doanh hàng hóa. Sau khi phê duyệt, hệ thống tự
-            động gia hạn hợp đồng, cập nhật giấy phép số QR và tạo lịch thu phí gia hạn mới.
-          </LegalNote>
+          <p className="flex flex-wrap items-center gap-x-md gap-y-1 text-body-md text-muted">
+            Sau khi duyệt, hệ thống tự gia hạn hợp đồng, cập nhật giấy phép số QR và tạo lịch thu phí
+            mới.
+            <LegalBasisLink anchor="duyet-ho-so" />
+          </p>
 
           {/* Officer note */}
           {wide ? null : noteField}

@@ -125,6 +125,13 @@ describe('sign-up data handling', () => {
     await user.type(screen.getByLabelText('Số điện thoại'), '905123456');
     await user.type(screen.getByLabelText('Mật khẩu'), 'Str0ng!Pass');
     await user.type(screen.getByLabelText('Nhập lại mật khẩu'), 'Str0ng!Pass');
+
+    // Without the terms/privacy agreement the form stays put.
+    await user.click(screen.getByRole('button', { name: /nhận otp/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/đồng ý Điều khoản/);
+    expect(lastLocation).toBe('');
+
+    await user.click(screen.getByRole('checkbox', { name: /Tôi đã đọc và đồng ý/ }));
     await user.click(screen.getByRole('button', { name: /nhận otp/i }));
 
     expect(await screen.findByText('verify step')).toBeInTheDocument();

@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { apiAssetUrl } from '@/core/api/asset-url';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -484,6 +485,7 @@ function RenewalHistory({ renewals }: { renewals: RenewalRequest[] }) {
 /** The slot itself: its photo (or a drawn bay), what it has, what it is for. */
 function SlotSnapshot({ slot }: { slot: SidewalkSlot }) {
   const [broken, setBroken] = useState(false);
+  const cover = slot.imageUrls?.[0];
   const amenities: { on: boolean; icon: IconName; label: string }[] = [
     { on: !!slot.hasPower, icon: 'flash-outline', label: 'Điện' },
     { on: !!slot.hasWater, icon: 'water-outline', label: 'Nước' },
@@ -492,9 +494,9 @@ function SlotSnapshot({ slot }: { slot: SidewalkSlot }) {
   return (
     <section className="flex flex-col gap-md rounded-[20px] bg-card p-md shadow-card ring-1 ring-border md:p-lg">
       <h2 className="font-sign text-[18px] font-bold text-text">Ô của bạn</h2>
-      {slot.imageUrl && !broken ? (
+      {cover && !broken ? (
         <img
-          src={slot.imageUrl}
+          src={apiAssetUrl(cover)}
           alt={`Ô ${slot.slotCode}`}
           loading="lazy"
           width={640}

@@ -1,5 +1,7 @@
 import { ReactNode } from 'react';
 
+import { useScreenFooter } from './screen-footer';
+
 type Width = 'narrow' | 'default' | 'wide' | 'full';
 
 type Props = {
@@ -25,6 +27,7 @@ export const SCREEN_WIDTH: Record<Width, string> = {
 
 /** Base screen container: scrolls, pads, and caps line length on wide viewports. */
 export function Screen({ children, scroll = true, padded = true, footer, width = 'default' }: Props) {
+  const shellFooter = useScreenFooter();
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-bg">
       <div className={['min-h-0 flex-1', scroll ? 'overflow-y-auto' : 'overflow-hidden'].join(' ')}>
@@ -40,6 +43,7 @@ export function Screen({ children, scroll = true, padded = true, footer, width =
         ) : (
           children
         )}
+        {scroll ? shellFooter : null}
       </div>
       {footer}
     </div>

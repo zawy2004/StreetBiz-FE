@@ -25,6 +25,7 @@ import {
 import { CheckingLine, PlacementVerdict, VerdictSlip } from './PlacementVerdict';
 import { hasBlock, sizeValue, usePlacementCheck } from './placement';
 import { SlotHistory } from './SlotHistory';
+import { SlotPhotosField } from './SlotPhotosField';
 import { SlotInspectorHeader } from './SlotInspectorHeader';
 
 /** A muted explanation line inside the sheet, with an info glyph. */
@@ -46,12 +47,15 @@ export function SlotPanel({
   slot,
   zones,
   newPosition,
+  standalone = false,
   onClose,
   onChanged,
 }: {
   slot: WardSlot;
   zones: WardZone[];
   newPosition: MapPoint | null;
+  /** Opened on its own page, without the map: the position can only change on the map editor. */
+  standalone?: boolean;
   onClose: () => void;
   onChanged: (slot: WardSlot) => void;
 }) {
@@ -68,6 +72,7 @@ export function SlotPanel({
     hasTrashBin: slot.hasTrashBin,
     businessCategory: slot.businessCategory,
   });
+  const [imageUrls, setImageUrls] = useState<string[]>(slot.imageUrls);
   const [ack, setAck] = useState(false);
   const [reason, setReason] = useState('');
   const [statusReason, setStatusReason] = useState('');
@@ -104,6 +109,7 @@ export function SlotPanel({
         lengthMeters: l!,
         slotCode: code.trim(),
         ...facilities,
+        imageUrls,
         acknowledgeWarnings: issues.length > 0,
         warningReason: issues.length > 0 ? reason.trim() : null,
       }),
@@ -173,16 +179,24 @@ export function SlotPanel({
       {!readOnly && !slot.canEditGeometry && (
         <Note>Ô không ở trạng thái Trống nên chỉ sửa được tiện ích và ngành hàng.</Note>
       )}
+      {!readOnly && (
+        <>
+          <SheetRule>Ảnh ô</SheetRule>
+          <SlotPhotosField value={imageUrls} onChange={setImageUrls} />
+        </>
+      )}
       {slot.canEditGeometry && (
         <>
-          <p
-            className={`flex items-center gap-xs rounded-[12px] px-sm py-xs text-body-md ${
-              newPosition ? 'bg-tint-primary font-semibold text-primary' : 'bg-sunken text-text'
-            }`}
-          >
-            <Icon name="map-marker-outline" size={18} color="currentColor" className="shrink-0" />
-            <span>Chạm bản đồ để dời ô. {newPosition ? 'Đã chọn vị trí mới.' : ''}</span>
-          </p>
+          {standalone ? null : (
+            <p
+              className={`flex items-center gap-xs rounded-[12px] px-sm py-xs text-body-md ${
+                newPosition ? 'bg-tint-primary font-semibold text-primary' : 'bg-sunken text-text'
+              }`}
+            >
+              <Icon name="map-marker-outline" size={18} color="currentColor" className="shrink-0" />
+              <span>Chạm bản đồ để dời ô. {newPosition ? 'Đã chọn vị trí mới.' : ''}</span>
+            </p>
+          )}
           <TextField label="Mã ô" value={code} onChangeText={setCode} maxLength={30} />
           <ZoneSelect zones={zones} value={zoneId} onChange={setZoneId} />
           <SizeGrid columns={2}>

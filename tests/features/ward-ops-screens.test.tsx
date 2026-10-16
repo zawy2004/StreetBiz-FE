@@ -65,6 +65,7 @@ const slot = (over: Partial<WardSlot>): WardSlot => ({
   canHardDelete: false,
   canEditGeometry: true,
   versionToken: 'v1',
+  imageUrls: [],
   ...over,
 });
 
