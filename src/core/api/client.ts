@@ -6,7 +6,7 @@ import axios, {
 } from 'axios';
 
 import { env } from '@/core/config/env';
-import { ApiError, isTokenFailure, toApiError } from './problem';
+import { ApiError, isTokenFailure, timeoutError, toApiError } from './problem';
 import { clearTokens, getTokens, setTokens, type AuthTokens } from './token-storage';
 
 /** Endpoints that must never carry a bearer token or trigger a refresh retry. */
@@ -127,6 +127,15 @@ http.interceptors.response.use(
           'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
         );
       }
+    }
+
+    // axios gives up after its timeout with no response: say the server was slow, not that the
+    // connection is down (the eKYC calls used to report "không kết nối được máy chủ" here).
+    if (
+      !error.response &&
+      (error.code === AxiosError.ECONNABORTED || error.code === AxiosError.ETIMEDOUT)
+    ) {
+      throw timeoutError();
     }
 
     throw toApiError(status, error.response?.data);

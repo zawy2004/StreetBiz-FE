@@ -22,7 +22,8 @@ export type ApiErrorCode =
   | 'otp_cooldown'
   | 'bad_request'
   | 'server_error'
-  | 'network_error';
+  | 'network_error'
+  | 'timeout';
 
 const FALLBACK_MESSAGES: Record<ApiErrorCode, string> = {
   validation_error: 'Thông tin chưa hợp lệ. Vui lòng kiểm tra lại.',
@@ -39,6 +40,7 @@ const FALLBACK_MESSAGES: Record<ApiErrorCode, string> = {
   bad_request: 'Yêu cầu không hợp lệ.',
   server_error: 'Hệ thống đang bận. Vui lòng thử lại sau.',
   network_error: 'Không kết nối được máy chủ. Kiểm tra kết nối mạng và thử lại.',
+  timeout: 'Máy chủ xử lý quá lâu nên đã dừng chờ. Vui lòng thử lại sau ít phút.',
 };
 
 /** Normalized error every API call rejects with, so screens never touch axios types. */
@@ -93,6 +95,11 @@ function codeFromStatus(status: number): ApiErrorCode {
 }
 
 const KNOWN_CODES = new Set<string>(Object.keys(FALLBACK_MESSAGES));
+
+/** The request was sent but no answer came back in time -- not the same as being offline. */
+export function timeoutError(): ApiError {
+  return new ApiError('timeout', 0, FALLBACK_MESSAGES.timeout);
+}
 
 /** Builds an ApiError from a ProblemDetails body (or from a transport failure). */
 export function toApiError(status: number | undefined, body: unknown): ApiError {

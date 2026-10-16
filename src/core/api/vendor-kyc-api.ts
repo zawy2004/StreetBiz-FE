@@ -40,21 +40,25 @@ export type KycFaceMatchResult = {
   summary: string;
 };
 
+/** Both calls may try every FPT.AI key and then Gemini (the server stops at 45 s), so they get
+ * longer than the client's 20 s default. */
+const KYC_TIMEOUT_MS = 60_000;
+
 export const vendorKycApi = {
   /**
-   * Reads a CCCD. The back photo is optional but dân tộc, ngày cấp and nơi cấp are printed
-   * only on the back, so leaving it out means those three stay empty.
+   * Reads a CCCD. The back photo is optional but ngày cấp and nơi cấp (and dân tộc, on the old
+   * CMND only -- chip CCCDs do not print it) are on the back, so leaving it out leaves them empty.
    */
   extractIdCard: (payload: {
     frontFileUrl: string;
     backFileUrl: string | null;
     biometricConsent: boolean;
-  }) => apiPost<KycIdCardExtraction>('/vendor/kyc/id-card', payload),
+  }) => apiPost<KycIdCardExtraction>('/vendor/kyc/id-card', payload, { timeout: KYC_TIMEOUT_MS }),
 
   /** Compares the portrait against the photo printed on the CCCD. JPG only (FPT.AI limit). */
   matchFace: (payload: {
     selfieFileUrl: string;
     idCardFrontFileUrl: string;
     biometricConsent: boolean;
-  }) => apiPost<KycFaceMatchResult>('/vendor/kyc/face-match', payload),
+  }) => apiPost<KycFaceMatchResult>('/vendor/kyc/face-match', payload, { timeout: KYC_TIMEOUT_MS }),
 };

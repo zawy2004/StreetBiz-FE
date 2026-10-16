@@ -349,7 +349,12 @@ export type WardPatrolHeatmapPoint = {
 };
 
 /** BR-41: the officer's accept/reject of a previously-logged AI suggestion (AiAssistanceLogs). */
-export type AiSuggestionFeedback = { aiLogId: number; accepted: boolean; reviewedAt: string; reviewerName: string };
+export type AiSuggestionFeedback = {
+  aiLogId: number;
+  accepted: boolean;
+  reviewedAt: string;
+  reviewerName: string;
+};
 
 // -- AIC-04: proposed-slot feasibility --
 export type AiProposalAssessment = {
@@ -397,7 +402,11 @@ export type GeofenceDriftItem = {
   isAiGenerated: boolean;
   aiLogId: number | null;
 };
-export type GeofenceDriftReport = { windowDays: number; toleranceMeters: number; items: GeofenceDriftItem[] };
+export type GeofenceDriftReport = {
+  windowDays: number;
+  toleranceMeters: number;
+  items: GeofenceDriftItem[];
+};
 
 // -- Renewal Review (WARD-09) --
 export type WardRenewalItem = {
@@ -618,13 +627,26 @@ export const complianceApi = {
    * checks biometric consent server-side. Never send an evidence list / declared name-address
    * from the client -- an earlier draft did, and its shape drifted out of sync with the backend
    * (which only ever needed the registration id). */
+  // The server allows the AI check up to 30 s (a hung model, then its fallback).
   aiDocumentExtract: (registrationId: string) =>
-    apiPost<AiDocumentCheck>('/ward/ai/document-extract', {
-      registrationId: Number(registrationId),
-    }),
+    apiPost<AiDocumentCheck>(
+      '/ward/ai/document-extract',
+      { registrationId: Number(registrationId) },
+      { timeout: 45_000 },
+    ),
 
-  aiEncroachmentCheck: (photoUrl: string, slotWidth?: number, slotLength?: number, slotId?: number) =>
-    apiPost<AiEncroachment>('/ward/ai/encroachment-check', { photoUrl, slotWidth, slotLength, slotId }),
+  aiEncroachmentCheck: (
+    photoUrl: string,
+    slotWidth?: number,
+    slotLength?: number,
+    slotId?: number,
+  ) =>
+    apiPost<AiEncroachment>('/ward/ai/encroachment-check', {
+      photoUrl,
+      slotWidth,
+      slotLength,
+      slotId,
+    }),
 
   /** BR-41: accept or reject a previously-logged AI suggestion. Never the same action as
    * approving/saving whatever the suggestion was about. */
