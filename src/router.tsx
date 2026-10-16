@@ -54,10 +54,6 @@ const ChangePasswordScreen = lazyScreen(
   () => import('@/features/account-management/screens'),
   'ChangePasswordScreen',
 );
-const NotificationsScreen = lazyScreen(
-  () => import('@/features/account-management/screens'),
-  'NotificationsScreen',
-);
 const SessionsScreen = lazyScreen(
   () => import('@/features/account-management/screens'),
   'SessionsScreen',
@@ -469,14 +465,6 @@ export function AppRouter() {
           element={
             <AuthGuard>
               <LoginHistoryScreen />
-            </AuthGuard>
-          }
-        />
-        <Route
-          path="/account/notifications"
-          element={
-            <AuthGuard>
-              <NotificationsScreen />
             </AuthGuard>
           }
         />

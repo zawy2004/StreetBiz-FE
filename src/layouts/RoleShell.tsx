@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Outlet } from 'react-router-dom';
 
+import { BrandLogo } from '@/components/common';
 import { RoleTabBar, type RoleTabItem } from '@/components/layout/RoleTabBar';
 import { isLiveApi } from '@/core/config/env';
 import { RoleGuard } from '@/core/auth/RoleGuard';
@@ -8,6 +9,7 @@ import { ScreenFallback } from '@/core/routing/ScreenFallback';
 import type { RoleCode } from '@/core/types/role';
 import { useChatAlerts } from '@/features/chat/alerts/useChatAlerts';
 import { useCanChat, useChatUnreadCount } from '@/features/chat/hooks/useChat';
+import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { useVendorOrderAlerts } from '@/features/orders/alerts/useVendorOrderAlerts';
 import { useAuthStore } from '@/store/auth-store';
 import { useIsDesktop } from '@/hooks/useBreakpoint';
@@ -46,6 +48,9 @@ export function RoleShell({
   // New orders are announced on every vendor screen, not only the board: the
   // seller may be editing the menu when a buyer pays.
   const signedInRole = useAuthStore((state) => state.user?.role_code);
+  // A role with its own top bar (the vendor) carries the bell there; the others get it
+  // in the sidebar on desktop, in the buyer's top nav, or in a slim bar on phones.
+  const ownBell = !header && Boolean(signedInRole);
   const newOrders = useVendorOrderAlerts(
     isLiveApi && role === 'VENDOR' && signedInRole === 'VENDOR',
   );
@@ -87,10 +92,11 @@ export function RoleShell({
         >
           Bỏ qua tới nội dung chính
         </a>
-        {sideNav ? <RoleTabBar roleLabel={roleLabel} items={navItems} /> : null}
+        {sideNav ? <RoleTabBar roleLabel={roleLabel} items={navItems} bell={ownBell} /> : null}
         {topNav ? <ConsumerTopNav items={navItems} /> : null}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           {header}
+          {!isDesktop && ownBell ? <PhoneTopBar roleLabel={roleLabel} /> : null}
           <OfflineNote />
           <main
             id="main-content"
@@ -106,6 +112,22 @@ export function RoleShell({
         {!isDesktop ? <RoleTabBar roleLabel={roleLabel} items={navItems} /> : null}
       </div>
     </RoleGuard>
+  );
+}
+
+/** Phones have no sidebar or top nav, so the bell needs a bar of its own above the screen. */
+function PhoneTopBar({ roleLabel }: { roleLabel: string }) {
+  return (
+    <header className="relative z-20 flex h-14 shrink-0 items-center gap-xs border-b border-border bg-card/95 px-md backdrop-blur">
+      <BrandLogo size={26} />
+      <div className="min-w-0 flex-1">
+        <p className="font-sign text-[17px] font-bold leading-none tracking-[-0.01em] text-text [font-stretch:108%]">
+          StreetBiz
+        </p>
+        <p className="mt-1 truncate text-body-xs text-muted">{roleLabel}</p>
+      </div>
+      <NotificationBell variant="ghost" />
+    </header>
   );
 }
 
