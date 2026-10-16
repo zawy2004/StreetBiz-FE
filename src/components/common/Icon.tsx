@@ -39,6 +39,8 @@ const ICON_MAP: Record<string, Glyph> = {
   close: g(Pi.PiX, Pi.PiXBold),
   'bell-outline': g(Pi.PiBell, Pi.PiBellFill, Pi.PiBellDuotone),
   'bell-ring': g(Pi.PiBellRinging, Pi.PiBellRingingFill),
+  'dots-horizontal': g(Pi.PiDotsThree, Pi.PiDotsThreeBold),
+  'check-all': g(Pi.PiChecks, Pi.PiChecksBold),
   'shield-check-outline': g(Pi.PiShieldCheck, Pi.PiShieldCheckFill, Pi.PiShieldCheckDuotone),
   'shield-alert-outline': g(Pi.PiShieldWarning, Pi.PiShieldWarningFill, Pi.PiShieldWarningDuotone),
   'lock-outline': g(Pi.PiLockSimple, Pi.PiLockSimpleFill),

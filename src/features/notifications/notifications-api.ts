@@ -19,18 +19,25 @@ export type NotificationDto = {
 
 export type NotificationPage = { items: NotificationDto[]; hasMore: boolean };
 
+/** The API returns at most this many, newest first. */
+export const NOTIFICATION_LIMIT = 50;
+
 export const notificationsApi = {
-  list: (take = 50) => apiGet<NotificationPage>(`/notifications?take=${take}`),
+  list: (take = NOTIFICATION_LIMIT) => apiGet<NotificationPage>(`/notifications?take=${take}`),
   unreadCount: () => apiGet<{ unreadCount: number }>('/notifications/unread-count'),
   markRead: (notificationId: number) => apiPost<void>(`/notifications/${notificationId}/read`),
   markAllRead: () => apiPost<void>('/notifications/read-all'),
 };
 
-/** What the screen renders, whichever mode supplied it. */
+/** What the panel renders, whichever mode supplied it. */
 export type NotificationItem = {
   id: number | string;
+  type: string;
   title: string;
   body: string;
+  /** What the notice is about, so a click can open it. Mock rows carry none. */
+  entityType: string | null;
+  entityId: number | null;
   read: boolean;
   sentAt: string;
 };
@@ -41,15 +48,18 @@ const keys = {
   unread: (userId: string | undefined) => ['notifications', userId, 'unread'] as const,
 };
 
-/** The newest 50 notifications, plus mark-read actions. */
-export function useNotifications() {
+/**
+ * The newest notifications, plus mark-read actions. `enabled` lets the bell
+ * load the list only once its panel is opened; the badge has its own count.
+ */
+export function useNotifications({ enabled = true }: { enabled?: boolean } = {}) {
   const userId = useAuthStore((s) => s.user?.id);
   const client = useQueryClient();
 
   const query = useQuery({
     queryKey: keys.list(userId),
     queryFn: () => notificationsApi.list(),
-    enabled: isLiveApi,
+    enabled: isLiveApi && enabled && Boolean(userId),
   });
   const refresh = () => client.invalidateQueries({ queryKey: keys.all(userId) });
   const markRead = useMutation({
@@ -67,7 +77,18 @@ export function useNotifications() {
   if (!isLiveApi) {
     const mine = mockNotifications.filter((n) => n.userId === userId).slice().reverse();
     return {
-      items: mine.map((n) => ({ id: n.id, title: n.title, body: n.body, read: n.read, sentAt: n.created_at })),
+      items: mine.map(
+        (n): NotificationItem => ({
+          id: n.id,
+          type: n.notification_type,
+          title: n.title,
+          body: n.body,
+          entityType: null,
+          entityId: null,
+          read: n.read,
+          sentAt: n.created_at,
+        }),
+      ),
       isLoading: false,
       isError: false,
       error: null,
@@ -81,8 +102,11 @@ export function useNotifications() {
     items: (query.data?.items ?? []).map(
       (n): NotificationItem => ({
         id: n.notificationId,
+        type: n.type,
         title: n.title,
         body: n.body,
+        entityType: n.relatedEntityType,
+        entityId: n.relatedEntityId,
         read: n.isRead,
         sentAt: n.sentAt,
       }),
