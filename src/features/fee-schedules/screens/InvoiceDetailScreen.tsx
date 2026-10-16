@@ -1,11 +1,13 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { Button, formatVnd, KerbTag } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ErrorState, showToast } from '@/components/feedback';
-import { errorMessage } from '@/core/api';
+import { errorMessage, financeApi } from '@/core/api';
+import { isLiveApi } from '@/core/config/env';
+import { saveFile } from '@/core/utils/save-file';
 import { useInvoiceDetail } from '../useFinance';
 import { PROVIDER_LABEL } from '../finance-view';
 import { LoadingBlock } from '../components/FinanceParts';
@@ -28,6 +30,7 @@ export function InvoiceDetailScreen() {
   const invoiceId = Number(id);
   const { invoice, isLoading, isError, error, refetch } = useInvoiceDetail(invoiceId);
   const numberId = useId();
+  const [downloading, setDownloading] = useState(false);
 
   if (isLoading) {
     return (
@@ -55,6 +58,21 @@ export function InvoiceDetailScreen() {
     ? (PROVIDER_LABEL[invoice.paymentProvider] ?? invoice.paymentProvider)
     : null;
 
+  const downloadPdf = async () => {
+    if (!isLiveApi) {
+      showToast('Tải hoá đơn chỉ có khi kết nối máy chủ (đang ở chế độ demo).');
+      return;
+    }
+    setDownloading(true);
+    try {
+      saveFile(await financeApi.invoicePdf(invoiceId), `${invoice.invoiceNumber}.pdf`);
+    } catch (err) {
+      showToast(errorMessage(err));
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <Screen
       footer={
@@ -62,7 +80,8 @@ export function InvoiceDetailScreen() {
           <Button
             label="Tải hoá đơn (PDF)"
             variant="outline"
-            onPress={() => showToast('Đã lưu hoá đơn vào thiết bị (demo)')}
+            loading={downloading}
+            onPress={() => void downloadPdf()}
           />
         </StickyActions>
       }
