@@ -8,13 +8,13 @@ import { StatusChip } from '@/components/status';
 import { ErrorState, showToast } from '@/components/feedback';
 import { isLiveApi } from '@/core/config/env';
 import { useMediaQuery } from '@/hooks/useBreakpoint';
+import { LegalBasisLink } from '@/features/legal/components/LegalBasisLink';
 import { useMockDb } from '@/mocks/db';
 import { complianceApi, type WardRentalApplicationDetail } from '../ward-api';
 import { formatDateTimeVi } from '../components/review/format';
 import {
   DossierBlock,
   FactGrid,
-  LegalNote,
   LoadingBar,
   RecordedDecision,
 } from '../components/review/Primitives';
@@ -362,22 +362,9 @@ export function RentalApplicationReviewScreen() {
 
           <IssuanceStrip ready={canApprove} />
 
-          <LegalNote title="Căn cứ pháp lý hành chính công">
-            * Thẩm quyền quyết định hành chính, trình tự thủ tục và hạn xử lý hồ sơ căn cứ{' '}
-            <strong>Luật Đường bộ 2024 (Điều 77)</strong>,{' '}
-            <strong>Nghị định 165/2024/NĐ-CP (Điều 21)</strong> được sửa đổi bởi{' '}
-            <strong>Nghị định 241/2026/NĐ-CP</strong> (hiệu lực 01/07/2026 — rút thời hạn xử lý còn
-            ≤3 ngày làm việc, tang lễ ≤1 ngày; thẩm quyền cấp phép các trường hợp còn lại thuộc UBND
-            cấp xã) và <strong>Luật Phí và Lệ phí 2015</strong> (thẩm quyền thu phí nộp Ngân sách
-            Nhà nước). Việc cho phép sử dụng hè phố cho hoạt động kinh doanh cụ thể thực hiện theo{' '}
-            <strong>
-              Đề án/Quyết định thí điểm quản lý, khai thác hè phố của UBND thành phố Đà Nẵng
-            </strong>{' '}
-            (cần cập nhật số hiệu văn bản chính thức khi ban hành) — các trường hợp liệt kê tại Điều
-            21 NĐ 165/2024 là trường hợp phi thương mại, không trực tiếp bao gồm kinh doanh hàng
-            hóa. Sau khi phê duyệt, hệ thống tự động phát hành Hợp đồng điện tử, Giấy phép số QR và
-            Lịch thu phí.
-          </LegalNote>
+          <div>
+            <LegalBasisLink anchor="duyet-ho-so" />
+          </div>
 
           {wide ? null : noteField}
         </div>

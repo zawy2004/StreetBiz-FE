@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button, Icon, Money } from '@/components/common';
 import { showToast } from '@/components/feedback';
 import { sideApi, SideApiError, type FeeQuoteLine, type SidewalkSlot } from '@/core/api/side-api';
+import { AgreementCheckbox } from '@/features/legal/components/AgreementCheckbox';
+import { LEGAL_ROUTES } from '@/features/legal/legal-content';
 import { useAuthStore } from '@/store/auth-store';
 import { formatCountdown, formatShortVnd, secondsUntil } from '../slot-format';
 import { slotDisplayState } from '../slot-stats';
@@ -18,12 +20,12 @@ import { RentalEligibilityMissing, RentalEligibilityOk } from './RentalEligibili
 const DEFAULT_TERM_DAYS = '90';
 const MAX_TERM_DAYS = 365;
 
-// Fixed wording: the backend only stores *that* the vendor ticked both, at what
-// time, so these two sentences are the whole contract the checkbox stands for.
-export const COMMITMENTS = [
-  'Tôi kinh doanh đúng vị trí, diện tích, khung giờ được cấp và không lấn lối đi chung.',
-  'Tôi giữ vệ sinh, tuân thủ phòng cháy chữa cháy và quy định của Phường.',
-] as const;
+// The commitments themselves live on the slot-rules page (SLOT_COMMITMENTS); the
+// backend only stores *that* the vendor agreed, and when.
+const AGREEMENT_LINKS = [
+  { label: 'Quy định thuê ô', to: LEGAL_ROUTES.slotRules },
+  { label: 'Điều khoản sử dụng', to: LEGAL_ROUTES.terms },
+];
 
 type Props = { slot: SidewalkSlot };
 
@@ -64,7 +66,7 @@ export function SlotApplyForm({ slot }: Props) {
   const { registration, holds, hold, release, refresh } = useHolds();
 
   const [termDays, setTermDays] = useState(DEFAULT_TERM_DAYS);
-  const [accepted, setAccepted] = useState<boolean[]>(() => COMMITMENTS.map(() => false));
+  const [accepted, setAccepted] = useState(false);
 
   // Phase C: an EVENT zone's term may never outrun its own event window, regardless of the
   // general 365-day cap (mirrors WardComplianceService.EventZoneBlocker on the backend).
@@ -108,7 +110,7 @@ export function SlotApplyForm({ slot }: Props) {
         registrationId: registration!.registrationId,
         slotId: slot.slotId,
         requestedTermDays: days,
-        commitmentsAccepted: accepted.every(Boolean),
+        commitmentsAccepted: accepted,
       }),
     onSuccess: (result) => {
       showToast(result.message);
@@ -145,7 +147,7 @@ export function SlotApplyForm({ slot }: Props) {
 
   if (!registration) return <RentalEligibilityMissing />;
 
-  const canSubmit = validDays && accepted.every(Boolean) && !heldByOther;
+  const canSubmit = validDays && accepted && !heldByOther;
   const myHoldSeconds = myHold ? secondsUntil(myHold.expiresAt, nowMs) : 0;
   const holdEnding = myHold != null && myHoldSeconds <= HOLD_WARNING_SECONDS;
 
@@ -185,11 +187,6 @@ export function SlotApplyForm({ slot }: Props) {
               );
             })}
           </div>
-          {discount != null && (
-            <p className="text-body-sm text-muted">
-              Thuê theo quý (3, 6 hoặc 12 tháng) được giảm {discount}% tiền thuê ô.
-            </p>
-          )}
         </div>
       ) : (
         <label className="flex flex-col gap-xs text-label text-text">
@@ -272,51 +269,22 @@ export function SlotApplyForm({ slot }: Props) {
               />
             </span>
           </div>
-          <div className="flex items-baseline justify-between gap-sm">
-            <p className="text-body-sm text-text">Tiền thuê tính vào hợp đồng</p>
-            <Money amountVnd={quote.data.baseFee} className="whitespace-nowrap" />
-          </div>
-          {quote.data.deposit > 0 && (
-            <div className="flex items-baseline justify-between gap-sm">
-              <p className="text-body-sm text-text">Trong đó tiền cọc (hoàn lại)</p>
-              <Money amountVnd={quote.data.deposit} className="whitespace-nowrap" />
-            </div>
-          )}
-          {quote.data.isReferenceOnly && (
-            <p className="text-body-sm text-muted">
-              Phụ phí tham khảo {quote.data.referenceFees.toLocaleString('vi-VN')}đ chưa tính vào
-              hợp đồng; tiền hợp đồng chính thức là giá thuê{' '}
-              {isMonthly ? 'mỗi tháng × số tháng' : 'mỗi ngày × số ngày'}, chốt theo giá khu vực
-              tại thời điểm duyệt.
-            </p>
-          )}
           <p className="flex items-center gap-1 text-body-sm text-muted">
             <Icon name="information-outline" size={15} color="currentColor" />
-            Ước tính, chưa phải phí chính thức.
+            Ước tính, chốt khi Phường duyệt ·
+            <Link
+              to={`${LEGAL_ROUTES.slotRules}#bao-gia`}
+              target="_blank"
+              rel="noopener"
+              className="font-semibold text-primary hover:underline"
+            >
+              Cách tính
+            </Link>
           </p>
         </div>
       )}
 
-      <div className="flex flex-col overflow-hidden rounded-[16px] ring-1 ring-inset ring-border">
-        {COMMITMENTS.map((text, i) => (
-          <label
-            key={text}
-            className={`flex min-h-12 cursor-pointer items-start gap-sm px-md py-sm text-body-sm text-text transition-colors ${
-              accepted[i] ? 'bg-[#E6F6EC]/70 dark:bg-[#10301F]/70' : 'bg-card hover:bg-sunken'
-            } ${i > 0 ? 'border-t border-border' : ''}`}
-          >
-            <input
-              type="checkbox"
-              className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-primary"
-              checked={accepted[i]}
-              onChange={(e) =>
-                setAccepted((prev) => prev.map((v, j) => (j === i ? e.target.checked : v)))
-              }
-            />
-            {text}
-          </label>
-        ))}
-      </div>
+      <AgreementCheckbox checked={accepted} onChange={setAccepted} links={AGREEMENT_LINKS} />
 
       {heldByOther && slot.holdExpiresAt && (
         <div className="flex items-center gap-sm rounded-[16px] bg-[#FFF3D1] p-sm text-[#6B4100] dark:bg-[#3A2A08] dark:text-[#FFD27A]">

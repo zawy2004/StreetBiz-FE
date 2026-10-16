@@ -4,7 +4,7 @@ import { Icon } from '@/components/common';
 import type { SidewalkSlot } from '@/core/api/side-api';
 import type { Corridor, CorridorItem } from '../corridor-model';
 import { slotDisplayState, slotMatchesFilters, type SlotFilters } from '../slot-stats';
-import { PAVING, streetHeading } from '../slot-visuals';
+import { PAVING } from '../slot-visuals';
 import { FeatureCard } from './FeatureCard';
 import { SlotCard } from './SlotCard';
 
@@ -12,7 +12,6 @@ type Props = {
   corridor: Corridor;
   roadName: string;
   /** Angle of the fitted street axis above due east (street-geometry), for the compass badge. */
-  bearingDegrees: number;
   showFeatures: boolean;
   filters: SlotFilters;
   selectedSlotId: number | null;
@@ -20,8 +19,6 @@ type Props = {
   myHeldSlotIds: ReadonlySet<number>;
   cardWidthPx: number;
   nowMs: number;
-  /** "16°03'…N 108°12'…E" of the selected slot, painted on the roadway. */
-  selectedCoordinates: string | null;
   /** How far along the street the selected slot sits, in whole metres. */
   selectedAlongMeters: number | null;
   onSelect: (slot: SidewalkSlot) => void;
@@ -42,14 +39,12 @@ const STAGGER_MS = 30;
 export function CorridorPlan({
   corridor,
   roadName,
-  bearingDegrees,
   showFeatures,
   filters,
   selectedSlotId,
   myHeldSlotIds,
   cardWidthPx,
   nowMs,
-  selectedCoordinates,
   selectedAlongMeters,
   onSelect,
 }: Props) {
@@ -97,8 +92,7 @@ export function CorridorPlan({
 
   return (
     <section aria-label={`Sơ đồ tuyến ${roadName}`} className="flex flex-col gap-xs">
-      <div className="flex flex-wrap items-center justify-between gap-x-md gap-y-xs">
-        <BearingBadge bearingDegrees={bearingDegrees} />
+      <div className="flex justify-end">
         <span className="flex items-center gap-1.5 text-body-sm text-muted">
           <span
             aria-hidden="true"
@@ -123,7 +117,6 @@ export function CorridorPlan({
             <div aria-hidden="true" className="sb-kerb sb-kerb-thin" />
             <Roadway
               roadName={roadName}
-              coordinates={selectedCoordinates}
               alongMeters={selectedAlongMeters}
             />
             <div aria-hidden="true" className="sb-kerb sb-kerb-thin" />
@@ -177,11 +170,9 @@ function Footpath() {
 /** Light asphalt, a dashed white centre line, zebra crossings at both ends, the name painted on it. */
 function Roadway({
   roadName,
-  coordinates,
   alongMeters,
 }: {
   roadName: string;
-  coordinates: string | null;
   alongMeters: number | null;
 }) {
   const zebra =
@@ -198,19 +189,12 @@ function Roadway({
         <span className="sticky left-sm w-fit font-sign text-[15px] font-extrabold tracking-[0.18em] text-[#566173] [font-stretch:80%] dark:text-[#A7B3C0]">
           {roadName.toUpperCase()}
         </span>
-        {coordinates ? (
+        {alongMeters != null ? (
           <span className="sticky left-sm flex w-fit items-center gap-1.5 rounded-full bg-card px-sm py-0.5 text-body-sm font-semibold text-text shadow-card">
             <span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand" />
-            {coordinates}
-            {alongMeters != null ? (
-              <span className="font-normal text-muted">· cách đầu tuyến {alongMeters} m</span>
-            ) : null}
+            Cách đầu tuyến {alongMeters} m
           </span>
-        ) : (
-          <span className="sticky left-sm text-body-xs text-[#566173] dark:text-[#A7B3C0]">
-            Chọn một ô để xem toạ độ
-          </span>
-        )}
+        ) : null}
       </div>
       <span aria-hidden="true" className={zebra} />
     </div>
@@ -236,34 +220,3 @@ function StreetRuler({ lengthMeters }: { lengthMeters: number }) {
   );
 }
 
-function BearingBadge({ bearingDegrees }: { bearingDegrees: number }) {
-  // The needle points to north as it lies on the plan: rows read left to right along the street axis.
-  return (
-    <span className="flex items-center gap-xs text-body-sm text-muted">
-      <span
-        aria-hidden="true"
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-card shadow-card ring-1 ring-border"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="h-5 w-5"
-          style={{ transform: `rotate(${bearingDegrees}deg)` }}
-        >
-          <path d="M12 2.5 16 12h-8z" className="fill-brand" />
-          <path d="M12 21.5 8 12h8z" className="fill-muted/50" />
-          <text
-            x="12"
-            y="9.6"
-            textAnchor="middle"
-            fontSize="5.5"
-            fontWeight="800"
-            className="fill-white"
-          >
-            B
-          </text>
-        </svg>
-      </span>
-      Tuyến chạy hướng {streetHeading(bearingDegrees)}, đọc từ trái sang phải
-    </span>
-  );
-}

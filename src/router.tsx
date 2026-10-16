@@ -36,6 +36,10 @@ const ResetPasswordScreen = lazyScreen(
   () => import('@/features/authentication/screens'),
   'ResetPasswordScreen',
 );
+const TermsScreen = lazyScreen(() => import('@/features/legal/screens'), 'TermsScreen');
+const PrivacyScreen = lazyScreen(() => import('@/features/legal/screens'), 'PrivacyScreen');
+const SlotRulesScreen = lazyScreen(() => import('@/features/legal/screens'), 'SlotRulesScreen');
+const LegalBasisScreen = lazyScreen(() => import('@/features/legal/screens'), 'LegalBasisScreen');
 
 // Everything past sign-in is split per feature and fetched on first visit.
 const WardCasesScreen = lazyScreen(
@@ -341,6 +345,10 @@ const SlotGridEditorScreen = lazyScreen(
   () => import('@/features/ward-administration/screens/SlotGridEditorScreen'),
   'SlotGridEditorScreen',
 );
+const SlotEditScreen = lazyScreen(
+  () => import('@/features/ward-administration/screens/SlotEditScreen'),
+  'SlotEditScreen',
+);
 const SlotOccupancyScreen = lazyScreen(
   () => import('@/features/ward-administration/screens/SlotOccupancyScreen'),
   'SlotOccupancyScreen',
@@ -435,6 +443,11 @@ export function AppRouter() {
         <Route path="/auth/verify-phone" element={<VerifyPhoneScreen />} />
         <Route path="/auth/password/reset-request" element={<ResetPasswordRequestScreen />} />
         <Route path="/auth/password/reset" element={<ResetPasswordScreen />} />
+
+        <Route path="/legal/terms" element={<TermsScreen />} />
+        <Route path="/legal/privacy" element={<PrivacyScreen />} />
+        <Route path="/legal/slot-rules" element={<SlotRulesScreen />} />
+        <Route path="/legal/basis" element={<LegalBasisScreen />} />
 
         <Route
           path="/account"
@@ -605,6 +618,7 @@ export function AppRouter() {
           <Route path="inbox/vendor-reports/:id" element={<VendorReportReviewScreen />} />
           <Route path="slots" element={<SlotOccupancyScreen />} />
           <Route path="slots/editor" element={<SlotGridEditorScreen />} />
+          <Route path="slots/:slotId" element={<SlotEditScreen />} />
           <Route path="patrol" element={<PermitScanScreen />} />
           <Route path="patrol/violations/new" element={<RecordViolationScreen />} />
           <Route path="patrol/permits/:permitId/action" element={<PermitActionScreen />} />

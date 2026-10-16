@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { apiAssetUrl } from '@/core/api/asset-url';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -335,12 +336,13 @@ function DecisionStamp({
 
 function SlotCardBlock({ slot, size }: { slot: SidewalkSlot; size: string | undefined }) {
   const state = slotDisplayState(slot, Date.now());
+  const cover = slot.imageUrls?.[0];
   return (
     <section className="flex flex-col gap-md rounded-[20px] bg-card p-md shadow-card ring-1 ring-border md:p-lg">
       <h2 className="text-headline-sm text-text">Ô đăng ký thuê</h2>
-      {slot.imageUrl ? (
+      {cover ? (
         <img
-          src={slot.imageUrl}
+          src={apiAssetUrl(cover)}
           alt={`Ô ${slot.slotCode}`}
           loading="lazy"
           width={320}

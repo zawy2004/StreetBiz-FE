@@ -16,7 +16,7 @@ export function makeSlot(
     availableFrom: null,
     availableTo: null,
     distanceMeters: null,
-    imageUrl: null,
+    imageUrls: [],
     hasPower: false,
     hasWater: false,
     hasTrashBin: false,

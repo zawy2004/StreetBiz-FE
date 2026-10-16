@@ -10,6 +10,7 @@ import { RentalStepsGuide } from '../components/RentalStepsGuide';
 import { SlotDetailPanel } from '../components/SlotDetailPanel';
 import { SlotFilterBar } from '../components/SlotFilterBar';
 import type { Bounds } from '../components/SlotMapView';
+import { SlotsModeSwitch } from '../components/SlotsModeSwitch';
 import { ZoneHeader } from '../components/ZoneHeader';
 import { ZonePlan } from '../components/ZonePlan';
 import { DEFAULT_CENTER, DEFAULT_SPAN } from '../map-constants';
@@ -27,12 +28,6 @@ const SlotMapView = lazy(() =>
 
 const CARD_WIDTHS_PX = [112, 136, 160, 192];
 const DEFAULT_CARD_WIDTH_INDEX = 1;
-
-const timeFormat = new Intl.DateTimeFormat('vi-VN', {
-  hour: '2-digit',
-  minute: '2-digit',
-  timeZone: 'Asia/Ho_Chi_Minh',
-});
 
 /**
  * The vendor's slot workspace, chosen like seats on a seating plan: the route
@@ -158,11 +153,11 @@ export function SlotMapScreen() {
   // With nothing around the viewport there is no zone to plan, so the map is the
   // only way to find one -- show it whatever view was last chosen.
   const effectiveView = nearbyZones.length === 0 && activeZoneId == null ? 'MAP' : view;
-  const updatedAt = effectiveView === 'PLAN' ? zoneSlots.dataUpdatedAt : nearby.dataUpdatedAt;
 
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-bg xl:flex xl:overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col gap-lg p-md md:p-lg xl:overflow-y-auto">
+        <SlotsModeSwitch active="choose" />
         {activeZoneId != null && (
           <ZoneHeader zoneName={zoneName} zone={zone.data} counts={counts} nowMs={nowMs} />
         )}
@@ -191,12 +186,6 @@ export function SlotMapScreen() {
                   </div>
                 )}
               </div>
-              {updatedAt > 0 ? (
-                <span className="ml-auto hidden items-center gap-1 text-body-xs text-muted md:flex">
-                  <Icon name="clock-outline" size={14} color="currentColor" />
-                  Cập nhật lúc {timeFormat.format(updatedAt)}
-                </span>
-              ) : null}
             </div>
             {effectiveView === 'PLAN' && (
               <div className="flex items-center gap-sm">

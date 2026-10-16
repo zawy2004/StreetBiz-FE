@@ -1,4 +1,5 @@
 import { ApiError, apiDelete, apiGet, apiPost, apiPut } from '@/core/api';
+import { apiUpload } from '@/core/api/client';
 import type { FeeCalcBasis } from '@/core/api/side-api';
 
 // WARD-01/02/03 Ward Configuration. Mirrors StreetBiz-BE Features/WardConfiguration/Contracts.cs.
@@ -32,6 +33,8 @@ export type WardSlot = {
   canHardDelete: boolean;
   canEditGeometry: boolean;
   versionToken: string;
+  /** Photos in order; the first is the cover. */
+  imageUrls: string[];
 };
 
 export type StreetFeatureType =
@@ -70,6 +73,8 @@ export type SlotFacilities = {
   hasTrashBin: boolean;
   businessCategory: string | null;
 };
+/** Omit to leave a slot's photos as they are; a list replaces them all (first = cover, max 6). */
+export type SlotPhotos = { imageUrls?: string[] };
 
 export type WarningAcknowledgement = { acknowledgeWarnings: boolean; warningReason: string | null };
 
@@ -316,16 +321,26 @@ export const wardConfigApi = {
   createSlot: (
     input: SlotPlacementInput &
       SlotFacilities &
+      SlotPhotos &
       WarningAcknowledgement & { slotCode: string | null },
   ) => apiPost<SlotMutationResult>('/ward/slot-grid', input),
   updateSlot: (
     slot: WardSlot,
-    input: SlotPlacementInput & SlotFacilities & WarningAcknowledgement & { slotCode: string },
+    input: SlotPlacementInput &
+      SlotFacilities &
+      SlotPhotos &
+      WarningAcknowledgement & { slotCode: string },
   ) =>
     apiPut<SlotMutationResult>(`/ward/slot-grid/${slot.slotId}`, {
       ...input,
       versionToken: slot.versionToken,
     }),
+  /** Stores one slot photo (public) and returns the URL to send in `imageUrls`. */
+  uploadSlotImage: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiUpload<{ fileUrl: string }>('/uploads/slot-images', form);
+  },
   setSlotStatus: (slot: WardSlot, status: 'AVAILABLE' | 'SUSPENDED', reason: string) =>
     apiPut<WardSlot>(`/ward/slot-grid/${slot.slotId}/status`, {
       status,

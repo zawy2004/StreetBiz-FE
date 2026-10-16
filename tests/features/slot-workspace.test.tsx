@@ -150,14 +150,16 @@ describe('FeatureCard', () => {
 });
 
 describe('SlotApplyForm', () => {
-  it('keeps "nộp hồ sơ" disabled until both commitments are ticked, then submits with them accepted', async () => {
+  it('keeps "nộp hồ sơ" disabled until the one agreement is ticked, then submits with it accepted', async () => {
     api.submitOpenSlotApplication.mockResolvedValue({ message: 'ok', data: { applicationId: 1 } });
     renderWithProviders(<SlotApplyForm slot={slot} />);
 
     const submit = await screen.findByRole('button', { name: /Đăng ký & nộp hồ sơ/ });
     expect(submit).toBeDisabled();
 
-    for (const box of screen.getAllByRole('checkbox')) await userEvent.click(box);
+    const agreement = screen.getByRole('checkbox');
+    expect(screen.getByRole('link', { name: 'Quy định thuê ô' })).toHaveAttribute('href', '/legal/slot-rules');
+    await userEvent.click(agreement);
     expect(submit).toBeEnabled();
 
     await userEvent.click(submit);
@@ -186,7 +188,9 @@ describe('SlotApplyForm', () => {
 
     expect(await screen.findByRole('button', { name: /^3 tháng/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByLabelText(/Số ngày thuê/)).not.toBeInTheDocument();
-    expect(screen.getByText(/được giảm 10% tiền thuê ô/)).toBeInTheDocument();
+    // The discount is said once, on the quarterly term buttons, not repeated as a sentence.
+    expect(screen.getByRole('button', { name: /^3 tháng/ })).toHaveTextContent('-10%');
+    expect(screen.queryByText(/được giảm 10%/)).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: /^12 tháng/ }));
     await waitFor(() => expect(api.getSlotQuote).toHaveBeenCalledWith(10, 360));
@@ -213,6 +217,9 @@ describe('SlotApplyForm', () => {
     expect(screen.getByText('Khuyến mãi thuê theo quý (-10%)')).toBeInTheDocument();
     expect(screen.getByText('Tiền đặt cọc (hoàn lại khi kết thúc)')).toBeInTheDocument();
     expect(screen.getByText('3.350.000 đ')).toBeInTheDocument();
+    // Rent and deposit are not repeated below the quote lines.
+    expect(screen.queryByText('Tiền thuê tính vào hợp đồng')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Trong đó tiền cọc/)).not.toBeInTheDocument();
   });
 
   it('holds the slot for the approved registration', async () => {

@@ -13,6 +13,7 @@ import {
   ProposalPinArt,
   TransferSwapArt,
 } from '../components/HubArt';
+import { SlotsModeSwitch } from '../components/SlotsModeSwitch';
 import { summarizeMySlots } from '../my-slots-summary';
 import { contractProgress, countApplications } from '../my-slots-view';
 
@@ -55,7 +56,8 @@ export function MySlotsScreen() {
 
   return (
     <Screen>
-      <AppHeader title="Thuê ô của tôi" back />
+      <SlotsModeSwitch active="mine" />
+      <AppHeader title="Thuê ô của tôi" />
 
       <RentalJourney
         applications={applications.data}

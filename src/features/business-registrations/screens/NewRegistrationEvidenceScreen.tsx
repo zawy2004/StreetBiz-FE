@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { LegalBasisLink } from '@/features/legal/components/LegalBasisLink';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -342,9 +343,8 @@ export function NewRegistrationEvidenceScreen() {
               }
             >
               Tôi đồng ý <strong>riêng biệt</strong> để hệ thống dùng công nghệ nhận diện quang học
-              (OCR) đối soát ảnh CCCD/CMND theo Luật Bảo vệ dữ liệu cá nhân 2025 (Nghị định
-              356/2025/NĐ-CP). Không đồng ý vẫn nộp hồ sơ được — cán bộ phường sẽ đối chiếu giấy tờ
-              thủ công thay vì tự động.
+              (OCR) đối soát ảnh CCCD/CMND. Không đồng ý vẫn nộp hồ sơ được — cán bộ phường sẽ đối chiếu
+              giấy tờ thủ công thay vì tự động. <LegalBasisLink anchor="du-lieu" />
             </ConsentRow>
           ) : null}
 

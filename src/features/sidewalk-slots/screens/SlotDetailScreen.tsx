@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import { LegalBasisLink } from '@/features/legal/components/LegalBasisLink';
 import { useQuery } from '@tanstack/react-query';
 
 import { Button, Icon } from '@/components/common';
@@ -110,12 +111,7 @@ function ZoneSegmentSign({ zone }: { zone: SidewalkZone }) {
               {zone.segmentFrom} ⇄ {zone.segmentTo}
             </span>
           ) : null}
-          {zone.regulationRef ? (
-            <span className="inline-flex h-7 items-center gap-1 rounded-full bg-tint-indigo px-sm text-label text-indigo ring-1 ring-inset ring-indigo/25">
-              <Icon name="gavel" size={14} color="currentColor" />
-              {zone.regulationRef}
-            </span>
-          ) : null}
+          {zone.regulationRef ? <LegalBasisLink title={zone.regulationRef} /> : null}
           {deadline ? (
             <span className="inline-flex h-7 items-center gap-1 rounded-full bg-[#FFF3D1] px-sm text-label font-semibold text-[#6B4100] dark:bg-[#3A2A08] dark:text-[#FFD27A]">
               <Icon name="timer-outline" size={14} color="currentColor" />

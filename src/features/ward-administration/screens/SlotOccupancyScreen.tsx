@@ -49,6 +49,11 @@ export function SlotOccupancyScreen() {
   });
   const mockSlots = useMockDb((s) => s.slots);
 
+  // Live only: the slot page edits through the ward API. The mock store has no such page.
+  const openSlot = isLiveApi
+    ? (row: OccupancyRow) => navigate(`/ward/slots/${row.key}`)
+    : undefined;
+
   const rows: OccupancyRow[] = useMemo(
     () =>
       isLiveApi
@@ -161,7 +166,7 @@ export function SlotOccupancyScreen() {
               </button>
             </div>
           ) : view === 'list' ? (
-            <OccupancyList rows={filtered} />
+            <OccupancyList rows={filtered} onOpen={openSlot} />
           ) : (
             groups.map((group, i) => {
               const shown = group.rows.filter(matches);
@@ -175,6 +180,7 @@ export function SlotOccupancyScreen() {
                   rows={shown}
                   collapsed={collapsed}
                   rise={i === 0}
+                  onOpenSlot={openSlot}
                   onToggle={() =>
                     setToggled((prev) => {
                       const next = new Set(prev);

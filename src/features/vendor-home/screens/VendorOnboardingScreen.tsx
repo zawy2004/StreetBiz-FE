@@ -49,7 +49,7 @@ function buildSteps(registrations: ApiRegistration[]): StepModel[] {
       : rejected
         ? 'Hồ sơ bị từ chối. Bạn có thể nộp hồ sơ mới.'
         : active
-          ? 'Hồ sơ đã nộp theo Mẫu số 01 (Thông tư 68/2025).'
+          ? 'Hồ sơ đã nộp.'
           : 'Khai thông tin chủ hộ, ngành nghề và tải giấy tờ (eKYC CCCD).',
     state: hasFiled || approved ? 'done' : 'current',
     cta:

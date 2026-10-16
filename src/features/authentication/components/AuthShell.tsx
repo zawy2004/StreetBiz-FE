@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { LegalLinks } from '@/features/legal/components/LegalLinks';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { BrandLogo, Icon, IconButton } from '@/components/common';
@@ -127,6 +128,7 @@ export function AuthShell({
           </h1>
           {subtitle ? <p className="mt-xs text-body-lg text-muted">{subtitle}</p> : null}
           <div className="mt-lg flex flex-col gap-md">{children}</div>
+          <LegalLinks className="mt-md" />
         </div>
       </main>
     </div>

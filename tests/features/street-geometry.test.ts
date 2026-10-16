@@ -15,7 +15,7 @@ function makeSlot(overrides: Partial<SidewalkSlot> & Pick<SidewalkSlot, 'slotCod
     availableFrom: null,
     availableTo: null,
     distanceMeters: null,
-    imageUrl: null,
+    imageUrls: [],
     hasPower: false,
     hasWater: false,
     hasTrashBin: false,
