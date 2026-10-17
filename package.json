@@ -13,6 +13,7 @@
     "test:watch": "vitest"
   },
   "overrides": {
+    "minimist": "^1.2.8",
     "@goongmaps/goong-map-react": {
       "react": "$react",
       "react-dom": "$react-dom"
