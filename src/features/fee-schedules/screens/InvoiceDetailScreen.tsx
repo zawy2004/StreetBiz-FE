@@ -1,11 +1,13 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { Button, formatVnd, KerbTag } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ErrorState, showToast } from '@/components/feedback';
-import { errorMessage } from '@/core/api';
+import { errorMessage, financeApi } from '@/core/api';
+import { isLiveApi } from '@/core/config/env';
+import { saveFile } from '@/core/utils/save-file';
 import { useInvoiceDetail } from '../useFinance';
 import { PROVIDER_LABEL } from '../finance-view';
 import { LoadingBlock } from '../components/FinanceParts';
@@ -28,6 +30,7 @@ export function InvoiceDetailScreen() {
   const invoiceId = Number(id);
   const { invoice, isLoading, isError, error, refetch } = useInvoiceDetail(invoiceId);
   const numberId = useId();
+  const [downloading, setDownloading] = useState(false);
 
   if (isLoading) {
     return (
@@ -55,6 +58,21 @@ export function InvoiceDetailScreen() {
     ? (PROVIDER_LABEL[invoice.paymentProvider] ?? invoice.paymentProvider)
     : null;
 
+  const downloadPdf = async () => {
+    if (!isLiveApi) {
+      showToast('Tải hoá đơn chỉ có khi kết nối máy chủ (đang ở chế độ demo).');
+      return;
+    }
+    setDownloading(true);
+    try {
+      saveFile(await financeApi.invoicePdf(invoiceId), `${invoice.invoiceNumber}.pdf`);
+    } catch (err) {
+      showToast(errorMessage(err));
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <Screen
       footer={
@@ -62,7 +80,8 @@ export function InvoiceDetailScreen() {
           <Button
             label="Tải hoá đơn (PDF)"
             variant="outline"
-            onPress={() => showToast('Đã lưu hoá đơn vào thiết bị (demo)')}
+            loading={downloading}
+            onPress={() => void downloadPdf()}
           />
         </StickyActions>
       }
@@ -88,12 +107,27 @@ export function InvoiceDetailScreen() {
             <p className="relative whitespace-nowrap font-sign text-[clamp(32px,10.5vw,44px)] font-bold leading-none tracking-[-0.01em] tabular-nums text-text [font-stretch:88%] md:text-[56px]">
               {formatVnd(invoice.amount)}
             </p>
+            {invoice.amountInWords ? (
+              <p className="relative mt-xs text-body-sm italic text-muted">
+                Bằng chữ: {invoice.amountInWords}
+              </p>
+            ) : null}
             <p className="relative mt-xs text-body-md text-muted">
               Xuất ngày {new Date(invoice.issuedAt).toLocaleDateString('vi-VN')}
             </p>
           </div>
 
           <dl className="border-t border-border pt-xs">
+            {/* The lines the PDF prints; older servers leave them out. */}
+            {invoice.wardName ? (
+              <ReceiptRow label="Đơn vị thu">UBND {invoice.wardName}</ReceiptRow>
+            ) : null}
+            {invoice.payerName ? (
+              <ReceiptRow label="Người nộp">{invoice.payerName}</ReceiptRow>
+            ) : null}
+            {invoice.businessName ? (
+              <ReceiptRow label="Hộ kinh doanh">{invoice.businessName}</ReceiptRow>
+            ) : null}
             {itemSubtitle ? (
               <ReceiptRow label={itemLabel}>
                 <span title={itemSubtitle} className="line-clamp-3">
@@ -106,7 +140,15 @@ export function InvoiceDetailScreen() {
                 <KerbTag code={invoice.slotCode} />
               </ReceiptRow>
             ) : null}
+            {invoice.kind === 'PENALTY' && invoice.decisionNumber ? (
+              <ReceiptRow label="Quyết định xử phạt">{invoice.decisionNumber}</ReceiptRow>
+            ) : null}
             {provider ? <ReceiptRow label="Thanh toán qua">{provider}</ReceiptRow> : null}
+            {invoice.providerReference ? (
+              <ReceiptRow label="Mã giao dịch">
+                <span className="break-all">{invoice.providerReference}</span>
+              </ReceiptRow>
+            ) : null}
             {invoice.paidAt ? (
               <ReceiptRow label="Thanh toán lúc">
                 <span className="tabular-nums">
