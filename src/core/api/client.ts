@@ -12,6 +12,7 @@ import { clearTokens, getTokens, setTokens, type AuthTokens } from './token-stor
 /** Endpoints that must never carry a bearer token or trigger a refresh retry. */
 const ANONYMOUS_PATHS = [
   '/auth/login',
+  '/auth/login-otp',
   '/auth/register',
   '/auth/send-otp',
   '/auth/refresh',
@@ -22,8 +23,14 @@ const ANONYMOUS_PATHS = [
 
 type RetriableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
 
+/**
+ * Whole-path match, query string ignored. A prefix match would treat `/auth/login-history`
+ * as `/auth/login` and send it without its bearer token (the server then answers 401).
+ */
 function isAnonymous(url: string | undefined): boolean {
-  return !!url && ANONYMOUS_PATHS.some((path) => url.startsWith(path));
+  if (!url) return false;
+  const path = url.split('?')[0] ?? url;
+  return ANONYMOUS_PATHS.includes(path);
 }
 
 export const http: AxiosInstance = axios.create({
