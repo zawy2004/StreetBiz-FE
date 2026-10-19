@@ -76,15 +76,24 @@ export function RecordViolationScreen() {
     if (!isLiveApi || paramVendorId) return;
     complianceApi
       .listEnrollments('APPROVED')
-      .then((items) =>
-        setLiveVendors(
-          items.map((i) => ({
-            vendorId: i.vendorId,
-            displayName: i.displayName,
-            ownerName: i.ownerName,
-          })),
-        ),
-      )
+      .then((items) => {
+        // A violation is recorded against the household, and one household may hold several
+        // approved registrations: list each household once, with all its business names.
+        const byVendor = new Map<
+          number,
+          { vendorId: number; displayName: string; ownerName: string }
+        >();
+        for (const i of items) {
+          const seen = byVendor.get(i.vendorId);
+          byVendor.set(
+            i.vendorId,
+            seen
+              ? { ...seen, displayName: `${seen.displayName} · ${i.displayName}` }
+              : { vendorId: i.vendorId, displayName: i.displayName, ownerName: i.ownerName },
+          );
+        }
+        setLiveVendors([...byVendor.values()]);
+      })
       .catch(() => showToast('Không tải được danh sách hộ kinh doanh.'));
   }, [paramVendorId]);
 

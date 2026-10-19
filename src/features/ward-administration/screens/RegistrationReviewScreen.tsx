@@ -235,10 +235,10 @@ export function RegistrationReviewScreen() {
 
     if (isLiveApi && id) {
       try {
-        const decisionText = action === 'MORE_INFO' ? 'MORE_INFORMATION_REQUIRED' : action;
+        // The API takes the action word (APPROVE / REJECT / MORE_INFO), not the status it leads to.
         await complianceApi.decideEnrollment(
           id,
-          decisionText,
+          action,
           note.trim() || 'Hồ sơ đủ điều kiện thực địa trật tự đô thị',
           status,
         );
