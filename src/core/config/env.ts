@@ -4,7 +4,9 @@ function bool(value: string | undefined, fallback = false): boolean {
 }
 
 export const env = {
-  appEnv: import.meta.env.VITE_APP_ENV ?? 'development',
+  // Defaults to the build mode, so a deployment that never sets VITE_APP_ENV is
+  // treated as production (no demo accounts on the sign-in page).
+  appEnv: import.meta.env.VITE_APP_ENV ?? (import.meta.env.DEV ? 'development' : 'production'),
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? '',
   /**
    * When true, Authentication and Vendor Onboarding run against `src/mocks`
