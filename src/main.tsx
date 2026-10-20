@@ -1,6 +1,8 @@
+import '@/store/theme-store';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { AppErrorBoundary } from '@/components/feedback';
 import { App } from './App';
 import './index.css';
 
@@ -9,6 +11,8 @@ if (!rootEl) throw new Error('#root element not found');
 
 createRoot(rootEl).render(
   <StrictMode>
-    <App />
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
   </StrictMode>,
 );

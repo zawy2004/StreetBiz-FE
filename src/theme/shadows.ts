@@ -1,5 +1,6 @@
-/** Level-1 resting card elevation. */
-export const cardShadow = '0 2px 4px -1px rgba(26,34,56,0.08)';
+/** Elevation lives in CSS variables so dark mode can swap shadows for hairlines. */
+export const cardShadow = 'var(--shadow-card)';
 
-/** Level-3 modal / sheet elevation. */
-export const sheetShadow = '0 20px 25px -5px rgba(26,34,56,0.16)';
+export const cardHoverShadow = 'var(--shadow-card-hover)';
+
+export const sheetShadow = 'var(--shadow-sheet)';

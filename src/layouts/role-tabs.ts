@@ -4,6 +4,7 @@ export const CUSTOMER_TABS: RoleTabItem[] = [
   { to: '/customer/explore', label: 'Khám phá', icon: 'compass-outline' },
   { to: '/customer/scan', label: 'Quét QR', icon: 'qrcode-scan' },
   { to: '/customer/orders', label: 'Đơn hàng', icon: 'receipt-text-outline' },
+  { to: '/customer/chat', label: 'Tin nhắn', icon: 'chat-outline' },
   { to: '/customer/account', label: 'Tài khoản', icon: 'account-circle-outline' },
 ];
 
@@ -11,15 +12,41 @@ export const VENDOR_TABS: RoleTabItem[] = [
   { to: '/vendor/home', label: 'Trang chủ', icon: 'home-outline' },
   { to: '/vendor/slots', label: 'Ô thuê', icon: 'map-marker-radius-outline' },
   { to: '/vendor/finance', label: 'Tài chính', icon: 'cash-multiple' },
-  { to: '/vendor/store', label: 'Cửa hàng', icon: 'silverware-fork-knife' },
+  // Orders take the tab that used to hold the storefront: taking orders and
+  // handing them over is the daily job, while setting up a menu is occasional
+  // configuration, so it moves to a shortcut on the home screen like the other
+  // occasional tasks. A seventh tab would truncate every label on a phone.
+  { to: '/vendor/orders', label: 'Đơn hàng', icon: 'receipt-text-outline' },
+  { to: '/vendor/chat', label: 'Tin nhắn', icon: 'chat-outline' },
   { to: '/vendor/account', label: 'Tài khoản', icon: 'account-circle-outline' },
 ];
 
 export const WARD_TABS: RoleTabItem[] = [
   { to: '/ward/dashboard', label: 'Tổng quan', icon: 'view-dashboard-outline' },
-  { to: '/ward/inbox', label: 'Hộp duyệt', icon: 'inbox-outline' },
+  {
+    to: '/ward/inbox',
+    label: 'Hộp duyệt',
+    icon: 'inbox-outline',
+    children: [
+      // Everything under the inbox not claimed below: registrations, rental
+      // applications, renewals and vendor reports open from the overview.
+      { to: '/ward/inbox', label: 'Tổng quan' },
+      {
+        to: '/ward/inbox/reviews',
+        label: 'Hồ sơ vị trí',
+        match: [
+          '/ward/inbox/slot-proposals',
+          '/ward/inbox/slot-transfers',
+          '/ward/inbox/address-conflicts',
+        ],
+      },
+      { to: '/ward/inbox/food-safety', label: 'Hồ sơ an toàn thực phẩm', match: [] },
+    ],
+  },
   { to: '/ward/slots', label: 'Lưới ô', icon: 'map-marker-radius-outline' },
   { to: '/ward/patrol', label: 'Tuần tra', icon: 'qrcode-scan' },
+  { to: '/ward/finance', label: 'Thu phí', icon: 'cash-multiple' },
+  { to: '/ward/settings/pricing', label: 'Giá & khung giờ', icon: 'tag-outline' },
   { to: '/ward/reports', label: 'Báo cáo', icon: 'chart-bar' },
 ];
 

@@ -1,117 +1,214 @@
+import { useEffect, useState } from 'react';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
-import { Button, Card, Icon, ListRow } from '@/components/common';
-import { AppHeader, Screen, Section } from '@/components/layout';
-import { StatusChip } from '@/components/status';
-import { EmptyState } from '@/components/feedback';
-import { colors } from '@/theme';
+import { Screen } from '@/components/layout';
+import { sideApi } from '@/core/api/side-api';
+import { isLiveApi } from '@/core/config/env';
+import { useRegistrations } from '@/features/business-registrations/useRegistrations';
+import { useFeeItems, usePenalties } from '@/features/fee-schedules/useFinance';
+import { hkdCode } from '@/features/sidewalk-slots/slot-format';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
+import {
+  HoldLine,
+  HomeGreeting,
+  RegisterPath,
+  ShortcutTiles,
+  TodayBoard,
+} from '../components/HomeParts';
+import { PermitPass, PermitPassSkeleton, type PermitCard } from '../components/PermitPass';
+import { buildTodos } from '../todos';
 
+/**
+ * Vendor home: "the board at the counter at dawn". How many things are waiting
+ * and how much to pay (TodayBoard), the permit as a pass with its days left,
+ * any slot hold counting down, and four way-finding tiles.
+ */
 export function VendorHomeScreen() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const registrations = useMockDb((s) => s.registrations).filter(
-    (r) => r.vendorId === user?.vendorId,
+  // Shared with the registrations list/detail screens, so this stays correct
+  // against StreetBiz-BE instead of always reporting "no registration yet".
+  const { registrations, isLoading: registrationsLoading } = useRegistrations();
+  // Unfiltered, so they share their cache with FinanceHomeScreen; both hooks
+  // already switch between StreetBiz-BE and the mock store.
+  const { feeItems, isLoading: feesLoading } = useFeeItems();
+  const { penalties, isLoading: penaltiesLoading } = usePenalties();
+  const { card: permit, loading: permitLoading } = useCurrentPermit();
+  const holds = useCachedHolds(
+    user?.id,
+    registrations.find((r) => r.registrationStatus === 'APPROVED')?.registrationId,
   );
-  const contracts = useMockDb((s) => s.contracts).filter(
-    (c) => c.vendorId === user?.vendorId && c.contract_status === 'ACTIVE',
-  );
-  const feeItems = useMockDb((s) => s.feeItems).filter(
-    (f) => f.vendorId === user?.vendorId && f.item_status === 'PENDING',
-  );
-  const penalties = useMockDb((s) => s.penalties).filter(
-    (p) => p.vendorId === user?.vendorId && p.penalty_status === 'PENDING',
-  );
-  const permits = useMockDb((s) => s.permits).filter((p) =>
-    contracts.some((c) => c.id === p.contractId),
-  );
+  const online = useOnline();
 
-  const todos = [
-    ...registrations
-      .filter((r) => r.registration_status === 'NEEDS_INFO')
-      .map((r) => ({
-        key: r.id,
-        title: `Bổ sung hồ sơ: ${r.business_name}`,
-        onPress: () => navigate(`/vendor/registrations/${r.id}`),
-      })),
-    ...feeItems.map((f) => ({
-      key: f.id,
-      title: `Thanh toán phí ${f.period_label}`,
-      onPress: () => navigate(`/vendor/finance/fees/${f.id}/payment`),
-    })),
-    ...penalties.map((p) => ({
-      key: p.id,
-      title: `Thanh toán biên bản phạt`,
-      onPress: () => navigate(`/vendor/finance/penalties/${p.id}/payment`),
-    })),
-  ];
+  const todos = buildTodos(registrations, feeItems, penalties);
 
-  const permit = permits[0];
+  const latest = registrations.reduce<(typeof registrations)[number] | null>(
+    (acc, r) => (!acc || Date.parse(r.createdAt) > Date.parse(acc.createdAt) ? r : acc),
+    null,
+  );
+  const approved = registrations.find((r) => r.registrationStatus === 'APPROVED');
+  const hkdSource = approved ?? latest;
+
+  const showPassCell = permitLoading || permit !== null || holds.length > 0;
 
   return (
-    <Screen>
-      <AppHeader title={`Chào ${user?.fullName ?? ''}`} subtitle="Hộ kinh doanh" />
+    <Screen width="wide">
+      <HomeGreeting
+        fullName={user?.fullName ?? ''}
+        hkd={hkdSource ? hkdCode(hkdSource.registrationId) : null}
+        latestStatus={latest?.registrationStatus ?? null}
+        loading={registrationsLoading}
+      />
 
-      {permit ? (
-        <Card onPress={() => navigate(`/vendor/slots/contracts/${permit.contractId}/permit`)}>
-          <div className="flex items-center gap-sm">
-            <Icon name="qrcode" size={28} color={colors.tertiary} />
-            <div className="flex flex-1 flex-col gap-2xs">
-              <span className="truncate text-headline-sm text-text">Giấy phép số</span>
-              <span className="truncate text-body-md text-muted">{permit.permit_code}</span>
-            </div>
-            <StatusChip code={permit.permit_status} />
-          </div>
-        </Card>
-      ) : null}
+      <div className="grid items-start gap-lg xl:grid-cols-[minmax(0,1fr)_380px] xl:gap-xl">
+        <div className="flex min-w-0 flex-col gap-lg">
+          <TodayBoard
+            todos={todos}
+            loading={registrationsLoading || feesLoading || penaltiesLoading}
+            onOpen={(path) => navigate(path)}
+          />
 
-      <Section title="Việc cần làm">
-        {todos.length === 0 ? (
-          <EmptyState icon="check-circle-outline" title="Không có việc cần xử lý" />
-        ) : (
-          <Card padded={false}>
-            <div className="px-md">
-              {todos.map((t) => (
-                <ListRow key={t.key} title={t.title} showChevron onPress={t.onPress} />
-              ))}
-            </div>
-          </Card>
-        )}
-      </Section>
-
-      <Section title="Lối tắt">
-        <div className="flex flex-wrap gap-sm">
-          <div className="min-w-[150px] grow">
-            <Button
-              label="Đăng ký kinh doanh"
-              variant="outline"
-              onPress={() => navigate('/vendor/registrations')}
-            />
-          </div>
-          <div className="min-w-[150px] grow">
-            <Button
-              label="Thuê ô vỉa hè"
-              variant="outline"
-              onPress={() => navigate('/vendor/slots')}
-            />
-          </div>
+          {!registrationsLoading && registrations.length === 0 ? (
+            <RegisterPath onStart={() => navigate('/vendor/registrations/new/type')} />
+          ) : null}
         </div>
-      </Section>
 
-      {registrations.length === 0 ? (
-        <EmptyState
-          icon="file-document-outline"
-          title="Chưa có hồ sơ đăng ký"
-          description="Đăng ký kinh doanh để bắt đầu thuê ô vỉa hè hợp pháp."
-          action={
-            <Button
-              label="Đăng ký ngay"
-              onPress={() => navigate('/vendor/registrations/new/type')}
-            />
-          }
-        />
-      ) : null}
+        <div
+          className={`grid min-w-0 items-start gap-lg xl:sticky xl:top-0 xl:grid-cols-1 ${
+            showPassCell ? 'md:grid-cols-2' : ''
+          }`}
+        >
+          {showPassCell ? (
+            <div className="flex min-w-0 flex-col gap-sm">
+              {permit ? (
+                <PermitPass
+                  card={permit}
+                  online={online}
+                  onOpen={() => navigate(`/vendor/slots/contracts/${permit.contractId}/permit`)}
+                />
+              ) : permitLoading ? (
+                <PermitPassSkeleton />
+              ) : null}
+              {holds.length > 0 ? (
+                <HoldLine holds={holds} onOpen={() => navigate('/vendor/slots')} />
+              ) : null}
+            </div>
+          ) : null}
+
+          <ShortcutTiles onOpen={(path) => navigate(path)} />
+        </div>
+      </div>
+
+      {/* Room for the floating assistant button so it never covers the last tiles on a phone. */}
+      <div aria-hidden="true" className="h-16 md:hidden" />
     </Screen>
   );
+}
+
+/**
+ * The permit of the vendor's first ACTIVE contract that has one (a just-approved
+ * contract can be ACTIVE before its permit is issued). Live, it uses the same
+ * query keys as ContractsListScreen and DigitalPermitScreen, so opening the
+ * permit from here reuses the cache.
+ */
+function useCurrentPermit(): { card: PermitCard | null; loading: boolean } {
+  const user = useAuthStore((s) => s.user);
+
+  const contracts = useQuery({
+    queryKey: ['side', user?.id, 'contracts'],
+    queryFn: () => sideApi.listContracts(),
+    enabled: isLiveApi,
+  });
+  const active = (contracts.data ?? []).filter((c) => c.contractStatus === 'ACTIVE');
+  const permits = useQueries({
+    queries: active.map((contract) => ({
+      queryKey: ['side', user?.id, 'permit', contract.contractId],
+      queryFn: () => sideApi.getPermit(contract.contractId),
+      enabled: isLiveApi,
+      retry: false,
+    })),
+  });
+  const withPermit = active
+    .map((contract, i) => ({
+      contract,
+      permit: permits[i]?.data,
+      fetchedAt: permits[i]?.dataUpdatedAt,
+    }))
+    .find((row) => row.permit);
+
+  const mockContracts = useMockDb((s) => s.contracts).filter(
+    (c) => c.vendorId === user?.vendorId && c.contract_status === 'ACTIVE',
+  );
+  const mockPermit = useMockDb((s) => s.permits).find((p) =>
+    mockContracts.some((c) => c.id === p.contractId),
+  );
+  const mockSlots = useMockDb((s) => s.slots);
+
+  if (!isLiveApi) {
+    if (!mockPermit) return { card: null, loading: false };
+    const contract = mockContracts.find((c) => c.id === mockPermit.contractId);
+    const slot = contract ? mockSlots.find((s) => s.id === contract.slotId) : undefined;
+    return {
+      card: {
+        contractId: mockPermit.contractId,
+        label: mockPermit.permit_code,
+        status: mockPermit.permit_status,
+        slotCode: slot?.slot_code ?? null,
+        zoneName: slot?.street ?? null,
+        startDate: contract?.start_date ?? null,
+        endDate: mockPermit.expires_at ?? null,
+        fetchedAt: null,
+      },
+      loading: false,
+    };
+  }
+
+  const loading = contracts.isLoading || permits.some((q) => q.isLoading);
+  return {
+    card: withPermit?.permit
+      ? {
+          contractId: withPermit.contract.contractId,
+          label: `Ô ${withPermit.contract.slotCode}`,
+          status: withPermit.permit.effectiveStatus,
+          slotCode: withPermit.contract.slotCode,
+          zoneName: withPermit.contract.zoneName,
+          startDate: withPermit.permit.startDate,
+          endDate: withPermit.permit.endDate,
+          fetchedAt: withPermit.fetchedAt || null,
+        }
+      : null,
+    loading,
+  };
+}
+
+/**
+ * The slot holds VendorTopBar already keeps (same key as `useHolds`). Read with
+ * `enabled: false`, so the home screen never sends a holds request of its own.
+ */
+function useCachedHolds(userId: string | undefined, registrationId: number | undefined) {
+  const query = useQuery({
+    queryKey: ['side', userId, 'holds', registrationId],
+    queryFn: () => sideApi.listHolds(registrationId!),
+    enabled: false,
+  });
+  return query.data ?? [];
+}
+
+function useOnline() {
+  const [online, setOnline] = useState(() =>
+    typeof navigator === 'undefined' ? true : navigator.onLine !== false,
+  );
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
+  return online;
 }

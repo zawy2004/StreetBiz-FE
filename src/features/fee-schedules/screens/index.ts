@@ -5,3 +5,4 @@ export * from './InvoicesListScreen';
 export * from './InvoiceDetailScreen';
 export * from './PaymentHistoryScreen';
 export * from './VendorViolationsScreen';
+export * from './ContractScheduleScreen';

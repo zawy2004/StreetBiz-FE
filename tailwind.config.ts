@@ -1,8 +1,12 @@
 import type { Config } from 'tailwindcss';
-import { colors, tints } from './src/theme/colors';
 import { spacing, radius } from './src/theme/spacing';
 import { typography, fontFamily } from './src/theme/typography';
-import { cardShadow, sheetShadow } from './src/theme/shadows';
+import { cardShadow, cardHoverShadow, sheetShadow } from './src/theme/shadows';
+
+/** A colour token that keeps Tailwind's /opacity modifier working. */
+function tw(name: string) {
+  return `rgb(var(--c-${name}) / <alpha-value>)`;
+}
 
 function px(value: number) {
   return `${value}px`;
@@ -30,45 +34,73 @@ const fontSize = Object.fromEntries(
 
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        primary: colors.primary,
-        'primary-pressed': colors.primaryPressed,
-        'on-primary': colors.onPrimary,
-        secondary: colors.secondary,
-        'secondary-bg': colors.secondaryBg,
-        'on-secondary': colors.onSecondary,
-        tertiary: colors.tertiary,
-        'on-tertiary': colors.onTertiary,
-        indigo: colors.indigo,
-        'on-indigo': colors.onIndigo,
-        bg: colors.bg,
-        card: colors.card,
-        border: colors.border,
-        muted: colors.muted,
-        text: colors.text,
-        error: colors.error,
-        'error-bg': colors.errorBg,
-        'tint-primary': tints.primary,
-        'tint-secondary': tints.secondary,
-        'tint-tertiary': tints.tertiary,
-        'tint-indigo': tints.indigo,
-        'tint-muted': tints.muted,
+        primary: tw('primary'),
+        brand: tw('brand'),
+        accent: tw('accent'),
+        'accent-pressed': tw('accent-pressed'),
+        'on-accent': tw('on-accent'),
+        sign: tw('sign'),
+        'on-sign': tw('on-sign'),
+        kerb: tw('kerb'),
+        'kerb-paint': tw('kerb-paint'),
+        'primary-pressed': tw('primary-pressed'),
+        'on-primary': tw('on-primary'),
+        secondary: tw('secondary'),
+        'secondary-bg': tw('secondary-bg'),
+        'on-secondary': tw('on-secondary'),
+        tertiary: tw('tertiary'),
+        'on-tertiary': tw('on-tertiary'),
+        indigo: tw('indigo'),
+        'on-indigo': tw('on-indigo'),
+        bg: tw('bg'),
+        card: tw('card'),
+        sunken: tw('sunken'),
+        border: tw('border'),
+        muted: tw('muted'),
+        text: tw('text'),
+        gold: tw('secondary'),
+        'gold-light': tw('secondary-bg'),
+        'gold-border': 'rgb(var(--c-secondary) / 0.3)',
+        error: tw('error'),
+        'error-bg': tw('error-bg'),
+        // Aliases for classes the codebase already used without a definition.
+        danger: tw('error'),
+        ok: tw('tertiary'),
+        foreground: tw('text'),
+        'tint-primary': 'rgb(var(--c-primary) / 0.1)',
+        'tint-secondary': 'rgb(var(--c-secondary) / 0.14)',
+        'tint-tertiary': 'rgb(var(--c-tertiary) / 0.12)',
+        'tint-indigo': 'rgb(var(--c-indigo) / 0.08)',
+        'tint-muted': 'rgb(var(--c-muted) / 0.1)',
+        'tint-gold': 'rgb(var(--c-secondary) / 0.14)',
+        'tint-accent': 'rgb(var(--c-accent) / 0.16)',
+        'tint-error': 'rgb(var(--c-error) / 0.1)',
       },
       spacing: Object.fromEntries(Object.entries(spacing).map(([k, v]) => [k, px(v)])),
       borderRadius: {
         sm: px(radius.sm),
         md: px(radius.md),
+        lg: px(radius.lg),
+        xl: px(radius.xl),
         full: px(radius.full),
       },
       boxShadow: {
         card: cardShadow,
+        'card-hover': cardHoverShadow,
         sheet: sheetShadow,
       },
       fontFamily: {
         sans: [fontFamily.body],
+        serif: [fontFamily.editorial],
+        display: [fontFamily.display],
         number: [fontFamily.number],
+        sign: [fontFamily.sign],
+        editorial: [fontFamily.editorial],
+        heading: ['var(--font-heading)'],
       },
       fontSize,
     },

@@ -2,21 +2,27 @@ import { useSyncExternalStore } from 'react';
 
 const DESKTOP_QUERY = '(min-width: 1024px)';
 
-function subscribe(callback: () => void) {
-  const mql = window.matchMedia(DESKTOP_QUERY);
-  mql.addEventListener('change', callback);
-  return () => mql.removeEventListener('change', callback);
+function matches(query: string): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia(query).matches
+    : false;
 }
 
-function getSnapshot() {
-  return window.matchMedia(DESKTOP_QUERY).matches;
-}
-
-function getServerSnapshot() {
-  return false;
+/** Live result of a media query; false where matchMedia is unavailable (tests, SSR). */
+export function useMediaQuery(query: string): boolean {
+  return useSyncExternalStore(
+    (callback) => {
+      if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {};
+      const mql = window.matchMedia(query);
+      mql.addEventListener('change', callback);
+      return () => mql.removeEventListener('change', callback);
+    },
+    () => matches(query),
+    () => false,
+  );
 }
 
 /** True when the viewport is wide enough for a fixed sidebar layout. */
 export function useIsDesktop(): boolean {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return useMediaQuery(DESKTOP_QUERY);
 }

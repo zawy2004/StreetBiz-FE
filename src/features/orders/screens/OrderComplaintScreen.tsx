@@ -7,6 +7,9 @@ import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { ErrorState, showToast } from '@/components/feedback';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
+import { isLiveApi } from '@/core/config/env';
+import { ComplaintSheet } from '../components/complaint/ComplaintParts';
+import { LiveOrderComplaintScreen } from './LiveOrderComplaintScreen';
 
 const TYPES = [
   { value: 'WRONG_ITEM', label: 'Sai món' },
@@ -15,6 +18,10 @@ const TYPES = [
 ];
 
 export function OrderComplaintScreen() {
+  return isLiveApi ? <LiveOrderComplaintScreen /> : <MockOrderComplaintScreen />;
+}
+
+function MockOrderComplaintScreen() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
@@ -23,10 +30,18 @@ export function OrderComplaintScreen() {
   const [type, setType] = useState('WRONG_ITEM');
   const [description, setDescription] = useState('');
 
-  if (!order || !user) return <ErrorState message="Không tìm thấy đơn hàng." />;
+  if (!order || !user) {
+    return (
+      <Screen width="narrow">
+        <AppHeader title="Khiếu nại đơn hàng" back />
+        <ErrorState message="Không tìm thấy đơn hàng." />
+      </Screen>
+    );
+  }
 
   return (
     <Screen
+      width="narrow"
       footer={
         <StickyActions>
           <Button
@@ -47,20 +62,25 @@ export function OrderComplaintScreen() {
       }
     >
       <AppHeader title="Khiếu nại đơn hàng" back subtitle={`#${order.order_code}`} />
-      <SelectField
-        label="Loại khiếu nại"
-        value={type}
-        onChange={setType}
-        layout="inline"
-        options={TYPES}
-      />
-      <TextField
-        label="Mô tả chi tiết"
-        value={description}
-        onChangeText={setDescription}
-        multiline
-        placeholder="Mô tả vấn đề bạn gặp phải..."
-      />
+      <ComplaintSheet orderCode={order.order_code}>
+        <div className="[&_[role=radio]]:h-14 [&_[role=radio]]:rounded-[14px] [&_[role=radio]]:px-md">
+          <SelectField
+            label="Loại khiếu nại"
+            value={type}
+            onChange={setType}
+            layout="inline"
+            options={TYPES}
+          />
+        </div>
+        <TextField
+          label="Mô tả chi tiết"
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          placeholder="Mô tả vấn đề bạn gặp phải..."
+        />
+        <p className="text-body-sm text-muted">Nêu món nào, vấn đề gì, lúc mấy giờ.</p>
+      </ComplaintSheet>
     </Screen>
   );
 }

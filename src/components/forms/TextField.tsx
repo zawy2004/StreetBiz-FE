@@ -1,4 +1,6 @@
-import { forwardRef, InputHTMLAttributes } from 'react';
+import { forwardRef, InputHTMLAttributes, useId } from 'react';
+
+import { Field, inputShellClass } from './Field';
 
 type KeyboardType = 'default' | 'number-pad' | 'numeric' | 'phone-pad' | 'email-address';
 
@@ -16,6 +18,8 @@ type Props = {
   autoFocus?: boolean;
   disabled?: boolean;
   testID?: string;
+  /** Hard cap matching a backend FluentValidation MaximumLength rule. */
+  maxLength?: number;
 };
 
 const inputModeByKeyboardType: Record<KeyboardType, { inputMode?: InputMode; type: string }> = {
@@ -40,48 +44,50 @@ export const TextField = forwardRef<HTMLInputElement | HTMLTextAreaElement, Prop
       autoFocus,
       disabled,
       testID,
+      maxLength,
     },
     ref,
   ) => {
+    const id = useId();
+    const messageId = `${id}-message`;
+
     const inputClassName = [
-      'h-12 w-full rounded-sm border bg-card px-sm text-body-lg text-text placeholder:text-muted',
-      error ? 'border-error' : 'border-border',
+      inputShellClass(error),
+      'h-12 w-full px-sm text-body-lg text-text placeholder:text-muted/80 disabled:cursor-not-allowed disabled:bg-sunken disabled:text-muted',
     ].join(' ');
 
+    const sharedProps = {
+      id,
+      'data-testid': testID,
+      value,
+      placeholder,
+      autoFocus,
+      disabled,
+      maxLength,
+      'aria-invalid': error ? true : undefined,
+      'aria-describedby': error || helperText ? messageId : undefined,
+    };
+
     return (
-      <div className="flex flex-col gap-2xs">
-        {label ? <span className="text-label text-text">{label}</span> : null}
+      <Field htmlFor={id} label={label} error={error} helperText={helperText} messageId={messageId}>
         {multiline ? (
           <textarea
             ref={ref as never}
-            data-testid={testID}
-            value={value}
+            {...sharedProps}
             onChange={(e) => onChangeText(e.target.value)}
-            placeholder={placeholder}
-            autoFocus={autoFocus}
-            disabled={disabled}
             rows={4}
-            className={`${inputClassName} h-auto min-h-[96px] py-sm`}
+            className={`${inputClassName} h-auto min-h-[104px] resize-y py-sm`}
           />
         ) : (
           <input
             ref={ref as never}
-            data-testid={testID}
-            value={value}
+            {...sharedProps}
             onChange={(e) => onChangeText(e.target.value)}
-            placeholder={placeholder}
-            autoFocus={autoFocus}
-            disabled={disabled}
             {...inputModeByKeyboardType[keyboardType]}
             className={inputClassName}
           />
         )}
-        {error ? (
-          <span className="text-body-sm text-error">{error}</span>
-        ) : helperText ? (
-          <span className="text-body-sm text-muted">{helperText}</span>
-        ) : null}
-      </div>
+      </Field>
     );
   },
 );

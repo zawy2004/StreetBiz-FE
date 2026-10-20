@@ -4,12 +4,29 @@ function bool(value: string | undefined, fallback = false): boolean {
 }
 
 export const env = {
-  appEnv: import.meta.env.VITE_APP_ENV ?? 'development',
+  // Defaults to the build mode, so a deployment that never sets VITE_APP_ENV is
+  // treated as production (no demo accounts on the sign-in page).
+  appEnv: import.meta.env.VITE_APP_ENV ?? (import.meta.env.DEV ? 'development' : 'production'),
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? '',
+  /**
+   * When true, Authentication and Vendor Onboarding run against `src/mocks`
+   * instead of StreetBiz-BE, so the app is demoable with no server running.
+   * Commerce, Authentication and Vendor Onboarding use this switch; remaining
+   * modules may still use their feature-local mock fallback.
+   */
+  useMockApi: bool(import.meta.env.VITE_USE_MOCK_API),
   enableAiCompliance: bool(import.meta.env.VITE_ENABLE_AI_COMPLIANCE),
+  enableChatbot: bool(import.meta.env.VITE_ENABLE_CHATBOT, true),
   enablePhase2: bool(import.meta.env.VITE_ENABLE_PHASE_2),
   enablePushNotifications: bool(import.meta.env.VITE_ENABLE_PUSH_NOTIFICATIONS),
   enablePaymentSandbox: bool(import.meta.env.VITE_ENABLE_PAYMENT_SANDBOX),
+  /** Maptiles key from https://account.goong.io -- without it the vendor slot map falls back to Esri's keyless raster tiles. */
+  goongMaptilesKey: import.meta.env.VITE_GOONG_MAPTILES_KEY ?? '',
+  /** Free key from https://carto.com/basemaps/apikey/ -- used by the ward slot grid map (still on Leaflet); falls back to Esri without it. */
+  cartoApiKey: import.meta.env.VITE_CARTO_API_KEY ?? '',
 } as const;
 
 export const isDev = env.appEnv === 'development';
+
+/** True when auth / onboarding screens should call StreetBiz-BE. */
+export const isLiveApi = !env.useMockApi && env.apiBaseUrl.length > 0;

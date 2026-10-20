@@ -6,3 +6,4 @@ export * from './SelectField';
 export * from './PhotoPicker';
 export * from './SegmentedControl';
 export * from './FilterChips';
+export * from './Field';

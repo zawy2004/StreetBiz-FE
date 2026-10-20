@@ -1,22 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { create } from 'zustand';
-
-type ToastState = {
-  message: string | null;
-  show: (message: string) => void;
-  hide: () => void;
-};
-
-export const useToastStore = create<ToastState>((set) => ({
-  message: null,
-  show: (message) => set({ message }),
-  hide: () => set({ message: null }),
-}));
-
-export function showToast(message: string) {
-  useToastStore.getState().show(message);
-}
+import { useToastStore } from './toast-store';
 
 export function ToastHost() {
   const message = useToastStore((s) => s.message);
@@ -24,15 +8,19 @@ export function ToastHost() {
 
   useEffect(() => {
     if (!message) return;
-    const t = setTimeout(hide, 2200);
+    const t = setTimeout(hide, 2600);
     return () => clearTimeout(t);
   }, [message, hide]);
 
   if (!message) return null;
 
   return createPortal(
-    <div className="pointer-events-none fixed inset-x-0 bottom-xl z-50 flex justify-center">
-      <div className="max-w-[90%] rounded-sm bg-indigo px-md py-sm text-body-md text-white shadow-sheet">
+    <div
+      role="status"
+      aria-live="polite"
+      className="pointer-events-none fixed inset-x-0 bottom-[88px] z-[60] flex justify-center px-md lg:bottom-lg"
+    >
+      <div className="sb-pop max-w-[480px] rounded-[14px] border-l-4 border-l-brand bg-card px-md py-sm text-body-md font-medium text-text shadow-sheet ring-1 ring-border">
         {message}
       </div>
     </div>,

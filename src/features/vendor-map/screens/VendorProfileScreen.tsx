@@ -1,135 +1,109 @@
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Avatar, Button, Card, Icon, Money } from '@/components/common';
-import { AppHeader, Screen, Section } from '@/components/layout';
-import { AiHint, StatusChip } from '@/components/status';
-import { EmptyState, ErrorState } from '@/components/feedback';
-import { env } from '@/core/config/env';
-import { colors } from '@/theme';
-import { useMockDb } from '@/mocks/db';
-import { useAuthStore } from '@/store/auth-store';
-import { useCartStore } from '@/features/cart/cart-store';
+import { ErrorState, Skeleton } from '@/components/feedback';
+import { Screen, StickyActions } from '@/components/layout';
+import { BackButton } from '@/features/buyer-discovery/components/BackButton';
+import { useIsDesktop } from '@/hooks/useBreakpoint';
+import {
+  CommunityScore,
+  ProfileActions,
+  ReviewList,
+  VendorLocation,
+  VendorSignboard,
+} from '../components/profile/ProfileParts';
+import { communityApi, CommunityApiError } from '../community-api';
 
+/**
+ * A vendor's public profile, as the signboard of a pavement slot (who, which
+ * slot, is the permit good and for how long), then the community's score, the
+ * two ways to have a say, where they trade, and the guest book of reviews.
+ */
 export function VendorProfileScreen() {
   const { vendorId } = useParams<{ vendorId: string }>();
   const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
-  const vendor = useMockDb((s) => s.vendors.find((v) => v.id === vendorId));
-  const contracts = useMockDb((s) => s.contracts).filter(
-    (c) => c.vendorId === vendorId && c.contract_status === 'ACTIVE',
+  const isDesktop = useIsDesktop();
+  const profile = useQuery({
+    queryKey: ['community', 'vendor', vendorId],
+    queryFn: () => communityApi.profile(vendorId!),
+    enabled: Boolean(vendorId),
+  });
+
+  if (profile.isPending) return <VendorProfileSkeleton />;
+  if (profile.isError || !profile.data) {
+    return (
+      <Screen>
+        <div>
+          <BackButton />
+        </div>
+        <ErrorState
+          message={
+            profile.error instanceof CommunityApiError
+              ? profile.error.message
+              : 'Không tìm thấy hộ kinh doanh.'
+          }
+          onRetry={() => profile.refetch()}
+        />
+      </Screen>
+    );
+  }
+
+  const vendor = profile.data;
+  const actions = (layout: 'stack' | 'row') => (
+    <ProfileActions
+      layout={layout}
+      onReview={() => navigate(`/customer/explore/vendors/${vendor.vendorId}/comments/new`)}
+      onReport={() => navigate(`/customer/explore/vendors/${vendor.vendorId}/reports/new`)}
+    />
   );
-  const permits = useMockDb((s) => s.permits);
-  const slots = useMockDb((s) => s.slots);
-  const comments = useMockDb((s) => s.comments).filter((c) => c.vendorId === vendorId);
-  const storefront = useMockDb((s) => s.storefronts.find((st) => st.vendorId === vendorId));
-  const menuItems = useMockDb((s) => s.menuItems).filter((m) => m.storefrontId === storefront?.id);
-  const cartItems = useCartStore((s) => s.items).filter((i) => i.storefrontId === storefront?.id);
-
-  if (!vendor) return <ErrorState message="Không tìm thấy hộ kinh doanh." />;
-
-  const contract = contracts[0];
-  const permit = permits.find((p) => p.contractId === contract?.id);
-  const slot = slots.find((s) => s.id === contract?.slotId);
-  const ratingAvg = comments.length
-    ? comments.reduce((sum, c) => sum + c.rating, 0) / comments.length
-    : 0;
 
   return (
-    <Screen>
-      <AppHeader title={vendor.business_name} back />
-      <Card>
-        <div className="flex gap-sm">
-          <Avatar name={vendor.business_name} size={56} />
-          <div className="flex flex-1 flex-col gap-1">
-            {permit ? <StatusChip code={permit.permit_status} /> : null}
-            {comments.length ? (
-              <div className="flex items-center gap-1">
-                <Icon name="star" size={16} color={colors.secondary} />
-                <span className="text-body-md text-text">
-                  {ratingAvg.toFixed(1)} ({comments.length} đánh giá)
-                </span>
-              </div>
-            ) : null}
-          </div>
-        </div>
-        {slot ? (
-          <p className="mt-sm text-body-md text-muted">
-            {slot.street} · Ô {slot.slot_code} · {slot.time_window}
-          </p>
-        ) : null}
-      </Card>
-
-      <div className="flex gap-sm">
-        <div className="flex-1">
-          <Button
-            label="Viết đánh giá"
-            variant="outline"
-            onPress={() =>
-              user
-                ? navigate(`/customer/explore/vendors/${vendor.id}/comments/new`)
-                : navigate('/auth/sign-in')
-            }
-          />
-        </div>
-        <div className="flex-1">
-          <Button
-            label="Báo cáo vi phạm"
-            variant="ghost"
-            onPress={() => navigate(`/customer/explore/vendors/${vendor.id}/reports/new`)}
-          />
+    <Screen footer={isDesktop ? undefined : <StickyActions>{actions('row')}</StickyActions>}>
+      <div>
+        <BackButton />
+      </div>
+      <VendorSignboard vendor={vendor} />
+      <div className="grid gap-md lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-lg">
+        <CommunityScore vendor={vendor} />
+        <div className="flex flex-col gap-md">
+          {isDesktop ? actions('stack') : null}
+          <VendorLocation vendor={vendor} />
         </div>
       </div>
+      <ReviewList comments={vendor.comments} />
+    </Screen>
+  );
+}
 
-      {env.enableAiCompliance && comments.length > 2 ? (
-        <AiHint title="Tóm tắt đánh giá">
-          Khách hàng khen ngợi hương vị và vệ sinh an toàn thực phẩm, một số phản hồi về thời gian
-          chờ vào giờ cao điểm.
-        </AiHint>
-      ) : null}
-
-      {storefront && menuItems.length > 0 ? (
-        <Section
-          title="Thực đơn"
-          action={
-            cartItems.length > 0 ? (
-              <Button
-                label={`Giỏ hàng (${cartItems.length})`}
-                fullWidth={false}
-                variant="outline"
-                onPress={() => navigate('/customer/explore/cart')}
-              />
-            ) : undefined
-          }
-        >
-          {menuItems.map((item) => (
-            <Card key={item.id} onPress={() => navigate(`/customer/explore/items/${item.id}`)}>
-              <div className="flex items-center justify-between">
-                <span className="text-headline-sm text-text">{item.name}</span>
-                <Money amountVnd={item.price} />
-              </div>
-            </Card>
-          ))}
-        </Section>
-      ) : null}
-
-      <Section title={`Đánh giá (${comments.length})`}>
-        {comments.length === 0 ? (
-          <EmptyState icon="comment-outline" title="Chưa có đánh giá nào" />
-        ) : (
-          comments.map((c) => (
-            <Card key={c.id}>
-              <div className="flex items-center justify-between">
-                <span className="text-headline-sm text-text">{c.authorName}</span>
-                <div className="flex items-center gap-0.5">
-                  <Icon name="star" size={14} color={colors.secondary} />
-                  <span className="text-body-sm text-muted">{c.rating}</span>
-                </div>
-              </div>
-              <p className="mt-1 text-body-md text-muted">{c.text}</p>
-            </Card>
-          ))
-        )}
-      </Section>
+/** The signboard, the score and two reviews in outline while the profile loads. */
+function VendorProfileSkeleton() {
+  return (
+    <Screen>
+      <div role="status" aria-label="Đang tải hồ sơ hộ kinh doanh" className="flex flex-col gap-md">
+        <div>
+          <BackButton />
+        </div>
+        <div className="overflow-hidden rounded-[28px] bg-card shadow-sheet ring-1 ring-border">
+          <div aria-hidden="true" className="sb-kerb sb-kerb-thin" />
+          <div className="flex min-h-[200px] flex-col gap-md p-md md:p-lg lg:flex-row lg:items-center lg:p-xl">
+            <Skeleton className="h-24 w-24 shrink-0 !rounded-[20px] lg:h-40 lg:w-40" />
+            <div className="flex flex-1 flex-col gap-sm">
+              <Skeleton className="h-10 w-[60%]" />
+              <Skeleton className="h-10 w-[120px] !rounded-[8px]" />
+              <Skeleton className="h-5 w-1/3" />
+            </div>
+            <Skeleton className="h-[96px] w-[220px] !rounded-[20px]" />
+          </div>
+        </div>
+        <div className="grid gap-md lg:grid-cols-[minmax(0,1fr)_340px]">
+          <Skeleton className="h-[200px] w-full !rounded-[24px]" />
+          <Skeleton className="h-[200px] w-full !rounded-[24px]" />
+        </div>
+        <div className="grid gap-md md:grid-cols-2">
+          <Skeleton className="h-[140px] w-full !rounded-[24px]" />
+          <Skeleton className="h-[140px] w-full !rounded-[24px]" />
+        </div>
+      </div>
     </Screen>
   );
 }

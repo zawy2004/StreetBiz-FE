@@ -67,6 +67,8 @@ type State = {
   ) => BusinessRegistration;
   updateRegistration: (id: string, patch: Partial<BusinessRegistration>) => void;
   withdrawRegistration: (id: string) => void;
+  /** RegistrationReviewScreen's mock-mode decisions (WARD-04/05/06). Live mode decides through
+   * WardComplianceController's /ward/enrollments endpoints instead (complianceApi). */
   approveRegistration: (id: string) => void;
   rejectRegistration: (id: string, note: string) => void;
   requestRegistrationEvidence: (id: string, note: string) => void;
@@ -221,7 +223,7 @@ export const useMockDb = create<State>((set, get) => ({
   requestRegistrationEvidence: (id, note) =>
     set((s) => ({
       registrations: s.registrations.map((r) =>
-        r.id === id ? { ...r, registration_status: 'NEEDS_INFO', review_note: note } : r,
+        r.id === id ? { ...r, registration_status: 'MORE_INFORMATION_REQUIRED', review_note: note } : r,
       ),
     })),
 

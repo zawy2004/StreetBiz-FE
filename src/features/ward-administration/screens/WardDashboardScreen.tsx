@@ -1,43 +1,84 @@
 import { useNavigate } from 'react-router-dom';
 
-import { Card, IconButton } from '@/components/common';
+import { IconButton } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { AiHint } from '@/components/status';
+import { useWards } from '@/core/auth/useWards';
 import { env } from '@/core/config/env';
-import { useMockDb } from '@/mocks/db';
-import { WARD } from '@/mocks/seed';
+import { useAuthStore } from '@/store/auth-store';
+import { useWardDashboard } from '../useWardReports';
+import {
+  CollectionLedger,
+  DashboardSkeleton,
+  KerbOccupancyStrip,
+  ShiftShortcuts,
+  WardTaskBoard,
+  type Shortcut,
+} from '../components/review/DashboardParts';
+import { formatTodayVi } from '../components/review/format';
 
+const SHORTCUTS: Shortcut[] = [
+  {
+    to: '/ward/inbox',
+    icon: 'inbox-outline',
+    title: 'Hộp duyệt',
+    description: 'Hồ sơ đăng ký, đề xuất ô, xung đột địa chỉ và chuyển nhượng',
+  },
+  {
+    to: '/ward/slots',
+    icon: 'map-marker-radius-outline',
+    title: 'Lưới ô vỉa hè',
+    description: 'Theo dõi trạng thái từng ô',
+  },
+  {
+    to: '/ward/patrol',
+    icon: 'qrcode-scan',
+    title: 'Tuần tra và quét QR',
+    description: 'Kiểm tra giấy phép số, phân tích ảnh hiện trường',
+  },
+  {
+    to: '/ward/patrol/violations/new',
+    icon: 'gavel',
+    title: 'Lập biên bản vi phạm',
+    description: 'Biên bản hiện trường và quyết định xử phạt (NĐ 168/2024)',
+  },
+];
+
+/**
+ * WARD-15 shift start. The ward's notice board: today's two work numbers set
+ * large, the pavement drawn as its own row of slots, the collection ledger,
+ * then the shift toolbar. Every figure is the officer's own ward (the backend
+ * scopes the token); nothing here belongs to platform administration.
+ */
 export function WardDashboardScreen() {
   const navigate = useNavigate();
-  const slots = useMockDb((s) => s.slots);
-  const registrations = useMockDb((s) => s.registrations);
-  const applications = useMockDb((s) => s.applications);
-  const feeItems = useMockDb((s) => s.feeItems);
-  const penalties = useMockDb((s) => s.penalties);
+  const { dashboard, isLoading } = useWardDashboard();
+  const wardName = useWardName();
+  const pendingCount = dashboard
+    ? dashboard.pendingRegistrations + dashboard.pendingApplications
+    : 0;
+  const today = formatTodayVi();
 
-  const rented = slots.filter((s) => s.slot_status === 'RENTED').length;
-  const occupancy = slots.length ? Math.round((rented / slots.length) * 100) : 0;
-  const pendingCount =
-    registrations.filter((r) => r.registration_status === 'UNDER_REVIEW').length +
-    applications.filter((a) => a.application_status === 'PENDING').length;
-  const revenue =
-    feeItems.filter((f) => f.item_status === 'PAID').reduce((s, f) => s + f.amount, 0) +
-    penalties.filter((p) => p.penalty_status === 'PAID').reduce((s, p) => s + p.amount, 0);
-
-  const stats = [
-    { label: 'Ô đang thuê', value: `${rented}/${slots.length}` },
-    { label: 'Tỷ lệ lấp đầy', value: `${occupancy}%` },
-    { label: 'Hồ sơ chờ duyệt', value: `${pendingCount}` },
-    { label: 'Doanh thu đã thu', value: `${(revenue / 1000).toLocaleString('vi-VN')}k đ` },
-  ];
+  const aiHint =
+    dashboard && env.enableAiCompliance ? (
+      <AiHint title="Tóm tắt tuần này">
+        {pendingCount} hồ sơ đang chờ xử lý, tỷ lệ lấp đầy {dashboard.occupancyPercent}%. Ưu tiên
+        xét các hồ sơ cửa hàng cố định có giấy phép kinh doanh hợp lệ trước.
+      </AiHint>
+    ) : null;
 
   return (
-    <Screen>
+    <Screen width="wide">
       <AppHeader
         title="Tổng quan"
-        subtitle={WARD.unit_type}
+        subtitle={wardName ? `${wardName} · ${today}` : today}
         right={
-          <div className="flex flex-row gap-xs">
+          <>
+            <IconButton
+              icon="cash-multiple"
+              accessibilityLabel="Thu phí và điều chỉnh"
+              onPress={() => navigate('/ward/finance')}
+            />
             <IconButton
               icon="cog-outline"
               accessibilityLabel="Cấu hình"
@@ -48,40 +89,58 @@ export function WardDashboardScreen() {
               accessibilityLabel="Tài khoản"
               onPress={() => navigate('/account')}
             />
-          </div>
+          </>
         }
       />
 
-      <div className="flex flex-row flex-wrap gap-sm">
-        {stats.map((s) => (
-          <Card key={s.label} style={{ flexGrow: 1, minWidth: 140 }}>
-            <span className="block text-body-sm text-muted">{s.label}</span>
-            <span className="mt-0.5 block text-headline-lg text-text">{s.value}</span>
-          </Card>
-        ))}
+      {isLoading || !dashboard ? (
+        <DashboardSkeleton />
+      ) : (
+        <div className="flex flex-col gap-xl">
+          <div className="grid items-start gap-md xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] xl:gap-lg">
+            <WardTaskBoard
+              pendingCount={pendingCount}
+              pendingRegistrations={dashboard.pendingRegistrations}
+              pendingApplications={dashboard.pendingApplications}
+              openViolations={dashboard.openViolations}
+              onOpenInbox={() => navigate('/ward/inbox')}
+              onOpenViolations={() => navigate('/ward/reports')}
+            />
+            {aiHint}
+          </div>
+
+          <KerbOccupancyStrip
+            rented={dashboard.slotRented}
+            total={dashboard.slotTotal}
+            percent={dashboard.occupancyPercent}
+            activeContracts={dashboard.activeContracts}
+            onOpen={() => navigate('/ward/slots')}
+          />
+
+          <CollectionLedger
+            collected={dashboard.revenueCollected}
+            outstanding={dashboard.outstandingDebt}
+            onOpen={() => navigate('/ward/reports')}
+          />
+        </div>
+      )}
+
+      <div className="mt-sm pb-[88px] md:pb-0">
+        <Section title="Lối tắt">
+          <ShiftShortcuts shortcuts={SHORTCUTS} onOpen={(to) => navigate(to)} />
+        </Section>
       </div>
-
-      {env.enableAiCompliance ? (
-        <AiHint title="Tóm tắt tuần này">
-          {pendingCount} hồ sơ đang chờ xử lý, tỷ lệ lấp đầy {occupancy}%. Ưu tiên xét các hồ sơ cửa
-          hàng cố định có giấy phép kinh doanh hợp lệ trước.
-        </AiHint>
-      ) : null}
-
-      <Section title="Lối tắt">
-        <Card onPress={() => navigate('/ward/inbox')}>
-          <h3 className="text-headline-sm text-text">Hộp duyệt</h3>
-          <p className="text-body-sm text-muted">{pendingCount} việc cần xử lý</p>
-        </Card>
-        <Card onPress={() => navigate('/ward/slots')}>
-          <h3 className="text-headline-sm text-text">Lưới ô vỉa hè</h3>
-          <p className="text-body-sm text-muted">Theo dõi trạng thái từng ô</p>
-        </Card>
-        <Card onPress={() => navigate('/ward/patrol')}>
-          <h3 className="text-headline-sm text-text">Tuần tra hiện trường</h3>
-          <p className="text-body-sm text-muted">Quét QR &amp; lập biên bản</p>
-        </Card>
-      </Section>
     </Screen>
   );
+}
+
+/**
+ * The signed-in officer's ward name. The account already carries its ward id,
+ * and useWards (cached reference data) covers both live and mock mode.
+ */
+function useWardName(): string | undefined {
+  const user = useAuthStore((state) => state.user);
+  const { wards } = useWards();
+  // Mock accounts carry the ward name directly instead of an id.
+  return wards.find((ward) => ward.unitId === user?.wardUnitId)?.unitName ?? user?.wardUnitType;
 }

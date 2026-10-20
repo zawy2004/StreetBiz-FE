@@ -9,6 +9,7 @@ type Props = {
   background?: string;
   accessibilityLabel: string;
   testID?: string;
+  disabled?: boolean;
 };
 
 export function IconButton({
@@ -16,18 +17,24 @@ export function IconButton({
   onPress,
   size = 22,
   color = colors.text,
-  background = colors.bg,
+  background,
   accessibilityLabel,
   testID,
+  disabled,
 }: Props) {
   return (
     <button
       type="button"
       data-testid={testID}
       onClick={onPress}
+      disabled={disabled}
       aria-label={accessibilityLabel}
-      style={{ backgroundColor: background }}
-      className="flex h-10 w-10 items-center justify-center rounded-full transition-opacity active:opacity-85"
+      title={accessibilityLabel}
+      style={background ? { backgroundColor: background } : undefined}
+      className={[
+        'flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+        background ? 'hover:opacity-90' : 'bg-card ring-1 ring-border hover:bg-sunken',
+      ].join(' ')}
     >
       <Icon name={icon} size={size} color={color} />
     </button>

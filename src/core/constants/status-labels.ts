@@ -9,17 +9,28 @@ import type { StatusTone } from '@/theme';
  */
 export const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> = {
   DRAFT: { label: 'Nháp', tone: 'neutral' },
+  // PENDING is a live backend status, not a leftover: rental applications, slot
+  // proposals, renewals, transfers and orders all use it.
   PENDING: { label: 'Chờ duyệt', tone: 'pending' },
+  SUBMITTED: { label: 'Đã nộp', tone: 'pending' },
   UNDER_REVIEW: { label: 'Đang xét', tone: 'pending' },
-  NEEDS_INFO: { label: 'Cần bổ sung', tone: 'pending' },
+  MORE_INFORMATION_REQUIRED: { label: 'Cần bổ sung', tone: 'pending' },
   APPROVED: { label: 'Đã duyệt', tone: 'ok' },
   ACTIVE: { label: 'Đang hoạt động', tone: 'ok' },
   VALID: { label: 'Hợp lệ', tone: 'ok' },
+  NOT_YET_VALID: { label: 'Chưa có hiệu lực', tone: 'pending' },
+  NOT_FOUND: { label: 'Không tìm thấy', tone: 'danger' },
   AVAILABLE: { label: 'Còn trống', tone: 'ok' },
+  PENDING_APPLICATION: { label: 'Đang có đơn', tone: 'pending' },
   OPEN: { label: 'Đang mở', tone: 'ok' },
   PAID: { label: 'Đã thanh toán', tone: 'ok' },
+  UNPAID: { label: 'Chưa thanh toán', tone: 'danger' },
+  WAIVED: { label: 'Đã miễn', tone: 'neutral' },
   RESOLVED: { label: 'Đã xử lý', tone: 'ok' },
   ACCEPTED: { label: 'Đã chấp nhận', tone: 'ok' },
+  ACCEPTED_BY_RECEIVER: { label: 'Bên nhận đã đồng ý', tone: 'pending' },
+  PENDING_PAYMENT: { label: 'Chờ thanh toán', tone: 'pending' },
+  PLACED: { label: 'Chờ người bán', tone: 'pending' },
   COMPLETED: { label: 'Hoàn tất', tone: 'ok' },
   READY_FOR_PICKUP: { label: 'Sẵn sàng lấy', tone: 'ok' },
   PICKED_UP: { label: 'Đã lấy món', tone: 'ok' },
@@ -32,11 +43,21 @@ export const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> 
   CANCELLED: { label: 'Đã huỷ', tone: 'danger' },
   WITHDRAWN: { label: 'Đã rút', tone: 'neutral' },
   FAILED: { label: 'Thất bại', tone: 'danger' },
+  SUCCESS: { label: 'Thanh toán thành công', tone: 'ok' },
+  // A payment received for something already paid: the ward pays it back.
+  REFUND_REQUIRED: { label: 'Chờ hoàn tiền', tone: 'pending' },
+  REFUNDED: { label: 'Đã hoàn tiền', tone: 'ok' },
   CLOSED: { label: 'Đã đóng', tone: 'neutral' },
   PAUSED: { label: 'Tạm dừng', tone: 'pending' },
   SOLD_OUT: { label: 'Hết món', tone: 'danger' },
   PREPARING: { label: 'Đang chuẩn bị', tone: 'pending' },
   HIDDEN: { label: 'Đã ẩn', tone: 'neutral' },
+  DISMISSED: { label: 'Đã bỏ qua', tone: 'neutral' },
+  VISIBLE: { label: 'Đang hiển thị', tone: 'ok' },
+  MISSING: { label: 'Không còn tồn tại', tone: 'danger' },
+  ARCHIVED: { label: 'Đã lưu trữ', tone: 'neutral' },
+  // ATTP file sent on by the ward to the food-safety department.
+  FORWARDED: { label: 'Đã chuyển cục', tone: 'pending' },
 };
 
 export function statusLabel(code: string) {

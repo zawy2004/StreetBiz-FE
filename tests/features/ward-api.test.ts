@@ -1,0 +1,294 @@
+import { vi } from 'vitest';
+import axios, { type AxiosAdapter } from 'axios';
+
+import { ApiError, http } from '@/core/api';
+import { clearTokens, setTokens } from '@/core/api/token-storage';
+import { complianceApi, parsePoint, wardApi } from '@/features/ward-administration/ward-api';
+import { wardConfigApi } from '@/features/ward-administration/ward-config-api';
+
+// ward-api reads the base URL through the shared client, and WardGate reads
+// isLiveApi; both come from this module.
+vi.mock('@/core/config/env', () => ({
+  env: { apiBaseUrl: 'https://api.example.test/api', useMockApi: false, appEnv: 'test' },
+  isDev: true,
+  isLiveApi: true,
+}));
+
+/**
+ * Stubs axios at the adapter, not at the module boundary, so the request and
+ * response interceptors still run -- which is where the interesting behaviour
+ * now lives (bearer attachment, refresh-on-401, ProblemDetails mapping).
+ */
+function stubAdapter(
+  responder: (config: Parameters<AxiosAdapter>[0]) => {
+    status: number;
+    data?: unknown;
+  },
+) {
+  const adapter = vi.fn(async (config: Parameters<AxiosAdapter>[0]) => {
+    const { status, data } = responder(config);
+    const response = { data, status, statusText: '', headers: {}, config };
+    if (status >= 400) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error: any = new Error(`Request failed with status code ${status}`);
+      error.isAxiosError = true;
+      error.config = config;
+      error.response = response;
+      throw error;
+    }
+    return response;
+  });
+  http.defaults.adapter = adapter as unknown as AxiosAdapter;
+  return adapter;
+}
+
+describe('ward API', () => {
+  const originalAdapter = http.defaults.adapter;
+  const originalDefaultAdapter = axios.defaults.adapter;
+
+  beforeEach(() => {
+    clearTokens();
+    // refreshTokens() posts through bare axios, not the `http` instance. Without
+    // this the refresh path escapes the stub and jsdom attempts a real DNS lookup.
+    axios.defaults.adapter = (async () => {
+      throw Object.assign(new Error('refresh rejected'), {
+        isAxiosError: true,
+        response: { status: 401, data: '', headers: {}, statusText: '', config: {} },
+      });
+    }) as unknown as AxiosAdapter;
+  });
+
+  afterEach(() => {
+    http.defaults.adapter = originalAdapter;
+    axios.defaults.adapter = originalDefaultAdapter;
+    clearTokens();
+    vi.restoreAllMocks();
+  });
+
+  it('authenticates with the ordinary signed-in session, not a ward-specific token', async () => {
+    // The whole point of unifying the two auth systems: no sessionStorage key of
+    // its own, no paste-a-JWT form -- just the app's access token.
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'app-refresh-token',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({ status: 200, data: { status: 'APPROVED' } }));
+
+    await wardApi.decide(
+      { id: '42', kind: 'proposals', status: 'PENDING' } as Parameters<typeof wardApi.decide>[0],
+      'APPROVE',
+      'Đã kiểm tra',
+    );
+
+    const config = adapter.mock.calls[0]![0];
+    expect(config.url).toBe('/ward/cases/proposals/42/decision');
+    expect(config.baseURL).toBe('https://api.example.test/api');
+    expect(config.headers.Authorization).toBe('Bearer app-access-token');
+    expect(JSON.parse(String(config.data))).toEqual({
+      decision: 'APPROVE',
+      reason: 'Đã kiểm tra',
+      expectedStatus: 'PENDING',
+    });
+  });
+
+  it('sends the status the reviewer actually saw, so a stale decision can be refused', async () => {
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'r',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({ status: 200, data: {} }));
+
+    await wardApi.decide(
+      {
+        id: '7',
+        kind: 'proposals',
+        status: 'UNDER_REVIEW',
+      } as Parameters<typeof wardApi.decide>[0],
+      'REQUEST_INFO',
+      'Thiếu CCCD',
+    );
+
+    expect(JSON.parse(String(adapter.mock.calls[0]![0].data)).expectedStatus).toBe('UNDER_REVIEW');
+  });
+
+  it('uses the ward renewal endpoints with status filters and stale-status protection', async () => {
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'r',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({ status: 200, data: [] }));
+
+    await complianceApi.listRenewals('PENDING', 2);
+    await complianceApi.decideRenewal('9', 'APPROVE', 'Đủ điều kiện gia hạn', 'UNDER_REVIEW');
+
+    expect(adapter.mock.calls[0]![0].url).toBe('/ward/renewals?status=PENDING&page=2');
+    expect(adapter.mock.calls[1]![0].url).toBe('/ward/renewals/9/decision');
+    expect(JSON.parse(String(adapter.mock.calls[1]![0].data))).toEqual({
+      decision: 'APPROVE',
+      reason: 'Đủ điều kiện gia hạn',
+      expectedStatus: 'UNDER_REVIEW',
+    });
+  });
+
+  it('surfaces a 409 conflict as ApiError rather than showing a successful decision', async () => {
+    // The backend's own code for this is `review_conflict`, which the FE does not
+    // model; it must still map onto `conflict` by status and keep the server's
+    // message, or the reviewer is told nothing useful.
+    stubAdapter(() => ({
+      status: 409,
+      data: {
+        type: 'review_conflict',
+        title: 'review_conflict',
+        detail: 'Hồ sơ đã thay đổi hoặc chưa đủ điều kiện. Tải lại hồ sơ để kiểm tra.',
+      },
+    }));
+
+    await expect(wardApi.get('proposals', '42')).rejects.toMatchObject({
+      name: 'ApiError',
+      code: 'conflict',
+      status: 409,
+      message: 'Hồ sơ đã thay đổi hoặc chưa đủ điều kiện. Tải lại hồ sơ để kiểm tra.',
+    });
+  });
+
+  it('reports a forbidden ward actor so the gate can explain it', async () => {
+    stubAdapter(() => ({
+      status: 403,
+      data: { type: 'forbidden', detail: 'Tài khoản hiện tại không phải cán bộ phường.' },
+    }));
+
+    await expect(wardApi.me()).rejects.toMatchObject({
+      code: 'forbidden',
+      message: 'Tài khoản hiện tại không phải cán bộ phường.',
+    });
+  });
+
+  it('clears the app session when an empty 401 cannot be refreshed', async () => {
+    setTokens({
+      accessToken: 'expired',
+      refreshToken: 'also-expired',
+      accessTokenExpiresAtUtc: new Date(Date.now() - 1000).toISOString(),
+    });
+    // Empty-bodied 401 = the JWT middleware, which is what triggers a refresh.
+    // The refresh itself goes through bare axios, so it fails here too.
+    stubAdapter(() => ({ status: 401, data: '' }));
+
+    await expect(wardApi.me()).rejects.toBeInstanceOf(ApiError);
+    expect(localStorage.getItem('streetbiz-tokens')).toBeNull();
+  });
+
+  it('strips the duplicate /api segment when fetching an evidence document', async () => {
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'r',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({ status: 200, data: new Blob(['x']) }));
+    const createObjectURL = vi.fn(() => 'blob:ward-doc');
+    vi.stubGlobal('URL', { ...URL, createObjectURL });
+
+    const url = await wardApi.document('/api/uploads/evidence/5/abc.jpg');
+
+    expect(adapter.mock.calls[0]![0].url).toBe('/uploads/evidence/5/abc.jpg');
+    expect(url).toBe('blob:ward-doc');
+    vi.unstubAllGlobals();
+  });
+
+  it('reads the latest proposal assessment and runs a fresh one', async () => {
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'r',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({ status: 200, data: { latest: null, isStale: false } }));
+
+    await wardApi.proposalAssessment('28');
+    await wardApi.runProposalAssessment('28');
+
+    expect(adapter.mock.calls[0]![0].method).toBe('get');
+    expect(adapter.mock.calls[0]![0].url).toBe('/ward/cases/proposals/28/ai-assessment');
+    expect(adapter.mock.calls[1]![0].method).toBe('post');
+    expect(adapter.mock.calls[1]![0].url).toBe('/ward/cases/proposals/28/ai-assessment');
+  });
+
+  it('sends the slot id alongside the photo for an encroachment check', async () => {
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'r',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({ status: 200, data: {} }));
+
+    await complianceApi.aiEncroachmentCheck('https://example.test/photo.jpg', undefined, undefined, 5);
+
+    expect(adapter.mock.calls[0]![0].url).toBe('/ward/ai/encroachment-check');
+    expect(JSON.parse(String(adapter.mock.calls[0]![0].data))).toEqual({
+      photoUrl: 'https://example.test/photo.jpg',
+      slotWidth: undefined,
+      slotLength: undefined,
+      slotId: 5,
+    });
+  });
+
+  it('posts an accept/reject decision for a logged AI suggestion', async () => {
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'r',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({
+      status: 200,
+      data: { aiLogId: 99, accepted: true, reviewedAt: '2026-10-03T00:00:00Z', reviewerName: 'Ward' },
+    }));
+
+    await complianceApi.aiFeedback(99, true, 'Đạt yêu cầu');
+
+    expect(adapter.mock.calls[0]![0].url).toBe('/ward/ai/suggestions/99/feedback');
+    expect(JSON.parse(String(adapter.mock.calls[0]![0].data))).toEqual({
+      accepted: true,
+      note: 'Đạt yêu cầu',
+    });
+  });
+
+  it('reads the geofence drift report', async () => {
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'r',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({ status: 200, data: { windowDays: 30, toleranceMeters: 25, items: [] } }));
+
+    await complianceApi.geofenceDrift();
+
+    expect(adapter.mock.calls[0]![0].method).toBe('get');
+    expect(adapter.mock.calls[0]![0].url).toBe('/ward/insights/geofence-drift');
+  });
+
+  it('reads a zone price suggestion', async () => {
+    setTokens({
+      accessToken: 'app-access-token',
+      refreshToken: 'r',
+      accessTokenExpiresAtUtc: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const adapter = stubAdapter(() => ({ status: 200, data: { zoneId: 2, direction: 'RAISE' } }));
+
+    await wardConfigApi.priceSuggestion(2);
+
+    expect(adapter.mock.calls[0]![0].method).toBe('get');
+    expect(adapter.mock.calls[0]![0].url).toBe('/ward/pricing-zones/2/price-suggestion');
+  });
+
+  it.each([
+    ['', '106'],
+    ['10', ''],
+    ['91', '106'],
+    ['10', '181'],
+    ['NaN', '1'],
+  ])('rejects invalid coordinates %s, %s', (lat, lon) => expect(parsePoint(lat, lon)).toBeNull());
+
+  it('accepts valid zero coordinates', () =>
+    expect(parsePoint('0', '0')).toEqual({ latitude: 0, longitude: 0 }));
+});

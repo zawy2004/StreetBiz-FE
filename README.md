@@ -1,17 +1,26 @@
 # StreetBiz Frontend
 
+WARD-16–18 and SYS-01–02 connect to StreetBiz-BE at `/ward/inbox/reviews`.
+BUY-01–05 use live Backend APIs for the customer vendor map, permit check,
+public profile, rating and report screens. ADM-01 and ADM-03–05 now provide live
+food-category, content-moderation and order-complaint pages. CART-01, ORD-01–04
+and SORD-01–04 use live marketplace, cart, customer-order and seller-order APIs.
+See
+[Community vendor workflows](docs/community-vendor-workflows.md) and
+[Platform administration workflows](docs/platform-administration-workflows.md)
+and [Commerce order workflows](docs/commerce-order-workflows.md) for setup and
+route details.
+
 StreetBiz-FE is the React web client for the StreetBiz sidewalk
 vendor-management platform — a Vite single-page app targeting desktop and
 mobile browsers (no native app).
 
-The app implements the full Core, Core Extension (AI), and Phase 2 use-case
-catalog from Report 3 (115 use cases across Guest/Customer, Vendor, Ward
-Authority, and Platform Administrator) as real, navigable screens backed by an
-in-memory mock data layer (`src/mocks/`). There is no backend integration yet
-— every screen reads/writes a client-side Zustand store seeded with demo
-data, so the whole app can be explored end to end without StreetBiz-BE
-running. Swapping the mock layer for real HTTP calls is meant to be a
-per-feature `api.ts` change, not a rewrite of any screen.
+The application keeps an in-memory demo layer (`src/mocks/`) while implemented
+modules can call StreetBiz-BE. Live modules currently include Authentication,
+Vendor Onboarding, Ward slot review/geolocation, Community vendor discovery,
+Platform Administration and the cart/order workflows. Setting
+`VITE_USE_MOCK_API=true` keeps the navigable demo available without a Backend;
+remaining workflows outside that list are still mock-backed.
 
 ## Technology baseline
 
@@ -34,9 +43,9 @@ per-feature `api.ts` change, not a rewrite of any screen.
 
 Run all commands from StreetBiz-FE:
 
-~~~powershell
+```powershell
 npm install
-~~~
+```
 
 No force or legacy-peer-deps option is used.
 
@@ -45,14 +54,14 @@ No force or legacy-peer-deps option is used.
 Copy .env.example to .env and adjust public values for the current environment.
 Do not commit .env.
 
-~~~dotenv
+```dotenv
 VITE_APP_ENV=development
-VITE_API_BASE_URL=http://localhost:5000/api
+VITE_API_BASE_URL=https://localhost:7147/api
+VITE_USE_MOCK_API=false
 VITE_ENABLE_AI_COMPLIANCE=true
 VITE_ENABLE_PHASE_2=true
 VITE_ENABLE_PUSH_NOTIFICATIONS=false
-VITE_ENABLE_PAYMENT_SANDBOX=true
-~~~
+```
 
 `VITE_*` values are included in the client bundle. Never store passwords,
 JWTs, OTP secrets, payment secrets, provider keys, or database connection
@@ -61,43 +70,74 @@ strings in them.
 `VITE_ENABLE_AI_COMPLIANCE` and `VITE_ENABLE_PHASE_2` are `true` by default in
 `.env.example` so the demo shows the AI-assist cards and the marketplace
 (storefront/menu/cart/checkout) screens; set either to `false` to preview the
-Core-only experience. `VITE_API_BASE_URL` is currently unused — no HTTP
-client is wired up (see Mock data layer below).
+Core-only experience.
+
+`VITE_USE_MOCK_API` selects where implemented live modules read and write:
+
+- `false` (default) — they call StreetBiz-BE at `VITE_API_BASE_URL`.
+- `true` — they use `src/mocks`, so the app runs with no backend at all. The
+  dev-only role switcher and the fixed `123456` OTP only appear in this mode.
+
+See each workflow document for its live routes and role requirements.
 
 ## Run
 
-~~~powershell
+### With StreetBiz-BE (default)
+
+Start the API first — it must be listening on the origin in
+`VITE_API_BASE_URL`, and that SPA origin must be listed in the backend's
+`Cors:AllowedOrigins`:
+
+```powershell
+cd ..\StreetBiz-BE
+dotnet run --project src/StreetBiz.API --launch-profile https
+```
+
+Then, in StreetBiz-FE:
+
+```powershell
 npm install
 npm run dev
-~~~
+```
 
-Open the printed local URL (default `http://localhost:5173`). Sign in with a
-demo account (see Mock data layer), or use the dev-only role switcher on the
-sign-in screen / Account tab to jump straight into any role.
+Register a new account from the sign-in screen. The dev SMS sender writes the
+OTP to the **API console** as a `[DEV-SMS]` line — copy it into the verify
+screen. Note BR-59: the password needs 8+ characters with upper, lower, digit
+and a special character.
+
+### Without a backend
+
+Set `VITE_USE_MOCK_API=true` and run `npm run dev`. Open the printed local URL
+(default `http://localhost:5173`), sign in with a demo account (see Mock data
+layer), or use the dev-only role switcher to jump straight into any role.
 
 ## Quality checks
 
-~~~powershell
+```powershell
 npm run lint
 npm run typecheck
 npm test
 npm run build
-~~~
+```
 
 `npm run build` type-checks then produces a static bundle in `dist/` (ignored
 by Git); `npm run preview` serves that build locally.
 
+To test Authentication and Vendor Onboarding end to end against StreetBiz-BE
+(database setup, automated checks, a manual UI checklist, and simulating the ward
+review), follow `../StreetBiz-BE/docs/testing-auth-vendor-onboarding.md`.
+
 ## npm scripts
 
-| Script | Purpose |
-| --- | --- |
-| dev | Start the Vite dev server |
-| build | Type-check and build the production bundle to `dist/` |
-| preview | Serve the production build locally |
-| lint | Run ESLint |
-| typecheck | Run TypeScript without emitting files |
-| test | Run the Vitest suite once |
-| test:watch | Run Vitest in watch mode |
+| Script     | Purpose                                               |
+| ---------- | ----------------------------------------------------- |
+| dev        | Start the Vite dev server                             |
+| build      | Type-check and build the production bundle to `dist/` |
+| preview    | Serve the production build locally                    |
+| lint       | Run ESLint                                            |
+| typecheck  | Run TypeScript without emitting files                 |
+| test       | Run the Vitest suite once                             |
+| test:watch | Run Vitest in watch mode                              |
 
 ## Mock data layer and demo accounts
 
@@ -113,13 +153,13 @@ holds the signed-in session and persists it via the browser's `localStorage`.
 
 Demo accounts (phone / password `123456` for all):
 
-| Role | Phone | Notes |
-| --- | --- | --- |
-| Customer | 0905000001 | Trần Hồng Anh |
-| Vendor (itinerant) | 0905000002 | Nguyễn Thị Hoa — has an active rental contract + permit |
-| Vendor (fixed storefront) | 0905000003 | Lê Văn Minh — registration pending review |
-| Ward Authority | 0905000004 | Phạm Văn Sơn, Phường Hải Châu 1 |
-| Platform Administrator | 0905000005 | Đỗ Quốc Anh |
+| Role                      | Phone      | Notes                                                   |
+| ------------------------- | ---------- | ------------------------------------------------------- |
+| Customer                  | 0905000001 | Trần Hồng Anh                                           |
+| Vendor (itinerant)        | 0905000002 | Nguyễn Thị Hoa — has an active rental contract + permit |
+| Vendor (fixed storefront) | 0905000003 | Lê Văn Minh — registration pending review               |
+| Ward Authority            | 0905000004 | Phạm Văn Sơn, Phường Hải Châu 1                         |
+| Platform Administrator    | 0905000005 | Đỗ Quốc Anh                                             |
 
 The "switch role" shortcut on the sign-in screen and the Account tab only
 renders when `VITE_APP_ENV=development` — it is not part of AUTH-03 and must
@@ -127,7 +167,7 @@ not ship to a real build.
 
 ## Source layout
 
-~~~text
+```text
 src/
 |-- App.tsx        Top-level BrowserRouter + AppProviders + AppRouter
 |-- main.tsx        Vite entry point (mounts <App/> into #root)
@@ -152,7 +192,7 @@ tests/
 |-- components/    Button, StatusChip
 |-- features/      mock-db action behaviour
 +-- navigation/    role -> route mapping
-~~~
+```
 
 ## Navigation shape
 
@@ -185,10 +225,16 @@ rationale.
 
 ## Prepared but not yet wired
 
-- `VITE_API_BASE_URL` / an HTTP client — screens call `src/mocks/db.ts`
-  directly instead of a network layer.
+- Workflows outside Authentication, Vendor Onboarding, Ward slot review,
+  BUY-01–05, ADM-01/03/04/05 and CART/ORD/SORD still call `src/mocks/db.ts`.
 - Push notifications, camera access beyond a plain `<input type="file">`.
-- SignalR/real-time updates.
+- Real-time modules ngoài Orders; Order detail đã dùng SignalR và tự chuyển sang polling khi mất kết nối.
+
+Storefront/menu management and order review/complaint screens now use live APIs
+when live mode is enabled. Checkout redirects only to the `paymentUrl` returned
+by StreetBiz-BE, and the UI trusts only backend order state after the payment
+callback. Real MoMo/ZaloPay gateway integration remains pending; see
+[commerce workflow notes](docs/commerce-order-workflows.md).
 
 ## Documentation
 
@@ -198,3 +244,6 @@ rationale.
 - docs/route-plan.md
 - docs/phase-boundary.md
 - docs/api-integration-plan.md
+- docs/community-vendor-workflows.md
+- docs/platform-administration-workflows.md
+- docs/commerce-order-workflows.md

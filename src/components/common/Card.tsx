@@ -5,13 +5,18 @@ type Props = {
   onPress?: () => void;
   style?: CSSProperties;
   padded?: boolean;
+  className?: string;
   testID?: string;
 };
 
-export function Card({ children, onPress, style, padded = true, testID }: Props) {
-  const className = [
-    'rounded-md border border-border bg-card shadow-card',
+export function Card({ children, onPress, style, padded = true, className, testID }: Props) {
+  const classes = [
+    'rounded-[20px] bg-card shadow-card ring-1 ring-border/80',
+    onPress
+      ? 'cursor-pointer transition-[box-shadow,transform] duration-200 [transition-timing-function:var(--ease-out)] hover:-translate-y-0.5 hover:shadow-card-hover active:translate-y-0'
+      : '',
     padded ? 'p-md' : '',
+    className ?? '',
   ].join(' ');
 
   if (onPress) {
@@ -21,7 +26,7 @@ export function Card({ children, onPress, style, padded = true, testID }: Props)
         data-testid={testID}
         onClick={onPress}
         style={style}
-        className={`${className} block w-full text-left transition-opacity active:opacity-90`}
+        className={`${classes} block w-full text-left`}
       >
         {children}
       </button>
@@ -29,7 +34,7 @@ export function Card({ children, onPress, style, padded = true, testID }: Props)
   }
 
   return (
-    <div data-testid={testID} style={style} className={className}>
+    <div data-testid={testID} style={style} className={classes}>
       {children}
     </div>
   );

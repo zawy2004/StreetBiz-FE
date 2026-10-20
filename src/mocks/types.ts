@@ -16,6 +16,8 @@ export type MockUser = {
   role_code: RoleCode;
   avatarUrl?: string;
   wardUnitType?: string;
+  /** AdministrativeUnits.unit_id the account belongs to (UserAccounts.ward_unit_id). */
+  wardUnitId?: number;
   vendorId?: string;
   account_status: 'ACTIVE' | 'SUSPENDED';
 };
