@@ -345,13 +345,13 @@ describe('C13 order detail', () => {
       shortCode: '7K2M9QXP',
     });
     renderAt('/customer/orders/19', '/customer/orders/:orderId', <OrderDetailScreen />);
+    // An order on its way gets the step row; the full log with notes sits under it.
     const journey = await screen.findByRole('list', { name: 'Tiến trình đơn hàng' });
-    expect(within(journey).getByText('Đang chuẩn bị').closest('li')).toHaveAttribute(
-      'aria-current',
-      'step',
-    );
-    expect(within(journey).getAllByText('Sắp tới')).toHaveLength(2);
-    expect(within(journey).getByText('Đang nướng bánh.')).toBeInTheDocument();
+    const here = within(journey).getByRole('listitem', { current: 'step' });
+    expect(here).toHaveTextContent(/^Đang làm, đang ở bước này/);
+    expect(within(journey).getAllByText(/chưa tới/)).toHaveLength(2);
+    const log = screen.getByRole('list', { name: 'Lịch sử cập nhật đơn hàng', hidden: true });
+    expect(within(log).getByText('Đang nướng bánh.')).toBeInTheDocument();
   });
 
   it('says "ĐÃ HOÀN TIỀN" exactly once for a refunded order', async () => {
