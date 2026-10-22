@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { OVERVIEW_REFRESH_MS } from '@/core/config/refresh';
 
 import { Button, Icon, Pagination } from '@/components/common';
 import { ConfirmDialog, ErrorState, Skeleton, showToast } from '@/components/feedback';
@@ -50,6 +51,7 @@ function AccountsContent() {
     queryKey: ['platform', 'accounts', params],
     queryFn: () => platformApi.accounts(params),
     placeholderData: keepPreviousData,
+    refetchInterval: OVERVIEW_REFRESH_MS,
   });
 
   // A filter change always starts again at page one: page 3 of a smaller list may not exist.

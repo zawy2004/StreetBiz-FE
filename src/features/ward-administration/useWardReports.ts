@@ -7,6 +7,7 @@ import {
   type WardDashboardDto,
 } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
+import { OVERVIEW_REFRESH_MS } from '@/core/config/refresh';
 import { useMockDb } from '@/mocks/db';
 import { VIOLATION_TYPES } from '@/mocks/seed';
 
@@ -112,6 +113,7 @@ export function useWardDashboard() {
     queryKey: WARD_REPORT_KEYS.dashboard,
     queryFn: wardReportApi.dashboard,
     enabled: isLiveApi,
+    refetchInterval: OVERVIEW_REFRESH_MS,
   });
 
   const rented = slots.filter((s) => s.slot_status === 'RENTED').length;
