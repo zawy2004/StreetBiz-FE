@@ -74,6 +74,24 @@ async function refreshTokens(): Promise<AuthTokens> {
   return next;
 }
 
+/**
+ * Rotates the session's tokens for callers that talk to the API without axios (the platform admin
+ * screens use fetch). Shares the in-flight refresh with the axios interceptor, and when the refresh
+ * token is rejected ends the session exactly as the interceptor does.
+ */
+export async function refreshAccessToken(): Promise<AuthTokens> {
+  try {
+    refreshInFlight ??= refreshTokens().finally(() => {
+      refreshInFlight = null;
+    });
+    return await refreshInFlight;
+  } catch {
+    clearTokens();
+    onSessionExpired?.();
+    throw new ApiError('unauthorized', 401, 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+  }
+}
+
 http.interceptors.response.use(
   (response) => {
     // ASP.NET renders a null result as 204 No Content, and axios surfaces that empty

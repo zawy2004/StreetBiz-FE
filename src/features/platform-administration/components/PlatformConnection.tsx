@@ -5,17 +5,27 @@ import { Button, Icon } from '@/components/common';
 import { EmptyState, Skeleton } from '@/components/feedback';
 import { PasswordField, PhoneField } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
-import { platformApi, PlatformApiError, usePlatformSession } from '../platform-api';
+import {
+  platformApi,
+  PlatformApiError,
+  useSharedAdminSession,
+  usePlatformSession,
+} from '../platform-api';
+import { useAuthStore } from '@/store/auth-store';
 
 export function PlatformConnection({ children }: { children: ReactNode }) {
-  const { token, generation, admin } = usePlatformSession();
+  const { token: connectedToken, generation, admin } = usePlatformSession();
+  // One sign-in: the app session of a platform administrator is the admin session (see useSharedAdminSession).
+  const shared = useSharedAdminSession();
+  const appUserId = useAuthStore((state) => state.user?.id);
+  const token = shared ? 'app-session' : connectedToken;
   const queryClient = useQueryClient();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const profile = useQuery({
-    queryKey: ['platform', generation, 'me'],
+    queryKey: ['platform', shared ? `app-${appUserId}` : generation, 'me'],
     queryFn: () => platformApi.me(),
     enabled: Boolean(token),
   });
@@ -101,12 +111,14 @@ export function PlatformConnection({ children }: { children: ReactNode }) {
                 fullWidth={false}
                 onPress={() => profile.refetch()}
               />
-              <Button
-                label="Kết nối lại"
-                variant="outline"
-                fullWidth={false}
-                onPress={() => void disconnect()}
-              />
+              {shared ? null : (
+                <Button
+                  label="Kết nối lại"
+                  variant="outline"
+                  fullWidth={false}
+                  onPress={() => void disconnect()}
+                />
+              )}
             </div>
           }
         />
@@ -124,14 +136,16 @@ export function PlatformConnection({ children }: { children: ReactNode }) {
           </span>
           <span className="truncate">{profile.data?.name ?? admin?.name} · Platform Admin</span>
         </span>
-        <button
-          type="button"
-          className="inline-flex h-11 items-center gap-1.5 rounded-[10px] px-sm text-body-sm font-semibold text-primary transition-colors hover:bg-tint-primary md:h-9"
-          onClick={() => void disconnect()}
-        >
-          <Icon name="logout" size={16} color="currentColor" />
-          Ngắt kết nối
-        </button>
+        {shared ? null : (
+          <button
+            type="button"
+            className="inline-flex h-11 items-center gap-1.5 rounded-[10px] px-sm text-body-sm font-semibold text-primary transition-colors hover:bg-tint-primary md:h-9"
+            onClick={() => void disconnect()}
+          >
+            <Icon name="logout" size={16} color="currentColor" />
+            Ngắt kết nối
+          </button>
+        )}
       </div>
       {children}
     </div>

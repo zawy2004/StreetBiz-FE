@@ -6,9 +6,11 @@ import {
   usePlatformSession,
 } from '@/features/platform-administration/platform-api';
 
-vi.mock('@/core/config/env', () => ({
-  env: { apiBaseUrl: 'https://api.example.test/api' },
-}));
+vi.mock('@/core/config/env', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/core/config/env')>();
+  // The offline demo: no app session token is shared, so the separate connection is what these tests exercise.
+  return { ...actual, isLiveApi: false, env: { ...actual.env, apiBaseUrl: 'https://api.example.test/api' } };
+});
 
 describe('platform administration API', () => {
   afterEach(() => {
