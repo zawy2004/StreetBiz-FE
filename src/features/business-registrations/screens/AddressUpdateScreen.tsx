@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/common';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
-import { ErrorState, Skeleton, showToast } from '@/components/feedback';
+import { ConfirmDialog, ErrorState, Skeleton, showToast } from '@/components/feedback';
 import { VENDOR_TYPE } from '@/core/api';
 import { sideApi, SideApiError } from '@/core/api/side-api';
 import { useAuthStore } from '@/store/auth-store';
@@ -15,6 +15,11 @@ import {
   NextStepsAfterAddress,
   RegistrationStrip,
 } from '../components/lifecycle/LifecycleParts';
+import {
+  AddressChangeHistory,
+  RELEASE_GRACE_DAYS,
+  ReleaseSlotPicker,
+} from '../components/lifecycle/AdjacentSlotRelease';
 import { useRegistrationDetail } from '../useRegistrations';
 
 const NETWORK_ERROR = 'Không kết nối được Backend. Kiểm tra URL API, HTTPS và CORS rồi thử lại.';
@@ -34,9 +39,27 @@ export function AddressUpdateScreen() {
     useRegistrationDetail(registrationId);
   const [address, setAddress] = useState('');
   const [formError, setFormError] = useState<string>();
+  const [releaseId, setReleaseId] = useState<number | null>(null);
+  const [confirmRelease, setConfirmRelease] = useState(false);
+  // SIDE-10: the slots that can be given back, and what happened to earlier requests.
+  const activeContracts = useQuery({
+    queryKey: ['side', userId, 'contracts', 'ACTIVE'],
+    queryFn: () => sideApi.listContracts('ACTIVE'),
+    enabled: validId,
+  });
+  const earlier = useQuery({
+    queryKey: ['side', userId, 'address-changes'],
+    queryFn: () => sideApi.listAddressChanges(),
+    enabled: validId,
+  });
 
   const submit = useMutation({
-    mutationFn: () => sideApi.requestAddressChange({ registrationId, newAddress: address.trim() }),
+    mutationFn: () =>
+      sideApi.requestAddressChange({
+        registrationId,
+        newAddress: address.trim(),
+        releasedContractId: releaseId,
+      }),
     onSuccess: (result) => {
       showToast(result.message);
       void queryClient.invalidateQueries({ queryKey: ['side', userId, 'address-changes'] });
@@ -80,8 +103,11 @@ export function AddressUpdateScreen() {
   const handleSubmit = () => {
     if (!address.trim()) return setFormError('Vui lòng nhập địa chỉ mới.');
     setFormError(undefined);
+    // Giving a slot back is the one step that is hard to undo on your own, so it is confirmed first.
+    if (releaseId !== null) return setConfirmRelease(true);
     submit.mutate();
   };
+  const releasing = activeContracts.data?.find((c) => c.contractId === releaseId);
 
   const eligible =
     registration.vendorType === VENDOR_TYPE.fixedStorefront &&
@@ -122,7 +148,27 @@ export function AddressUpdateScreen() {
         ) : null}
       </div>
 
+      <ReleaseSlotPicker
+        contracts={activeContracts.data ?? []}
+        value={releaseId}
+        onChange={setReleaseId}
+      />
+
+      <AddressChangeHistory changes={earlier.data ?? []} />
+
       <NextStepsAfterAddress />
+      <ConfirmDialog
+        visible={confirmRelease}
+        title={`Trả ô ${releasing?.slotCode ?? ''} sau thời gian ân hạn?`}
+        description={`Ô sẽ được trả sau ${RELEASE_GRACE_DAYS} ngày kể từ hôm nay, khi bạn không còn phí quá hạn hoặc tiền phạt chưa nộp. Phường có thể gia hạn hoặc cho bạn giữ ô.`}
+        confirmLabel="Gửi và trả ô"
+        confirmVariant="danger"
+        onCancel={() => setConfirmRelease(false)}
+        onConfirm={() => {
+          setConfirmRelease(false);
+          submit.mutate();
+        }}
+      />
     </Screen>
   );
 }

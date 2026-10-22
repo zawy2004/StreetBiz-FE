@@ -401,6 +401,7 @@ function LiveInboxScreen() {
           <InboxSignposts
             onSlots={() => navigate('/ward/inbox/reviews')}
             onFoodSafety={() => navigate('/ward/inbox/food-safety')}
+            onReports={() => navigate('/ward/inbox/vendor-reports')}
           />
         ) : null}
       </div>

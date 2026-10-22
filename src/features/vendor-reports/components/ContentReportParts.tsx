@@ -17,9 +17,12 @@ const TARGETS: Record<string, { label: string; icon: IconName }> = {
 export function ReportTargetCard({
   contentType,
   targetId,
+  name,
 }: {
   contentType: string | null;
   targetId: string;
+  /** The reported thing's own name, when the page that sent the customer here knew it. */
+  name?: string;
 }) {
   const target = (contentType && TARGETS[contentType]) || {
     label: 'Nội dung',
@@ -52,6 +55,9 @@ export function ReportTargetCard({
         <span className="font-editorial text-[28px] font-semibold leading-tight text-text">
           {target.label}
         </span>
+        {name ? (
+          <span className="line-clamp-2 break-words text-body-lg font-semibold text-text">{name}</span>
+        ) : null}
         {targetId ? (
           <span className="truncate font-sign text-[16px] font-bold font-tabular text-text/80">
             Mã #{targetId}

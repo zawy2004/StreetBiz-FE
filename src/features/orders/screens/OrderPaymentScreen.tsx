@@ -125,8 +125,17 @@ export function OrderPaymentScreen() {
       onPress={() => action.mutate('sync')}
     />
   ) : null;
+  // PAY-02: the cart is kept after a failed payment, so paying again is one press away. It starts a new
+  // checkout (a new order, a new Idempotency-Key); the cancelled order is never reused.
+  const payAgain = cancelled ? (
+    <Button label="Thanh toán lại" onPress={() => navigate('/customer/checkout')} />
+  ) : null;
   const toCart = cancelled ? (
-    <Button label="Về giỏ hàng" onPress={() => navigate('/customer/explore/cart')} />
+    <Button
+      label="Về giỏ hàng"
+      variant="outline"
+      onPress={() => navigate('/customer/explore/cart')}
+    />
   ) : null;
   const toDetail = (
     <Button
@@ -218,6 +227,7 @@ export function OrderPaymentScreen() {
 
         <div className="flex flex-col gap-sm">
           {checkAgain}
+          {payAgain}
           {toCart}
           {pending ? (
             <div className="grid gap-sm sm:grid-cols-2">

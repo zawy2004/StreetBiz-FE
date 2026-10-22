@@ -2,18 +2,12 @@ import { useId, useRef, type ReactNode } from 'react';
 
 import { Avatar, Icon } from '@/components/common';
 import { EmptyState } from '@/components/feedback';
-import { ROLE_LABELS, type RoleCode } from '@/core/types/role';
-import { formatPhone } from '@/core/utils/phone';
+import { ROLE_LABELS } from '@/core/types/role';
 import { useMediaQuery } from '@/hooks/useBreakpoint';
+import type { PlatformAccount } from '../platform-api';
 import { ROLE_SWATCH } from './admin-format';
 
-export type AccountRowData = {
-  id: string;
-  fullName: string;
-  phone: string;
-  role_code: RoleCode;
-  account_status: 'ACTIVE' | 'SUSPENDED';
-};
+export type AccountRowData = PlatformAccount;
 
 type Props = {
   rows: AccountRowData[];
@@ -21,7 +15,11 @@ type Props = {
   renderAction: (row: AccountRowData, nameId: string) => ReactNode;
   empty: { title: string; action?: ReactNode };
   toolbar: ReactNode;
+  /** Loading or error content shown instead of the rows. */
+  status?: ReactNode;
 };
+
+const displayName = (row: AccountRowData) => row.fullName?.trim() || 'Chưa đặt tên';
 
 const HEADERS = ['Họ tên', 'Vai trò', 'Số điện thoại', 'Trạng thái', 'Thao tác'] as const;
 
@@ -31,7 +29,7 @@ const HEADERS = ['Họ tên', 'Vai trò', 'Số điện thoại', 'Trạng thái
  * its left edge (it drops in when the account is locked and lifts when it is
  * unlocked), a pale red row and a padlock in its status sign.
  */
-export function AccountsTable({ rows, renderAction, empty, toolbar }: Props) {
+export function AccountsTable({ rows, renderAction, empty, toolbar, status }: Props) {
   const wide = useMediaQuery('(min-width: 768px)');
 
   return (
@@ -39,7 +37,9 @@ export function AccountsTable({ rows, renderAction, empty, toolbar }: Props) {
       <div className="flex flex-col gap-sm border-b border-border px-md py-sm lg:flex-row lg:items-center">
         {toolbar}
       </div>
-      {rows.length === 0 ? (
+      {status ? (
+        status
+      ) : rows.length === 0 ? (
         <EmptyState
           compact={!wide}
           icon="account-group-outline"
@@ -54,7 +54,7 @@ export function AccountsTable({ rows, renderAction, empty, toolbar }: Props) {
             <col className="w-[150px]" />
             <col className="w-[150px] lg:w-[160px]" />
             <col className="w-[150px]" />
-            <col className="w-[190px]" />
+            <col className="w-[290px]" />
           </colgroup>
           <thead>
             <tr className="border-b border-border bg-sunken/70">
@@ -71,14 +71,14 @@ export function AccountsTable({ rows, renderAction, empty, toolbar }: Props) {
           </thead>
           <tbody>
             {rows.map((row) => (
-              <AccountTableRow key={row.id} row={row} renderAction={renderAction} />
+              <AccountTableRow key={row.userId} row={row} renderAction={renderAction} />
             ))}
           </tbody>
         </table>
       ) : (
         <ul aria-label="Danh sách tài khoản" className="divide-y divide-border">
           {rows.map((row) => (
-            <AccountCard key={row.id} row={row} renderAction={renderAction} />
+            <AccountCard key={row.userId} row={row} renderAction={renderAction} />
           ))}
         </ul>
       )}
@@ -100,7 +100,7 @@ function Barrier({ on }: { on: boolean }) {
 
 function AccountTableRow({ row, renderAction }: RowProps) {
   const nameId = useId();
-  const locked = row.account_status === 'SUSPENDED';
+  const locked = row.accountStatus !== 'ACTIVE';
   return (
     <tr
       className={`border-b border-border transition-colors duration-200 last:border-b-0 ${locked ? 'bg-[#FDEBEA]/50 dark:bg-[#3A1414]/50' : 'hover:bg-sunken/70'}`}
@@ -109,12 +109,12 @@ function AccountTableRow({ row, renderAction }: RowProps) {
         <Barrier on={locked} />
         <PersonName row={row} nameId={nameId} />
       </td>
-      <td className="px-md py-sm align-middle text-text">{ROLE_LABELS[row.role_code]}</td>
+      <td className="px-md py-sm align-middle text-text">{ROLE_LABELS[row.roleCode]}</td>
       <td className="px-md py-sm align-middle">
-        <Phone value={row.phone} />
+        <Phone value={row.maskedPhone} />
       </td>
       <td className="px-md py-sm align-middle">
-        <AccountStatus status={row.account_status} />
+        <AccountStatus status={row.accountStatus} />
       </td>
       <td className="px-md py-sm text-right align-middle">{renderAction(row, nameId)}</td>
     </tr>
@@ -123,7 +123,7 @@ function AccountTableRow({ row, renderAction }: RowProps) {
 
 function AccountCard({ row, renderAction }: RowProps) {
   const nameId = useId();
-  const locked = row.account_status === 'SUSPENDED';
+  const locked = row.accountStatus !== 'ACTIVE';
   return (
     <li
       className={`relative px-md py-sm pl-[22px] transition-colors duration-200 ${locked ? 'bg-[#FDEBEA]/50 dark:bg-[#3A1414]/50' : ''}`}
@@ -132,14 +132,14 @@ function AccountCard({ row, renderAction }: RowProps) {
       <PersonName row={row} nameId={nameId} wrap />
       <dl className="mt-xs grid grid-cols-[auto_1fr] items-center gap-x-md gap-y-1.5 text-body-sm">
         <dt className="text-muted">Vai trò</dt>
-        <dd className="min-w-0 text-right text-text">{ROLE_LABELS[row.role_code]}</dd>
+        <dd className="min-w-0 text-right text-text">{ROLE_LABELS[row.roleCode]}</dd>
         <dt className="text-muted">Số điện thoại</dt>
         <dd className="min-w-0 text-right">
-          <Phone value={row.phone} />
+          <Phone value={row.maskedPhone} />
         </dd>
         <dt className="text-muted">Trạng thái</dt>
         <dd className="flex min-w-0 justify-end">
-          <AccountStatus status={row.account_status} />
+          <AccountStatus status={row.accountStatus} />
         </dd>
         <dt className="text-muted">Thao tác</dt>
         <dd className="flex min-w-0 justify-end">{renderAction(row, nameId)}</dd>
@@ -161,16 +161,16 @@ function PersonName({
     <span className="flex min-w-0 items-center gap-sm">
       <span
         aria-hidden="true"
-        className={`shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-card ${ROLE_SWATCH[row.role_code].ring}`}
+        className={`shrink-0 rounded-full ring-2 ring-offset-2 ring-offset-card ${ROLE_SWATCH[row.roleCode].ring}`}
       >
-        <Avatar name={row.fullName} size={32} />
+        <Avatar name={displayName(row)} size={32} />
       </span>
       <span
         id={nameId}
-        title={row.fullName}
+        title={displayName(row)}
         className={`min-w-0 text-[15px] font-semibold leading-[22px] text-text ${wrap ? 'line-clamp-2 break-words' : 'truncate'}`}
       >
-        {row.fullName}
+        {displayName(row)}
       </span>
     </span>
   );
@@ -179,7 +179,7 @@ function PersonName({
 function Phone({ value }: { value: string }) {
   return (
     <span className="font-sign text-body-md font-medium text-text font-tabular">
-      {formatPhone(value)}
+      {value}
     </span>
   );
 }
@@ -188,10 +188,10 @@ function Phone({ value }: { value: string }) {
  * "HOẠT ĐỘNG" / "ĐÃ KHOÁ" in the status-sign shape, the locked one with a padlock.
  * It cross-fades when the status changes while on screen (not on first paint).
  */
-function AccountStatus({ status }: { status: AccountRowData['account_status'] }) {
+function AccountStatus({ status }: { status: AccountRowData['accountStatus'] }) {
   const first = useRef(status);
   const changed = first.current !== status;
-  const locked = status === 'SUSPENDED';
+  const locked = status !== 'ACTIVE';
   return (
     <span
       key={status}
@@ -207,7 +207,7 @@ function AccountStatus({ status }: { status: AccountRowData['account_status'] })
       ) : (
         <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
       )}
-      {(locked ? 'Đã khoá' : 'Hoạt động').toUpperCase()}
+      {(status === 'DEACTIVATED' ? 'Đã vô hiệu' : locked ? 'Đã khoá' : 'Hoạt động').toUpperCase()}
     </span>
   );
 }

@@ -173,6 +173,7 @@ function renderAt(path: string, route: string, element: React.ReactNode) {
           <Route path={route} element={element} />
           <Route path="/customer/orders/:orderId" element={<div>order detail destination</div>} />
           <Route path="/customer/explore/cart" element={<div>cart destination</div>} />
+          <Route path="/customer/checkout" element={<div>checkout destination</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -272,6 +273,25 @@ describe('C11 checkout', () => {
     await user.click(screen.getByRole('button', { name: 'Thanh toán và đặt món' }));
     expect(ordersApi.checkout).toHaveBeenCalledTimes(2);
     expect(ordersApi.checkout.mock.calls[1]?.[1]).toBe('uuid-a');
+  });
+
+  it('starts payment again with a NEW key after a payment failed (PAY-02)', async () => {
+    // First visit: the key is generated and the order is created; the payment then fails at the
+    // provider. Coming back to checkout is a new visit, so it must not replay the dead order's key.
+    legacyApi.cart.mockResolvedValue(cart);
+    ordersApi.checkout.mockImplementation(() => new Promise(() => undefined));
+    const uuid = vi.fn().mockReturnValueOnce('uuid-first').mockReturnValueOnce('uuid-second');
+    vi.stubGlobal('crypto', { randomUUID: uuid });
+    const user = userEvent.setup();
+
+    const first = renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Thanh toán và đặt món' }));
+    first.unmount();
+
+    renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Thanh toán và đặt món' }));
+
+    expect(ordersApi.checkout.mock.calls.map((call) => call[1])).toEqual(['uuid-first', 'uuid-second']);
   });
 
   it('keeps the wallet choice a real, named radio', async () => {
@@ -392,6 +412,37 @@ describe('C14 payment status', () => {
   });
 });
 
+describe('C14b retry a failed payment (PAY-02)', () => {
+  it('offers "Thanh toán lại" next to the way back to the cart, and goes to a fresh checkout', async () => {
+    ordersApi.customerOrder.mockResolvedValue(order('CANCELLED'));
+    const user = userEvent.setup();
+    renderAt('/customer/orders/19/payment', '/customer/orders/:orderId/payment', <OrderPaymentScreen />);
+
+    expect(await screen.findByText('Thanh toán thất bại hoặc đơn đã bị huỷ')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Về giỏ hàng' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Thanh toán lại' }));
+
+    expect(await screen.findByText('checkout destination')).toBeInTheDocument();
+  });
+
+  it('does not offer it while the payment is still pending or once it has succeeded', async () => {
+    ordersApi.customerOrder.mockResolvedValue(order('PENDING_PAYMENT'));
+    const { unmount } = renderAt(
+      '/customer/orders/19/payment',
+      '/customer/orders/:orderId/payment',
+      <OrderPaymentScreen />,
+    );
+    await screen.findByText('Đang chờ cổng thanh toán xác nhận');
+    expect(screen.queryByRole('button', { name: 'Thanh toán lại' })).not.toBeInTheDocument();
+    unmount();
+
+    ordersApi.customerOrder.mockResolvedValue(order('PLACED'));
+    renderAt('/customer/orders/19/payment', '/customer/orders/:orderId/payment', <OrderPaymentScreen />);
+    await screen.findByText(/Đặt món thành công/);
+    expect(screen.queryByRole('button', { name: 'Thanh toán lại' })).not.toBeInTheDocument();
+  });
+});
+
 describe('C15 review', () => {
   it('marks only the chosen star as pressed and saves it', async () => {
     legacyApi.customerOrder.mockResolvedValue(commerceOrder('COMPLETED'));
@@ -422,6 +473,66 @@ describe('C15 review', () => {
     );
     expect(await screen.findByText('Chỉ đánh giá đơn đã hoàn tất.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Lưu đánh giá' })).not.toBeInTheDocument();
+  });
+
+  it('shows how long a submitted review can still be edited (REV-02)', async () => {
+    legacyApi.customerOrder.mockResolvedValue(commerceOrder('COMPLETED'));
+    legacyApi.review.mockResolvedValue({
+      reviewId: 3,
+      rating: 4,
+      text: 'Ngon',
+      editableUntil: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
+    });
+    renderAt(
+      '/customer/orders/19/review',
+      '/customer/orders/:orderId/review',
+      <OrderReviewScreen />,
+    );
+
+    expect(await screen.findByText(/Bạn có thể sửa đến/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lưu đánh giá' })).toBeInTheDocument();
+  });
+
+  it('turns an expired review read-only instead of offering a save that would be refused (REV-02)', async () => {
+    legacyApi.customerOrder.mockResolvedValue(commerceOrder('COMPLETED'));
+    legacyApi.review.mockResolvedValue({
+      reviewId: 3,
+      rating: 4,
+      text: 'Ngon, giao nhanh',
+      editableUntil: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+    });
+    renderAt(
+      '/customer/orders/19/review',
+      '/customer/orders/:orderId/review',
+      <OrderReviewScreen />,
+    );
+
+    expect(await screen.findByText('Đã quá thời hạn chỉnh sửa đánh giá')).toBeInTheDocument();
+    expect(screen.getByText('Ngon, giao nhanh')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Lưu đánh giá' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Nhận xét')).not.toBeInTheDocument();
+    expect(legacyApi.saveReview).not.toHaveBeenCalled();
+  });
+
+  it('shows the server refusal when a save arrives after the period closed (REV-02)', async () => {
+    legacyApi.customerOrder.mockResolvedValue(commerceOrder('COMPLETED'));
+    legacyApi.review.mockResolvedValue({
+      reviewId: 3,
+      rating: 4,
+      text: 'Ngon',
+      editableUntil: new Date(Date.now() + 60_000).toISOString(),
+    });
+    legacyApi.saveReview.mockRejectedValue(new Error('Đã quá thời hạn chỉnh sửa đánh giá (7 ngày kể từ lúc gửi), bạn không thể sửa nữa.'));
+    const user = userEvent.setup();
+    renderAt(
+      '/customer/orders/19/review',
+      '/customer/orders/:orderId/review',
+      <OrderReviewScreen />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Lưu đánh giá' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Đã quá thời hạn chỉnh sửa đánh giá');
   });
 });
 

@@ -689,6 +689,9 @@ export const actionLabels: Record<string, string> = {
   QUEUE: 'Đưa vào hàng chờ',
   REVIEW: 'Nhận xét duyệt',
   REQUEST_INFO: 'Yêu cầu bổ sung',
+  // SIDE-10: the old slot of an address change waiting out its grace period.
+  EXTEND_GRACE: 'Gia hạn thời gian trả ô cũ',
+  CANCEL_RELEASE: 'Giữ nguyên ô cũ',
 };
 export const statusLabels: Record<string, string> = {
   PENDING: 'Chờ xử lý',
