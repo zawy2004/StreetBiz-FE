@@ -470,27 +470,18 @@ describe('Report form (C07 rebuild)', () => {
 });
 
 describe('Content report (C08 rebuild)', () => {
-  it('names an unknown kind "Nội dung" and keeps the reason as typed', async () => {
-    const user = userEvent.setup();
+  // The form itself is covered against the real API in content-report.test.tsx (REV-03); here only
+  // the address contract is kept: an unknown kind is never sent anywhere.
+  it('refuses an unknown kind instead of reporting it', () => {
     renderAt(
       '/customer/explore/report-content?contentType=OTHER&targetId=7',
       '/customer/explore/report-content',
       <ReportContentScreen />,
     );
 
-    expect(screen.getByText('Nội dung')).toBeInTheDocument();
-    const send = screen.getByRole('button', { name: 'Gửi báo cáo' });
-    await user.type(screen.getByLabelText('Lý do báo cáo'), '   ');
-    expect(send).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: 'Giá không đúng' }));
-    await user.click(send);
-
-    expect(useMockDb.getState().reportedContent.at(-1)).toMatchObject({
-      content_type: 'OTHER',
-      targetId: '7',
-      reason: 'Giá không đúng',
-      status: 'PENDING',
-    });
+    expect(screen.getByText('Không xác định được nội dung cần báo cáo')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Gửi báo cáo' })).not.toBeInTheDocument();
+    expect(useMockDb.getState().reportedContent.at(-1)?.targetId).not.toBe('7');
   });
 });
 

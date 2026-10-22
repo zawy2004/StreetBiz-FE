@@ -18,6 +18,7 @@ import { BackButton } from '../components/BackButton';
 import { isHotDish } from '../components/item/hot-dish';
 import { FromStorefront, ItemHero, NoteSlip } from '../components/item/ItemParts';
 import { OrderBar, QuantityStepper } from '../components/item/OrderBar';
+import { ReportContentLink } from '../components/ReportContentLink';
 import { menuItemPhotos } from '../food-photos';
 
 export function ItemDetailScreen() {
@@ -159,6 +160,12 @@ function LiveItemDetailScreen() {
           storefrontName={item.data.storefrontName}
           onViewStore={() => navigate(`/customer/explore/stores/${item.data.storefrontId}`)}
           cartNote={cartNote}
+        />
+        <ReportContentLink
+          contentType="MENU_ITEM"
+          targetId={item.data.menuItemId}
+          name={item.data.itemName}
+          label="Báo cáo món này"
         />
       </ItemLayout>
       <ConfirmDialog

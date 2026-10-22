@@ -8,6 +8,7 @@ import type {
 
 export const RADIUS_OPTIONS = [1000, 2000, 5000] as const;
 export const PRICE_CAPS = [30_000, 50_000, 100_000] as const;
+export const RATING_OPTIONS = [3, 4] as const;
 
 /** What a customer narrows a listing by. The ward (service area) is picked separately from the rest. */
 export type DiscoveryFilters = {
@@ -16,6 +17,8 @@ export type DiscoveryFilters = {
   openNow: boolean;
   radiusMeters: number | null;
   maxPrice: number | null;
+  /** Minimum community rating in stars (DISC-05). */
+  minRating: number | null;
 };
 
 export const NO_DISCOVERY_FILTERS: DiscoveryFilters = {
@@ -24,11 +27,16 @@ export const NO_DISCOVERY_FILTERS: DiscoveryFilters = {
   openNow: false,
   radiusMeters: null,
   maxPrice: null,
+  minRating: null,
 };
 
 /** True when a chip-level filter is on; the service area is deliberately not counted. */
 export const hasActiveFilters = (f: DiscoveryFilters) =>
-  f.categoryId != null || f.openNow || f.radiusMeters != null || f.maxPrice != null;
+  f.categoryId != null ||
+  f.openNow ||
+  f.radiusMeters != null ||
+  f.maxPrice != null ||
+  f.minRating != null;
 
 /** One sort choice for the search screen, mapped onto whichever list it orders. */
 export type SearchSort = 'NEAREST' | 'RATING' | 'PRICE_ASC' | 'PRICE_DESC' | 'NAME';
@@ -57,6 +65,8 @@ export function storefrontQuery(
     openNow: filters.openNow || undefined,
     position: position ?? undefined,
     radiusMeters,
+    minRating: filters.minRating ?? undefined,
+    maxPrice: filters.maxPrice ?? undefined,
     sort: wanted === 'distance' && !position ? 'name' : wanted,
   };
 }
@@ -72,6 +82,7 @@ export function menuItemQuery(
     categoryId: filters.categoryId ?? undefined,
     openNow: filters.openNow || undefined,
     maxPrice: filters.maxPrice ?? undefined,
+    minRating: filters.minRating ?? undefined,
     sort,
   };
 }

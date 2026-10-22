@@ -47,12 +47,29 @@ export type RentalChoice = {
 };
 export type ApplicationChoice = { applicationId: number; registrationId: number };
 
+/** One weekly opening window: ISO weekday (Monday = 1) and "HH:mm" times. */
+export type BusinessHour = { dayOfWeek: number; opensAt: string; closesAt: string };
+/** The hours the ward rents the pitch for; `overnight` when it runs past midnight (from is later than to). */
+export type RentalWindow = { from: string; to: string; overnight: boolean };
+export type StoreHours = {
+  storefrontId: number;
+  hours: BusinessHour[];
+  allowedWindow: RentalWindow | null;
+  availabilityStatus: string;
+  /** Open right now: the switch is on and the hours (if any) cover this minute, Da Nang time. */
+  isOpenNow: boolean;
+};
+
 export const sellerStoreApi = {
   stores: () => apiGet<SellerStore[]>('/seller/storefronts'),
   saveStore: (id: number | null, input: StoreInput) =>
     id === null
       ? apiPost<SellerStore>('/seller/storefronts', input)
       : apiPut<SellerStore>(`/seller/storefronts/${id}`, input),
+  hours: (id: number) => apiGet<StoreHours>(`/seller/storefronts/${id}/business-hours`),
+  /** Replaces the whole week; an empty list clears it. */
+  saveHours: (id: number, hours: BusinessHour[]) =>
+    apiPut<StoreHours>(`/seller/storefronts/${id}/business-hours`, { hours }),
   categories: () => apiGet<SellerCategory[]>('/seller/storefronts/food-categories'),
   menu: (id: number) => apiGet<SellerMenu>(`/seller/storefronts/${id}/menu-items`),
   /** Stores a dish photo (public) and returns the URL to send as `imageUrl`. */

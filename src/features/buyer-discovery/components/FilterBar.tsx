@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Button, Icon } from '@/components/common';
 import { categoryIcon } from '../category-icons';
-import { hasActiveFilters, PRICE_CAPS, RADIUS_OPTIONS } from '../discovery-filters';
+import { hasActiveFilters, PRICE_CAPS, RADIUS_OPTIONS, RATING_OPTIONS } from '../discovery-filters';
 import { useDiscoveryStore } from '../discovery-store';
 import { menuItemPhotos } from '../food-photos';
 import { useMarketplaceCategories } from '../useDiscovery';
@@ -20,7 +20,7 @@ const km = (meters: number) => `≤ ${meters / 1000} km`;
 const thousands = (vnd: number) => `≤ ${vnd / 1000}k`;
 
 /**
- * Narrow a listing by category, opening hours, distance and price (DISC-05).
+ * Narrow a listing by category, opening hours, rating, distance and price (DISC-05).
  * One strip, no box: the dishes first (each with its photo), then the switches.
  * It scrolls sideways when it runs out of room, so it never grows taller.
  */
@@ -62,6 +62,14 @@ export function FilterBar({ showRadius = false, showPrice = false }: Props) {
         active={filters.openNow}
         onPress={() => setFilters({ openNow: !filters.openNow })}
       />
+      {RATING_OPTIONS.map((stars) => (
+        <ToggleChip
+          key={stars}
+          label={`Từ ${stars}★`}
+          active={filters.minRating === stars}
+          onPress={() => setFilters({ minRating: filters.minRating === stars ? null : stars })}
+        />
+      ))}
       {showRadius
         ? RADIUS_OPTIONS.map((meters) => (
             <ToggleChip
