@@ -6,12 +6,14 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useToastStore } from '@/components/feedback';
-import { useMockDb } from '@/mocks/db';
 import {
   platformApi,
   PlatformApiError,
   usePlatformSession,
   type OrderComplaint,
+  type PlatformDashboard,
+  type PlatformAccount,
+  type PlatformExport,
   type PlatformPage,
   type ReportedContent,
 } from '@/features/platform-administration/platform-api';
@@ -123,80 +125,464 @@ afterEach(() => {
   flags.live = false;
 });
 
-describe('P01 platform dashboard', () => {
-  it('shows the seed figures and keeps every entry point', async () => {
-    const user = userEvent.setup();
-    mount('/platform/dashboard', '/platform/dashboard', <PlatformDashboardScreen />);
+describe('P01 platform dashboard (ADM-06)', () => {
+  const metric = (value: number, previous = 0, changePercent: number | null = null) => ({
+    value,
+    previous,
+    changePercent,
+  });
+  const dashboard = (extra: Partial<PlatformDashboard> = {}): PlatformDashboard => ({
+    from: '2026-10-01',
+    to: '2026-10-03',
+    previousFrom: '2026-09-28',
+    previousTo: '2026-09-30',
+    users: {
+      newUsers: metric(4, 2, 100),
+      total: 40,
+      customers: 30,
+      vendors: 8,
+      wardAuthorities: 1,
+      platformAdmins: 1,
+      suspended: 2,
+    },
+    marketplace: {
+      vendorAccounts: 8,
+      storefrontsOpen: 5,
+      storefrontsPaused: 2,
+      storefrontsClosed: 1,
+      storefrontsHidden: 1,
+    },
+    orders: {
+      placed: metric(12, 10, 20),
+      completed: metric(9, 8, 12.5),
+      gmv: metric(1_250_000, 1_000_000, 25),
+      cancelRejectRate: metric(16.7, 10, 67),
+      byStatus: [
+        { status: 'COMPLETED', count: 9 },
+        { status: 'CANCELLED', count: 2 },
+      ],
+    },
+    moderation: {
+      pendingReports: 3,
+      reportsFiled: metric(5, 0, null),
+      averageReviewHours: 6,
+      openComplaints: 2,
+      pendingRefunds: 1,
+      pendingRefundAmount: 20_000,
+    },
+    ordersByDay: [
+      { day: '2026-10-01', ordersPlaced: 3, ordersCompleted: 2, gmv: 150_000 },
+      { day: '2026-10-02', ordersPlaced: 0, ordersCompleted: 0, gmv: 0 },
+      { day: '2026-10-03', ordersPlaced: 9, ordersCompleted: 7, gmv: 1_100_000 },
+    ],
+    topStorefronts: [
+      { storefrontId: 2, storefrontName: 'Quán Hai', completedOrders: 5, revenue: 800_000 },
+    ],
+    ...extra,
+  });
+  const open = () => mount('/platform/dashboard', '/platform/dashboard', <PlatformDashboardScreen />);
 
-    expect(screen.getByText('1 / 1')).toBeInTheDocument();
-    expect(screen.getByText('trên 1 gian hàng')).toBeInTheDocument();
-    expect(screen.getByText('Không có báo cáo mới')).toBeInTheDocument();
-    expect(
-      screen.getByRole('img', {
-        name: /Người mua \d+, Hộ kinh doanh \d+, Cán bộ Phường \d+, Quản trị viên \d+/,
+  beforeEach(() => {
+    connectAdmin();
+    vi.spyOn(platformApi, 'me').mockResolvedValue({ userId: 9, name: 'Đỗ Quốc Anh' });
+  });
+
+  it('shows live figures with the previous-period comparison and no sample-data banner', async () => {
+    vi.spyOn(platformApi, 'dashboard').mockResolvedValue(dashboard());
+    open();
+
+    const orders = await screen.findByRole('region', { name: 'Đơn hàng' });
+    expect(within(orders).getByText('12')).toBeInTheDocument();
+    expect(within(orders).getByText('+20%')).toBeInTheDocument();
+    expect(within(orders).getByText('Kỳ trước: 10')).toBeInTheDocument();
+    const gmv = screen.getByRole('region', { name: 'Giá trị đơn hoàn tất' });
+    expect(within(gmv).getByText('1.250.000 đ')).toBeInTheDocument();
+    expect(screen.getByText('Quán Hai')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Tổng 12 đơn trong 3 ngày' })).toBeInTheDocument();
+    expect(screen.queryByText(/Số liệu mẫu/)).not.toBeInTheDocument();
+  });
+
+  it('says there is no earlier period to compare with instead of showing a percentage', async () => {
+    vi.spyOn(platformApi, 'dashboard').mockResolvedValue(dashboard());
+    open();
+
+    const reports = await screen.findByRole('region', { name: 'Báo cáo nội dung mới' });
+    expect(within(reports).getByText('Kỳ trước chưa có số liệu')).toBeInTheDocument();
+    expect(within(reports).queryByText(/%/)).not.toBeInTheDocument();
+  });
+
+  it('shows a calm empty state for an empty period', async () => {
+    vi.spyOn(platformApi, 'dashboard').mockResolvedValue(
+      dashboard({
+        orders: {
+          placed: metric(0),
+          completed: metric(0),
+          gmv: metric(0),
+          cancelRejectRate: metric(0),
+          byStatus: [],
+        },
+        ordersByDay: [{ day: '2026-10-01', ordersPlaced: 0, ordersCompleted: 0, gmv: 0 }],
+        topStorefronts: [],
       }),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/Số liệu mẫu trong trình duyệt/)).not.toBeInTheDocument();
+    );
+    open();
 
-    await user.click(screen.getByRole('button', { name: /^Chờ kiểm duyệt/ }));
+    expect(await screen.findByText('Chưa có đơn nào trong kỳ này.')).toBeInTheDocument();
+    expect(screen.getByText('Chưa có đơn hoàn tất nào trong kỳ này.')).toBeInTheDocument();
+    expect(screen.getByText('Chưa có đơn hàng nào trong kỳ')).toBeInTheDocument();
+  });
+
+  it('asks again for the chosen range', async () => {
+    const load = vi.spyOn(platformApi, 'dashboard').mockResolvedValue(dashboard());
+    const user = userEvent.setup();
+    open();
+    await screen.findByRole('region', { name: 'Đơn hàng' });
+    expect(load).toHaveBeenCalledTimes(1);
+    const first = load.mock.calls[0]![0]!;
+    expect(first.from! < first.to!).toBe(true);
+
+    await user.click(screen.getByRole('tab', { name: '7 ngày' }));
+    await waitFor(() => expect(load).toHaveBeenCalledTimes(2));
+    const second = load.mock.calls[1]![0]!;
+    expect(second.to).toBe(first.to);
+    expect(second.from! > first.from!).toBe(true);
+  });
+
+  it('blocks a reversed custom range without calling the server', async () => {
+    const load = vi.spyOn(platformApi, 'dashboard').mockResolvedValue(dashboard());
+    const user = userEvent.setup();
+    open();
+    await screen.findByRole('region', { name: 'Đơn hàng' });
+
+    await user.click(screen.getByRole('tab', { name: 'Tuỳ chọn' }));
+    fireEvent.change(screen.getByLabelText('Từ ngày'), { target: { value: '2026-10-20' } });
+    fireEvent.change(screen.getByLabelText('Đến ngày'), { target: { value: '2026-10-01' } });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('tối đa 366 ngày');
+    const calls = load.mock.calls.length;
+    await new Promise((r) => setTimeout(r, 50));
+    expect(load.mock.calls.length).toBe(calls);
+  });
+
+  it('keeps every entry point', async () => {
+    vi.spyOn(platformApi, 'dashboard').mockResolvedValue(dashboard());
+    const user = userEvent.setup();
+    open();
+
+    await user.click(await screen.findByRole('button', { name: /^Chờ kiểm duyệt/ }));
     expect(screen.getByTestId('where')).toHaveTextContent('/platform/moderation');
   });
 
   it('opens accounts from the panel and the account page from the icon', async () => {
+    vi.spyOn(platformApi, 'dashboard').mockResolvedValue(dashboard());
     const user = userEvent.setup();
-    const { unmount } = mount(
-      '/platform/dashboard',
-      '/platform/dashboard',
-      <PlatformDashboardScreen />,
-    );
-    await user.click(screen.getByRole('button', { name: /^Tài khoản: \d+$/ }));
+    const { unmount } = open();
+    await user.click(await screen.findByRole('button', { name: /^Tài khoản: \d+$/ }));
     expect(screen.getByTestId('where')).toHaveTextContent('/platform/accounts');
     unmount();
 
-    mount('/platform/dashboard', '/platform/dashboard', <PlatformDashboardScreen />);
-    await user.click(screen.getByRole('button', { name: 'Tài khoản' }));
+    open();
+    await user.click(await screen.findByRole('button', { name: 'Tài khoản' }));
     expect(screen.getByTestId('where')).toHaveTextContent('/account');
   });
 
-  it('says the figures are browser samples when the app talks to the server', () => {
-    flags.live = true;
-    mount('/platform/dashboard', '/platform/dashboard', <PlatformDashboardScreen />);
-    expect(screen.getByText('Số liệu mẫu trong trình duyệt, chưa nối máy chủ')).toBeInTheDocument();
+  it('offers a retry when the figures cannot be loaded', async () => {
+    const load = vi
+      .spyOn(platformApi, 'dashboard')
+      .mockRejectedValueOnce(new PlatformApiError(500, 'Máy chủ lỗi.'))
+      .mockResolvedValue(dashboard());
+    const user = userEvent.setup();
+    open();
+
+    expect(await screen.findByText('Máy chủ lỗi.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Thử lại' }));
+    expect(await screen.findByRole('region', { name: 'Đơn hàng' })).toBeInTheDocument();
+    expect(load).toHaveBeenCalledTimes(2);
   });
 });
 
-describe('P02 accounts', () => {
-  afterEach(() => {
-    useMockDb.getState().setAccountStatus('USR-CUS', 'ACTIVE');
+describe('P02 accounts (ADM-02)', () => {
+  const account = (extra: Partial<PlatformAccount> = {}): PlatformAccount => ({
+    userId: 31,
+    fullName: 'Trần Hồng Anh',
+    maskedPhone: '090****003',
+    roleCode: 'CUSTOMER',
+    accountStatus: 'ACTIVE',
+    createdAt: '2026-09-01T03:00:00Z',
+    lastLoginAt: '2026-10-20T03:00:00Z',
+    activeSessions: 2,
+    storefrontCount: 0,
+    ...extra,
+  });
+  const open = () => mount('/platform/accounts', '/platform/accounts', <AccountsScreen />);
+
+  beforeEach(() => {
+    connectAdmin();
+    vi.spyOn(platformApi, 'me').mockResolvedValue({ userId: 9, name: 'Đỗ Quốc Anh' });
   });
 
-  it('locks a customer in the mock store and shows the new state at once', async () => {
-    const user = userEvent.setup();
-    mount('/platform/accounts', '/platform/accounts', <AccountsScreen />);
+  it('lists live accounts with the masked phone and no officers', async () => {
+    const list = vi
+      .spyOn(platformApi, 'accounts')
+      .mockResolvedValue(
+        page([account(), account({ userId: 32, roleCode: 'VENDOR', fullName: 'Lê Văn Minh' })]),
+      );
+    open();
 
-    expect(screen.getAllByText('Không áp dụng')).toHaveLength(2);
-    const lock = screen.getAllByRole('button', { name: 'Khoá tài khoản' })[0]!;
-    await user.click(lock);
-
-    expect(useMockDb.getState().users.find((u) => u.id === 'USR-CUS')?.account_status).toBe(
-      'SUSPENDED',
-    );
-    expect(screen.getByText('ĐÃ KHOÁ')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Mở khoá' })).toBeInTheDocument();
-    expect(screen.getByText('Đã khoá tài khoản Trần Hồng Anh')).toBeInTheDocument();
+    const rows = await screen.findByRole('list', { name: 'Danh sách tài khoản' });
+    expect(within(rows).getAllByRole('listitem')).toHaveLength(2);
+    expect(within(rows).getAllByText('090****003').length).toBeGreaterThan(0);
+    expect(list).toHaveBeenCalledWith({ page: 1, pageSize: 20 });
+    expect(screen.queryByText('Không áp dụng')).not.toBeInTheDocument();
   });
 
-  it('filters by chip and by phone typed with spaces', async () => {
+  it('sends the role filter and a debounced search, and restarts at page one', async () => {
+    const list = vi.spyOn(platformApi, 'accounts').mockResolvedValue(page([account()], 45));
     const user = userEvent.setup();
-    mount('/platform/accounts', '/platform/accounts', <AccountsScreen />);
+    open();
+    await screen.findByRole('list', { name: 'Danh sách tài khoản' });
+
+    await user.click(screen.getByRole('button', { name: 'Trang sau' }));
+    await waitFor(() => expect(list).toHaveBeenLastCalledWith({ page: 2, pageSize: 20 }));
 
     await user.click(screen.getByRole('tab', { name: /Hộ kinh doanh/ }));
-    const list = screen.getByRole('list', { name: 'Danh sách tài khoản' });
-    expect(within(list).getAllByRole('listitem')).toHaveLength(2);
+    await waitFor(() =>
+      expect(list).toHaveBeenLastCalledWith({ role: 'VENDOR', page: 1, pageSize: 20 }),
+    );
 
-    await user.type(screen.getByLabelText('Tìm tài khoản'), '0905 000 003');
-    expect(within(list).getAllByRole('listitem')).toHaveLength(1);
-    expect(within(list).getByText('Lê Văn Minh')).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox'), 'Minh');
+    await waitFor(() =>
+      expect(list).toHaveBeenLastCalledWith({ role: 'VENDOR', q: 'Minh', page: 1, pageSize: 20 }),
+    );
+  });
+
+  it('will not suspend without a reason, then sends it with the expected status', async () => {
+    vi.spyOn(platformApi, 'accounts').mockResolvedValue(page([account()]));
+    const suspend = vi
+      .spyOn(platformApi, 'suspendAccount')
+      .mockResolvedValue({ account: account({ accountStatus: 'SUSPENDED' }), history: [] });
+    const user = userEvent.setup();
+    open();
+
+    await user.click((await screen.findAllByRole('button', { name: 'Khoá tài khoản' }))[0]!);
+    const dialog = screen.getByRole('dialog');
+    const confirm = within(dialog).getByRole('button', { name: 'Khoá tài khoản' });
+    expect(confirm).toBeDisabled();
+
+    await user.type(within(dialog).getByLabelText('Lý do khoá (bắt buộc)'), 'ab');
+    expect(confirm).toBeDisabled();
+    await user.type(within(dialog).getByLabelText('Lý do khoá (bắt buộc)'), 'c Bán hàng giả');
+    await user.click(confirm);
+
+    await waitFor(() => expect(suspend).toHaveBeenCalledWith(31, 'abc Bán hàng giả'));
+    await waitFor(() =>
+      expect(useToastStore.getState().message).toBe('Đã khoá tài khoản Trần Hồng Anh'),
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('reloads the list and keeps the dialog on a 409', async () => {
+    const list = vi.spyOn(platformApi, 'accounts').mockResolvedValue(page([account()]));
+    vi.spyOn(platformApi, 'suspendAccount').mockRejectedValue(
+      new PlatformApiError(409, 'Trạng thái tài khoản đã thay đổi.'),
+    );
+    const user = userEvent.setup();
+    open();
+
+    await user.click((await screen.findAllByRole('button', { name: 'Khoá tài khoản' }))[0]!);
+    const dialog = screen.getByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Lý do khoá (bắt buộc)'), 'Vi phạm');
+    await user.click(within(dialog).getByRole('button', { name: 'Khoá tài khoản' }));
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Dữ liệu đã thay đổi');
+    await waitFor(() => expect(list.mock.calls.length).toBeGreaterThan(1));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('reactivates without a note', async () => {
+    vi.spyOn(platformApi, 'accounts').mockResolvedValue(
+      page([account({ accountStatus: 'SUSPENDED' })]),
+    );
+    const reactivate = vi
+      .spyOn(platformApi, 'reactivateAccount')
+      .mockResolvedValue({ account: account(), history: [] });
+    const user = userEvent.setup();
+    open();
+
+    expect(await screen.findByText('ĐÃ KHOÁ')).toBeInTheDocument();
+    await user.click(screen.getAllByRole('button', { name: 'Mở khoá' })[0]!);
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Mở khoá' }));
+    await waitFor(() => expect(reactivate).toHaveBeenCalledWith(31, undefined));
+  });
+
+  it('shows the history of a suspension in the detail dialog', async () => {
+    vi.spyOn(platformApi, 'accounts').mockResolvedValue(page([account()]));
+    vi.spyOn(platformApi, 'accountDetail').mockResolvedValue({
+      account: account(),
+      history: [
+        {
+          action: 'ADM_ACCOUNT_SUSPEND',
+          actorName: 'Quản trị A',
+          reason: 'Bán hàng giả',
+          createdAt: '2026-10-10T03:00:00Z',
+        },
+      ],
+    });
+    const user = userEvent.setup();
+    open();
+
+    await user.click((await screen.findAllByRole('button', { name: 'Chi tiết' }))[0]!);
+    expect(await screen.findByText('Bán hàng giả')).toBeInTheDocument();
+    expect(screen.getByText(/Quản trị A/)).toBeInTheDocument();
+  });
+
+  it('offers a retry when the network fails', async () => {
+    const list = vi
+      .spyOn(platformApi, 'accounts')
+      .mockRejectedValueOnce(new PlatformApiError(0, 'Không kết nối được Backend.'))
+      .mockResolvedValue(page([account()]));
+    const user = userEvent.setup();
+    open();
+
+    expect(await screen.findByText('Không kết nối được Backend.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Thử lại' }));
+    expect(await screen.findByRole('list', { name: 'Danh sách tài khoản' })).toBeInTheDocument();
+    expect(list).toHaveBeenCalledTimes(2);
+  });
+
+  it('says so when nothing matches', async () => {
+    vi.spyOn(platformApi, 'accounts').mockResolvedValue(page<PlatformAccount>([]));
+    open();
+    expect(await screen.findByText('Không có tài khoản nào khớp')).toBeInTheDocument();
+  });
+});
+
+describe('P07 export report (ADM-07)', () => {
+  const dashboardStub = {
+    from: '2026-10-01',
+    to: '2026-10-03',
+    previousFrom: '2026-09-28',
+    previousTo: '2026-09-30',
+    users: { newUsers: { value: 0, previous: 0, changePercent: null }, total: 0, customers: 0, vendors: 0, wardAuthorities: 0, platformAdmins: 0, suspended: 0 },
+    marketplace: { vendorAccounts: 0, storefrontsOpen: 0, storefrontsPaused: 0, storefrontsClosed: 0, storefrontsHidden: 0 },
+    orders: {
+      placed: { value: 0, previous: 0, changePercent: null },
+      completed: { value: 0, previous: 0, changePercent: null },
+      gmv: { value: 0, previous: 0, changePercent: null },
+      cancelRejectRate: { value: 0, previous: 0, changePercent: null },
+      byStatus: [],
+    },
+    moderation: { pendingReports: 0, reportsFiled: { value: 0, previous: 0, changePercent: null }, averageReviewHours: null, openComplaints: 0, pendingRefunds: 0, pendingRefundAmount: 0 },
+    ordersByDay: [],
+    topStorefronts: [],
+  } satisfies PlatformDashboard;
+
+  const historyItem = (extra: Partial<PlatformExport> = {}): PlatformExport => ({
+    exportId: 55,
+    reportType: 'ORDERS',
+    from: '2026-10-01',
+    to: '2026-10-03',
+    format: 'xlsx',
+    status: 'READY',
+    failureReason: null,
+    fileName: 'streetbiz-orders-20261001-20261003.xlsx',
+    requestedAt: '2026-10-04T03:00:00Z',
+    completedAt: '2026-10-04T03:00:02Z',
+    ...extra,
+  });
+
+  const click = vi.fn();
+
+  beforeEach(() => {
+    connectAdmin();
+    vi.spyOn(platformApi, 'me').mockResolvedValue({ userId: 9, name: 'Đỗ Quốc Anh' });
+    vi.spyOn(platformApi, 'dashboard').mockResolvedValue(dashboardStub);
+    vi.spyOn(platformApi, 'exports').mockResolvedValue(page([historyItem()]));
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:x'), revokeObjectURL: vi.fn() }));
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(click);
+    click.mockClear();
+  });
+
+  const openPanel = async () => {
+    const user = userEvent.setup();
+    mount('/platform/dashboard', '/platform/dashboard', <PlatformDashboardScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Xuất báo cáo' }));
+    return { user, dialog: screen.getByRole('dialog') };
+  };
+
+  it('sends the chosen type, range and format, downloads the file and refreshes the history', async () => {
+    const exportReport = vi.spyOn(platformApi, 'exportReport').mockResolvedValue({
+      blob: new Blob(['x']),
+      fileName: 'streetbiz-accounts-20261001-20261003.csv',
+      exportId: 56,
+    });
+    const { user, dialog } = await openPanel();
+
+    await user.click(within(dialog).getByRole('radio', { name: /Tài khoản/ }));
+    await user.click(within(dialog).getByRole('radio', { name: 'CSV (.csv)' }));
+    fireEvent.change(within(dialog).getByLabelText('Từ ngày'), { target: { value: '2026-10-01' } });
+    fireEvent.change(within(dialog).getByLabelText('Đến ngày'), { target: { value: '2026-10-03' } });
+    await user.click(within(dialog).getByRole('button', { name: 'Xuất báo cáo' }));
+
+    await waitFor(() =>
+      expect(exportReport).toHaveBeenCalledWith({
+        reportType: 'ACCOUNTS',
+        from: '2026-10-01',
+        to: '2026-10-03',
+        format: 'csv',
+      }),
+    );
+    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+    expect(useToastStore.getState().message).toBe('Đã xuất streetbiz-accounts-20261001-20261003.csv');
+  });
+
+  it('will not export a reversed or oversized range', async () => {
+    const exportReport = vi.spyOn(platformApi, 'exportReport');
+    const { dialog } = await openPanel();
+    const confirm = within(dialog).getByRole('button', { name: 'Xuất báo cáo' });
+
+    fireEvent.change(within(dialog).getByLabelText('Từ ngày'), { target: { value: '2026-10-20' } });
+    fireEvent.change(within(dialog).getByLabelText('Đến ngày'), { target: { value: '2026-10-01' } });
+    expect(confirm).toBeDisabled();
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('không được sau');
+
+    fireEvent.change(within(dialog).getByLabelText('Từ ngày'), { target: { value: '2025-01-01' } });
+    fireEvent.change(within(dialog).getByLabelText('Đến ngày'), { target: { value: '2026-10-01' } });
+    expect(confirm).toBeDisabled();
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('tối đa 366 ngày');
+    expect(exportReport).not.toHaveBeenCalled();
+  });
+
+  it('shows the server error and saves no file when the export fails', async () => {
+    vi.spyOn(platformApi, 'exportReport').mockRejectedValue(
+      new PlatformApiError(422, 'Báo cáo vượt quá 50.000 dòng. Hãy chọn khoảng thời gian ngắn hơn.'),
+    );
+    const { user, dialog } = await openPanel();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Xuất báo cáo' }));
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('vượt quá 50.000 dòng');
+    expect(click).not.toHaveBeenCalled();
+  });
+
+  it('lists the history and downloads an earlier file again, offering nothing for a failed one', async () => {
+    vi.spyOn(platformApi, 'exports').mockResolvedValue(
+      page([historyItem(), historyItem({ exportId: 54, status: 'FAILED', failureReason: 'Quá nhiều dòng', fileName: null })]),
+    );
+    const download = vi.spyOn(platformApi, 'downloadExport').mockResolvedValue({
+      blob: new Blob(['x']),
+      fileName: 'streetbiz-orders-20261001-20261003.xlsx',
+      exportId: 55,
+    });
+    const { user, dialog } = await openPanel();
+
+    const history = await within(dialog).findByRole('region', { name: 'Lịch sử xuất' });
+    expect(within(history).getByText(/Lỗi: Quá nhiều dòng/)).toBeInTheDocument();
+    expect(within(history).getAllByRole('button', { name: 'Tải lại' })).toHaveLength(1);
+
+    await user.click(within(history).getByRole('button', { name: 'Tải lại' }));
+    await waitFor(() => expect(download).toHaveBeenCalledWith(55));
+    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
   });
 });
 

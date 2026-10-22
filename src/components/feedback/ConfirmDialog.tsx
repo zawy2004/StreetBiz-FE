@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 import { Button } from '@/components/common';
@@ -10,6 +10,13 @@ type Props = {
   description?: string;
   confirmLabel?: string;
   confirmVariant?: ButtonVariant;
+  /** Extra content between the description and the buttons (e.g. a required reason field). */
+  children?: ReactNode;
+  confirmDisabled?: boolean;
+  /** The confirm request is in flight: the button spins and cannot be pressed twice. */
+  busy?: boolean;
+  /** A failed confirm: shown in place so the dialog stays open and the input is kept. */
+  error?: string;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -20,6 +27,10 @@ export function ConfirmDialog({
   description,
   confirmLabel = 'Xác nhận',
   confirmVariant = 'primary',
+  children,
+  confirmDisabled,
+  busy,
+  error,
   onConfirm,
   onCancel,
 }: Props) {
@@ -81,12 +92,20 @@ export function ConfirmDialog({
             {title}
           </h2>
           {description ? <p className="mt-xs text-body-md text-muted">{description}</p> : null}
+          {children ? <div className="mt-md">{children}</div> : null}
+          {error ? (
+            <p role="alert" className="mt-sm text-body-sm font-medium text-error">
+              {error}
+            </p>
+          ) : null}
           <div className="mt-lg flex flex-col-reverse gap-sm sm:flex-row sm:justify-end">
             <Button label="Huỷ" variant="outline" fullWidth={false} onPress={onCancel} />
             <Button
               label={confirmLabel}
               variant={confirmVariant}
               fullWidth={false}
+              disabled={confirmDisabled}
+              loading={busy}
               onPress={onConfirm}
             />
           </div>
