@@ -188,7 +188,8 @@ describe('V25 Tài chính', () => {
 });
 
 describe('V26 Thanh toán phí thuê ô', () => {
-  // The payment page reads the one instalment with its contract (GET /vendor/finance/fees/{id}).
+  // The payment page pays from the fee list; the instalment with its contract
+  // (GET /vendor/finance/fees/{id}) adds the contract's progress and, once paid, the receipt.
   const overdue: FeeItemDetailDto = {
     contract: {
       contractId: 1,
@@ -224,19 +225,21 @@ describe('V26 Thanh toán phí thuê ô', () => {
   };
 
   it('shows the slot plate on the slip and never says the fee is paid before it is', async () => {
-    answer({ '/vendor/finance/fees/7': overdue });
+    answer({ '/vendor/finance/fees': [fees[0]], '/vendor/finance/fees/7': overdue });
     renderAt(
       '/vendor/finance/fees/7/payment',
       <Route path="/vendor/finance/fees/:id/payment" element={<screens.FeePaymentScreen />} />,
     );
     const slip = await screen.findByRole('region', { name: 'Khoản phí cần thanh toán' });
     expect(within(slip).getByText('Ô NVL-01')).toBeInTheDocument();
+    expect(screen.getByText('Hợp đồng đã nộp 1/3 kỳ')).toBeInTheDocument();
     expect(screen.queryByText(/đã thanh toán/i)).not.toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /MoMo/ })).toBeChecked();
   });
 
   it('never lights the "recorded" stop while waiting for the wallet', async () => {
-    answer({ '/vendor/finance/fees/7': overdue });
+    // Only the fee list answers: the page still works without the instalment's detail.
+    answer({ '/vendor/finance/fees': [fees[0]] });
     client.apiPost.mockResolvedValue({ transactionId: 9, status: 'PENDING' });
     renderAt(
       '/vendor/finance/fees/7/payment?orderId=SB-T9',

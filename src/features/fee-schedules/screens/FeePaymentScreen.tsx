@@ -11,7 +11,7 @@ import { saveFile } from '@/core/utils/save-file';
 import { useMockDb } from '@/mocks/db';
 import { isSandboxPaymentUrl, redirectToPayment } from '@/features/orders/payment-redirect';
 import { rememberFinancePayment, useFinancePaymentReturn } from '../useFinancePaymentReturn';
-import { usePayFeeCheckout } from '../useFinance';
+import { useFeeItems, usePayFeeCheckout } from '../useFinance';
 import { useFeeItemDetail } from '../useFeeSchedules';
 import { formatDay, paidShare } from '../schedule-progress';
 import { ProgressBar } from '../components/ScheduleComponents';
@@ -35,10 +35,14 @@ export function FeePaymentScreen() {
 function LiveFeePaymentScreen() {
   const { id } = useParams<{ id: string }>();
   const feeItemId = Number(id);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [provider, setProvider] = useState<Provider>('MOMO');
   const idempotencyKey = useRef<string | null>(null);
   const submitting = useRef(false);
+  // The fee list is enough to pay. The instalment's own detail adds the contract's progress and,
+  // once paid, the receipt; if that read fails the vendor can still pay.
+  const { feeItems, isLoading, isError, error, refetch } = useFeeItems();
   const detail = useFeeItemDetail(feeItemId);
   const checkout = usePayFeeCheckout();
   const { pathname } = useLocation();
@@ -50,11 +54,16 @@ function LiveFeePaymentScreen() {
     await queryClient.cancelQueries({ queryKey: ['finance'] });
     await queryClient.invalidateQueries({ queryKey: ['finance'] });
   };
-  // Back from MoMo on this page: the backend checks with MoMo, then this page shows the receipt.
-  const momoReturn = useFinancePaymentReturn(async () => {
+  // Paid with the receipt available: show it here. Without the detail read there is no
+  // receipt to show, so fall back to the finance home as before.
+  const afterPaid = async (message: string) => {
     await refreshAll();
-    showToast('MoMo đã xác nhận thanh toán');
-  });
+    showToast(message);
+    if (detail.isError) navigate('/vendor/finance', { replace: true });
+  };
+  // Back from MoMo on this page: the backend checks with MoMo, then the receipt shows.
+  const momoReturn = useFinancePaymentReturn(() => afterPaid('MoMo đã xác nhận thanh toán'));
+  const fee = feeItems.find((f) => f.feeItemId === feeItemId);
 
   useEffect(() => {
     idempotencyKey.current = null;
@@ -62,7 +71,7 @@ function LiveFeePaymentScreen() {
   }, [feeItemId]);
 
   const pay = () => {
-    if (!detail.data || submitting.current || checkout.isPending) return;
+    if (!fee || submitting.current || checkout.isPending) return;
     submitting.current = true;
     idempotencyKey.current ??= crypto.randomUUID();
     checkout.mutate(
@@ -81,8 +90,7 @@ function LiveFeePaymentScreen() {
             // confirm here instead of letting the redirect below hit a dead custom-scheme URL.
             // The instalment re-reads as PAID, so this page turns into its receipt.
             await financeApi.sandboxConfirmPayment(result.transactionId);
-            await refreshAll();
-            showToast('Thanh toán thành công');
+            await afterPaid('Thanh toán thành công');
           } catch (err) {
             if (err instanceof ApiError && err.status === 404) {
               showToast('Đang chuyển đến cổng thanh toán.');
@@ -102,7 +110,9 @@ function LiveFeePaymentScreen() {
     );
   };
 
-  if (detail.isLoading) {
+  // The detail is waited for while it is on its way, so a paid instalment opens on its receipt
+  // instead of flashing the pay button; once it has failed it no longer holds the page up.
+  if (isLoading || detail.isLoading) {
     return (
       <Screen>
         <AppHeader title="Thanh toán phí thuê ô" back />
@@ -110,24 +120,22 @@ function LiveFeePaymentScreen() {
       </Screen>
     );
   }
-  if (detail.isError || !detail.data) {
+  if (isError) {
     return (
       <Screen>
         <AppHeader title="Thanh toán phí thuê ô" back />
-        <ErrorState message={errorMessage(detail.error)} onRetry={() => detail.refetch()} />
+        <ErrorState message={errorMessage(error)} onRetry={() => refetch()} />
       </Screen>
     );
   }
-  if (detail.data.item.itemStatus === 'PAID') {
-    return <PaidReceipt detail={detail.data} />;
-  }
+  if (detail.data?.item.itemStatus === 'PAID') return <PaidReceipt detail={detail.data} />;
+  if (!fee) return <ErrorState message="Không tìm thấy khoản phí." />;
 
-  const { item, contract } = detail.data;
   return (
     <Screen
       footer={
         <StickyActions>
-          <PayBar amount={item.amount}>
+          <PayBar amount={fee.amount}>
             <Button
               label={
                 checkout.isPending ? 'Đang khởi tạo thanh toán…' : 'Thanh toán qua MoMo / ZaloPay'
@@ -145,13 +153,13 @@ function LiveFeePaymentScreen() {
       <div className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
         <div className="flex min-w-0 max-w-[640px] flex-col gap-md">
           <FeeSlip
-            periodLabel={item.periodLabel}
-            amount={item.amount}
-            dueDate={item.dueDate}
-            slotCode={contract.slotCode}
-            status={item.itemStatus}
+            periodLabel={fee.periodLabel}
+            amount={fee.amount}
+            dueDate={fee.dueDate}
+            slotCode={fee.slotCode}
+            status={fee.itemStatus}
           />
-          <ContractProgress detail={detail.data} />
+          {detail.data ? <ContractProgress detail={detail.data} /> : null}
         </div>
         <div className="flex min-w-0 max-w-[640px] flex-col gap-md">
           <WalletPicker value={provider} onChange={setProvider} disabled={checkout.isPending} />
@@ -163,7 +171,11 @@ function LiveFeePaymentScreen() {
   );
 }
 
-/** Where this instalment sits in its contract: how many are paid and what is still owed. */
+/**
+ * Where this instalment sits in its contract: how many are paid and what is still owed. Read
+ * from the instalment's own detail; if that read fails the slip still has everything needed to
+ * pay, so this simply stays away.
+ */
 function ContractProgress({ detail }: { detail: FeeItemDetailDto }) {
   const { contract } = detail;
   return (

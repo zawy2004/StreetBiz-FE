@@ -345,14 +345,11 @@ describe('C13 order detail', () => {
       shortCode: '7K2M9QXP',
     });
     renderAt('/customer/orders/19', '/customer/orders/:orderId', <OrderDetailScreen />);
-    // The progress steps mark where the order is and the two stages still to come...
+    // An order on its way gets the step row; the full log with notes sits under it.
     const journey = await screen.findByRole('list', { name: 'Tiến trình đơn hàng' });
-    expect(within(journey).getByText('Đang làm').closest('li')).toHaveAttribute(
-      'aria-current',
-      'step',
-    );
+    const here = within(journey).getByRole('listitem', { current: 'step' });
+    expect(here).toHaveTextContent(/^Đang làm, đang ở bước này/);
     expect(within(journey).getAllByText(/chưa tới/)).toHaveLength(2);
-    // ...and the full log, named apart, keeps the note left on each stage.
     const log = screen.getByRole('list', { name: 'Lịch sử cập nhật đơn hàng', hidden: true });
     expect(within(log).getByText('Đang nướng bánh.')).toBeInTheDocument();
   });

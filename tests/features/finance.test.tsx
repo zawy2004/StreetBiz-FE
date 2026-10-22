@@ -171,12 +171,12 @@ describe('fee payment (live API)', () => {
   it('shows what is being paid: the slot, the period, how urgent it is and the contract progress', async () => {
     renderFeePayment();
 
-    // The fee slip names the slot (its kerb tag), the period and the due date.
     const slip = await screen.findByRole('region', { name: 'Khoản phí cần thanh toán' });
     expect(within(slip).getByText('Ô NVL-01')).toBeInTheDocument();
     expect(within(slip).getByText('Kỳ 3/3 · Tháng 10/2026')).toBeInTheDocument();
-    expect(within(slip).getByText(/Hạn thanh toán 20\/10\/2026/)).toBeInTheDocument();
-    expect(screen.getByText('Hợp đồng đã nộp 2/3 kỳ')).toBeInTheDocument();
+    expect(within(slip).getByText('Hạn thanh toán 20/10/2026')).toBeInTheDocument();
+    // The contract's progress comes from the instalment's own detail read.
+    expect(await screen.findByText('Hợp đồng đã nộp 2/3 kỳ')).toBeInTheDocument();
     expect(client.apiGet).toHaveBeenCalledWith('/vendor/finance/fees/3');
   });
 

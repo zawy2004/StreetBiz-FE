@@ -28,7 +28,7 @@ export function OrderTimeline({
   upcoming?: OrderStatus[];
   /** The order's status now; marks the matching stage as the current step. */
   current?: OrderStatus;
-  /** The list's name; the full log under a progress card is named apart from its steps. */
+  /** Accessible name of the list; a screen showing two journeys must tell them apart. */
   label?: string;
 }) {
   const live = current ? !TERMINAL_ORDER_STATUSES.has(current) : false;
