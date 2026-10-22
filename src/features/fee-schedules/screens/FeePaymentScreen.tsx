@@ -5,12 +5,19 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button, formatVnd, KerbTag } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { ErrorState, Skeleton, showToast } from '@/components/feedback';
-import { ApiError, errorMessage, financeApi, type FeeItemDetailDto } from '@/core/api';
+import {
+  ApiError,
+  errorMessage,
+  financeApi,
+  type FeeItemDetailDto,
+  type FeeItemDto,
+} from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { saveFile } from '@/core/utils/save-file';
 import { useMockDb } from '@/mocks/db';
 import { isSandboxPaymentUrl, redirectToPayment } from '@/features/orders/payment-redirect';
 import { rememberFinancePayment, useFinancePaymentReturn } from '../useFinancePaymentReturn';
+import { isPayableFee } from '../finance-view';
 import { useFeeItems, usePayFeeCheckout } from '../useFinance';
 import { useFeeItemDetail } from '../useFeeSchedules';
 import { formatDay, paidShare } from '../schedule-progress';
@@ -71,7 +78,7 @@ function LiveFeePaymentScreen() {
   }, [feeItemId]);
 
   const pay = () => {
-    if (!fee || submitting.current || checkout.isPending) return;
+    if (!fee || !isPayableFee(fee) || submitting.current || checkout.isPending) return;
     submitting.current = true;
     idempotencyKey.current ??= crypto.randomUUID();
     checkout.mutate(
@@ -130,6 +137,14 @@ function LiveFeePaymentScreen() {
   }
   if (detail.data?.item.itemStatus === 'PAID') return <PaidReceipt detail={detail.data} />;
   if (!fee) return <ErrorState message="Không tìm thấy khoản phí." />;
+  // The list already knows the instalment is settled (paid, cancelled): the server would refuse
+  // a checkout, so there is no pay button to offer. The receipt needs the detail read, which
+  // failed to get here, so it can be asked for again.
+  if (!isPayableFee(fee)) {
+    return (
+      <SettledFee fee={fee} retryReceipt={detail.isError ? () => detail.refetch() : undefined} />
+    );
+  }
 
   return (
     <Screen
@@ -166,6 +181,68 @@ function LiveFeePaymentScreen() {
           {checkout.isError ? <CheckoutError message={errorMessage(checkout.error)} /> : null}
           <SafePaySteps />
         </div>
+      </div>
+    </Screen>
+  );
+}
+
+/**
+ * An instalment the vendor can no longer pay, shown from the fee list alone: paid (the receipt's
+ * detail read is unavailable), cancelled, or any other settled state.
+ */
+function SettledFee({ fee, retryReceipt }: { fee: FeeItemDto; retryReceipt?: () => void }) {
+  const navigate = useNavigate();
+  const paid = fee.itemStatus === 'PAID';
+  const cancelled = fee.itemStatus === 'CANCELLED';
+  const title = paid ? 'Đã thanh toán' : cancelled ? 'Kỳ phí đã huỷ' : 'Không cần thanh toán';
+  const note = paid
+    ? 'Kỳ phí này đã được thanh toán. Hoá đơn nằm trong mục Hoá đơn.'
+    : cancelled
+      ? 'Kỳ phí này đã bị huỷ nên không cần thanh toán.'
+      : 'Kỳ phí này không còn ở trạng thái cần thanh toán.';
+  return (
+    <Screen
+      footer={
+        <StickyActions>
+          <Button
+            label="Về trang Tài chính"
+            variant="outline"
+            onPress={() => navigate('/vendor/finance')}
+          />
+        </StickyActions>
+      }
+    >
+      <AppHeader title={title} back />
+      <div className="flex min-w-0 max-w-[640px] flex-col gap-md">
+        <FeeSlip
+          periodLabel={fee.periodLabel}
+          amount={fee.amount}
+          dueDate={fee.dueDate}
+          slotCode={fee.slotCode}
+          status={fee.itemStatus}
+        />
+        <p role="status" className="text-body-md text-muted">
+          {note}
+        </p>
+        {paid ? (
+          <div className="flex flex-wrap gap-xs">
+            <Button
+              label="Xem hoá đơn"
+              size="sm"
+              fullWidth={false}
+              onPress={() => navigate('/vendor/finance/invoices')}
+            />
+            {retryReceipt ? (
+              <Button
+                label="Tải lại biên nhận"
+                size="sm"
+                variant="outline"
+                fullWidth={false}
+                onPress={retryReceipt}
+              />
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </Screen>
   );

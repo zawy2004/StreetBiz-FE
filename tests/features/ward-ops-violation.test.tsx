@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, configure, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,6 +19,11 @@ vi.mock('@/core/config/env', async (importOriginal) => {
 
 const { RecordViolationScreen } =
   await import('@/features/ward-administration/screens/RecordViolationScreen');
+
+// The screen's first paint waits on three mocked reads; with the whole suite running in parallel
+// that can outlast findBy*'s 1 s default (it did, intermittently). Each test file runs in its
+// own isolate, so this budget stays local to this file.
+configure({ asyncUtilTimeout: 5_000 });
 
 const SCHEDULES: PenaltyScheduleItem[] = [
   {
@@ -146,7 +151,7 @@ async function fillAndRecord(user: ReturnType<typeof userEvent.setup>) {
     '  Kê bàn ghế lấn vạch  ',
   );
   await user.click(screen.getByRole('button', { name: STEP1 }));
-  await screen.findByText('Đã lập biên bản vi phạm #77', undefined, { timeout: 5000 });
+  await screen.findByText('Đã lập biên bản vi phạm #77');
 }
 
 // Each case types a multi-step form key by key; with the whole suite running in parallel that

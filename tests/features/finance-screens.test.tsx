@@ -249,6 +249,63 @@ describe('V26 Thanh toán phí thuê ô', () => {
     expect(screen.getByText('SB-T9')).toBeInTheDocument();
     expect(screen.getByRole('status')).not.toHaveTextContent('StreetBiz ghi nhận');
   });
+
+  it('opens a paid instalment on its receipt, never on the pay button', async () => {
+    const paidDetail: FeeItemDetailDto = {
+      ...overdue,
+      item: {
+        ...overdue.item,
+        feeItemId: 6,
+        ordinal: 1,
+        periodLabel: 'Kỳ 1/3 · Tháng 09/2026',
+        dueDate: '2026-09-04',
+        itemStatus: 'PAID',
+        paidAt: '2026-09-03T02:00:00Z',
+        invoiceId: 31,
+        invoiceNumber: 'HD-2026-000001',
+        daysOverdue: null,
+      },
+    };
+    answer({ '/vendor/finance/fees': [fees[1]], '/vendor/finance/fees/6': paidDetail });
+    renderAt(
+      '/vendor/finance/fees/6/payment',
+      <Route path="/vendor/finance/fees/:id/payment" element={<screens.FeePaymentScreen />} />,
+    );
+    expect(await screen.findByText('HD-2026-000001')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xem hoá đơn' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Thanh toán qua MoMo/ })).not.toBeInTheDocument();
+  });
+
+  it('says a paid instalment is paid when its receipt cannot be read, instead of offering to pay', async () => {
+    // The list is the only read that answers: the detail (receipt) read fails.
+    answer({ '/vendor/finance/fees': [fees[1]] });
+    renderAt(
+      '/vendor/finance/fees/6/payment',
+      <Route path="/vendor/finance/fees/:id/payment" element={<screens.FeePaymentScreen />} />,
+    );
+    expect(
+      await screen.findByText('Kỳ phí này đã được thanh toán. Hoá đơn nằm trong mục Hoá đơn.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Thanh toán qua MoMo/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xem hoá đơn' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tải lại biên nhận' })).toBeInTheDocument();
+  });
+
+  it('refuses a cancelled instalment', async () => {
+    answer({
+      '/vendor/finance/fees': [{ ...fees[0], itemStatus: 'CANCELLED' }],
+      '/vendor/finance/fees/7': { ...overdue, item: { ...overdue.item, itemStatus: 'CANCELLED' } },
+    });
+    renderAt(
+      '/vendor/finance/fees/7/payment',
+      <Route path="/vendor/finance/fees/:id/payment" element={<screens.FeePaymentScreen />} />,
+    );
+    expect(
+      await screen.findByText('Kỳ phí này đã bị huỷ nên không cần thanh toán.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Thanh toán qua MoMo/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Xem hoá đơn' })).not.toBeInTheDocument();
+  });
 });
 
 describe('V27 Thanh toán biên bản phạt', () => {
