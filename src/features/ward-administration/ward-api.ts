@@ -188,6 +188,9 @@ export type WardEnrollmentDetail = WardEnrollmentItem & {
   identityVerifiedByName: string | null;
   identityVerificationNote: string | null;
   kycChecks: WardKycCheck[];
+  /** X01: drafted by the voice assistant and accepted by the vendor before filing. A label only
+   * -- the review is the same. Absent from servers older than the voice assistant. */
+  assistedByAi?: boolean;
 };
 
 export type WardRentalApplicationItem = {

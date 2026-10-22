@@ -6,6 +6,7 @@ import { Screen } from '@/components/layout';
 import { sideApi } from '@/core/api/side-api';
 import { isLiveApi } from '@/core/config/env';
 import { useRegistrations } from '@/features/business-registrations/useRegistrations';
+import { VoiceEntryCard } from '@/features/business-registrations/voice/VoiceEntryCard';
 import { useFeeItems, usePenalties } from '@/features/fee-schedules/useFinance';
 import { hkdCode } from '@/features/sidewalk-slots/slot-format';
 import { useMockDb } from '@/mocks/db';
@@ -71,7 +72,10 @@ export function VendorHomeScreen() {
           />
 
           {!registrationsLoading && registrations.length === 0 ? (
-            <RegisterPath onStart={() => navigate('/vendor/registrations/new/type')} />
+            <div className="flex flex-col gap-sm">
+              {isLiveApi ? <VoiceEntryCard /> : null}
+              <RegisterPath onStart={() => navigate('/vendor/registrations/new/type')} />
+            </div>
           ) : null}
         </div>
 

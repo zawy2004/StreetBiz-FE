@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { Button, formatVnd, Icon } from '@/components/common';
 import { SelectField, TextField } from '@/components/forms';
@@ -18,6 +18,7 @@ import {
 } from '../components/wizard/OwnerParts';
 import { DraftNotice, EditingBanner, WizardProgress } from '../components/wizard/WizardFrame';
 import { parseVndAmount, useNewRegistrationStore } from '../new-registration-store';
+import { VoiceReturnBanner } from '../voice/VoiceReturnBanner';
 
 const SECTIONS: { id: string; section: OwnerSection; label: string }[] = [
   { id: 'reg-owner-scan', section: 'scan', label: 'Quét CCCD [AI]' },
@@ -102,6 +103,13 @@ export function NewRegistrationOwnerScreen() {
     setActiveId(id);
   };
 
+  // Opened at a section ("Sửa" on the voice confirm card links to #reg-owner-business).
+  const { hash } = useLocation();
+  useEffect(() => {
+    const id = hash.slice(1);
+    if (SECTIONS.some((s) => s.id === id)) jump(id);
+  }, [hash]);
+
   const clearAi = (key: AiFilledKey) =>
     setAiFilled((current) => {
       if (!current.has(key)) return current;
@@ -139,6 +147,7 @@ export function NewRegistrationOwnerScreen() {
       <AppHeader title="Đăng ký kinh doanh" back />
       <WizardProgress step={3} />
       {draft.registrationId ? <EditingBanner displayName={draft.displayName} /> : null}
+      <VoiceReturnBanner />
       <SectionRail
         variant="chips"
         items={railItems}
