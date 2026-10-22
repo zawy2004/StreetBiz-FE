@@ -365,6 +365,10 @@ const VendorReportReviewScreen = lazyScreen(
   () => import('@/features/ward-administration/screens/VendorReportReviewScreen'),
   'VendorReportReviewScreen',
 );
+const WardVendorReportsScreen = lazyScreen(
+  () => import('@/features/ward-administration/screens/WardVendorReportsScreen'),
+  'WardVendorReportsScreen',
+);
 const WardDashboardScreen = lazyScreen(
   () => import('@/features/ward-administration/screens/WardDashboardScreen'),
   'WardDashboardScreen',
@@ -615,6 +619,7 @@ export function AppRouter() {
           <Route path="inbox/slot-proposals/:id" element={<SlotProposalReviewScreen />} />
           <Route path="inbox/slot-transfers/:id" element={<SlotTransferReviewScreen />} />
           <Route path="inbox/address-conflicts/:id" element={<AddressConflictReviewScreen />} />
+          <Route path="inbox/vendor-reports" element={<WardVendorReportsScreen />} />
           <Route path="inbox/vendor-reports/:id" element={<VendorReportReviewScreen />} />
           <Route path="slots" element={<SlotOccupancyScreen />} />
           <Route path="slots/editor" element={<SlotGridEditorScreen />} />

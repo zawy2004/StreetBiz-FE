@@ -4,6 +4,7 @@ import { Button, Icon } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { ErrorState, showToast } from '@/components/feedback';
+import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
 import {
   CitizenReportSlip,
@@ -12,8 +13,14 @@ import {
   ReportPhoto,
   ResolutionPath,
 } from '../components/review/ReportParts';
+import { LiveVendorReportReviewScreen } from './LiveVendorReportReviewScreen';
 
+/** Against the backend the report comes from the ward's real reports; the mock screen is the no-backend demo. */
 export function VendorReportReviewScreen() {
+  return isLiveApi ? <LiveVendorReportReviewScreen /> : <MockVendorReportReviewScreen />;
+}
+
+function MockVendorReportReviewScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const report = useMockDb((s) => s.reports.find((r) => r.id === id));

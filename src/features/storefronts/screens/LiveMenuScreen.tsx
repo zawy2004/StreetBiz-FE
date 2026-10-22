@@ -16,6 +16,7 @@ import { DishFoodSafetyChip } from '@/features/food-safety/components/FoodSafety
 import { VERDICT_TONES } from '@/components/illustrations';
 import { useMediaQuery } from '@/hooks/useBreakpoint';
 import { colors } from '@/theme';
+import { DishDescriptionAssist, DishRecognitionAssist } from '../components/menu/DishAiAssist';
 import {
   BuyerPreviewCard,
   BuyerVisibilityStrip,
@@ -193,6 +194,8 @@ export function LiveMenuScreen() {
     ),
   ];
   const priceOk = Number.isSafeInteger(amount) && amount > 0 && amount <= 50_000_000;
+  // The photo the AI suggestions read: the one just uploaded, else the dish's current one (always the vendor's own upload).
+  const aiImageUrl = photoUrl ?? editing?.imageUrl ?? null;
 
   const form = (
     <section
@@ -238,6 +241,13 @@ export function LiveMenuScreen() {
             'Bắt buộc: ảnh thật của món để khách nhận ra (JPG, PNG, WEBP, tối đa 5 MB).'
           )}
         </p>
+        <DishRecognitionAssist
+          key={aiImageUrl ?? 'no-photo'}
+          imageUrl={upload.isPending ? null : aiImageUrl}
+          onUseName={setName}
+          onUseCategory={(id) => setCategory(String(id))}
+          onUsePrice={(value) => setPrice(String(Math.round(value)))}
+        />
       </div>
       <TextField
         ref={nameField}
@@ -259,6 +269,12 @@ export function LiveMenuScreen() {
         onChangeText={setDescription}
         multiline
         maxLength={500}
+      />
+      <DishDescriptionAssist
+        name={name}
+        imageUrl={upload.isPending ? null : aiImageUrl}
+        hasDescription={description.trim().length > 0}
+        onUse={setDescription}
       />
       <SelectField
         label="Danh mục"
