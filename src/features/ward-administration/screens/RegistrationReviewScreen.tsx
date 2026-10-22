@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Icon } from '@/components/common';
@@ -21,6 +21,8 @@ import {
   ToneBox,
 } from '../components/review/Primitives';
 import { DecisionDeskCard } from '../components/review/PermitDossierParts';
+import { LiveReviewFailure } from '../components/review/LiveReviewFailure';
+import { useLiveReviewDetail } from '../components/review/useLiveReviewDetail';
 import { RegistrationIntegrityPanel } from '../components/review/RegistrationIntegrityPanel';
 import {
   AiMatchGauge,
@@ -41,8 +43,11 @@ export function RegistrationReviewScreen() {
   const rejectMock = useMockDb((s) => s.rejectRegistration);
   const requestEvidenceMock = useMockDb((s) => s.requestRegistrationEvidence);
 
-  const [liveDetail, setLiveDetail] = useState<WardEnrollmentDetail | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Live mode decides on the server's record only: a failed load shows the failure, never the
+  // mock seed or default figures under a real id.
+  const live = useLiveReviewDetail<WardEnrollmentDetail>(id, complianceApi.getEnrollment);
+  const liveDetail = live.data;
+  const setLiveDetail = live.setData;
   const [note, setNote] = useState('');
   // AI Check State (Live or Mock)
   const [customAiCheck, setCustomAiCheck] = useState<WardEnrollmentDetail['aiCheck']>(null);
@@ -51,18 +56,6 @@ export function RegistrationReviewScreen() {
   const [identityNote, setIdentityNote] = useState('');
   const [confirmingIdentity, setConfirmingIdentity] = useState(false);
   const [downloadingFormat, setDownloadingFormat] = useState<'docx' | 'pdf' | null>(null);
-
-  useEffect(() => {
-    if (!isLiveApi || !id) return;
-    setLoading(true);
-    complianceApi
-      .getEnrollment(id)
-      .then(setLiveDetail)
-      .catch((err) => {
-        console.warn('Could not load live enrollment, falling back to mock:', err);
-      })
-      .finally(() => setLoading(false));
-  }, [id]);
 
   // All hooks above this line must run on every render -- react-hooks/rules-of-hooks
   // forbids calling useState/useMemo conditionally, so nothing hook-shaped may follow
@@ -93,7 +86,26 @@ export function RegistrationReviewScreen() {
   // otherwise. Exactly one set of decision buttons is rendered at any time.
   const wide = useMediaQuery('(min-width: 1280px)');
 
-  if (!mockRegistration && !liveDetail && !loading) {
+  if (live.failure) {
+    return (
+      <LiveReviewFailure
+        failure={live.failure}
+        notFoundMessage="Không tìm thấy hồ sơ đăng ký điểm kinh doanh vỉa hè tại địa bàn."
+        onRetry={live.retry}
+      />
+    );
+  }
+
+  if (isLiveApi && !liveDetail) {
+    return (
+      <Screen width="wide">
+        <AppHeader title="Thẩm định hồ sơ đăng ký" back />
+        <LoadingBar />
+      </Screen>
+    );
+  }
+
+  if (!isLiveApi && !mockRegistration) {
     return (
       <Screen>
         <ErrorState message="Không tìm thấy hồ sơ đăng ký điểm kinh doanh vỉa hè." />
@@ -223,10 +235,10 @@ export function RegistrationReviewScreen() {
 
     if (isLiveApi && id) {
       try {
-        const decisionText = action === 'MORE_INFO' ? 'MORE_INFORMATION_REQUIRED' : action;
+        // The API takes the action word (APPROVE / REJECT / MORE_INFO), not the status it leads to.
         await complianceApi.decideEnrollment(
           id,
-          decisionText,
+          action,
           note.trim() || 'Hồ sơ đủ điều kiện thực địa trật tự đô thị',
           status,
         );
@@ -364,8 +376,6 @@ export function RegistrationReviewScreen() {
           />
         </div>
       </div>
-
-      {loading ? <LoadingBar /> : null}
 
       <div className="grid items-start gap-lg xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-xl">
         <div className="flex min-w-0 flex-col gap-lg">

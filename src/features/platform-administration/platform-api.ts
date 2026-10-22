@@ -209,6 +209,12 @@ export const platformApi = {
       `/platform/reported-content/${encodeURIComponent(reportId)}/${decision}`,
       { method: 'POST', body: JSON.stringify({ expectedStatus }) },
     ),
+  /** Undoes a hide: the seller gets the content back (a store stays paused, a dish sold out). */
+  restoreReportedContent: (reportId: string | number, expectedStatus: string) =>
+    platformRequest<ReportedContent>(
+      `/platform/reported-content/${encodeURIComponent(reportId)}/restore`,
+      { method: 'POST', body: JSON.stringify({ expectedStatus }) },
+    ),
   complaints: (status?: string) =>
     platformRequest<PlatformPage<OrderComplaint>>(
       `/platform/order-complaints${status ? `?status=${encodeURIComponent(status)}` : ''}`,

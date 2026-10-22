@@ -131,6 +131,7 @@ export function SlotMapScreen() {
     if (zoneId == null && activeZoneId != null) selectZone(activeZoneId);
   }, [zoneId, activeZoneId, selectZone]);
 
+  const nearbySettled = useRef(false);
   const panelRef = useRef<HTMLElement | null>(null);
   const planRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
@@ -148,7 +149,13 @@ export function SlotMapScreen() {
   // Stable, so a bay only re-renders when its own state changes.
   const onSelectSlot = useCallback((slot: SidewalkSlot) => selectSlot(slot.slotId), [selectSlot]);
 
-  if (nearby.isPending && !nearby.data) return <WorkspaceSkeleton />;
+  // The full-page skeleton is for the first load only. Once a viewport query has
+  // answered (even with an error), a new one -- the map reporting its bounds --
+  // keeps the workspace mounted: swapping it for the skeleton would unmount the
+  // map, whose remount reports bounds again and starts the next query, so a
+  // failing search flickered between skeleton and map forever.
+  if (nearby.status !== 'pending') nearbySettled.current = true;
+  if (nearby.isPending && !nearby.data && !nearbySettled.current) return <WorkspaceSkeleton />;
 
   // With nothing around the viewport there is no zone to plan, so the map is the
   // only way to find one -- show it whatever view was last chosen.
