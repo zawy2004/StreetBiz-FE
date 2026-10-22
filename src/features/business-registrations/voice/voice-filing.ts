@@ -1,4 +1,4 @@
-import type { ApiRegistration } from '@/core/api';
+import { ApiError, type ApiRegistration } from '@/core/api';
 import { useNewRegistrationStore } from '../new-registration-store';
 import { submitRegistrationDraft } from '../submit-registration';
 import { interviewToWizard } from './interview-state';
@@ -109,8 +109,10 @@ export async function recordAcceptance(registrationId: number): Promise<boolean>
     try {
       await voiceRegistrationApi.confirm(registrationId, body);
       return true;
-    } catch {
-      // Idempotent on the server; try again.
+    } catch (err) {
+      // Idempotent on the server, so a dropped connection or a busy server is worth another
+      // try; a refused request (4xx) will be refused again.
+      if (err instanceof ApiError && err.status >= 400 && err.status < 500) return false;
     }
   }
   return false;
