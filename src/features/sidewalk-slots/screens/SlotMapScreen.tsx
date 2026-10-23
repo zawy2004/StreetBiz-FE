@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 
 import { Icon } from '@/components/common';
 import { ErrorState, LoadingState, Skeleton } from '@/components/feedback';
@@ -54,6 +55,18 @@ export function SlotMapScreen() {
   const clearRegistered = useWorkspaceStore((s) => s.clearRegistered);
 
   const [cardWidthIndex, setCardWidthIndex] = useState(DEFAULT_CARD_WIDTH_INDEX);
+
+  // Opened on a street from elsewhere (the home screen's "ô trống gần chỗ bạn bán"):
+  // /vendor/slots?zone=12&slot=345 selects that street and slot once, then drops the query.
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    const zone = Number(params.get('zone'));
+    if (!Number.isInteger(zone) || zone <= 0) return;
+    const slot = Number(params.get('slot'));
+    if (Number.isInteger(slot) && slot > 0) useWorkspaceStore.getState().focusSlot(zone, slot);
+    else selectZone(zone);
+    setParams({}, { replace: true });
+  }, [params, selectZone, setParams]);
   const [bounds, setBounds] = useState<Bounds>({
     minLat: DEFAULT_CENTER[0] - DEFAULT_SPAN,
     maxLat: DEFAULT_CENTER[0] + DEFAULT_SPAN,

@@ -102,6 +102,10 @@ const NewRegistrationTypeScreen = lazyScreen(
   () => import('@/features/business-registrations/screens/NewRegistrationTypeScreen'),
   'NewRegistrationTypeScreen',
 );
+const VoiceRegistrationScreen = lazyScreen(
+  () => import('@/features/business-registrations/voice/VoiceRegistrationScreen'),
+  'VoiceRegistrationScreen',
+);
 const RegistrationDetailScreen = lazyScreen(
   () => import('@/features/business-registrations/screens/RegistrationDetailScreen'),
   'RegistrationDetailScreen',
@@ -556,6 +560,7 @@ export function AppRouter() {
           <Route path="assistant" element={<VendorAssistantScreen />} />
           <Route path="registrations" element={<RegistrationsListScreen />} />
           <Route path="registrations/new/type" element={<NewRegistrationTypeScreen />} />
+          <Route path="registrations/new/voice" element={<VoiceRegistrationScreen />} />
           <Route path="registrations/new/details" element={<NewRegistrationDetailsScreen />} />
           <Route path="registrations/new/owner" element={<NewRegistrationOwnerScreen />} />
           <Route path="registrations/new/evidence" element={<NewRegistrationEvidenceScreen />} />

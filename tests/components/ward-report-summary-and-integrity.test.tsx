@@ -160,14 +160,14 @@ describe('AIC-03 duplicate-registration panel', () => {
           {
             registrationId: 4,
             businessName: 'Gánh bún Minh Khôi',
-            wardName: 'Phường Hải Châu 1',
+            wardName: 'Phường Hải Châu',
             status: 'UNDER_REVIEW',
             note: null,
           },
           {
             registrationId: null,
             businessName: null,
-            wardName: 'Phường Thanh Khê Đông',
+            wardName: 'Phường Thanh Khê',
             status: 'SUBMITTED',
             note: null,
           },
@@ -203,7 +203,7 @@ describe('AIC-03 duplicate-registration panel', () => {
     const link = within(panel).getByRole('link', { name: 'Gánh bún Minh Khôi' });
     expect(link).toHaveAttribute('href', '/ward/inbox/registrations/4');
     // The other ward's household has no name and no link, only where to ask.
-    expect(within(panel).getByText(/Hồ sơ ở Phường Thanh Khê Đông · Đã nộp/)).toBeInTheDocument();
+    expect(within(panel).getByText(/Hồ sơ ở Phường Thanh Khê · Đã nộp/)).toBeInTheDocument();
     expect(within(panel).getAllByRole('link')).toHaveLength(1);
     expect(load).toHaveBeenCalledWith('2');
   });

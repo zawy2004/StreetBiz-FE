@@ -179,7 +179,7 @@ describe('contract schedule screen', () => {
         contractId: 1,
         slotCode: 'NVL-01',
         zoneName: 'Nguyễn Văn Linh',
-        wardName: 'Hải Châu 1',
+        wardName: 'Phường Hải Châu',
         address: '45 Nguyễn Văn Linh',
         startDate: '2026-09-02',
         endDate: '2026-12-01',

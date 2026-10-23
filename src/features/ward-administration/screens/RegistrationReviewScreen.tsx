@@ -336,6 +336,15 @@ export function RegistrationReviewScreen() {
         <div className="flex flex-wrap items-center gap-xs">
           <StatusChip code={status} />
           {fastTrack ? <StatusChip label="Ưu tiên xét nhanh" tone="ok" /> : null}
+          {liveDetail?.assistedByAi ? (
+            <span
+              title="Hồ sơ được trợ lý AI soạn từ lời người bán kể; người bán đã kiểm tra và tự bấm nộp. Quy trình thẩm định không đổi."
+              className="inline-flex h-6 items-center gap-1 rounded-[6px] border border-secondary/40 bg-secondary-bg px-2 text-badge text-on-secondary"
+            >
+              <Icon name="microphone" size={13} color="currentColor" weight="fill" />
+              [AI] soạn từ lời kể — người bán đã xác nhận
+            </span>
+          ) : null}
           {submittedAt ? (
             <span className="flex items-center gap-1 text-body-sm text-muted">
               <Icon name="clock-outline" size={15} color="currentColor" />
