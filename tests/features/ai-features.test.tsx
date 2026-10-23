@@ -506,7 +506,7 @@ describe('AIB-01 ward screens', () => {
 
     await user.click(await screen.findByRole('button', { name: /Bún chả Cô Lan/ }));
 
-    expect(list).toHaveBeenCalledWith('PENDING');
+    expect(list).toHaveBeenCalledWith('PENDING', 1, {});
     expect(screen.getByTestId('where')).toHaveTextContent('/ward/inbox/vendor-reports/10');
   });
 
@@ -518,6 +518,6 @@ describe('AIB-01 ward screens', () => {
     expect(await screen.findByText('Không có phản ánh nào')).toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: 'Đã xem xét' }));
 
-    await waitFor(() => expect(list).toHaveBeenCalledWith('REVIEWED'));
+    await waitFor(() => expect(list).toHaveBeenCalledWith('REVIEWED', 1, {}));
   });
 });

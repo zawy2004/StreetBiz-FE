@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { Button } from '@/components/common';
 import { ErrorState, Skeleton, showToast } from '@/components/feedback';
 import { Screen, StickyActions } from '@/components/layout';
+import type { VendorReportType } from '@/core/api/ai-api';
 import { appendPhrase } from '@/features/buyer-discovery/append-phrase';
 import { BackButton } from '@/features/buyer-discovery/components/BackButton';
+import { formatDueDay } from '@/features/price-board/price-board-format';
 import { BuyerPageHeader } from '@/features/vendor-map/components/BuyerPageHeader';
 import { CommunityConnection } from '@/features/vendor-map/components/CommunityConnection';
 import { NoteArea } from '@/features/vendor-map/components/NoteArea';
@@ -14,14 +16,33 @@ import { PhraseChips } from '@/features/vendor-map/components/PhraseChips';
 import {
   communityApi,
   CommunityApiError,
-  useCommunitySession,
+  useCommunityCustomer,
+  type VendorReportRequest,
 } from '@/features/vendor-map/community-api';
+import { MoneyInput } from '@/features/ward-administration/components/ConfigFields';
+import {
+  checkOvercharge,
+  MAX_CHARGED,
+  purchaseTimeProblem,
+  purchaseWindow,
+  toVnLocalInput,
+  vnLocalInputToIso,
+} from '../complaint-math';
+import {
+  BoardMissingNote,
+  DishPicker,
+  OverchargeSum,
+  PurchaseTimeField,
+  QuantityStepper,
+  ReportTypePicker,
+} from '../components/ComplaintParts';
 import {
   AfterSubmitSteps,
   EvidenceFrame,
   PhotoTips,
   ReportSheetHead,
 } from '../components/ReportParts';
+import { isReportType } from '../report-kinds';
 
 function positiveId(value: string | null): number | undefined {
   const parsed = Number(value);
@@ -36,38 +57,91 @@ const VIOLATIONS = [
   'Mất vệ sinh',
 ];
 
+const NOTE_MAX = 500;
+
 /**
- * A report to the ward, set as one clean sheet of official paper: addressed to
- * the ward, about one stall and its slot, the kind of problem and a ruled
- * description, a photo clipped on, then the buyer account it is sent with and
- * what happens next.
+ * A report to the ward, set as one clean sheet of official paper: addressed to the ward,
+ * about one stall and its slot, the kind of report, then what that kind needs. "Bị tính cao
+ * hơn giá niêm yết" (BUY-07) asks for the dish from the stall's live price board, how many,
+ * what was charged and when, and shows the posted price × quantity and the difference as it
+ * is filled in; a charge not above the posted price cannot be sent as an overcharge. The
+ * posted price that counts is the server's, from the price history at the purchase time.
+ * Sending needs a buyer account, signed in on this very page (D3).
  */
 export function VendorReportFormScreen() {
   const { vendorId } = useParams<{ vendorId: string }>();
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const token = useCommunitySession((state) => state.token);
+  const customer = useCommunityCustomer();
+  const scannedPermitId = positiveId(params.get('permitId'));
+  const scannedSlotId = positiveId(params.get('slotId'));
+  const qr = params.get('qr')?.trim() || undefined;
+  const initialType = params.get('type');
+  const [type, setType] = useState<VendorReportType>(
+    isReportType(initialType) ? initialType : 'GENERAL',
+  );
   const [reason, setReason] = useState('');
   const [photoUri, setPhotoUri] = useState<string>();
   const [photo, setPhoto] = useState<File>();
+  const [menuItemId, setMenuItemId] = useState<number | null>(null);
+  const [quantity, setQuantity] = useState<number | null>(1);
+  const [charged, setCharged] = useState<number | null>(null);
+  const [purchasedAt, setPurchasedAt] = useState(() => toVnLocalInput(new Date()));
+  const window7 = useMemo(() => purchaseWindow(), []);
+
   const profile = useQuery({
     queryKey: ['community', 'vendor', vendorId],
     queryFn: () => communityApi.profile(vendorId!),
     enabled: Boolean(vendorId),
   });
+  // The board an overcharge is judged against, looked up again live from the scanned code (BR-39:
+  // nothing is carried over from the check that led here, and nothing outlives this form). Also
+  // who the stall is when it has no public profile (a permit that is no longer valid).
+  const lookup = useQuery({
+    queryKey: ['community', 'report-board', qr],
+    queryFn: () => communityApi.verifyPermit(qr!),
+    enabled: Boolean(qr) && (type === 'OVERCHARGE' || profile.isError),
+    gcTime: 0,
+    staleTime: 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const scanned =
+    lookup.data && String(lookup.data.vendorId) === vendorId ? lookup.data : undefined;
+  const items = scanned?.isValid ? (scanned.priceBoard?.items ?? []) : [];
+  const item = items.find((i) => i.menuItemId === menuItemId);
+  const check = checkOvercharge(item?.unitPrice, quantity, charged);
+  const timeProblem = type === 'OVERCHARGE' ? purchaseTimeProblem(purchasedAt) : null;
+
   const submit = useMutation({
     mutationFn: async () => {
       const evidence = photo ? await communityApi.uploadEvidence(photo) : undefined;
-      return communityApi.report(vendorId!, {
-        reason: reason.trim(),
+      const note = reason.trim();
+      const base = {
         evidenceUrl: evidence?.fileUrl,
-        slotId: positiveId(params.get('slotId')),
-        scannedPermitId: positiveId(params.get('permitId')),
-      });
+        slotId: scannedSlotId,
+        scannedPermitId,
+      };
+      const request: VendorReportRequest =
+        type === 'OVERCHARGE'
+          ? {
+              reportType: type,
+              reason: note || undefined,
+              ...base,
+              menuItemId: menuItemId ?? undefined,
+              quantity: quantity ?? undefined,
+              chargedAmount: charged ?? undefined,
+              purchasedAt: vnLocalInputToIso(purchasedAt) ?? undefined,
+            }
+          : { reportType: type, reason: type === 'GENERAL' ? note : note || undefined, ...base };
+      return communityApi.report(vendorId!, request);
     },
     onSuccess: (receipt) => {
-      showToast(`Đã gửi phản ánh #${receipt.reportId} tới Phường`);
-      navigate(-1);
+      const due = formatDueDay(receipt.dueAt);
+      showToast(
+        `Đã gửi phản ánh #${receipt.reportId} tới Phường${due ? `. Hạn xử lý: hết ngày ${due}` : ''}`,
+      );
+      navigate(`/customer/reports?report=${receipt.reportId}`, { replace: true });
     },
   });
 
@@ -79,8 +153,25 @@ export function VendorReportFormScreen() {
     [photoUri],
   );
 
-  if (profile.isPending) return <ReportFormSkeleton />;
-  if (profile.isError || !profile.data) {
+  const vendor =
+    profile.data ??
+    (scanned?.displayName
+      ? {
+          wardName: null,
+          displayName: scanned.displayName,
+          slotCode: scanned.slotCode ?? '',
+          zoneName: '',
+          slotId: scanned.slotId ?? 0,
+        }
+      : undefined);
+
+  if (
+    profile.isPending ||
+    (profile.isError && qr && lookup.isPending && lookup.fetchStatus !== 'idle')
+  ) {
+    return <ReportFormSkeleton />;
+  }
+  if (!vendor) {
     return (
       <Screen>
         <div>
@@ -91,14 +182,27 @@ export function VendorReportFormScreen() {
     );
   }
 
-  const changeReason = (value: string) => setReason(value.slice(0, 500));
+  const changeReason = (value: string) => setReason(value.slice(0, NOTE_MAX));
+  const noteOk = reason.trim().length <= NOTE_MAX;
+  const ready =
+    type === 'GENERAL'
+      ? reason.trim().length > 0 && noteOk
+      : type === 'PRICE_NOT_POSTED'
+        ? noteOk
+        : Boolean(item) && check.state === 'above' && !timeProblem && noteOk;
+  const error = submit.error instanceof CommunityApiError ? submit.error : null;
+  const notAboveFromServer = type === 'OVERCHARGE' && error?.status === 422;
+  const switchToGeneral = () => {
+    setType('GENERAL');
+    submit.reset();
+  };
 
   return (
     <Screen
       footer={
         <StickyActions>
           <div className="flex w-full flex-col gap-xs sm:flex-row sm:items-center sm:justify-end sm:gap-md">
-            {!token ? (
+            {!customer ? (
               <p className="text-body-sm text-muted sm:text-right">Đăng nhập ở trên để gửi.</p>
             ) : null}
             <div className="sm:w-auto sm:min-w-[200px]">
@@ -107,16 +211,16 @@ export function VendorReportFormScreen() {
                 variant="danger"
                 onPress={() => submit.mutate()}
                 loading={submit.isPending}
-                disabled={!token || !reason.trim() || reason.trim().length > 500}
+                disabled={!customer || !ready}
               />
             </div>
           </div>
         </StickyActions>
       }
     >
-      <BuyerPageHeader title="Báo cáo vi phạm" />
+      <BuyerPageHeader title="Phản ánh về quầy" />
       <div className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start xl:gap-xl">
-        <div className="flex min-w-0 max-w-[720px] flex-col gap-lg">
+        <div className="flex min-w-0 max-w-[760px] flex-col gap-lg">
           <section
             aria-label="Tờ phản ánh"
             className="overflow-hidden rounded-[28px] bg-card shadow-sheet ring-1 ring-border"
@@ -124,32 +228,151 @@ export function VendorReportFormScreen() {
             <div aria-hidden="true" className="sb-kerb sb-kerb-thin" />
             <div className="flex flex-col gap-lg p-md md:p-lg">
               <ReportSheetHead
-                vendor={profile.data}
-                scannedPermitId={positiveId(params.get('permitId'))}
-                scannedSlotId={positiveId(params.get('slotId'))}
+                vendor={vendor}
+                scannedPermitId={scannedPermitId}
+                scannedSlotId={scannedSlotId}
               />
               <div className="flex flex-col gap-sm border-t border-dashed border-border pt-md">
-                <p className="text-label text-text">Loại vi phạm</p>
-                <PhraseChips
-                  label="Loại vi phạm"
-                  phrases={VIOLATIONS}
-                  text={reason}
-                  onPick={(phrase) => changeReason(appendPhrase(reason, phrase))}
+                <p className="text-label text-text">Loại phản ánh</p>
+                <ReportTypePicker
+                  value={type}
+                  onChange={(next) => {
+                    setType(next);
+                    submit.reset();
+                  }}
                 />
               </div>
-              <NoteArea
-                label="Mô tả vi phạm"
-                value={reason}
-                onChangeText={changeReason}
-                placeholder="VD: Bán sai vị trí, sử dụng giấy phép bất thường..."
-                counter={`${reason.length}/500 ký tự`}
-                ring={{ ratio: reason.length / 500, warn: reason.length > 450 }}
-                error={submit.error instanceof CommunityApiError ? submit.error.message : undefined}
-                lined
-              />
+
+              {type === 'GENERAL' ? (
+                <>
+                  <div className="flex flex-col gap-sm">
+                    <p className="text-label text-text">Loại vi phạm</p>
+                    <PhraseChips
+                      label="Loại vi phạm"
+                      phrases={VIOLATIONS}
+                      text={reason}
+                      onPick={(phrase) => changeReason(appendPhrase(reason, phrase))}
+                    />
+                  </div>
+                  <NoteArea
+                    label="Mô tả vi phạm"
+                    value={reason}
+                    onChangeText={changeReason}
+                    placeholder="VD: Bán sai vị trí, sử dụng giấy phép bất thường..."
+                    counter={`${reason.length}/${NOTE_MAX} ký tự`}
+                    ring={{ ratio: reason.length / NOTE_MAX, warn: reason.length > 450 }}
+                    error={error?.message}
+                    lined
+                  />
+                </>
+              ) : null}
+
+              {type === 'OVERCHARGE' ? (
+                lookup.isPending && lookup.fetchStatus !== 'idle' ? (
+                  <div
+                    role="status"
+                    aria-label="Đang tải bảng giá"
+                    className="flex flex-col gap-xs"
+                  >
+                    <Skeleton className="h-14 w-full !rounded-[14px]" />
+                    <Skeleton className="h-14 w-full !rounded-[14px]" />
+                  </div>
+                ) : items.length === 0 ? (
+                  <BoardMissingNote
+                    invalid={Boolean(scanned)}
+                    onScan={() => navigate('/customer/scan')}
+                  />
+                ) : (
+                  <div className="flex flex-col gap-md">
+                    <div className="flex flex-col gap-sm">
+                      <p className="text-label text-text">Món đã mua</p>
+                      <DishPicker items={items} value={menuItemId} onChange={setMenuItemId} />
+                    </div>
+                    <div className="grid gap-md md:grid-cols-2">
+                      <div className="cq min-w-0">
+                        <QuantityStepper
+                          value={quantity}
+                          onChange={setQuantity}
+                          unit={item?.priceUnit}
+                        />
+                      </div>
+                      <div className="cq min-w-0">
+                        <MoneyInput
+                          label="Số tiền bạn bị tính"
+                          value={charged}
+                          onChange={(value) =>
+                            setCharged(value == null ? null : Math.min(value, MAX_CHARGED))
+                          }
+                        />
+                      </div>
+                    </div>
+                    <PurchaseTimeField
+                      value={purchasedAt}
+                      onChange={setPurchasedAt}
+                      min={window7.min}
+                      max={window7.max}
+                      error={timeProblem && purchasedAt ? timeProblem : undefined}
+                    />
+                    <OverchargeSum
+                      check={check}
+                      item={item}
+                      quantity={quantity}
+                      onSwitchToGeneral={switchToGeneral}
+                    />
+                  </div>
+                )
+              ) : null}
+
+              {type !== 'GENERAL' ? (
+                <NoteArea
+                  label="Ghi chú (không bắt buộc)"
+                  value={reason}
+                  onChangeText={changeReason}
+                  placeholder={
+                    type === 'OVERCHARGE'
+                      ? 'VD: Quầy tính 35.000đ một ổ, bảng giá ghi 25.000đ.'
+                      : 'VD: Hỏi giá thì người bán nói tùy món, không có bảng giá.'
+                  }
+                  counter={`${reason.length}/${NOTE_MAX} ký tự`}
+                  ring={{ ratio: reason.length / NOTE_MAX, warn: reason.length > 450 }}
+                  rows={3}
+                  lined
+                />
+              ) : null}
+
+              {error && type !== 'GENERAL' ? (
+                <div
+                  role="alert"
+                  className="flex flex-col gap-sm rounded-[16px] bg-tint-error px-md py-sm sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <p className="text-body-md font-semibold text-error">{error.message}</p>
+                  {notAboveFromServer ? (
+                    <Button
+                      label="Chuyển sang Phản ánh khác"
+                      variant="outline"
+                      fullWidth={false}
+                      onPress={switchToGeneral}
+                    />
+                  ) : null}
+                </div>
+              ) : null}
+              {error?.status === 409 ? (
+                <Button
+                  label="Xem phản ánh của tôi"
+                  variant="ghost"
+                  fullWidth={false}
+                  onPress={() => navigate('/customer/reports')}
+                />
+              ) : null}
+
               <EvidenceFrame
                 uri={photoUri}
                 uploading={submit.isPending && Boolean(photo)}
+                hint={
+                  type === 'OVERCHARGE'
+                    ? 'Ảnh hóa đơn hoặc màn hình chuyển khoản, nếu có; ảnh JPG hoặc PNG.'
+                    : undefined
+                }
                 onChange={(uri, file) => {
                   setPhotoUri(uri);
                   setPhoto(file);

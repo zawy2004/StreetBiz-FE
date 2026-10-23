@@ -23,13 +23,16 @@ import type { NotificationItem } from './notifications-api';
  *   ZONE_*_CHANGED            PricingZone                    price, fees or hours of the vendor's zone
  *   FOOD_SAFETY               food-safety                    food-safety application reviewed
  *   CONTENT_MODERATION        ReportedContent                the vendor's menu item or storefront was hidden
+ *   VENDOR_REPORT_AGAINST_YOU VendorReport                   a buyer reported the stall (no reporter identity)
+ *   VENDOR_REPORT_RESOLVED    VendorReport                   the ward closed a report about the stall
  * CUSTOMER
  *   ORDER                     ORDER / OrderArrivalAck        payment, accepted, ready, completed, cancelled
  *   ORDER_COMPLAINT           Complaint                      complaint resolved
  *   CONTENT_MODERATION        ReportedContent                the customer's report closed, or their review hidden
+ *   VENDOR_REPORT_RESOLVED    VendorReport                   the ward closed the customer's report
  * WARD_AUTHORITY
- *   WARD_REVIEW               REGISTRATION                   a filing waits for review (demo seed only;
- *                                                            no BE workflow notifies the ward yet)
+ *   WARD_REVIEW               REGISTRATION                   a filing waits for review (demo seed only)
+ *   VENDOR_REPORT_NEW         VendorReport                   a citizen report waits in the ward
  * EVERY ROLE (PLATFORM_ADMIN receives only this)
  *   SECURITY_ALERT            UserAccount                    sign-in from a new device, password changed
  *
@@ -59,11 +62,17 @@ export function notificationTarget(item: NotificationItem, role: RoleCode | unde
 
   if (role === 'WARD_AUTHORITY') {
     if (entity === 'BusinessRegistration' && id) return `/ward/inbox/registrations/${id}`;
+    if (entity === 'VendorReport' || item.type === 'VENDOR_REPORT_NEW') {
+      return id ? `/ward/inbox/vendor-reports/${id}` : '/ward/inbox/vendor-reports';
+    }
     if (item.type === 'WARD_REVIEW') return '/ward/inbox';
     return null;
   }
 
   if (role === 'CUSTOMER') {
+    if (entity === 'VendorReport' || item.type === 'VENDOR_REPORT_RESOLVED') {
+      return id ? `/customer/reports?report=${id}` : '/customer/reports';
+    }
     if ((entity === 'ORDER' || entity === 'OrderArrivalAck') && id) return `/customer/orders/${id}`;
     if (item.type === 'ORDER_COMPLAINT' || item.type === 'ORDER') return '/customer/orders';
     return null;
@@ -109,9 +118,14 @@ export function notificationTarget(item: NotificationItem, role: RoleCode | unde
       return '/vendor/store/food-safety';
     case 'ReportedContent':
       return '/vendor/store/menu';
+    case 'VendorReport':
+      // The reporter is never named to the vendor: the notice leads to the stall's own price
+      // board and history, where a wrong price is fixed and the board reprinted.
+      return '/vendor/store/menu';
     default:
       if (item.type === 'ORDER') return '/vendor/orders';
       if (item.type.startsWith('FEE')) return '/vendor/finance';
+      if (item.type.startsWith('VENDOR_REPORT')) return '/vendor/store/menu';
       return null;
   }
 }
@@ -156,6 +170,12 @@ export function notificationVisual(item: NotificationItem): { icon: IconName; to
       return { icon: 'silverware-fork-knife', tone: 'primary' };
     case 'CONTENT_MODERATION':
       return { icon: 'flag-outline', tone: 'neutral' };
+    case 'VENDOR_REPORT_NEW':
+      return { icon: 'flag-outline', tone: 'warning' };
+    case 'VENDOR_REPORT_AGAINST_YOU':
+      return { icon: 'chat-alert-outline', tone: 'warning' };
+    case 'VENDOR_REPORT_RESOLVED':
+      return { icon: 'check-circle-outline', tone: 'success' };
     case 'SECURITY_ALERT':
       return { icon: 'lock-outline', tone: 'error' };
     default:

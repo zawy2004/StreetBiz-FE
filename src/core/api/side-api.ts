@@ -196,6 +196,11 @@ export type DigitalPermit = {
   permitStatus: string;
   contractStatus: string;
   effectiveStatus: string;
+  /**
+   * `{base}/q/{qrPayload}`: what the QR should encode so an ordinary phone camera opens the
+   * public check page. Null when the server has no public base URL; then the bare token is drawn.
+   */
+  qrUrl?: string | null;
 };
 
 export type AddressChangeRequest = {

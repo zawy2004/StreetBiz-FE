@@ -457,6 +457,7 @@ describe('Report form (C07 rebuild)', () => {
     await user.click(screen.getByRole('button', { name: 'Gửi phản ánh' }));
     await waitFor(() =>
       expect(community.report).toHaveBeenCalledWith('8', {
+        reportType: 'GENERAL',
         reason: 'Bán sai vị trí',
         evidenceUrl: '/files/1.jpg',
         slotId: undefined,

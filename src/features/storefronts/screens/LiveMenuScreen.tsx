@@ -9,6 +9,9 @@ import { StatusChip } from '@/components/status';
 import { errorMessage } from '@/core/api';
 import { apiAssetUrl } from '@/core/api/asset-url';
 import { sellerStoreApi, type SellerMenuItem, type MenuInput } from '@/core/api/seller-store-api';
+import { sideApi } from '@/core/api/side-api';
+import { printPagePath } from '@/features/price-board/permit-link';
+import { priceWithUnit } from '@/features/price-board/price-board-format';
 import { categoryIcon } from '@/features/buyer-discovery/category-icons';
 import { FoodImage } from '@/features/buyer-discovery/components/FoodImage';
 import { menuItemPhotos } from '@/features/buyer-discovery/food-photos';
@@ -17,6 +20,7 @@ import { VERDICT_TONES } from '@/components/illustrations';
 import { useMediaQuery } from '@/hooks/useBreakpoint';
 import { colors } from '@/theme';
 import { DishDescriptionAssist, DishRecognitionAssist } from '../components/menu/DishAiAssist';
+import { PriceBoardStrip, PriceHistoryPanel, UnitChips } from '../components/menu/PriceBoardParts';
 import {
   BuyerPreviewCard,
   BuyerVisibilityStrip,
@@ -59,11 +63,29 @@ export function LiveMenuScreen() {
     queryFn: () => sellerStoreApi.menu(storeId!),
     enabled: Boolean(storeId),
   });
+  // BUY-06: the public board's version, its print link and the price history. Under the same
+  // 'commerce' key as the menu, so every save or removal refreshes it.
+  const board = useQuery({
+    queryKey: ['commerce', 'price-board', storeId],
+    queryFn: () => sellerStoreApi.priceBoard(storeId!),
+    enabled: Boolean(storeId),
+  });
+  const contractId = stores.data?.find((s) => s.storefrontId === storeId)?.contractId;
+  // Without the server's public base URL there is no print link: print this web app's own
+  // page instead, from the permit's own signed token (never a new code).
+  const permit = useQuery({
+    queryKey: ['commerce', 'price-board-permit', contractId],
+    queryFn: () => sideApi.getPermit(contractId!),
+    enabled: Boolean(board.data && !board.data.printUrl && contractId),
+    retry: false,
+  });
   const cache = useQueryClient();
   const [editing, setEditing] = useState<SellerMenuItem | null>(null);
   const [archiving, setArchiving] = useState<SellerMenuItem | null>(null);
   const [name, setName] = useState('');
+  const [nameEn, setNameEn] = useState('');
   const [price, setPrice] = useState('');
+  const [priceUnit, setPriceUnit] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   // The picked photo: a local preview while uploading, then the server URL to save.
@@ -74,7 +96,9 @@ export function LiveMenuScreen() {
   const reset = () => {
     setEditing(null);
     setName('');
+    setNameEn('');
     setPrice('');
+    setPriceUnit('');
     setDescription('');
     setCategory('');
     setPhotoPreview(undefined);
@@ -152,8 +176,11 @@ export function LiveMenuScreen() {
   const full = items.length >= maxItems;
   const selectedCategory = categories.data.find((c) => c.categoryId === categoryId);
   const amount = Number(price);
+  const unit = priceUnit.trim();
   const valid =
     name.trim().length > 0 &&
+    unit.length > 0 &&
+    unit.length <= 30 &&
     Number.isSafeInteger(amount) &&
     amount > 0 &&
     amount <= 50_000_000 &&
@@ -165,8 +192,10 @@ export function LiveMenuScreen() {
   const startEdit = (item: SellerMenuItem) => {
     setEditing(item);
     setName(item.name);
+    setNameEn(item.nameEn ?? '');
     setDescription(item.description ?? '');
     setPrice(String(item.unitPrice));
+    setPriceUnit(item.priceUnit ?? '');
     setCategory(String(item.categoryId));
     setPhotoPreview(item.imageUrl ? apiAssetUrl(item.imageUrl) : undefined);
     setPhotoUrl(null);
@@ -194,6 +223,11 @@ export function LiveMenuScreen() {
     ),
   ];
   const priceOk = Number.isSafeInteger(amount) && amount > 0 && amount <= 50_000_000;
+  const printHref =
+    board.data?.printUrl ??
+    (permit.data?.qrPayload && permit.data.effectiveStatus === 'VALID'
+      ? printPagePath(permit.data.qrPayload)
+      : null);
   // The photo the AI suggestions read: the one just uploaded, else the dish's current one (always the vendor's own upload).
   const aiImageUrl = photoUrl ?? editing?.imageUrl ?? null;
 
@@ -257,12 +291,34 @@ export function LiveMenuScreen() {
         maxLength={180}
       />
       <TextField
+        label="Tên tiếng Anh (không bắt buộc)"
+        value={nameEn}
+        onChangeText={setNameEn}
+        maxLength={180}
+        helperText="In dưới tên món trên bảng giá, cho khách nước ngoài."
+      />
+      <TextField
         label="Giá (đ)"
         value={price}
         onChangeText={setPrice}
         keyboardType="numeric"
-        helperText={price && priceOk ? `= ${formatVnd(amount)}` : undefined}
+        helperText={
+          price && priceOk
+            ? `= ${unit ? priceWithUnit(amount, unit) : formatVnd(amount)}`
+            : undefined
+        }
       />
+      <div className="flex flex-col gap-xs">
+        <TextField
+          label="Đơn vị tính *"
+          value={priceUnit}
+          onChangeText={setPriceUnit}
+          maxLength={30}
+          placeholder="VD: ổ, ly, phần, kg"
+          helperText="Bắt buộc: giá niêm yết phải kèm đơn vị tính (Luật Giá 2023)."
+        />
+        <UnitChips value={priceUnit} onPick={setPriceUnit} />
+      </div>
       <TextField
         label="Mô tả món"
         value={description}
@@ -306,7 +362,9 @@ export function LiveMenuScreen() {
                 input: {
                   categoryId: categoryId!,
                   name: name.trim(),
+                  nameEn: nameEn.trim() || null,
                   unitPrice: amount,
+                  priceUnit: unit,
                   description: description.trim() || null,
                   availabilityStatus: editing?.availabilityStatus ?? 'AVAILABLE',
                   imageUrl: photoUrl,
@@ -423,6 +481,16 @@ export function LiveMenuScreen() {
         }
       />
 
+      <PriceBoardStrip
+        version={board.data?.version}
+        updatedAt={board.data?.updatedAt}
+        loading={board.isPending || permit.isLoading}
+        canPrint={Boolean(printHref)}
+        onPrint={() => {
+          if (printHref) window.open(printHref, '_blank', 'noopener,noreferrer');
+        }}
+      />
+
       <div className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start xl:gap-xl">
         <div className="flex min-w-0 flex-col gap-md xl:sticky xl:top-lg xl:col-start-2 xl:row-start-1">
           {full && !editing ? fullCard : form}
@@ -477,8 +545,13 @@ export function LiveMenuScreen() {
                         </h2>
                         <StatusChip code={item.availabilityStatus} />
                       </div>
+                      {item.nameEn ? (
+                        <p lang="en" className="-mt-xs text-body-md italic text-muted">
+                          {item.nameEn}
+                        </p>
+                      ) : null}
                       <p className="font-sign text-[20px] font-bold tabular-nums text-primary">
-                        {formatVnd(item.unitPrice)}
+                        {priceWithUnit(item.unitPrice, item.priceUnit)}
                       </p>
                       <div className="flex flex-wrap gap-xs">
                         <DishFoodSafetyChip
@@ -520,8 +593,10 @@ export function LiveMenuScreen() {
                                 input: {
                                   categoryId: item.categoryId,
                                   name: item.name,
+                                  nameEn: item.nameEn,
                                   description: item.description,
                                   unitPrice: item.unitPrice,
+                                  priceUnit: item.priceUnit,
                                   availabilityStatus:
                                     item.availabilityStatus === 'AVAILABLE'
                                       ? 'SOLD_OUT'
@@ -549,6 +624,11 @@ export function LiveMenuScreen() {
               })}
             </ul>
           )}
+          <PriceHistoryPanel
+            history={board.data?.history ?? []}
+            loading={board.isPending}
+            error={board.isError ? errorMessage(board.error) : null}
+          />
         </div>
       </div>
       <ConfirmDialog

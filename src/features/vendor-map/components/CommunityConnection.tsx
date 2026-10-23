@@ -2,7 +2,12 @@ import { useState } from 'react';
 
 import { Avatar, Button, Icon } from '@/components/common';
 import { PasswordField, PhoneField } from '@/components/forms';
-import { communityApi, CommunityApiError, useCommunitySession } from '../community-api';
+import {
+  communityApi,
+  CommunityApiError,
+  useCommunityCustomer,
+  useCommunitySession,
+} from '../community-api';
 
 /** The ticket's notched sides: two half-circles bitten out at mid-height. */
 const TICKET_MASK =
@@ -16,7 +21,9 @@ const TICKET_MASK =
  * app's own sign-in. Shared by the review (C06) and report (C07) forms.
  */
 export function CommunityConnection() {
-  const customer = useCommunitySession((state) => state.customer);
+  const customer = useCommunityCustomer();
+  // Only this tab's own session can be switched; the app's sign-in is changed from its account page.
+  const ownSession = Boolean(useCommunitySession((state) => state.token));
   const disconnect = useCommunitySession((state) => state.disconnect);
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -50,7 +57,9 @@ export function CommunityConnection() {
             <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-tertiary" />
             <span className="min-w-0">Đang gửi với tài khoản {name}</span>
           </p>
-          <Button label="Đổi tài khoản" variant="ghost" fullWidth={false} onPress={disconnect} />
+          {ownSession ? (
+            <Button label="Đổi tài khoản" variant="ghost" fullWidth={false} onPress={disconnect} />
+          ) : null}
         </div>
       ) : (
         <div className="flex flex-col gap-md px-lg py-md">

@@ -40,6 +40,15 @@ const TermsScreen = lazyScreen(() => import('@/features/legal/screens'), 'TermsS
 const PrivacyScreen = lazyScreen(() => import('@/features/legal/screens'), 'PrivacyScreen');
 const SlotRulesScreen = lazyScreen(() => import('@/features/legal/screens'), 'SlotRulesScreen');
 const LegalBasisScreen = lazyScreen(() => import('@/features/legal/screens'), 'LegalBasisScreen');
+// BUY-06: what a phone camera opens from a printed price board, signed in or not.
+const PublicPermitScreen = lazyScreen(
+  () => import('@/features/price-board/screens/PublicPermitScreen'),
+  'PublicPermitScreen',
+);
+const PrintPriceBoardScreen = lazyScreen(
+  () => import('@/features/price-board/screens/PrintPriceBoardScreen'),
+  'PrintPriceBoardScreen',
+);
 
 // Everything past sign-in is split per feature and fetched on first visit.
 const WardCasesScreen = lazyScreen(
@@ -232,6 +241,10 @@ const ReportContentScreen = lazyScreen(
 const VendorReportFormScreen = lazyScreen(
   () => import('@/features/vendor-reports/screens'),
   'VendorReportFormScreen',
+);
+const MyReportsScreen = lazyScreen(
+  () => import('@/features/vendor-reports/screens'),
+  'MyReportsScreen',
 );
 const ItemDetailScreen = lazyScreen(
   () => import('@/features/buyer-discovery/screens'),
@@ -457,6 +470,9 @@ export function AppRouter() {
         <Route path="/legal/slot-rules" element={<SlotRulesScreen />} />
         <Route path="/legal/basis" element={<LegalBasisScreen />} />
 
+        <Route path="/q/:token" element={<PublicPermitScreen />} />
+        <Route path="/q/:token/print" element={<PrintPriceBoardScreen />} />
+
         <Route
           path="/account"
           element={
@@ -532,6 +548,7 @@ export function AppRouter() {
           <Route path="explore/items/:itemId" element={<ItemDetailScreen />} />
           <Route path="explore/stores/:storefrontId" element={<StorefrontDetailScreen />} />
           <Route path="scan" element={<PublicScanScreen />} />
+          <Route path="reports" element={<MyReportsScreen />} />
           <Route path="chat" element={<ConversationsScreen />} />
           <Route path="chat/:conversationId" element={<ChatThreadScreen />} />
           <Route path="checkout" element={<CheckoutScreen />} />

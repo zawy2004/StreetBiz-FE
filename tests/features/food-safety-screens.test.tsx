@@ -40,6 +40,8 @@ const dish = (menuItemId: number, extra: Partial<SellerMenuItem> = {}): SellerMe
   requiresFoodSafety: true,
   foodSafetyStatus: 'APPROVED',
   foodSafetyExpiresOn: '2029-01-31',
+  nameEn: null,
+  priceUnit: 'tô',
   ...extra,
 });
 
@@ -52,6 +54,17 @@ function stubMenu(items: SellerMenuItem[]) {
     { categoryId: 4, name: 'Đồ uống', requiresFoodSafety: false },
   ]);
   vi.spyOn(sellerStoreApi, 'menu').mockResolvedValue({ items, maxItems: 5 });
+  vi.spyOn(sellerStoreApi, 'priceBoard').mockResolvedValue({
+    storefrontId: 1,
+    storefrontName: 'Quán',
+    slotCode: 'A-01',
+    version: items.length,
+    updatedAt: '2026-10-20T01:00:00Z',
+    qrUrl: 'http://192.168.1.5:5173/q/SBP1.a.b?v=1',
+    printUrl: 'http://192.168.1.5:5173/q/SBP1.a.b/print',
+    items: [],
+    history: [],
+  });
 }
 
 describe('vendor menu', () => {

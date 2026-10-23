@@ -590,6 +590,12 @@ export const complianceApi = {
     containmentMeasures?: string;
     explanationRequired?: boolean;
     explanationMethod?: string;
+    /**
+     * WARD-19: the citizen report this record is raised from. The server checks it is pending, in
+     * this ward and about the same vendor or slot (400 report_mismatch), then closes it as
+     * VIOLATION_RECORDED in the same transaction; a second record for it is refused (409).
+     */
+    sourceReportId?: number;
   }) => apiPost<WardViolationDetail>('/ward/violations', request),
   /** Điều 61 Luật XLVPHC: records the violator's giải trình before a sanction may issue. */
   recordExplanation: (id: number, content: string) =>
