@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { Avatar, Button, Icon } from '@/components/common';
 import { PasswordField, PhoneField } from '@/components/forms';
+import { toLocalPhone } from '@/core/utils/phone';
 import {
   communityApi,
   CommunityApiError,
@@ -34,7 +35,9 @@ export function CommunityConnection() {
     setBusy(true);
     setError(undefined);
     try {
-      await communityApi.login(phone, password);
+      // The field shows +84 in front, so "905 000 201" is a whole number: send it as the app's own
+      // sign-in does (0905000201), not as typed.
+      await communityApi.login(toLocalPhone(phone), password);
     } catch (reason) {
       setError(reason instanceof CommunityApiError ? reason.message : 'Không thể đăng nhập.');
     } finally {

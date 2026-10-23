@@ -72,7 +72,7 @@ export function VendorReportResolvePanel({
   return (
     <section
       aria-labelledby="resolve-title"
-      className="flex flex-col gap-md rounded-[24px] bg-card p-md shadow-sheet ring-1 ring-border md:p-lg"
+      className="cq flex flex-col gap-md rounded-[24px] bg-card p-md shadow-sheet ring-1 ring-border md:p-lg"
     >
       <div>
         <h2 id="resolve-title" className="font-heading text-[21px] font-bold text-text">

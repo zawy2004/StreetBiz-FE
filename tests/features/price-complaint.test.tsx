@@ -12,6 +12,7 @@ const community = vi.hoisted(() => ({
   report: vi.fn(),
   uploadEvidence: vi.fn(),
   myReports: vi.fn(),
+  login: vi.fn(),
 }));
 
 vi.mock('@/features/vendor-map/community-api', async (importOriginal) => {
@@ -271,6 +272,24 @@ describe('complaint form, "Bị tính cao hơn giá niêm yết"', () => {
     expect(screen.getByRole('button', { name: 'Gửi phản ánh' })).toBeDisabled();
   });
 
+  it('is about the stall and slot on the scanned QR, not the other slot the public profile shows', async () => {
+    community.verifyPermit.mockResolvedValue({
+      ...CHECK,
+      permitId: 40,
+      displayName: 'Xôi Cô Lan',
+      slotId: 9,
+      slotCode: 'NVL-003',
+    });
+    renderForm(`type=PRICE_NOT_POSTED&permitId=40&slotId=9&qr=${TOKEN}`);
+
+    expect(await screen.findByText('Về: Xôi Cô Lan')).toBeInTheDocument();
+    expect(screen.queryByText('Về: Bánh mì Cô Lan')).not.toBeInTheDocument();
+    expect(screen.getAllByText('NVL-003').length).toBeGreaterThan(0);
+    expect(screen.queryByText('NVL-022')).not.toBeInTheDocument();
+    // The profile's ward and street belong to its own slot, so they are not claimed for this one.
+    expect(screen.getByText('Kính gửi: Phường sở tại')).toBeInTheDocument();
+  });
+
   it('needs a buyer account: signed out, the form cannot be sent and offers sign-in on the page', async () => {
     useCommunitySession.setState({ token: '', customer: null, generation: 0 });
     renderForm(`type=PRICE_NOT_POSTED&qr=${TOKEN}`);
@@ -278,6 +297,18 @@ describe('complaint form, "Bị tính cao hơn giá niêm yết"', () => {
     expect(await screen.findByText('Đăng nhập ở trên để gửi.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Gửi phản ánh' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Đăng nhập Backend' })).toBeInTheDocument();
+  });
+
+  it('signs the buyer in with the number as the +84 field shows it, like the app sign-in', async () => {
+    useCommunitySession.setState({ token: '', customer: null, generation: 0 });
+    community.login.mockResolvedValue(undefined);
+    renderForm(`type=PRICE_NOT_POSTED&qr=${TOKEN}`);
+
+    fireEvent.change(await screen.findByLabelText('Số điện thoại'), { target: { value: '905 000 201' } });
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'test-only' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập Backend' }));
+
+    await waitFor(() => expect(community.login).toHaveBeenCalledWith('0905000201', 'test-only'));
   });
 });
 

@@ -100,7 +100,7 @@ export function VendorReportFormScreen() {
   const lookup = useQuery({
     queryKey: ['community', 'report-board', qr],
     queryFn: () => communityApi.verifyPermit(qr!),
-    enabled: Boolean(qr) && (type === 'OVERCHARGE' || profile.isError),
+    enabled: Boolean(qr),
     gcTime: 0,
     staleTime: 0,
     retry: false,
@@ -153,22 +153,21 @@ export function VendorReportFormScreen() {
     [photoUri],
   );
 
-  const vendor =
-    profile.data ??
-    (scanned?.displayName
-      ? {
-          wardName: null,
-          displayName: scanned.displayName,
-          slotCode: scanned.slotCode ?? '',
-          zoneName: '',
-          slotId: scanned.slotId ?? 0,
-        }
-      : undefined);
+  // Came from a scan: the report is about the stall and slot on that QR, which for a business with
+  // several slots is not necessarily the one its public profile shows. The profile's ward and zone
+  // are only that slot's when it is the same slot.
+  const sameSlot = scanned && profile.data && profile.data.slotId === scanned.slotId;
+  const vendor = scanned?.displayName
+    ? {
+        wardName: sameSlot ? profile.data!.wardName : null,
+        displayName: scanned.displayName,
+        slotCode: scanned.slotCode ?? '',
+        zoneName: sameSlot ? profile.data!.zoneName : '',
+        slotId: scanned.slotId ?? 0,
+      }
+    : profile.data;
 
-  if (
-    profile.isPending ||
-    (profile.isError && qr && lookup.isPending && lookup.fetchStatus !== 'idle')
-  ) {
+  if (profile.isPending || (qr && lookup.isPending && lookup.fetchStatus !== 'idle')) {
     return <ReportFormSkeleton />;
   }
   if (!vendor) {
