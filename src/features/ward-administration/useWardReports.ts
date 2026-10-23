@@ -98,6 +98,24 @@ export function useReportSummary(period: ReportPeriod): {
   return { summary, isLoading: isLiveApi && query.isLoading, isError: isLiveApi && query.isError };
 }
 
+/** The dashboard's report figures from the demo reports, counted the way the server does. */
+function mockReportFigures(
+  reports: { report_status: string; created_at: string; due_at?: string; reviewed_at?: string }[],
+  now = Date.now(),
+) {
+  const open = reports.filter((r) => r.report_status === 'PENDING');
+  const closedHours = reports
+    .filter((r) => r.reviewed_at && now - Date.parse(r.reviewed_at) <= 30 * 86_400_000)
+    .map((r) => (Date.parse(r.reviewed_at!) - Date.parse(r.created_at)) / 3_600_000);
+  return {
+    openReports: open.length,
+    overdueReports: open.filter((r) => r.due_at && Date.parse(r.due_at) < now).length,
+    avgResolutionHours30d: closedHours.length
+      ? closedHours.reduce((sum, h) => sum + h, 0) / closedHours.length
+      : null,
+  };
+}
+
 /** WARD-15. */
 export function useWardDashboard() {
   const slots = useMockDb((s) => s.slots);
@@ -107,6 +125,7 @@ export function useWardDashboard() {
   const feeItems = useMockDb((s) => s.feeItems);
   const penalties = useMockDb((s) => s.penalties);
   const violations = useMockDb((s) => s.violations);
+  const reports = useMockDb((s) => s.reports);
 
   const query = useQuery({
     queryKey: WARD_REPORT_KEYS.dashboard,
@@ -133,6 +152,7 @@ export function useWardDashboard() {
     revenueCollected: revenue,
     outstandingDebt,
     openViolations: violations.length,
+    ...mockReportFigures(reports),
   };
 
   return {

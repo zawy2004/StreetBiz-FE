@@ -103,6 +103,20 @@ export function AccountScreen() {
             </div>
           </section>
 
+          {user.role_code === 'CUSTOMER' ? (
+            <section aria-labelledby="account-reports" className="flex flex-col gap-sm">
+              <SectionTitle id="account-reports">Phản ánh</SectionTitle>
+              <div className="grid grid-cols-1 gap-sm [@container_(min-width:560px)]:grid-cols-3">
+                <SecurityTile
+                  icon="flag-outline"
+                  title="Phản ánh của tôi"
+                  description="Trạng thái và kết quả phường xử lý"
+                  onPress={() => navigate('/customer/reports')}
+                />
+              </div>
+            </section>
+          ) : null}
+
           <section aria-labelledby="account-theme" className="flex flex-col gap-sm">
             <div className="flex flex-col gap-0.5">
               <SectionTitle id="account-theme">Giao diện</SectionTitle>

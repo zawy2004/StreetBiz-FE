@@ -10,6 +10,7 @@ import type {
   FoodCategory,
   Invoice,
   MenuItem,
+  MenuPriceChange,
   MockUser,
   Order,
   Penalty,
@@ -335,7 +336,46 @@ export const VENDOR_COMMENTS: VendorComment[] = [
   },
 ];
 
-export const VENDOR_REPORTS: VendorReport[] = [];
+/**
+ * Two citizen reports waiting on the ward (BUY-05/07), both about the demo stall: an
+ * overcharge with the server's price evidence, and a missing price board already past its
+ * internal handling date.
+ */
+export const VENDOR_REPORTS: VendorReport[] = [
+  {
+    id: 'RPT-001',
+    vendorId: 'VEN-001',
+    slotId: 'SLOT-022',
+    reporterId: 'USR-CUS',
+    reason: 'Bị tính cao hơn giá niêm yết: 2 phần Xôi gà xé.',
+    report_status: 'PENDING',
+    report_type: 'OVERCHARGE',
+    created_at: '2026-10-21T01:10:00.000Z',
+    due_at: '2026-10-30T16:59:59.999Z',
+    price_evidence: {
+      menuItemId: 'ITEM-001',
+      itemName: 'Xôi gà xé',
+      priceUnit: 'phần',
+      postedUnitPrice: 25000,
+      priceVersion: 2,
+      priceVersionAt: '2026-09-01T00:00:00.000Z',
+      quantity: 2,
+      chargedAmount: 70000,
+      purchasedAt: '2026-10-21T00:45:00.000Z',
+    },
+  },
+  {
+    id: 'RPT-002',
+    vendorId: 'VEN-001',
+    slotId: 'SLOT-022',
+    reporterId: 'USR-CUS',
+    reason: 'Quầy không treo bảng giá, hỏi thì người bán nói tùy món.',
+    report_status: 'PENDING',
+    report_type: 'PRICE_NOT_POSTED',
+    created_at: '2026-10-08T02:30:00.000Z',
+    due_at: '2026-10-17T16:59:59.999Z',
+  },
+];
 
 export const FOOD_CATEGORIES: FoodCategory[] = [
   { id: 'CAT-01', name: 'Bánh mì', itemCount: 34 },
@@ -389,7 +429,9 @@ export const MENU_ITEMS: MenuItem[] = [
     id: 'ITEM-001',
     storefrontId: 'STORE-001',
     name: 'Xôi gà xé',
+    nameEn: 'Shredded chicken sticky rice',
     price: 25000,
+    priceUnit: 'phần',
     description: 'Xôi nếp dẻo, gà xé, hành phi, ruốc.',
     categoryId: 'CAT-05',
     availability_status: 'AVAILABLE',
@@ -399,11 +441,28 @@ export const MENU_ITEMS: MenuItem[] = [
     storefrontId: 'STORE-001',
     name: 'Xôi mặn thập cẩm',
     price: 30000,
+    priceUnit: 'phần',
     description: 'Xôi, chả, trứng cút, lạp xưởng.',
     categoryId: 'CAT-05',
     availability_status: 'AVAILABLE',
   },
 ];
+
+/** The demo stall's price history: one CREATED row per dish (append only, as on the server). */
+export const MENU_PRICE_HISTORY: MenuPriceChange[] = MENU_ITEMS.map((item, i) => ({
+  id: `PRH-${String(i + 1).padStart(3, '0')}`,
+  menuItemId: item.id,
+  storefrontId: item.storefrontId,
+  name: item.name,
+  nameEn: item.nameEn,
+  priceUnit: item.priceUnit,
+  price: item.price,
+  previousPrice: null,
+  isListed: true,
+  change_kind: 'CREATED',
+  changed_at: '2026-09-01T00:00:00.000Z',
+  changed_by_name: 'Nguyễn Thị Hoa',
+}));
 
 export const ORDERS: Order[] = [];
 export const REVIEWS: Review[] = [];
@@ -431,6 +490,7 @@ export const REPORTED_CONTENT: ReportedContent[] = [];
   ...USER_SESSIONS,
   ...STOREFRONTS,
   ...MENU_ITEMS,
+  ...MENU_PRICE_HISTORY,
   ...ORDERS,
   ...REVIEWS,
   ...COMPLAINTS,

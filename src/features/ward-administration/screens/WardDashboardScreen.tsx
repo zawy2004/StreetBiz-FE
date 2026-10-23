@@ -11,6 +11,7 @@ import {
   CollectionLedger,
   DashboardSkeleton,
   KerbOccupancyStrip,
+  ReportTiles,
   ShiftShortcuts,
   WardTaskBoard,
   type Shortcut,
@@ -108,6 +109,19 @@ export function WardDashboardScreen() {
             />
             {aiHint}
           </div>
+
+          <ReportTiles
+            open={dashboard.openReports ?? 0}
+            overdue={dashboard.overdueReports ?? 0}
+            avgHours={dashboard.avgResolutionHours30d}
+            onOpen={(filter) =>
+              navigate(
+                filter === 'overdue'
+                  ? '/ward/inbox/vendor-reports?overdue=true'
+                  : '/ward/inbox/vendor-reports',
+              )
+            }
+          />
 
           <KerbOccupancyStrip
             rented={dashboard.slotRented}
