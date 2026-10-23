@@ -15,6 +15,14 @@ export type MarketplaceMenuItem = {
   foodSafetyCertified?: boolean;
 };
 
+/** REV-02: `editableUntil` is when the author's editing period (counted from first submission) ends. */
+export type OrderReview = {
+  reviewId: number;
+  rating: number;
+  text: string | null;
+  editableUntil: string | null;
+};
+
 export type GeoPoint = { latitude: number; longitude: number };
 
 /** ISO weekday (1 = Monday ... 7 = Sunday) with local "HH:mm" times. */
@@ -66,6 +74,16 @@ export type ServiceArea = {
 
 export type MarketplaceCategory = { categoryId: number; categoryName: string; itemCount: number };
 
+/** REV-03: why a storefront or dish is reported; the server turns the code into the moderator's text. */
+export type ContentReportReason =
+  | 'MISLEADING'
+  | 'INAPPROPRIATE'
+  | 'UNSAFE_OR_ILLEGAL'
+  | 'COUNTERFEIT'
+  | 'OTHER';
+export type ContentReportInput = { reasonCode: ContentReportReason; detail?: string | null };
+export type ContentReportReceipt = { reportId: number; status: string };
+
 export type StorefrontSort = 'distance' | 'rating' | 'name';
 export type MenuItemSort = 'name' | 'price_asc' | 'price_desc';
 
@@ -78,6 +96,10 @@ export type StorefrontQuery = {
   radiusMeters?: number;
   sort?: StorefrontSort;
   take?: number;
+  /** DISC-05: keep storefronts rated at least this many stars by the community (unrated ones drop out). */
+  minRating?: number;
+  /** DISC-05: keep storefronts that have at least one dish at or under this price. */
+  maxPrice?: number;
 };
 
 export type MenuItemQuery = {
@@ -89,6 +111,8 @@ export type MenuItemQuery = {
   openNow?: boolean;
   sort?: MenuItemSort;
   take?: number;
+  /** DISC-05: keep dishes of storefronts rated at least this many stars. */
+  minRating?: number;
 };
 
 /** Builds "?a=1&b=x" from the params that are set, encoding with %20 like the rest of the client. */
@@ -200,11 +224,9 @@ export type CustomerComplaint = {
 
 export const commerceApi = {
   review: (orderId: string | number) =>
-    apiGet<{ reviewId: number; rating: number; text: string | null } | null>(
-      `/orders/${orderId}/review`,
-    ),
+    apiGet<OrderReview | null>(`/orders/${orderId}/review`),
   saveReview: (orderId: number, rating: number, text: string) =>
-    apiPut<{ reviewId: number }>(`/orders/${orderId}/review`, { rating, text }),
+    apiPut<OrderReview>(`/orders/${orderId}/review`, { rating, text }),
   paymentOptions: () => apiGet<PaymentOptions>('/orders/payment-options'),
   failSandboxPayment: (orderId: number) =>
     apiPost<CommerceOrder>(`/orders/${orderId}/payment/sandbox-fail`),
@@ -222,6 +244,12 @@ export const commerceApi = {
   },
   menuItem: (menuItemId: string | number) =>
     apiGet<MarketplaceMenuItem>(`/marketplace/menu-items/${menuItemId}`),
+
+  /** REV-03: needs a signed-in customer; answers 409 for a repeat, 429 past 10 reports an hour. */
+  reportStorefront: (storefrontId: number, input: ContentReportInput) =>
+    apiPost<ContentReportReceipt>(`/marketplace/storefronts/${storefrontId}/reports`, input),
+  reportMenuItem: (menuItemId: number, input: ContentReportInput) =>
+    apiPost<ContentReportReceipt>(`/marketplace/menu-items/${menuItemId}/reports`, input),
 
   serviceAreas: (position?: GeoPoint) =>
     apiGet<ServiceArea[]>(`/marketplace/service-areas${queryString(positionParams(position))}`),

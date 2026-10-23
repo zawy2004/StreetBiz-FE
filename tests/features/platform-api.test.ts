@@ -151,4 +151,111 @@ describe('platform administration API', () => {
       approvedRefundAmount: 50_000,
     });
   });
+
+  it('lists accounts with only the filters that were set', async () => {
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ items: [], page: 2, pageSize: 20, totalCount: 0 }),
+    });
+    vi.stubGlobal('fetch', fetcher);
+    usePlatformSession.getState().connect('platform-token', { userId: 7, name: 'Admin' });
+
+    await platformApi.accounts({ role: 'VENDOR', q: 'Minh Anh', page: 2, pageSize: 20 });
+
+    expect(fetcher.mock.calls[0]![0]).toBe(
+      'https://api.example.test/api/platform/accounts?role=VENDOR&q=Minh+Anh&page=2&pageSize=20',
+    );
+  });
+
+  it('suspends with a reason and the status it expects, and reactivates with an optional note', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+    vi.stubGlobal('fetch', fetcher);
+    usePlatformSession.getState().connect('platform-token', { userId: 7, name: 'Admin' });
+
+    await platformApi.suspendAccount(31, 'Bán hàng giả');
+    await platformApi.reactivateAccount(31);
+
+    const [suspendUrl, suspend] = fetcher.mock.calls[0]!;
+    expect(suspendUrl).toBe('https://api.example.test/api/platform/accounts/31/suspend');
+    expect(JSON.parse(suspend.body)).toEqual({ reason: 'Bán hàng giả', expectedStatus: 'ACTIVE' });
+    const [, reactivate] = fetcher.mock.calls[1]!;
+    expect(JSON.parse(reactivate.body)).toEqual({ note: null, expectedStatus: 'SUSPENDED' });
+  });
+
+  it('keeps the server error message (409 stale status) for the screen to show', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 409,
+        json: async () => ({ detail: 'Trạng thái tài khoản đã thay đổi.' }),
+      }),
+    );
+    usePlatformSession.getState().connect('platform-token', { userId: 7, name: 'Admin' });
+
+    await expect(platformApi.suspendAccount(31, 'Vi phạm')).rejects.toEqual(
+      new PlatformApiError(409, 'Trạng thái tài khoản đã thay đổi.'),
+    );
+  });
+
+  it('asks for the dashboard of a period', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+    vi.stubGlobal('fetch', fetcher);
+    usePlatformSession.getState().connect('platform-token', { userId: 7, name: 'Admin' });
+
+    await platformApi.dashboard({ from: '2026-10-01', to: '2026-10-30' });
+
+    expect(fetcher.mock.calls[0]![0]).toBe(
+      'https://api.example.test/api/platform/dashboard?from=2026-10-01&to=2026-10-30',
+    );
+  });
+
+  it('exports a report and reads the file name and id the server chose', async () => {
+    const blob = new Blob(['x']);
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({
+        'Content-Disposition': "attachment; filename=f.xlsx; filename*=UTF-8''streetbiz-orders-20261001-20261003.xlsx",
+        'X-Export-Id': '55',
+      }),
+      blob: async () => blob,
+    });
+    vi.stubGlobal('fetch', fetcher);
+    usePlatformSession.getState().connect('platform-token', { userId: 7, name: 'Admin' });
+
+    const file = await platformApi.exportReport({
+      reportType: 'ORDERS',
+      from: '2026-10-01',
+      to: '2026-10-03',
+      format: 'xlsx',
+    });
+
+    const [url, options] = fetcher.mock.calls[0]!;
+    expect(url).toBe('https://api.example.test/api/platform/reports/export');
+    expect(options.method).toBe('POST');
+    expect(options.headers.Authorization).toBe('Bearer platform-token');
+    expect(JSON.parse(options.body)).toEqual({
+      reportType: 'ORDERS',
+      from: '2026-10-01',
+      to: '2026-10-03',
+      format: 'xlsx',
+    });
+    expect(file).toEqual({ blob, fileName: 'streetbiz-orders-20261001-20261003.xlsx', exportId: 55 });
+  });
+
+  it('surfaces a failed export instead of saving an error page as a file', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 422,
+        json: async () => ({ detail: 'Báo cáo vượt quá 50.000 dòng.' }),
+      }),
+    );
+    usePlatformSession.getState().connect('platform-token', { userId: 7, name: 'Admin' });
+
+    await expect(
+      platformApi.exportReport({ reportType: 'ORDERS', from: '2026-01-01', to: '2026-12-31', format: 'csv' }),
+    ).rejects.toEqual(new PlatformApiError(422, 'Báo cáo vượt quá 50.000 dòng.'));
+  });
 });

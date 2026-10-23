@@ -210,6 +210,12 @@ export type AddressChangeRequest = {
   conflictResolutionNote: string | null;
   reviewedAt: string | null;
   createdAt: string;
+  /** SIDE-10: the slot being given back, where it stands, and until when the vendor may keep it. */
+  releasedSlotCode: string | null;
+  releaseState: 'PENDING_RELEASE' | 'RELEASED' | null;
+  releaseGraceEndsOn: string | null;
+  /** An overdue fee or an unpaid penalty is holding the slot back. */
+  releaseBlockedByDebt: boolean;
 };
 
 export type SlotTransferRequest = {
