@@ -170,6 +170,16 @@ describe('live conversation protocol (shared with the app)', () => {
     link.close();
   });
 
+  it('never sends a microphone backlog faster than 1.5x real time', () => {
+    const s = socket();
+    const link = new state.LiveInterviewLink(s, { onAssist: vi.fn(), onEnded: vi.fn() });
+    for (let i = 0; i < 10; i++) link.sendAudio(new ArrayBuffer(16_000), 1_000);
+    expect(s.sent.filter((d) => d instanceof ArrayBuffer)).toHaveLength(3);
+    link.sendAudio(new ArrayBuffer(16_000), 2_000);
+    expect(s.sent.filter((d) => d instanceof ArrayBuffer)).toHaveLength(4);
+    link.close();
+  });
+
   it('ends with the server reason, or by itself when the server is not ready in time', () => {
     vi.useFakeTimers();
     const slow = socket();
@@ -201,6 +211,12 @@ describe('live conversation protocol (shared with the app)', () => {
     expect(state.fallbackNotice('session_expired')).toContain('đăng nhập lại');
     expect(state.liveStreamUrl('https://api.example.test/api', 'https://web.test', '/hubs/registration-voice/abc', 't1', 'jwt')).toBe(
       'wss://api.example.test/hubs/registration-voice/abc?ticket=t1&access_token=jwt',
+    );
+    expect(state.liveStreamUrl('/api/', 'http://localhost:5173', '/hubs/registration-voice/abc', 'a+b', 'j.w.t')).toBe(
+      'ws://localhost:5173/hubs/registration-voice/abc?ticket=a%2Bb&access_token=j.w.t',
+    );
+    expect(state.liveStreamUrl('http://10.0.2.2:5023/api', '', '/hubs/registration-voice/abc', 't', 'j')).toBe(
+      'ws://10.0.2.2:5023/hubs/registration-voice/abc?ticket=t&access_token=j',
     );
   });
 });

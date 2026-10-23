@@ -50,15 +50,23 @@ export type LiveCallbacks = {
 /** No "ready" this long after the socket opened: Gemini is slow or out of quota, use tap-to-talk. */
 export const READY_TIMEOUT_MS = 8000;
 
-/** Hub paths sit beside /api; the upgrade is authenticated with access_token like SignalR. */
+/**
+ * 16 kHz PCM16 is 32 KB/s; at most 1.5x that goes out per second. A device that stalled (keyboard
+ * opening, busy app) hands its backlog over at once -- stale speech, so the excess is dropped.
+ */
+export const MIC_BYTES_PER_SECOND = 48_000;
+
+/**
+ * Hub paths sit beside /api; the upgrade is authenticated with access_token like SignalR. Built
+ * as a string: React Native's URL cannot set a protocol or path.
+ */
 export function liveStreamUrl(apiBaseUrl: string, origin: string, streamPath: string, ticket: string, accessToken: string) {
-  const base = new URL(apiBaseUrl, origin);
-  const url = new URL(base.toString());
-  url.protocol = base.protocol === 'https:' ? 'wss:' : 'ws:';
-  url.pathname = `${base.pathname.replace(/\/$/, '').replace(/\/api$/, '')}${streamPath}`;
-  url.search = new URLSearchParams({ ticket, access_token: accessToken }).toString();
-  url.hash = '';
-  return url.toString();
+  const absolute = /^https?:\/\//i.test(apiBaseUrl)
+    ? apiBaseUrl
+    : `${origin.replace(/\/$/, '')}/${apiBaseUrl.replace(/^\//, '')}`;
+  const host = absolute.split(/[?#]/)[0]!.replace(/\/$/, '').replace(/\/api$/, '');
+  const query = `ticket=${encodeURIComponent(ticket)}&access_token=${encodeURIComponent(accessToken)}`;
+  return `${host.replace(/^http/i, 'ws')}${streamPath}?${query}`;
 }
 
 /** Server audio frames are [uint32 generation, little-endian][PCM16 mono]. */
@@ -116,6 +124,8 @@ const STATUSES: readonly LiveStatus[] = ['connecting', 'listening', 'thinking', 
 export class LiveInterviewLink {
   private version = 0;
   private muted = false;
+  private micWindowStart = 0;
+  private micWindowBytes = 0;
   private done = false;
   private readyTimer: ReturnType<typeof setTimeout> | undefined;
   /** A tap was sent and its result has not come back yet. */
@@ -133,8 +143,15 @@ export class LiveInterviewLink {
     return !this.done && this.socket.readyState === OPEN;
   }
 
-  sendAudio(pcm: ArrayBuffer) {
-    if (this.open && !this.muted) this.socket.send(pcm);
+  sendAudio(pcm: ArrayBuffer, now = Date.now()) {
+    if (!this.open || this.muted) return;
+    if (now - this.micWindowStart >= 1000) {
+      this.micWindowStart = now;
+      this.micWindowBytes = 0;
+    }
+    if (this.micWindowBytes + pcm.byteLength > MIC_BYTES_PER_SECOND) return;
+    this.micWindowBytes += pcm.byteLength;
+    this.socket.send(pcm);
   }
 
   /** The draft after a tap, built with the same rules as tap-to-talk (interview-state.ts). */
