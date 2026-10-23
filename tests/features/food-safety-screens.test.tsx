@@ -64,6 +64,7 @@ function stubMenu(items: SellerMenuItem[]) {
     printUrl: 'http://192.168.1.5:5173/q/SBP1.a.b/print',
     items: [],
     history: [],
+    boards: [],
   });
 }
 

@@ -489,6 +489,16 @@ export function LiveMenuScreen() {
         onPrint={() => {
           if (printHref) window.open(printHref, '_blank', 'noopener,noreferrer');
         }}
+        slots={(board.data?.boards ?? []).flatMap((slot) =>
+          slot.printUrl
+            ? [
+                {
+                  slotCode: slot.slotCode,
+                  onPrint: () => window.open(slot.printUrl!, '_blank', 'noopener,noreferrer'),
+                },
+              ]
+            : [],
+        )}
       />
 
       <div className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start xl:gap-xl">

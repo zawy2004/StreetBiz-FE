@@ -39,6 +39,8 @@ export function UnitChips({ value, onPick }: { value: string; onPick: (unit: str
  * The paper board's state at a glance: which version the public board is ("Bản số N"),
  * when it last changed, and the button that opens the A5 page to print and hang at the
  * stall. Without a live permit there is no QR to print, so the button says why it waits.
+ * A business renting several slots hangs one board at each, with that slot's own QR, so it
+ * gets one button per slot instead.
  */
 export function PriceBoardStrip({
   version,
@@ -46,6 +48,7 @@ export function PriceBoardStrip({
   loading,
   canPrint,
   onPrint,
+  slots,
   cannotPrintNote = 'Cần giấy phép còn hiệu lực để in bảng giá có mã QR.',
 }: {
   version: number | undefined;
@@ -53,9 +56,12 @@ export function PriceBoardStrip({
   loading: boolean;
   canPrint: boolean;
   onPrint: () => void;
+  /** Two or more slots with a live permit: one print button each, in place of the single one. */
+  slots?: { slotCode: string; onPrint: () => void }[];
   /** Why printing waits, shown under the disabled button. */
   cannotPrintNote?: string;
 }) {
+  const perSlot = !loading && slots && slots.length > 1 ? slots : null;
   const stamp = formatBoardStamp(updatedAt);
   return (
     <section
@@ -86,18 +92,37 @@ export function PriceBoardStrip({
           </p>
         </div>
       </div>
-      <div className="flex w-full shrink-0 flex-col gap-1 md:w-auto md:items-end">
-        <Button
-          label="In bảng giá"
-          variant="outline"
-          disabled={loading || !canPrint}
-          icon={<Icon name="printer" size={19} color="currentColor" />}
-          onPress={onPrint}
-        />
-        {!loading && !canPrint ? (
-          <p className="text-body-sm text-muted md:text-right">{cannotPrintNote}</p>
-        ) : null}
-      </div>
+      {perSlot ? (
+        <div role="group" aria-label="In bảng giá cho từng ô" className="flex w-full shrink-0 flex-col gap-xs md:w-auto md:items-end">
+          <div className="flex flex-wrap gap-xs md:justify-end">
+            {perSlot.map((slot) => (
+              <Button
+                key={slot.slotCode}
+                label={`In bảng ô ${slot.slotCode}`}
+                variant="outline"
+                icon={<Icon name="printer" size={19} color="currentColor" />}
+                onPress={slot.onPrint}
+              />
+            ))}
+          </div>
+          <p className="text-body-sm text-muted md:text-right">
+            Mỗi ô treo một bảng: cùng giá, mã QR riêng của giấy phép ô đó.
+          </p>
+        </div>
+      ) : (
+        <div className="flex w-full shrink-0 flex-col gap-1 md:w-auto md:items-end">
+          <Button
+            label="In bảng giá"
+            variant="outline"
+            disabled={loading || !canPrint}
+            icon={<Icon name="printer" size={19} color="currentColor" />}
+            onPress={onPrint}
+          />
+          {!loading && !canPrint ? (
+            <p className="text-body-sm text-muted md:text-right">{cannotPrintNote}</p>
+          ) : null}
+        </div>
+      )}
     </section>
   );
 }

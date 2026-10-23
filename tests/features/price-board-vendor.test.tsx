@@ -60,6 +60,7 @@ const board = (extra: Partial<SellerPriceBoard> = {}): SellerPriceBoard => ({
   qrUrl: 'http://192.168.1.5:5173/q/SBP1.a.b?v=3',
   printUrl: 'http://192.168.1.5:5173/q/SBP1.a.b/print',
   items: [],
+  boards: [],
   history: [
     {
       priceHistoryId: 3,
@@ -219,6 +220,27 @@ describe('vendor menu with units, English names and the price board', () => {
       '_blank',
       'noopener,noreferrer',
     );
+  });
+
+  it('a business with two slots prints one board per slot, each with its own QR page', async () => {
+    stubMenu(
+      [dish(1)],
+      board({
+        boards: [
+          { permitId: 1, contractId: 5, slotCode: 'NVL-022', qrUrl: 'http://h/q/SBP1.a.b?v=3', printUrl: 'http://h/q/SBP1.a.b/print' },
+          { permitId: 4, contractId: 9, slotCode: 'NVL-003', qrUrl: 'http://h/q/SBP1.c.d?v=3', printUrl: 'http://h/q/SBP1.c.d/print' },
+        ],
+      }),
+    );
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    const user = userEvent.setup();
+    mount('/vendor/store/menu', '/vendor/store/menu', <LiveMenuScreen />);
+
+    await user.click(await screen.findByRole('button', { name: 'In bảng ô NVL-003' }));
+
+    expect(screen.getByRole('button', { name: 'In bảng ô NVL-022' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'In bảng giá' })).not.toBeInTheDocument();
+    expect(open).toHaveBeenCalledWith('http://h/q/SBP1.c.d/print', '_blank', 'noopener,noreferrer');
   });
 
   it("without a server print link, prints this site's page from the permit's own token", async () => {
