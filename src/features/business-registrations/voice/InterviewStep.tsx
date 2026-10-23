@@ -28,6 +28,8 @@ type Props = {
   onTypingChange: (typing: boolean) => void;
   reader: ReturnType<typeof useReadAloud>;
   autoRead: boolean;
+  /** The live conversation is running: the assistant speaks the question and the microphone is open. */
+  live?: boolean;
   onVoice: (clip: Blob) => void;
   onText: (text: string) => void;
   onChoice: (value: string) => void;
@@ -44,16 +46,17 @@ type Props = {
  * Below it the registration "grows" as fields are heard.
  */
 export function InterviewStep(props: Props) {
-  const { question, busy, reader, autoRead } = props;
+  const { question, busy, reader, autoRead, live } = props;
   const questionId = useId();
 
-  // Read each new question aloud once (the vendor may not read well).
+  // Read each new question aloud once (the vendor may not read well). Only with a Vietnamese
+  // voice, which may load after the first question; in the live conversation the assistant speaks.
   const lastRead = useRef<string>('');
   useEffect(() => {
-    if (!autoRead || lastRead.current === question.text) return;
+    if (live || !autoRead || !reader.supported || lastRead.current === question.text) return;
     lastRead.current = question.text;
     reader.speak(question.text);
-  }, [autoRead, question.text, reader]);
+  }, [autoRead, live, question.text, reader]);
 
   return (
     <div className="flex flex-col gap-lg">
@@ -70,7 +73,7 @@ export function InterviewStep(props: Props) {
           >
             {question.text}
           </h2>
-          {reader.supported ? (
+          {reader.supported && !live ? (
             <button
               type="button"
               onClick={() => (reader.speaking ? reader.stop() : reader.speak(question.text))}
@@ -84,7 +87,7 @@ export function InterviewStep(props: Props) {
 
         <Answer {...props} />
 
-        {props.transcript ? (
+        {props.transcript && !live ? (
           <p className="rounded-[14px] bg-sunken/70 px-md py-sm text-body-md text-muted">
             Trợ lý nghe được: <span className="text-text">“{props.transcript}”</span>
           </p>
@@ -151,7 +154,62 @@ function Answer(props: Props) {
   }
 
   if (question.input === 'MANUAL') return <ManualAnswer {...props} />;
+  if (props.live) return <LiveVoiceAnswer {...props} />;
   return <VoiceAnswer {...props} />;
+}
+
+/** Live conversation: the microphone is already open, so the answer is simply spoken (or typed). */
+function LiveVoiceAnswer(props: Props) {
+  const typing = props.typing || !props.voiceConsent;
+  const [text, setText] = useState('');
+
+  useEffect(() => {
+    setText('');
+  }, [props.question.key]);
+
+  const send = () => {
+    if (!text.trim()) return;
+    props.onText(text);
+    setText('');
+  };
+
+  return (
+    <div className="flex flex-col gap-sm">
+      {typing ? (
+        <div className="flex w-full flex-col gap-sm">
+          <TextField
+            label="Gõ câu trả lời"
+            value={text}
+            onChangeText={setText}
+            placeholder={TYPED_EXAMPLES[props.question.key] ?? TYPED_EXAMPLES.OPENING}
+            multiline
+            maxLength={500}
+            autoFocus
+          />
+          <Button label="Gửi" size="lg" disabled={!text.trim()} loading={props.busy} onPress={send} />
+        </div>
+      ) : (
+        <p className="flex items-center gap-xs rounded-[16px] bg-tint-primary px-md py-sm text-[16px] font-semibold text-text ring-1 ring-brand/25">
+          <Icon name="microphone" size={20} color="currentColor" weight="fill" className="shrink-0 text-primary" />
+          Cứ nói câu trả lời — trợ lý đang nghe.
+        </p>
+      )}
+      <div className="flex flex-wrap justify-center gap-sm">
+        {props.voiceConsent ? (
+          <Button
+            label={typing ? 'Nói thay' : 'Gõ thay'}
+            variant="ghost"
+            fullWidth={false}
+            icon={<Icon name={typing ? 'microphone' : 'keyboard-outline'} size={18} color="currentColor" />}
+            onPress={() => props.onTypingChange(!typing)}
+          />
+        ) : null}
+        {props.question.skippable ? (
+          <Button label="Bỏ qua" variant="ghost" fullWidth={false} disabled={props.busy} onPress={props.onSkip} />
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 /** The microphone: tap to talk, tap again to send; "Gõ thay" types the same answer instead. */

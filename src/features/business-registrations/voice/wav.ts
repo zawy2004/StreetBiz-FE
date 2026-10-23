@@ -2,8 +2,8 @@
 export const CLIP_SAMPLE_RATE = 16_000;
 
 /**
- * Wraps PCM16 frames in a WAV header. Every speech-to-text provider takes WAV, and 30 s at
- * 16 kHz is under 1 MB -- inside the server's 2 MB clip limit.
+ * Wraps PCM16 frames in a WAV header. Every speech-to-text provider takes WAV, and 60 s at
+ * 16 kHz is under 2 MB -- inside the server's 4 MB clip limit.
  */
 export function encodeWav(frames: Int16Array[], sampleRate = CLIP_SAMPLE_RATE): Blob {
   const samples = frames.reduce((n, f) => n + f.length, 0);

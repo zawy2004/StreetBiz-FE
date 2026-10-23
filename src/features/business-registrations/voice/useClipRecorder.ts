@@ -14,7 +14,7 @@ const MIN_SECONDS = 0.5;
  * Records one answer: tap to start, tap to stop, or it stops by itself at `maxSeconds`. The clip
  * goes to `onClip` as a WAV blob (null when it was too short) and is never stored anywhere.
  */
-export function useClipRecorder(onClip: (clip: Blob | null) => void, maxSeconds = 30) {
+export function useClipRecorder(onClip: (clip: Blob | null) => void, maxSeconds = 60) {
   const supported =
     typeof navigator !== 'undefined' &&
     !!navigator.mediaDevices?.getUserMedia &&

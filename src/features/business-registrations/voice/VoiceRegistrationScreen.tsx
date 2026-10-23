@@ -29,10 +29,13 @@ import {
   type FieldSource,
 } from './interview-state';
 import { InterviewStep } from './InterviewStep';
+import { fallbackNotice } from './live-interview';
+import { LivePanel, LiveStart } from './LiveConversation';
+import { canTalkLive, useLiveInterview } from './useLiveInterview';
 import { useReadAloud } from './useReadAloud';
 import { cardValues, copyInterviewToWizard, editedFields, fileAssistedRegistration } from './voice-filing';
 import { voiceRegistrationApi } from './voice-registration-api';
-import type { AssistAudio, AssistDraft } from './voice-registration.types';
+import type { AssistAudio, AssistDraft, AssistTurnResult } from './voice-registration.types';
 import { useVoiceSessionStore, type VoicePhase } from './voice-session-store';
 
 const STEPS: { phase: VoicePhase[]; label: string }[] = [
@@ -271,11 +274,54 @@ function InterviewContainer() {
   const [error, setError] = useState<string>();
   const [autoRead, setAutoRead] = useState(true);
   const [typing, setTyping] = useState(false);
+  // X01 v2: talk continuously when the browser can stream audio; tap-to-talk is the fallback.
+  const [liveCapable] = useState(canTalkLive);
+  const [mode, setMode] = useState<'live' | 'turn'>(() => (session.voiceConsent && liveCapable ? 'live' : 'turn'));
+  const [liveNotice, setLiveNotice] = useState<string>();
 
   const wardName = useCallback(
     (unitId: number | null | undefined) => wards.find((w) => w.unitId === unitId)?.unitName ?? null,
     [wards],
   );
+
+  /** The planner has nothing left to ask: name the shop and move on to the photo. */
+  const finishInterview = useCallback((result: AssistTurnResult) => {
+    const now = useVoiceSessionStore.getState();
+    if (!now.displayName)
+      now.setDisplayName(suggestDisplayName(result.draft.businessLine, now.draft.salutation ?? 'bạn', now.kyc?.fullName));
+    now.setPhase('photos');
+  }, []);
+
+  // Done while talking: let the assistant finish its last sentence ("xem lại thẻ…") before the
+  // screen moves on, but never wait long for it.
+  const finishing = useRef<{ result: AssistTurnResult; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const finishTalking = () => {
+    const pending = finishing.current;
+    if (!pending) return;
+    finishing.current = null;
+    clearTimeout(pending.timer);
+    finishInterview(pending.result);
+  };
+  useEffect(() => () => clearTimeout(finishing.current?.timer), []);
+
+  const live = useLiveInterview({
+    onAssist: (result, cause) => {
+      useVoiceSessionStore.getState().applyTurn(result, cause === 'voice');
+      if (result.done && !finishing.current) finishing.current = { result, timer: setTimeout(finishTalking, 8000) };
+    },
+    onTurnComplete: finishTalking,
+    onStopped: (reason, message) => {
+      if (finishing.current) {
+        finishTalking();
+        return;
+      }
+      // A finished interview has left this screen; anything else carries on with tap-to-talk.
+      if (useVoiceSessionStore.getState().phase !== 'interview') return;
+      setMode('turn');
+      setLiveNotice(message ?? fallbackNotice(reason));
+    },
+  });
+  const talking = mode === 'live' && live.active;
 
   // One turn at a time: a double tap, or React running the first-question effect twice in
   // development, must not spend two calls of the vendor's rate limit.
@@ -296,14 +342,7 @@ function InterviewContainer() {
           voiceConsent: s.voiceConsent,
         });
         s.applyTurn(result, !!answer);
-        if (result.done) {
-          const now = useVoiceSessionStore.getState();
-          if (!now.displayName)
-            now.setDisplayName(
-              suggestDisplayName(result.draft.businessLine, now.draft.salutation ?? 'bạn', now.kyc?.fullName),
-            );
-          now.setPhase('photos');
-        }
+        if (result.done) finishInterview(result);
       } catch (err) {
         if (err instanceof ApiError && (err.code === 'ai_unavailable' || err.status === 503)) {
           setAiDown(true);
@@ -317,22 +356,30 @@ function InterviewContainer() {
         setBusy(false);
       }
     },
-    [],
+    [finishInterview],
   );
 
-  // First question (and after a reload of a session whose question was lost).
+  // First question in tap-to-talk (and after a reload of a session whose question was lost). The
+  // live conversation gets its first question from the server when it starts.
   useEffect(() => {
-    if (!session.question && !busy && !error && !aiDown) void send(session.draft);
-  }, [session.question]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (mode === 'turn' && !session.question && !busy && !error && !aiDown) void send(session.draft);
+  }, [session.question, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toWizard = () => {
     copyInterviewToWizard();
     navigate('/vendor/registrations/new/type');
   };
 
+  const startLive = () => {
+    reader.stop();
+    setLiveNotice(undefined);
+    void live.start(session.draft, session.voiceConsent);
+  };
+
   const afterTap = (draft: AssistDraft, sources?: Partial<Record<CardField, FieldSource>>) => {
     session.setDraft(draft, sources);
-    void send(draft);
+    if (talking) live.sendDraft(draft);
+    else void send(draft);
   };
 
   const question = session.question;
@@ -344,7 +391,20 @@ function InterviewContainer() {
           Bạn đang nói chuyện với trợ lý AI
         </span>
         <div className="flex items-center gap-xs">
-          {reader.supported ? (
+          {mode === 'turn' && liveCapable && session.voiceConsent ? (
+            <Button
+              label="Trò chuyện liên tục"
+              variant="ghost"
+              size="sm"
+              fullWidth={false}
+              icon={<Icon name="account-voice" size={16} color="currentColor" />}
+              onPress={() => {
+                setLiveNotice(undefined);
+                setMode('live');
+              }}
+            />
+          ) : null}
+          {mode === 'turn' && reader.supported ? (
             <Button
               label={autoRead ? 'Tắt đọc to' : 'Bật đọc to'}
               variant="ghost"
@@ -361,6 +421,15 @@ function InterviewContainer() {
         </div>
       </div>
 
+      {liveNotice ? (
+        <p
+          role="status"
+          className="rounded-[14px] bg-[#FFF3D1] p-sm text-[15px] font-medium leading-[22px] text-[#6B4100] dark:bg-[#3A2A08] dark:text-[#FFD27A]"
+        >
+          {liveNotice}
+        </p>
+      ) : null}
+
       {error ? (
         <div
           role="alert"
@@ -373,11 +442,26 @@ function InterviewContainer() {
         </div>
       ) : null}
 
-      {question ? (
+      {mode === 'live' && !live.active ? (
+        <LiveStart question={question?.text ?? null} onStart={startLive} onTapToTalk={() => setMode('turn')} />
+      ) : null}
+      {talking ? (
+        <LivePanel
+          status={live.status}
+          captions={live.captions}
+          notice={live.notice}
+          muted={live.muted}
+          level={live.level}
+          onMute={live.setMuted}
+          onStop={live.end}
+        />
+      ) : null}
+
+      {question && (mode === 'turn' || talking) ? (
         <InterviewStep
           question={question}
           draft={session.draft}
-          busy={busy}
+          busy={talking ? live.pending : busy}
           transcript={session.transcript}
           warnings={session.warnings}
           location={session.location}
@@ -389,8 +473,12 @@ function InterviewContainer() {
           onTypingChange={setTyping}
           reader={reader}
           autoRead={autoRead}
+          live={talking}
           onVoice={(clip) => void send(session.draft, { audio: { body: clip, fileName: 'answer.wav' } })}
-          onText={(text) => void send(session.draft, { text })}
+          onText={(text) => {
+            if (talking) live.sendText(text);
+            else void send(session.draft, { text });
+          }}
           onChoice={(value) => {
             const field = question.input === 'CONFIRM' ? null : cardFieldOf(question.field);
             const sources: Partial<Record<CardField, FieldSource>> = field ? { [field]: 'CHOSEN' } : {};
@@ -407,9 +495,9 @@ function InterviewContainer() {
           onSkip={() => afterTap(skipQuestion(session.draft, question))}
           onWizard={toWizard}
         />
-      ) : busy ? (
+      ) : mode === 'turn' && busy ? (
         <div className="h-[240px] animate-pulse rounded-[28px] bg-sunken" aria-label="Đang chuẩn bị câu hỏi" />
-      ) : aiDown ? (
+      ) : mode === 'turn' && aiDown ? (
         <div className="flex flex-col gap-sm rounded-[18px] bg-[#FFF3D1] p-md text-[#6B4100] dark:bg-[#3A2A08] dark:text-[#FFD27A]">
           <p className="text-[15px] font-semibold">Trợ lý AI đang bận. Bạn điền tiếp bằng tay nhé.</p>
           <Button label="Điền tiếp bằng tay" size="lg" onPress={toWizard} />

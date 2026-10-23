@@ -118,6 +118,8 @@ const ICON_MAP: Record<string, Glyph> = {
   'crosshairs-gps': g(Pi.PiCrosshair, Pi.PiCrosshairBold),
   headset: g(Pi.PiHeadset, Pi.PiHeadsetFill),
   microphone: g(Pi.PiMicrophone, Pi.PiMicrophoneFill, Pi.PiMicrophoneDuotone),
+  'microphone-off': g(Pi.PiMicrophoneSlash, Pi.PiMicrophoneSlashFill),
+  'account-voice': g(Pi.PiUserSound, Pi.PiUserSoundFill),
   stop: g(Pi.PiStop, Pi.PiStopFill),
   'volume-high': g(Pi.PiSpeakerHigh, Pi.PiSpeakerHighFill),
   'keyboard-outline': g(Pi.PiKeyboard, Pi.PiKeyboardFill),
