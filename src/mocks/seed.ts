@@ -31,8 +31,8 @@ import type {
 
 export const WARD: AdministrativeUnit = {
   id: 'WARD-HC1',
-  unit_type: 'Phường Hải Châu 1',
-  name: 'Phường Hải Châu 1, Đà Nẵng',
+  unit_type: 'Phường Hải Châu',
+  name: 'Phường Hải Châu, Đà Nẵng',
 };
 
 export const USERS: MockUser[] = [
@@ -98,7 +98,7 @@ export const VENDORS: Vendor[] = [
     business_name: 'Bánh mì Hội An',
     owner_name: 'Lê Văn Minh',
     phone: '0905000003',
-    address: '112 Nguyễn Văn Linh, P. Hải Châu 1',
+    address: '112 Nguyễn Văn Linh, P. Hải Châu',
     ward_unit_type: WARD.unit_type,
   },
 ];
@@ -111,7 +111,7 @@ export const BUSINESS_REGISTRATIONS: BusinessRegistration[] = [
     business_name: 'Xôi gà Bà Năm',
     owner_name: 'Nguyễn Thị Hoa',
     id_number: '048099000111',
-    address: 'Lưu trú tại P. Hải Châu 1',
+    address: 'Lưu trú tại P. Hải Châu',
     ward_unit_type: WARD.unit_type,
     registration_status: 'APPROVED',
     submitted_at: '2026-08-01T08:00:00.000Z',
@@ -125,7 +125,7 @@ export const BUSINESS_REGISTRATIONS: BusinessRegistration[] = [
     business_name: 'Bánh mì Hội An',
     owner_name: 'Lê Văn Minh',
     id_number: '048099000222',
-    address: '112 Nguyễn Văn Linh, P. Hải Châu 1',
+    address: '112 Nguyễn Văn Linh, P. Hải Châu',
     ward_unit_type: WARD.unit_type,
     registration_status: 'UNDER_REVIEW',
     submitted_at: '2026-09-10T08:00:00.000Z',

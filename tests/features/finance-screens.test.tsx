@@ -195,7 +195,7 @@ describe('V26 Thanh toán phí thuê ô', () => {
       contractId: 1,
       slotCode: 'NVL-01',
       zoneName: 'Nguyễn Văn Linh',
-      wardName: 'Hải Châu 1',
+      wardName: 'Phường Hải Châu',
       address: null,
       startDate: '2026-09-01',
       endDate: '2026-11-30',

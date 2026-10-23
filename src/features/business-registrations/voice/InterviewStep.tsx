@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Button, formatVnd, Icon } from '@/components/common';
 import { TextField } from '@/components/forms';
 import { MoneyEcho } from '../components/wizard/OwnerParts';
-import { formatHours, formatStartDate, isConfirmed, todayInVietnam } from './interview-state';
+import { formatHours, formatStartDate, isConfirmed, searchWardChoices, todayInVietnam } from './interview-state';
 import { LocationConfirm } from './LocationConfirm';
 import { useClipRecorder } from './useClipRecorder';
 import type { useReadAloud } from './useReadAloud';
@@ -129,6 +129,8 @@ function Answer(props: Props) {
     );
   }
 
+  if (question.key === 'WARD') return <WardAnswer {...props} />;
+
   if (question.input === 'CHOICE' || question.input === 'CONFIRM') {
     const confirm = question.input === 'CONFIRM';
     return (
@@ -156,6 +158,47 @@ function Answer(props: Props) {
   if (question.input === 'MANUAL') return <ManualAnswer {...props} />;
   if (props.live) return <LiveVoiceAnswer {...props} />;
   return <VoiceAnswer {...props} />;
+}
+
+/**
+ * The ward: the assistant's guesses as buttons, and a search over every phường, xã and đặc khu
+ * (94 in Đà Nẵng since 1/7/2025) for when the guess is wrong or there is none.
+ */
+function WardAnswer({ question, busy, onChoice }: Props) {
+  const suggested = question.choices.slice(0, question.suggestedCount ?? 0);
+  const [query, setQuery] = useState('');
+  const matches = searchWardChoices(question.choices, query);
+  const pick = (value: string) => (
+    <Button
+      key={value}
+      label={question.choices.find((c) => c.value === value)?.label ?? value}
+      size="lg"
+      variant="outline"
+      disabled={busy}
+      onPress={() => onChoice(value)}
+    />
+  );
+
+  return (
+    <div className="flex flex-col gap-sm">
+      {suggested.length > 0 ? (
+        <div className={`grid gap-sm ${suggested.length > 1 ? 'sm:grid-cols-2' : ''}`}>{suggested.map((c) => pick(c.value))}</div>
+      ) : null}
+      <TextField
+        label={suggested.length > 0 ? 'Không phải? Tìm phường, xã khác' : 'Tìm phường, xã'}
+        value={query}
+        onChangeText={setQuery}
+        placeholder="VD: Hải Châu, Hòa Vang"
+      />
+      {query.trim() ? (
+        matches.length > 0 ? (
+          <div className="grid gap-sm sm:grid-cols-2">{matches.map((c) => pick(c.value))}</div>
+        ) : (
+          <p className="text-body-md text-muted">Không thấy “{query.trim()}”. Thử gõ tên khác, không cần dấu.</p>
+        )
+      ) : null}
+    </div>
+  );
 }
 
 /** Live conversation: the microphone is already open, so the answer is simply spoken (or typed). */
@@ -454,7 +497,7 @@ function GrowingFile({
       value: draft.locationSkipped ? 'Chọn sau' : (location?.label ?? draft.locationText ?? null),
       pending: !draft.locationConfirmed && !draft.locationSkipped && draft.latitude != null,
     },
-    { key: 'ward', label: 'Phường', value: wardName(draft.wardUnitId) },
+    { key: 'ward', label: 'Phường/xã', value: wardName(draft.wardUnitId) },
     ...(draft.vendorType === 'FIXED_STOREFRONT'
       ? [{ key: 'declaredAddress', label: 'Địa chỉ', value: draft.declaredAddress ?? null }]
       : []),

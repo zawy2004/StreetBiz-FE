@@ -131,7 +131,7 @@ export function NewRegistrationEvidenceScreen() {
         owner_name: user.fullName,
         phone: user.phone,
         address: draft.declaredAddress || undefined,
-        ward_unit_type: 'Phường Hải Châu 1',
+        ward_unit_type: 'Phường Hải Châu',
       });
       vendorId = vendor.id;
       setUser({ ...user, vendorId });
@@ -143,7 +143,7 @@ export function NewRegistrationEvidenceScreen() {
       owner_name: user.fullName,
       id_number: '',
       address: draft.declaredAddress || 'Lưu trú tại phường',
-      ward_unit_type: 'Phường Hải Châu 1',
+      ward_unit_type: 'Phường Hải Châu',
       fast_track: draft.vendorType === VENDOR_TYPE.fixedStorefront,
       evidence: draft.evidence.map((e) => ({ type: e.evidenceType, uri: e.uri, label: e.label })),
     });

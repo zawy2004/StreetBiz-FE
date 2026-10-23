@@ -133,7 +133,7 @@ function feeDetail(paid: boolean): FeeItemDetailDto {
       contractId: 1,
       slotCode: 'NVL-01',
       zoneName: 'Nguyễn Văn Linh',
-      wardName: 'Hải Châu 1',
+      wardName: 'Phường Hải Châu',
       address: null,
       startDate: '2026-08-01',
       endDate: '2026-10-30',

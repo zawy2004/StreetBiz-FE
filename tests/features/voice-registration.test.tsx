@@ -47,6 +47,7 @@ vi.mock('@/features/sidewalk-slots/components/LocationPicker', () => ({
 }));
 
 const state = await import('@/features/business-registrations/voice/interview-state');
+const { DA_NANG_WARDS } = await import('@/core/auth/danang-wards');
 const { encodeWav } = await import('@/features/business-registrations/voice/wav');
 const { useVoiceSessionStore } = await import('@/features/business-registrations/voice/voice-session-store');
 const { useNewRegistrationStore } = await import('@/features/business-registrations/new-registration-store');
@@ -232,7 +233,70 @@ describe('interview rules (pure, shared with the app)', () => {
   });
 });
 
+describe('Đà Nẵng wards after 1/7/2025', () => {
+  it('lists all 94 commune-level units, keeping the ids the data already uses', () => {
+    const kinds = (prefix: string) => DA_NANG_WARDS.filter((w) => w.unitName.startsWith(prefix)).length;
+    expect(DA_NANG_WARDS).toHaveLength(94);
+    expect([kinds('Phường '), kinds('Xã '), kinds('Đặc khu ')]).toEqual([23, 70, 1]);
+    expect(new Set(DA_NANG_WARDS.map((w) => w.unitId)).size).toBe(94);
+    const byId = new Map(DA_NANG_WARDS.map((w) => [w.unitId, w.unitName]));
+    expect([10, 11, 12, 14].map((id) => byId.get(id))).toEqual([
+      'Phường Hải Châu',
+      'Phường Thanh Khê',
+      'Phường An Hải',
+      'Phường Ngũ Hành Sơn',
+    ]);
+  });
+
+  it('finds a ward by the start of a word, with or without accents', () => {
+    const choices = DA_NANG_WARDS.map((w) => ({ value: String(w.unitId), label: w.unitName }));
+    const labels = (q: string) => state.searchWardChoices(choices, q).map((c) => c.label);
+    expect(labels('hoa cuong')).toEqual(['Phường Hòa Cường']);
+    expect(labels('Hòa Vang')).toEqual(['Xã Hòa Vang']);
+    expect(labels('xã hoà vang')).toEqual(['Xã Hòa Vang']);
+    expect(labels('hoang sa')).toEqual(['Đặc khu Hoàng Sa']);
+    // Names that start with "an" first, then "… An"; never Hòa Vang (an inside a word).
+    const an = labels('an');
+    expect(an.slice(0, 3)).toEqual(['Phường An Khê', 'Phường An Hải', 'Phường An Thắng']);
+    expect(an).toContain('Phường Hội An');
+    expect(an).not.toContain('Xã Hòa Vang');
+    expect(labels('   ')).toEqual([]);
+  });
+});
+
 describe('voice interview screen', () => {
+  it('the ward question shows the guesses and finds any other phường or xã', async () => {
+    useVoiceSessionStore.getState().start(true);
+    useVoiceSessionStore.getState().setPhase('interview');
+    const draft: AssistDraft = { salutation: 'bạn', businessLine: 'Bún bò', vendorType: 'ITINERANT', locationSkipped: true };
+    useVoiceSessionStore.getState().setDraft(draft);
+    const ward: AssistQuestion = {
+      key: 'WARD',
+      text: 'Chỗ đó thuộc phường, xã nào ạ? Trợ lý đoán là:',
+      input: 'CHOICE',
+      choices: DA_NANG_WARDS.map((w) => ({ value: String(w.unitId), label: w.unitName })),
+      field: null,
+      skippable: false,
+      suggestedCount: 2,
+    };
+    voiceApi.turn
+      .mockResolvedValueOnce(turn(draft, ward))
+      .mockResolvedValueOnce(turn({ ...draft, wardUnitId: 120 }, voiceQuestion('CAPITAL', 'Vốn bỏ ra ban đầu khoảng bao nhiêu ạ?', 'capitalAmount')));
+
+    mount();
+    expect(await screen.findByText(ward.text)).toBeInTheDocument();
+    // Only the two guesses are buttons; the other 92 wait behind the search.
+    expect(screen.getByRole('button', { name: 'Phường Hải Châu' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Phường Hòa Cường' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Xã Hòa Vang' })).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Không phải? Tìm phường, xã khác'), { target: { value: 'hoa vang' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Xã Hòa Vang' }));
+
+    expect(await screen.findByText('Vốn bỏ ra ban đầu khoảng bao nhiêu ạ?')).toBeInTheDocument();
+    expect(voiceApi.turn.mock.calls[1]![0].draft.wardUnitId).toBe(120);
+  });
+
   it('answers by typing, reads a number back and only moves on after the tap (T3)', async () => {
     useVoiceSessionStore.getState().start(true);
     useVoiceSessionStore.getState().setPhase('interview');

@@ -49,9 +49,10 @@ export function WardSelect({
         {!required || value === undefined ? (
           <option value="">{loading ? 'Đang tải danh sách…' : '— Chọn phường/xã —'}</option>
         ) : null}
+        {/* No district to tell apart since 1/7/2025: every ward's parent is the city itself. */}
         {wards.map((ward) => (
           <option key={ward.unitId} value={ward.unitId}>
-            {ward.parentName ? `${ward.unitName} · ${ward.parentName}` : ward.unitName}
+            {ward.unitName}
           </option>
         ))}
       </select>
