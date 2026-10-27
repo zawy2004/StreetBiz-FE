@@ -12,7 +12,7 @@ import { CommunityConnection } from '../components/CommunityConnection';
 import { NoteArea } from '../components/NoteArea';
 import { PhraseChips } from '../components/PhraseChips';
 import { RecentReviews, ReviewedVendorCard, StarPicker } from '../components/review/ReviewParts';
-import { communityApi, CommunityApiError, useCommunitySession } from '../community-api';
+import { communityApi, CommunityApiError, useCommunityCustomer } from '../community-api';
 
 const PROMPTS = ['Món ngon', 'Bán đúng ô', 'Sạch sẽ', 'Giá hợp lý', 'Phục vụ nhanh'];
 
@@ -25,7 +25,7 @@ export function CommentFormScreen() {
   const { vendorId } = useParams<{ vendorId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const token = useCommunitySession((state) => state.token);
+  const token = Boolean(useCommunityCustomer());
   const [rating, setRating] = useState(5);
   const [text, setText] = useState('');
   const profile = useQuery({

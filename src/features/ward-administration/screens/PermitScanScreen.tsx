@@ -155,8 +155,11 @@ export function PermitScanScreen() {
   const effectiveStatus = liveResult?.effectiveStatus ?? mockPermit?.permit_status ?? 'ACTIVE';
   const slotCode = liveResult?.slotCode ?? mockSlot?.slot_code ?? '';
   const slotStreet = liveResult?.slotStreet ?? mockSlot?.street ?? '';
-  const width = liveResult?.width ?? mockSlot?.size_m2 ?? 2;
-  const length = liveResult?.length ?? 3;
+  // Live: the server's measurements or nothing -- never a stand-in an officer could measure against.
+  const width = isLiveApi ? liveResult?.width : (mockSlot?.size_m2 ?? 2);
+  const length = isLiveApi ? liveResult?.length : 3;
+  const sizeText = width != null && length != null ? `${width}m x ${length}m` : 'Chưa có số đo';
+  const otherWard = isLiveApi && liveResult?.isOwnWard === false;
   const endDate =
     liveResult?.endDate ??
     (mockPermit?.expires_at ? new Date(mockPermit.expires_at).toLocaleDateString('vi-VN') : '');
@@ -271,36 +274,44 @@ export function PermitScanScreen() {
         checkedAt={isLiveApi ? checkedAt : null}
         refreshing={loading}
         notice={
-          failedNotice || codeNotice ? (
+          failedNotice || codeNotice || otherWard ? (
             <div className="flex flex-col gap-xs">
+              {otherWard ? (
+                <ResultNotice icon="map-marker-radius-outline">
+                  Ô này thuộc địa bàn phường khác. Bạn chỉ xác nhận được hiệu lực giấy phép; việc
+                  lập biên bản hay đình chỉ do phường quản lý ô thực hiện.
+                </ResultNotice>
+              ) : null}
               {failedNotice}
               {codeNotice}
             </div>
           ) : null
         }
         actions={
-          <>
-            <Button
-              label="Lập biên bản vi phạm"
-              variant="outline"
-              onPress={() =>
-                navigate(
-                  `/ward/patrol/violations/new?contractId=${contractId}&slotId=${slotId}&vendorId=${vendorId}`,
-                )
-              }
-            />
-            <Button
-              label="Đình chỉ / thu hồi"
-              variant="danger"
-              onPress={() => navigate(`/ward/patrol/permits/${permitId}/action`)}
-            />
-          </>
+          otherWard ? null : (
+            <>
+              <Button
+                label="Lập biên bản vi phạm"
+                variant="outline"
+                onPress={() =>
+                  navigate(
+                    `/ward/patrol/violations/new?contractId=${contractId}&slotId=${slotId}&vendorId=${vendorId}`,
+                  )
+                }
+              />
+              <Button
+                label="Đình chỉ / thu hồi"
+                variant="danger"
+                onPress={() => navigate(`/ward/patrol/permits/${permitId}/action`)}
+              />
+            </>
+          )
         }
         details={
           <PermitFacts
             rows={[
               { label: 'Vị trí ô cấp phép', value: `${slotCode} · ${slotStreet}` },
-              { label: 'Kích thước được phép sử dụng', value: `${width}m x ${length}m` },
+              { label: 'Kích thước được phép sử dụng', value: sizeText },
               validity
                 ? {
                     label: 'Hiệu lực đến',

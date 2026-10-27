@@ -73,15 +73,15 @@ const { useMockDb } = await import('@/mocks/db');
 const AREAS: ServiceArea[] = [
   {
     wardId: 1003,
-    wardName: 'Phường Nam Dương',
-    districtName: 'Quận Hải Châu',
+    wardName: 'Phường Hải Châu',
+    districtName: 'Thành phố Đà Nẵng',
     storefrontCount: 1,
     distanceMeters: null,
   },
   {
     wardId: 3,
-    wardName: 'Phường Hòa Quý',
-    districtName: 'Quận Ngũ Hành Sơn',
+    wardName: 'Phường Ngũ Hành Sơn',
+    districtName: 'Thành phố Đà Nẵng',
     storefrontCount: 2,
     distanceMeters: null,
   },
@@ -93,7 +93,7 @@ const PROFILE = {
   vendorType: 'FIXED_STOREFRONT',
   address: null,
   wardId: 1003,
-  wardName: 'Phường Nam Dương',
+  wardName: 'Phường Hải Châu',
   permitId: 12,
   permitStatus: 'VALID',
   permitEndDate: '2099-12-31',
@@ -214,12 +214,12 @@ describe('Explore: food streets (C01 tier B)', () => {
     const strip = (await screen.findByRole('heading', { name: 'Khu phố ẩm thực' })).closest(
       'section',
     )!;
-    await user.click(within(strip).getByRole('button', { name: /Phường Hòa Quý/ }));
+    await user.click(within(strip).getByRole('button', { name: /Phường Ngũ Hành Sơn/ }));
 
     await waitFor(() =>
       expect(api.storefronts.mock.calls.at(-1)?.[0]).toMatchObject({ wardId: 3 }),
     );
-    expect(within(strip).getByRole('button', { name: /Phường Hòa Quý/ })).toHaveAttribute(
+    expect(within(strip).getByRole('button', { name: /Phường Ngũ Hành Sơn/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
@@ -445,7 +445,7 @@ describe('Report form (C07 rebuild)', () => {
       <VendorReportFormScreen />,
     );
 
-    expect(await screen.findByText('Kính gửi: Phường Nam Dương')).toBeInTheDocument();
+    expect(await screen.findByText('Kính gửi: Phường Hải Châu')).toBeInTheDocument();
     expect(screen.getByText(/Gắn với lần kiểm tra giấy phép #12/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Bán sai vị trí' }));
     await user.upload(
@@ -457,6 +457,7 @@ describe('Report form (C07 rebuild)', () => {
     await user.click(screen.getByRole('button', { name: 'Gửi phản ánh' }));
     await waitFor(() =>
       expect(community.report).toHaveBeenCalledWith('8', {
+        reportType: 'GENERAL',
         reason: 'Bán sai vị trí',
         evidenceUrl: '/files/1.jpg',
         slotId: undefined,

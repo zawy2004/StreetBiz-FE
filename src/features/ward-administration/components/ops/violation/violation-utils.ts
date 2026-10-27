@@ -11,9 +11,10 @@ export function daysUntil(iso: string, now: number = Date.now()): number {
 /** The "(khung 2.000.000 - 3.000.000đ)" a legal basis ends with, as numbers; null when absent. Mirrors
  * LegalBasisText.TryParseBracket on the server, which alone enforces it. */
 export function parseFineBracket(legalBasis: string | null | undefined): { min: number; max: number } | null {
-  const match = /(khungs+([d.]+)s*-s*([d.]+)s*đ)/.exec(legalBasis ?? '');
+  // Same pattern as the server's BracketPattern: "(khung <min> - <max>đ)", dots as thousands.
+  const match = /\(khung\s+([\d.]+)\s*-\s*([\d.]+)\s*đ\)/.exec(legalBasis ?? '');
   if (!match) return null;
-  const toNumber = (text: string) => Number(text.replace(/./g, ''));
+  const toNumber = (text: string) => Number(text.replace(/\./g, ''));
   return { min: toNumber(match[1] ?? ''), max: toNumber(match[2] ?? '') };
 }
 

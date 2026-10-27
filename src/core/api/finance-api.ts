@@ -366,6 +366,12 @@ export type WardDashboardDto = {
   revenueCollected: number;
   outstandingDebt: number;
   openViolations: number;
+  /** Citizen reports (BUY-05/07) of the ward still PENDING. */
+  openReports?: number;
+  /** Of those, the ones past their internal due time (WARD-19). */
+  overdueReports?: number;
+  /** Mean hours from filing to closing over the last 30 days; null when none closed. */
+  avgResolutionHours30d?: number | null;
 };
 
 /** AIC-08: one sentence of the period's report, with how it should be read. */

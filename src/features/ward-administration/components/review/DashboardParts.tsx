@@ -425,3 +425,93 @@ export function DashboardSkeleton({ aside }: { aside?: ReactNode }) {
     </div>
   );
 }
+
+/** "18,5 giờ" under two days, "3,2 ngày" above; null when no report closed in the period. */
+function resolutionTime(hours: number | null | undefined): string | null {
+  if (hours == null || !Number.isFinite(hours)) return null;
+  const one = (value: number) => value.toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+  return hours < 48 ? `${one(hours)} giờ` : `${one(hours / 24)} ngày`;
+}
+
+/**
+ * WARD-19 on the notice board: citizen reports still open, those past the ward's internal
+ * handling date, and how long closing one took on average over the last 30 days. Each tile
+ * opens the report list (the overdue one already filtered).
+ */
+export function ReportTiles({
+  open,
+  overdue,
+  avgHours,
+  onOpen,
+}: {
+  open: number;
+  overdue: number;
+  avgHours: number | null | undefined;
+  onOpen: (filter?: 'overdue') => void;
+}) {
+  const late = overdue > 0 ? VERDICT_TONES.danger : null;
+  const avg = resolutionTime(avgHours);
+  const tile = `group flex min-h-[132px] flex-col items-start gap-1 rounded-[20px] p-md text-left shadow-card ring-1 ring-border md:p-lg ${lift}`;
+  return (
+    <section aria-labelledby="ward-reports-title" className="flex flex-col gap-sm">
+      <h2
+        id="ward-reports-title"
+        className="font-sign text-[21px] font-bold leading-tight text-text"
+      >
+        Phản ánh của người dân
+      </h2>
+      <div className="grid grid-cols-1 gap-sm sm:grid-cols-3">
+        <button
+          type="button"
+          onClick={() => onOpen()}
+          aria-label={`Phản ánh đang chờ: ${open}. Mở danh sách phản ánh`}
+          className={`${tile} bg-card`}
+        >
+          <span className="flex items-center gap-xs text-[14px] font-semibold text-primary">
+            <Icon name="flag-outline" size={18} color="currentColor" />
+            Đang chờ xử lý
+          </span>
+          <span className="font-sign text-[44px] font-extrabold leading-none text-text font-tabular [font-stretch:88%]">
+            <CountUp value={open} />
+          </span>
+          <span className="mt-auto text-[13px] text-muted">Phản ánh chưa đóng</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onOpen('overdue')}
+          aria-label={`Phản ánh quá hạn xử lý: ${overdue}. Mở các phản ánh quá hạn`}
+          className={`${tile} ${late ? late.wash : 'bg-card'}`}
+        >
+          <span
+            className={`flex items-center gap-xs text-[14px] font-semibold ${late ? late.ink : 'text-tertiary'}`}
+          >
+            <Icon name="timer-outline" size={18} color="currentColor" />
+            Quá hạn xử lý
+          </span>
+          <span
+            className={`font-sign text-[44px] font-extrabold leading-none font-tabular [font-stretch:88%] ${late ? late.ink : 'text-text'}`}
+          >
+            <CountUp value={overdue} />
+          </span>
+          <span className={`mt-auto text-[13px] ${late ? late.ink : 'text-muted'}`}>
+            Hạn nội bộ, không phải hạn luật định
+          </span>
+        </button>
+        <div className={`${tile.replace(lift, '')} bg-card`}>
+          <span className="flex items-center gap-xs text-[14px] font-semibold text-indigo">
+            <Icon name="clock-outline" size={18} color="currentColor" />
+            Thời gian xử lý trung bình
+          </span>
+          <span className="font-sign text-[34px] font-extrabold leading-none text-text font-tabular [font-stretch:88%]">
+            {avg ?? '—'}
+          </span>
+          <span className="mt-auto text-[13px] text-muted">
+            {avg
+              ? 'Từ lúc nhận đến lúc đóng, 30 ngày qua'
+              : 'Chưa đóng phản ánh nào trong 30 ngày qua'}
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}

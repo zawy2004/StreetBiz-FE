@@ -2,15 +2,27 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button, Icon } from '@/components/common';
-import { AppHeader, Screen, StickyActions } from '@/components/layout';
+import { Button } from '@/components/common';
+import { AppHeader, Screen } from '@/components/layout';
 import { StatusChip } from '@/components/status';
-import { ErrorState, Skeleton } from '@/components/feedback';
-import { errorMessage } from '@/core/api';
-import { wardVendorReportsApi, type WardVendorReport } from '@/core/api/ai-api';
+import { ErrorState, Skeleton, showToast } from '@/components/feedback';
+import { ApiError, errorMessage } from '@/core/api';
+import {
+  wardVendorReportsApi,
+  type ResolveVendorReportRequest,
+  type WardVendorReport,
+} from '@/core/api/ai-api';
 import { vendorRegistrationApi } from '@/core/api/vendor-registration-api';
+import { PriceEvidenceBlock } from '@/features/vendor-reports/components/PriceEvidenceBlock';
+import { SUGGESTED_VIOLATION_LABELS } from '@/features/vendor-reports/report-kinds';
 import { CitizenReportSlip, ReportPhoto } from '../components/review/ReportParts';
 import { VendorReportAssistPanel } from '../components/review/VendorReportAssistPanel';
+import {
+  VendorReportFacts,
+  VendorReportOutcomeCard,
+  VendorReportResolvePanel,
+} from '../components/review/VendorReportDecision';
+import { violationFormPath } from '../vendor-report-view';
 
 /** The citizen's photo sits behind the evidence endpoint (a bearer token), so it is fetched and shown as an object URL. */
 function useEvidencePhoto(fileUrl: string | null): string | undefined {
@@ -41,9 +53,9 @@ function useEvidencePhoto(fileUrl: string | null): string | undefined {
 }
 
 /**
- * AIB-01 for the ward officer: one citizen report with the system's notes beside it (permit check, what
- * the photo shows). The officer reads and decides; this screen has no accept or close button because the
- * notes are advice, and recording a violation is its own step.
+ * AIB-01 + WARD-19 for the ward officer: one citizen report with the system's notes beside it
+ * (permit check, what the photo shows, the price evidence of an overcharge), and the three
+ * ways to close it. The notes are advice; the officer decides, and nothing closes on its own.
  */
 export function LiveVendorReportReviewScreen() {
   const { id } = useParams<{ id: string }>();
@@ -60,6 +72,18 @@ export function LiveVendorReportReviewScreen() {
     mutationFn: () => wardVendorReportsApi.assist(reportId),
     onSuccess: (fresh: WardVendorReport) => {
       cache.setQueryData(['ward', 'vendor-report', reportId], fresh);
+    },
+  });
+  const resolve = useMutation({
+    mutationFn: (request: ResolveVendorReportRequest) =>
+      wardVendorReportsApi.resolve(reportId, request),
+    onSuccess: async (fresh) => {
+      cache.setQueryData(['ward', 'vendor-report', reportId], fresh);
+      await cache.invalidateQueries({ queryKey: ['ward', 'vendor-reports'] });
+      void cache.invalidateQueries({ queryKey: ['ward', 'dashboard'] });
+      showToast(
+        fresh.outcome?.resolution === 'DISMISSED' ? 'Đã bác phản ánh' : 'Đã ghi nhận hòa giải',
+      );
     },
   });
   const photo = useEvidencePhoto(report.data?.evidenceUrl ?? null);
@@ -95,21 +119,21 @@ export function LiveVendorReportReviewScreen() {
   }
 
   const data = report.data;
-  return (
-    <Screen
-      footer={
-        <StickyActions>
-          <Button
-            label="Lập biên bản vi phạm"
-            variant="outline"
-            icon={<Icon name="gavel" size={19} color="currentColor" />}
-            onPress={() => navigate('/ward/patrol/violations/new')}
-          />
-        </StickyActions>
+  const pending = data.status === 'PENDING';
+  const suggested = data.suggestedViolationType
+    ? (SUGGESTED_VIOLATION_LABELS[data.suggestedViolationType] ?? data.suggestedViolationType)
+    : null;
+  const resolveError = resolve.error
+    ? {
+        message: errorMessage(resolve.error),
+        conflict: resolve.error instanceof ApiError && resolve.error.status === 409,
       }
-    >
+    : null;
+
+  return (
+    <Screen width="wide">
       <AppHeader
-        title="Phản ánh vi phạm"
+        title="Phản ánh về quầy"
         back
         subtitle={data.vendorName ?? 'Chưa xác định hộ kinh doanh'}
         right={<StatusChip code={data.status} />}
@@ -117,6 +141,7 @@ export function LiveVendorReportReviewScreen() {
       <div className="grid items-start gap-md lg:grid-cols-2 xl:grid-cols-12 xl:gap-lg">
         <div className="flex flex-col gap-md xl:col-span-7">
           <CitizenReportSlip reason={data.reason} createdAt={data.createdAt} />
+          {data.priceEvidence ? <PriceEvidenceBlock evidence={data.priceEvidence} /> : null}
           <VendorReportAssistPanel
             assist={data.assist}
             hasPhoto={Boolean(data.evidenceUrl)}
@@ -126,6 +151,36 @@ export function LiveVendorReportReviewScreen() {
           />
         </div>
         <div className="flex flex-col gap-md xl:col-span-5">
+          <VendorReportFacts
+            reportType={data.reportType}
+            status={data.status}
+            dueAt={data.dueAt}
+            isOverdue={data.isOverdue}
+            reportsAgainstVendor90Days={data.reportsAgainstVendor90Days}
+          />
+          {pending ? (
+            <VendorReportResolvePanel
+              chargedAmount={data.priceEvidence?.chargedAmount ?? null}
+              suggestedViolation={suggested}
+              submitting={resolve.isPending}
+              error={resolveError}
+              onResolve={(outcome, note, refundAmount) =>
+                resolve.mutate({
+                  expectedStatus: data.status,
+                  outcome,
+                  note,
+                  refundAmount: outcome === 'MEDIATED' ? refundAmount : null,
+                })
+              }
+              onRecordViolation={() => navigate(violationFormPath(data))}
+              onReload={() => {
+                resolve.reset();
+                void report.refetch();
+              }}
+            />
+          ) : data.outcome ? (
+            <VendorReportOutcomeCard outcome={data.outcome} violationId={data.violationId} />
+          ) : null}
           <ReportPhoto uri={photo} vendorName={data.vendorName ?? undefined} />
           {data.slotCode || data.aiExtractedLocation ? (
             <dl className="rounded-[16px] bg-card p-md text-body-md ring-1 ring-border">
@@ -143,10 +198,6 @@ export function LiveVendorReportReviewScreen() {
               ) : null}
             </dl>
           ) : null}
-          <p className="text-body-sm text-muted">
-            Đóng hoặc bỏ qua phản ánh chưa có trên máy chủ; hiện cán bộ chỉ xem và lập biên bản khi
-            cần.
-          </p>
         </div>
       </div>
     </Screen>

@@ -5,7 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import { Screen } from '@/components/layout';
 import { sideApi } from '@/core/api/side-api';
 import { isLiveApi } from '@/core/config/env';
+import type { ApiRegistration } from '@/core/api';
 import { useRegistrations } from '@/features/business-registrations/useRegistrations';
+import { VoiceEntryCard } from '@/features/business-registrations/voice/VoiceEntryCard';
 import { useFeeItems, usePenalties } from '@/features/fee-schedules/useFinance';
 import { hkdCode } from '@/features/sidewalk-slots/slot-format';
 import { useMockDb } from '@/mocks/db';
@@ -18,7 +20,7 @@ import {
   TodayBoard,
 } from '../components/HomeParts';
 import { PermitPass, PermitPassSkeleton, type PermitCard } from '../components/PermitPass';
-import { buildTodos } from '../todos';
+import { buildTodos, type SlotsNearApproval } from '../todos';
 
 /**
  * Vendor home: "the board at the counter at dawn". How many things are waiting
@@ -42,7 +44,8 @@ export function VendorHomeScreen() {
   );
   const online = useOnline();
 
-  const todos = buildTodos(registrations, feeItems, penalties);
+  const slotsNear = useSlotsNearApproval(registrations);
+  const todos = buildTodos(registrations, feeItems, penalties, slotsNear);
 
   const latest = registrations.reduce<(typeof registrations)[number] | null>(
     (acc, r) => (!acc || Date.parse(r.createdAt) > Date.parse(acc.createdAt) ? r : acc),
@@ -71,7 +74,10 @@ export function VendorHomeScreen() {
           />
 
           {!registrationsLoading && registrations.length === 0 ? (
-            <RegisterPath onStart={() => navigate('/vendor/registrations/new/type')} />
+            <div className="flex flex-col gap-sm">
+              {isLiveApi ? <VoiceEntryCard /> : null}
+              <RegisterPath onStart={() => navigate('/vendor/registrations/new/type')} />
+            </div>
           ) : null}
         </div>
 
@@ -180,6 +186,65 @@ function useCurrentPermit(): { card: PermitCard | null; loading: boolean } {
         }
       : null,
     loading,
+  };
+}
+
+/** Rental applications still in flight, or already granted (SlotConstants: Open + Approved). */
+const SLOT_APPLICATION_TAKEN = new Set(['PENDING', 'UNDER_REVIEW', 'MORE_INFORMATION_REQUIRED', 'APPROVED']);
+/** Contracts that already give the vendor a slot. */
+const SLOT_CONTRACT_HELD = new Set(['ACTIVE', 'SUSPENDED']);
+/** "Gần chỗ bạn bán": a short walk from the spot the registration recorded. */
+const NEAR_RADIUS_METERS = 300;
+
+/**
+ * X01 after approval: when the newest registration is APPROVED and the vendor has no slot
+ * application or contract yet, count the free slots near the spot it recorded -- now, not when it
+ * was filed (D4: a slot seen during the interview may have been rented meanwhile). Uses the same
+ * query keys as the slot screens, so opening them reuses the cache.
+ */
+function useSlotsNearApproval(registrations: ApiRegistration[]): SlotsNearApproval | null {
+  const userId = useAuthStore((s) => s.user?.id);
+  const latest = registrations.reduce<ApiRegistration | null>(
+    (acc, r) => (!acc || Date.parse(r.createdAt) > Date.parse(acc.createdAt) ? r : acc),
+    null,
+  );
+  const approved = latest?.registrationStatus === 'APPROVED' ? latest : null;
+  const enabled = isLiveApi && approved !== null;
+
+  const applications = useQuery({
+    queryKey: ['side', userId, 'applications'],
+    queryFn: () => sideApi.listApplications(),
+    enabled,
+  });
+  const contracts = useQuery({
+    queryKey: ['side', userId, 'contracts'],
+    queryFn: () => sideApi.listContracts(),
+    enabled,
+  });
+  const hasSlot =
+    (applications.data ?? []).some((a) => SLOT_APPLICATION_TAKEN.has(a.applicationStatus)) ||
+    (contracts.data ?? []).some((c) => SLOT_CONTRACT_HELD.has(c.contractStatus));
+  const lat = approved?.addressLatitude ?? null;
+  const lng = approved?.addressLongitude ?? null;
+  const ready = enabled && applications.isSuccess && contracts.isSuccess && !hasSlot;
+
+  const near = useQuery({
+    queryKey: ['side', userId, 'slots', { lat, lng, radiusMeters: NEAR_RADIUS_METERS }],
+    queryFn: () => sideApi.searchSlots({ lat: lat!, lng: lng!, radiusMeters: NEAR_RADIUS_METERS, take: 50 }),
+    enabled: ready && lat != null && lng != null,
+  });
+
+  if (!ready || !approved) return null;
+  if (lat == null || lng == null) {
+    return { registrationId: approved.registrationId, displayName: approved.displayName, count: 0, nearest: null };
+  }
+  if (!near.isSuccess) return null;
+  const free = [...near.data].sort((a, b) => (a.distanceMeters ?? Infinity) - (b.distanceMeters ?? Infinity));
+  return {
+    registrationId: approved.registrationId,
+    displayName: approved.displayName,
+    count: free.length,
+    nearest: free[0] ? { zoneId: free[0].zoneId, slotId: free[0].slotId, zoneName: free[0].zoneName } : null,
   };
 }
 

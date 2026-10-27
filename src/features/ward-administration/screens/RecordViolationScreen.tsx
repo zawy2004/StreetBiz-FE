@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Button, Icon } from '@/components/common';
@@ -6,6 +6,8 @@ import { FormGrid, SegmentedControl, SelectField, TextField } from '@/components
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { showToast } from '@/components/feedback';
 import { VERDICT_TONES } from '@/components/illustrations';
+import { wardVendorReportsApi } from '@/core/api/ai-api';
+import { vendorRegistrationApi } from '@/core/api/vendor-registration-api';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
 import { AiSuggestionCard } from '../components/AiSuggestionCard';
@@ -44,6 +46,7 @@ import { VendorPicker } from '../components/ops/violation/VendorPicker';
 import { SheetSection, ViolationSheet } from '../components/ops/violation/ViolationSheet';
 import { ViolationTypePicker } from '../components/ops/violation/ViolationTypePicker';
 import { daysUntil, parseFineBracket } from '../components/ops/violation/violation-utils';
+import { violationDescriptionFromReport } from '../vendor-report-view';
 
 const PENDING = VERDICT_TONES.pending;
 const NEUTRAL = VERDICT_TONES.neutral;
@@ -59,10 +62,17 @@ export function RecordViolationScreen() {
   const paramContractId = searchParams.get('contractId') ?? undefined;
   const paramSlotId = searchParams.get('slotId') ?? undefined;
   const paramVendorId = searchParams.get('vendorId') ?? undefined;
+  // WARD-19: raised from a citizen report. The server closes that report as VIOLATION_RECORDED in
+  // the same transaction as this record; the officer still decides every field below.
+  const sourceReportId = searchParams.get('sourceReportId') ?? undefined;
 
   const navigate = useNavigate();
   const vendors = useMockDb((s) => s.vendors);
   const recordViolationMock = useMockDb((s) => s.recordViolation);
+  const mockSourceReport = useMockDb((s) =>
+    sourceReportId ? s.reports.find((r) => r.id === sourceReportId) : undefined,
+  );
+  const resolveMockReport = useMockDb((s) => s.resolveReport);
   // Demo mode only: the slot plate for the case file, read from the mock store already in memory.
   const mockSlots = useMockDb((s) => s.slots);
 
@@ -76,15 +86,24 @@ export function RecordViolationScreen() {
     if (!isLiveApi || paramVendorId) return;
     complianceApi
       .listEnrollments('APPROVED')
-      .then((items) =>
-        setLiveVendors(
-          items.map((i) => ({
-            vendorId: i.vendorId,
-            displayName: i.displayName,
-            ownerName: i.ownerName,
-          })),
-        ),
-      )
+      .then((items) => {
+        // A violation is recorded against the household, and one household may hold several
+        // approved registrations: list each household once, with all its business names.
+        const byVendor = new Map<
+          number,
+          { vendorId: number; displayName: string; ownerName: string }
+        >();
+        for (const i of items) {
+          const seen = byVendor.get(i.vendorId);
+          byVendor.set(
+            i.vendorId,
+            seen
+              ? { ...seen, displayName: `${seen.displayName} · ${i.displayName}` }
+              : { vendorId: i.vendorId, displayName: i.displayName, ownerName: i.ownerName },
+          );
+        }
+        setLiveVendors([...byVendor.values()]);
+      })
       .catch(() => showToast('Không tải được danh sách hộ kinh doanh.'));
   }, [paramVendorId]);
 
@@ -101,6 +120,53 @@ export function RecordViolationScreen() {
   const [photoFileUrl, setPhotoFileUrl] = useState<string>();
   const [photoUploading, setPhotoUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+  // The violation type the report suggests (rule-based from its type, not AI); applied once.
+  const [preferredType, setPreferredType] = useState<string | null>(null);
+  const preferenceApplied = useRef(false);
+
+  // Fill the record from the report once: its words and price evidence as the description, its
+  // photo as the evidence (already a server file), its suggested violation type.
+  useEffect(() => {
+    if (!sourceReportId) return;
+    if (!isLiveApi) {
+      if (!mockSourceReport) return;
+      setDescription(
+        (current) =>
+          current ||
+          violationDescriptionFromReport({
+            reportId: mockSourceReport.id,
+            reason: mockSourceReport.reason,
+          }),
+      );
+      if (mockSourceReport.photoUri) setPhotoUri((current) => current ?? mockSourceReport.photoUri);
+      return;
+    }
+    const id = Number(sourceReportId);
+    if (!Number.isSafeInteger(id) || id <= 0) return;
+    let cancelled = false;
+    let preview: string | undefined;
+    wardVendorReportsApi
+      .get(id)
+      .then(async (report) => {
+        if (cancelled) return;
+        setDescription((current) => current || violationDescriptionFromReport(report));
+        if (report.suggestedViolationType) setPreferredType(report.suggestedViolationType);
+        if (report.evidenceUrl) {
+          setPhotoFileUrl((current) => current ?? report.evidenceUrl!);
+          const blob = await vendorRegistrationApi.downloadEvidenceFile(report.evidenceUrl);
+          if (cancelled) return;
+          preview = URL.createObjectURL(blob);
+          setPhotoUri((current) => current ?? preview);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) showToast('Không tải được phản ánh để điền sẵn biên bản.');
+      });
+    return () => {
+      cancelled = true;
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [sourceReportId, mockSourceReport]);
 
   // Mẫu số 01 (Nghị định 118/2021/NĐ-CP): witness / ward-representative block, required only
   // when the violator cannot or will not sign -- both fields stay empty in the normal case.
@@ -215,6 +281,13 @@ export function RecordViolationScreen() {
       .catch((err) => console.warn('Could not load penalty schedules:', err));
   }, []);
 
+  useEffect(() => {
+    if (!preferredType || preferenceApplied.current) return;
+    if (!schedules.some((s) => s.violationType === preferredType)) return;
+    preferenceApplied.current = true;
+    setTypeCode(preferredType);
+  }, [preferredType, schedules]);
+
   const selectedSchedule = schedules.find((s) => s.violationType === typeCode);
   const sanctionOptions = createdViolation
     ? schedules.filter((s) => s.violationType === createdViolation.violationType)
@@ -250,6 +323,7 @@ export function RecordViolationScreen() {
           containmentMeasures: containmentMeasures.trim() || undefined,
           explanationRequired,
           explanationMethod: explanationRequired ? explanationMethod : undefined,
+          sourceReportId: sourceReportId ? Number(sourceReportId) : undefined,
         });
         setCreatedViolation(res);
         // The rate that applies is the one in force on the violation date, for this violation's own type.
@@ -339,6 +413,12 @@ export function RecordViolationScreen() {
 
     if (mockAiSuggestion.penaltyScheduleId) {
       setSanctionScheduleId(mockAiSuggestion.penaltyScheduleId);
+    }
+    if (mockSourceReport) {
+      resolveMockReport(mockSourceReport.id, {
+        resolution: 'VIOLATION_RECORDED',
+        note: `Đã lập biên bản số ${String(mockViolId).slice(-4)}/BB-VPHC-${new Date().getFullYear()}.`,
+      });
     }
     setDecisionNumber(`01/QĐ-XPHC-${new Date().getFullYear()}`);
     showToast('Đã lập biên bản vi phạm (Bước 1/2). Tiếp tục ra Quyết định xử phạt.');
@@ -746,6 +826,19 @@ export function RecordViolationScreen() {
         subtitle="Xử lý vi phạm trật tự hè phố (WARD-12)"
         back
       />
+      {sourceReportId ? (
+        <p
+          role="note"
+          className={`flex items-start gap-xs rounded-[14px] px-md py-sm text-body-md ${NEUTRAL.wash} ${NEUTRAL.ink}`}
+        >
+          <Icon name="flag-outline" size={18} color="currentColor" className="mt-0.5 shrink-0" />
+          <span>
+            Lập từ phản ánh #{sourceReportId} của người dân: đã điền sẵn người bán, ô, mô tả và ảnh.
+            Khi biên bản được lập, phản ánh đóng với kết quả &quot;Đã lập biên bản&quot; và người
+            phản ánh nhận thông báo.
+          </span>
+        </p>
+      ) : null}
 
       <div className="grid items-start gap-md xl:grid-cols-[minmax(0,1fr)_336px] xl:gap-xl">
         {/* <1280: the steps in one line and the case file folded into a strip over the sheet. */}
@@ -856,7 +949,9 @@ export function RecordViolationScreen() {
                     <div className="min-w-0 flex-1">
                       <p className="text-[16px] font-semibold text-text">Mã hộ {paramVendorId}</p>
                       <p className="text-body-sm text-muted">
-                        Đã xác định từ kết quả kiểm tra giấy phép tại quầy.
+                        {sourceReportId
+                          ? `Đã xác định từ phản ánh #${sourceReportId}.`
+                          : 'Đã xác định từ kết quả kiểm tra giấy phép tại quầy.'}
                       </p>
                     </div>
                     {plate ? <SlotPlate slotCode={plate.slotCode} place={plate.place} /> : null}

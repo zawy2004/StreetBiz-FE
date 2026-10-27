@@ -21,6 +21,7 @@ import {
 } from '../components/wizard/WizardFrame';
 import { focusFirstError } from '../components/ui-motion';
 import { parseOptionalCoordinate, useNewRegistrationStore } from '../new-registration-store';
+import { VoiceReturnBanner } from '../voice/VoiceReturnBanner';
 
 /**
  * REG-01 step 2: business details.
@@ -71,6 +72,7 @@ export function NewRegistrationDetailsScreen() {
       <AppHeader title={draft.registrationId ? 'Cập nhật hồ sơ' : 'Đăng ký kinh doanh'} back />
       <WizardProgress step={2} />
       {draft.registrationId ? <EditingBanner displayName={draft.displayName} /> : null}
+      <VoiceReturnBanner />
 
       <div className="grid items-start gap-lg xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-xl">
         {/* Preview: a strip above the form on phones and tablets, a sticky column on wide screens. */}

@@ -89,6 +89,38 @@ export type VendorReportAssist = {
   disclaimer: string;
 };
 
+/** VendorReports.report_type: what a citizen report is about (BUY-05 / BUY-07). */
+export type VendorReportType = 'GENERAL' | 'OVERCHARGE' | 'PRICE_NOT_POSTED';
+/** How an officer closed a report (WARD-19); VIOLATION_RECORDED only by raising a biên bản from it. */
+export type VendorReportResolution = 'DISMISSED' | 'MEDIATED' | 'VIOLATION_RECORDED';
+
+/**
+ * An overcharge's price evidence, computed by the server from the price history at the purchase
+ * time (BUY-07): the reporter never states the posted price.
+ */
+export type VendorReportPriceEvidence = {
+  menuItemId: number;
+  itemName: string;
+  priceUnit: string;
+  postedUnitPrice: number;
+  /** "Bản số" of the board the posted price comes from. */
+  priceVersion: number;
+  priceVersionAt: string;
+  quantity: number;
+  postedAmount: number;
+  chargedAmount: number;
+  difference: number;
+  purchasedAt: string;
+};
+
+export type VendorReportOutcome = {
+  resolution: VendorReportResolution;
+  note: string | null;
+  refundAmount: number | null;
+  reviewedAt: string | null;
+  reviewedByName: string | null;
+};
+
 export type WardVendorReportSummary = {
   reportId: number;
   reason: string;
@@ -97,6 +129,11 @@ export type WardVendorReportSummary = {
   vendorName: string | null;
   slotCode: string | null;
   hasPhoto: boolean;
+  reportType?: VendorReportType;
+  /** The ward's internal handling target (end of day, Vietnam time); not a statutory deadline. */
+  dueAt?: string | null;
+  isOverdue?: boolean;
+  resolution?: VendorReportResolution | null;
 };
 
 export type WardVendorReport = {
@@ -109,7 +146,31 @@ export type WardVendorReport = {
   slotCode: string | null;
   aiExtractedLocation: string | null;
   assist: VendorReportAssist;
+  reportType?: VendorReportType;
+  dueAt?: string | null;
+  isOverdue?: boolean;
+  vendorId?: number | null;
+  slotId?: number | null;
+  scannedPermitId?: number | null;
+  priceEvidence?: VendorReportPriceEvidence | null;
+  outcome?: VendorReportOutcome | null;
+  /** Context only: never a score and never a reason to act on its own. */
+  reportsAgainstVendor90Days?: number;
+  /** The violation type "Lập biên bản" pre-selects: rule-based (from the report type), not AI. */
+  suggestedViolationType?: string | null;
+  /** The biên bản raised from this report, if any. */
+  violationId?: number | null;
 };
+
+/** WARD-19 body: DISMISSED needs the reason the reporter reads; MEDIATED a note and maybe a refund. */
+export type ResolveVendorReportRequest = {
+  expectedStatus: string;
+  outcome: 'DISMISSED' | 'MEDIATED';
+  note: string;
+  refundAmount?: number | null;
+};
+
+export type WardVendorReportFilter = { type?: VendorReportType; overdue?: boolean };
 
 export const aiApi = {
   /** AIP-01: a draft description from the dish name (and optionally the vendor's own uploaded photo). */
@@ -132,9 +193,12 @@ export const aiApi = {
 };
 
 export const wardVendorReportsApi = {
-  list: (status?: string, page = 1) => {
+  /** Server order: overdue first, then nearest due time, then the closed ones (20 a page). */
+  list: (status?: string, page = 1, filter: WardVendorReportFilter = {}) => {
     const params = new URLSearchParams();
     if (status) params.set('status', status);
+    if (filter.type) params.set('type', filter.type);
+    if (filter.overdue !== undefined) params.set('overdue', String(filter.overdue));
     if (page > 1) params.set('page', String(page));
     const query = params.toString();
     return apiGet<WardVendorReportSummary[]>(`/ward/vendor-reports${query ? `?${query}` : ''}`);
@@ -142,4 +206,10 @@ export const wardVendorReportsApi = {
   get: (reportId: number) => apiGet<WardVendorReport>(`/ward/vendor-reports/${reportId}`),
   /** AIB-01: reads the photo again and returns the refreshed notes. */
   assist: (reportId: number) => apiPost<WardVendorReport>(`/ward/vendor-reports/${reportId}/assist`),
+  /**
+   * WARD-19: the officer closes a pending report. 409 when another officer closed it first
+   * (the status moved off `expectedStatus`); 400 for a missing note or a refund above the charge.
+   */
+  resolve: (reportId: number, request: ResolveVendorReportRequest) =>
+    apiPost<WardVendorReport>(`/ward/vendor-reports/${reportId}/resolve`, request),
 };

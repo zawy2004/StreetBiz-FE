@@ -752,6 +752,49 @@ describe('P05 reported content review', () => {
     expect(screen.queryByRole('button', { name: 'Bỏ qua báo cáo' })).not.toBeInTheDocument();
   });
 
+  it('lets the admin restore hidden content, sending the HIDDEN status after confirming', async () => {
+    vi.spyOn(platformApi, 'reportedContentDetail').mockResolvedValue(
+      report({ status: 'HIDDEN', reviewedAt: '2026-10-09T01:00:00Z', reviewedByName: 'Admin' }),
+    );
+    const restore = vi
+      .spyOn(platformApi, 'restoreReportedContent')
+      .mockResolvedValue(report({ status: 'DISMISSED' }));
+    const user = userEvent.setup();
+    mount(
+      '/platform/moderation/content/11',
+      '/platform/moderation/content/:reportId',
+      <ReportedContentReviewScreen />,
+    );
+    await user.click(await screen.findByRole('button', { name: 'Khôi phục nội dung' }));
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent('tạm ngưng');
+    await user.click(within(dialog).getByRole('button', { name: 'Khôi phục' }));
+    await waitFor(() => expect(restore).toHaveBeenCalledWith('11', 'HIDDEN'));
+  });
+
+  it('offers no restore for a pending or dismissed report, and locks it when the content is gone', async () => {
+    const detail = vi.spyOn(platformApi, 'reportedContentDetail');
+    detail.mockResolvedValue(report({ status: 'DISMISSED', reviewedAt: '2026-10-09T01:00:00Z' }));
+    const view = mount(
+      '/platform/moderation/content/11',
+      '/platform/moderation/content/:reportId',
+      <ReportedContentReviewScreen />,
+    );
+    await screen.findByText('Báo cáo đã được xử lý');
+    expect(screen.queryByRole('button', { name: 'Khôi phục nội dung' })).not.toBeInTheDocument();
+    view.unmount();
+
+    detail.mockResolvedValue(
+      report({ status: 'HIDDEN', reviewedAt: '2026-10-09T01:00:00Z', contentExists: false }),
+    );
+    mount(
+      '/platform/moderation/content/11',
+      '/platform/moderation/content/:reportId',
+      <ReportedContentReviewScreen />,
+    );
+    expect(await screen.findByRole('button', { name: 'Khôi phục nội dung' })).toBeDisabled();
+  });
+
   it('offers retry and a way back to the queue when the report cannot be loaded', async () => {
     vi.spyOn(platformApi, 'reportedContentDetail').mockRejectedValue(
       new PlatformApiError(404, 'Không tìm thấy.'),

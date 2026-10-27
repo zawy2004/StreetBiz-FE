@@ -4,10 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Icon, Spinner } from '@/components/common';
 import { AppHeader, Screen, Section } from '@/components/layout';
 import { FilterChips } from '@/components/forms';
+import { wardVendorReportsApi, type WardVendorReportSummary } from '@/core/api/ai-api';
 import { isLiveApi } from '@/core/config/env';
 import { QUEUE_REFRESH_MS } from '@/core/config/refresh';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
+import { reportTypeShort } from '@/features/vendor-reports/report-kinds';
 import { useMockDb } from '@/mocks/db';
+import { parseServerDate } from '../components/review/format';
 import {
   complianceApi,
   type WardEnrollmentItem,
@@ -257,10 +260,26 @@ function LiveInboxScreen() {
   const [rentalApplications, setRentalApplications] = useState<WardRentalApplicationItem[]>([]);
   const [renewals, setRenewals] = useState<WardRenewalItem[]>([]);
   const [riskQueue, setRiskQueue] = useState<WardRiskQueueItem[]>([]);
+  // WARD-19: pending citizen reports, overdue first (the server's order). Loaded on their own so
+  // a slow report list never holds up the review queue.
+  const [reports, setReports] = useState<WardVendorReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState<'ALL' | 'REG' | 'RENTAL' | 'RENEWAL' | 'FAST_RENEWAL'>(
-    'ALL',
-  );
+  const [category, setCategory] = useState<
+    'ALL' | 'REG' | 'RENTAL' | 'RENEWAL' | 'FAST_RENEWAL' | 'REPORT'
+  >('ALL');
+
+  useEffect(() => {
+    let cancelled = false;
+    wardVendorReportsApi
+      .list('PENDING')
+      .then((rows) => {
+        if (!cancelled) setReports(rows);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // `quiet` keeps the list on screen while it is fetched again (the periodic refresh).
   const reload = (quiet = false) => {
@@ -367,10 +386,25 @@ function LiveInboxScreen() {
       };
     });
 
-    return [...regItems, ...rentalAppItems, ...renewalItems].sort(
+    const reportItems: QueueItem[] = reports.map((r) => ({
+      key: `RPT-${r.reportId}`,
+      category: 'REPORT',
+      title: `${r.vendorName ?? 'Quầy chưa xác định'} - ${reportTypeShort(r.reportType)}`,
+      subtitle: r.reason,
+      status: r.status,
+      riskScore: 0,
+      riskBreakdown: [],
+      onPress: () => navigate(`/ward/inbox/vendor-reports/${r.reportId}`),
+      slotCode: r.slotCode ?? undefined,
+      submittedAt: r.createdAt,
+      slaDueAt: r.dueAt ?? undefined,
+      isOverdue: r.isOverdue,
+    }));
+
+    return [...regItems, ...rentalAppItems, ...renewalItems, ...reportItems].sort(
       (a, b) => b.riskScore - a.riskScore,
     );
-  }, [enrollments, rentalApplications, renewals, riskQueue, navigate]);
+  }, [enrollments, rentalApplications, renewals, riskQueue, reports, navigate]);
 
   const visible =
     category === 'ALL'
@@ -381,6 +415,7 @@ function LiveInboxScreen() {
   const regCount = items.filter((i) => i.category === 'REG').length;
   const rentalCount = items.filter((i) => i.category === 'RENTAL').length;
   const renewalCount = items.filter((i) => i.category === 'RENEWAL').length;
+  const reportCount = items.filter((i) => i.category === 'REPORT').length;
   const fastTrackRenewals = renewals.filter((r) => r.isFastTrackEligible);
   const fastRenewalCount = fastTrackRenewals.length;
 
@@ -389,7 +424,7 @@ function LiveInboxScreen() {
     { label: 'Cần xem kỹ', value: items.filter((i) => i.riskScore > 0).length, tone: 'pending' },
     {
       label: 'Quá hạn xử lý',
-      value: renewals.filter((r) => r.isOverdue).length,
+      value: renewals.filter((r) => r.isOverdue).length + reports.filter((r) => r.isOverdue).length,
       tone: 'danger',
       icon: 'timer-outline',
     },
@@ -426,12 +461,23 @@ function LiveInboxScreen() {
               { value: 'RENTAL', label: 'Cấp phép hè phố', count: rentalCount },
               { value: 'RENEWAL', label: 'Gia hạn', count: renewalCount },
               { value: 'FAST_RENEWAL', label: '[AI] Xét nhanh', count: fastRenewalCount },
+              { value: 'REPORT', label: 'Phản ánh', count: reportCount },
             ]}
           />
         </ChipRail>
 
         {category === 'FAST_RENEWAL' ? (
           <FastTrackBatchPanel candidates={fastTrackRenewals} onDone={reload} />
+        ) : null}
+        {category === 'REPORT' ? (
+          <div className="flex justify-end">
+            <Button
+              label="Mở danh sách phản ánh đầy đủ"
+              variant="ghost"
+              fullWidth={false}
+              onPress={() => navigate('/ward/inbox/vendor-reports')}
+            />
+          </div>
         ) : null}
 
         <QueueBoard
@@ -511,17 +557,22 @@ function MockInboxScreen() {
         })),
       ...reports
         .filter((r) => r.report_status === 'PENDING')
-        .map((r) => ({
-          key: `RPT-${r.id}`,
-          category: 'REPORT',
-          title: 'Phản ánh vi phạm hiện trường',
-          subtitle: r.reason,
-          status: r.report_status,
-          riskScore: 0,
-          riskBreakdown: [],
-          onPress: () => navigate(`/ward/inbox/vendor-reports/${r.id}`),
-          submittedAt: r.created_at,
-        })),
+        .map((r) => {
+          const due = parseServerDate(r.due_at);
+          return {
+            key: `RPT-${r.id}`,
+            category: 'REPORT',
+            title: `Phản ánh: ${reportTypeShort(r.report_type)}`,
+            subtitle: r.reason,
+            status: r.report_status,
+            riskScore: 0,
+            riskBreakdown: [],
+            onPress: () => navigate(`/ward/inbox/vendor-reports/${r.id}`),
+            submittedAt: r.created_at,
+            slaDueAt: r.due_at,
+            isOverdue: due != null && due.getTime() < Date.now(),
+          };
+        }),
     ];
 
     // Prioritize high-risk items at the top of the queue per Section 7.4

@@ -4,6 +4,10 @@ import { useNavigate } from 'react-router-dom';
 
 import { Screen } from '@/components/layout';
 import { prefersReducedMotion } from '@/features/buyer-discovery/rolling-number';
+import { ComplaintActions } from '@/features/price-board/components/ComplaintActions';
+import { PriceBoardCard } from '@/features/price-board/components/PriceBoardCard';
+import { permitTokenOf, printedVersionOf } from '@/features/price-board/permit-link';
+import { reportFormPath } from '@/features/price-board/report-link';
 import { useIsDesktop } from '@/hooks/useBreakpoint';
 import { BuyerPageHeader } from '../components/BuyerPageHeader';
 import {
@@ -31,10 +35,11 @@ function currentPosition(): Promise<Point | undefined> {
 }
 
 /**
- * A buyer's permit check at the counter. Paste the code, press "Kiểm tra":
- * every press is a fresh POST to the server (BR-39: no cache, no storage, the
- * result lives only in this mutation), and the answer arrives as a permit pass
- * with the ward's stamp coming down on it.
+ * A buyer's permit check at the counter. Paste the code or the `/q/…` link, press
+ * "Kiểm tra": every press is a fresh POST to the server (BR-39: no cache, no
+ * storage, the result lives only in this mutation), and the answer arrives as a
+ * permit pass with the ward's stamp coming down on it, then the stall's price
+ * board when the permit is valid.
  */
 export function PublicScanScreen() {
   const navigate = useNavigate();
@@ -42,15 +47,20 @@ export function PublicScanScreen() {
   const [code, setCode] = useState('');
   // Display only: where the buyer was for this check (the same point sent with it), to show the distance.
   const [lastPoint, setLastPoint] = useState<Point | undefined>();
+  // What the pressed check was about: the token and the board version printed on a pasted link.
+  const [checked, setChecked] = useState<{ token: string; printedVersion?: number }>();
   const verification = useMutation({
-    mutationFn: async () =>
-      communityApi.verifyPermit(
-        code.trim(),
+    mutationFn: async () => {
+      const text = code.trim();
+      setChecked({ token: permitTokenOf(text), printedVersion: printedVersionOf(text) });
+      return communityApi.verifyPermit(
+        text,
         await currentPosition().then((point) => {
           setLastPoint(point);
           return point;
         }),
-      ),
+      );
+    },
   });
   const result = verification.data;
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -89,12 +99,25 @@ export function PublicScanScreen() {
           result.vendorId
             ? () =>
                 navigate(
-                  `/customer/explore/vendors/${result.vendorId}/reports/new?permitId=${result.permitId}&slotId=${result.slotId}`,
+                  `/customer/explore/vendors/${result.vendorId}/reports/new?permitId=${result.permitId}&slotId=${result.slotId}${checked?.token ? `&qr=${encodeURIComponent(checked.token)}` : ''}`,
                 )
             : undefined
         }
       />
     );
+    if (result.isValid && result.priceBoard && result.vendorId) {
+      board = (
+        <div className="flex flex-col gap-lg">
+          {board}
+          <PriceBoardCard board={result.priceBoard} printedVersion={checked?.printedVersion}>
+            <ComplaintActions
+              types={['OVERCHARGE', 'PRICE_NOT_POSTED']}
+              onPick={(type) => navigate(reportFormPath(result, checked?.token, type))}
+            />
+          </PriceBoardCard>
+        </div>
+      );
+    }
   } else {
     board = <ScanIdle />;
   }

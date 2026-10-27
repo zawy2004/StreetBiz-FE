@@ -93,6 +93,13 @@ const TICKET_TONE: Record<
     icon: 'cash-multiple',
     press: 'active:bg-[#FFF3D1] dark:active:bg-[#3A2A08]',
   },
+  slots: {
+    bar: 'bg-tertiary',
+    wash: 'bg-[#E6F6EC] dark:bg-[#10301F]',
+    ink: 'text-[#0B5D33] dark:text-[#8BE3B0]',
+    icon: 'map-marker-radius-outline',
+    press: 'active:bg-[#E6F6EC] dark:active:bg-[#10301F]',
+  },
   registration: {
     bar: 'bg-[#2B3640] dark:bg-[#C5D0DA]',
     wash: 'bg-[#EEF1F4] dark:bg-[#1D2833]',
@@ -265,6 +272,10 @@ function TodoTicket({ todo, onOpen }: { todo: Todo; onOpen: (path: string) => vo
               {date ? <span>lập {date}</span> : null}
               {todo.slotCode ? <KerbTag code={todo.slotCode} /> : null}
             </>
+          ) : todo.kind === 'slots' ? (
+            <span className="line-clamp-1">
+              {todo.note ? `Gần nhất: ${todo.note} · chọn ô rồi xin thuê` : 'Chọn ô rồi xin thuê'}
+            </span>
           ) : (
             <span className="line-clamp-1">
               {todo.note ? `Phường: “${todo.note}”` : 'Phường yêu cầu bổ sung hồ sơ'}

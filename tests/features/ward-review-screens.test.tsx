@@ -42,7 +42,7 @@ describe('ward review screens (mock mode)', () => {
         phone: '0905000004',
         password: '',
         role_code: 'WARD_AUTHORITY',
-        wardUnitType: 'Phường Hải Châu 1',
+        wardUnitType: 'Phường Hải Châu',
         account_status: 'ACTIVE',
       },
       sessionExpired: false,
