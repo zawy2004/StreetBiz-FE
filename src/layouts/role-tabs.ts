@@ -46,6 +46,7 @@ export const WARD_TABS: RoleTabItem[] = [
   { to: '/ward/slots', label: 'Lưới ô', icon: 'map-marker-radius-outline' },
   { to: '/ward/patrol', label: 'Tuần tra', icon: 'qrcode-scan' },
   { to: '/ward/finance', label: 'Thu phí', icon: 'cash-multiple' },
+  { to: '/ward/tax', label: 'Thuế', icon: 'calculator' },
   { to: '/ward/settings/pricing', label: 'Giá & khung giờ', icon: 'tag-outline' },
   { to: '/ward/reports', label: 'Báo cáo', icon: 'chart-bar' },
 ];
@@ -55,4 +56,5 @@ export const PLATFORM_TABS: RoleTabItem[] = [
   { to: '/platform/accounts', label: 'Tài khoản', icon: 'account-group-outline' },
   { to: '/platform/categories', label: 'Danh mục', icon: 'shape-outline' },
   { to: '/platform/moderation', label: 'Kiểm duyệt', icon: 'shield-alert-outline' },
+  { to: '/platform/tax-policies', label: 'Chính sách thuế', icon: 'calculator' },
 ];

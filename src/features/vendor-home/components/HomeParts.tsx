@@ -344,6 +344,7 @@ const SHORTCUTS: { icon: IconName; label: string; path: string; warm?: boolean }
   { icon: 'map-marker-radius-outline', label: 'Thuê ô vỉa hè', path: '/vendor/slots', warm: true },
   { icon: 'qrcode-scan', label: 'Quét mã nhận hàng', path: '/vendor/orders/scan' },
   { icon: 'silverware-fork-knife', label: 'Cửa hàng & thực đơn', path: '/vendor/store' },
+  { icon: 'calculator', label: 'Thuế & doanh thu', path: '/vendor/tax' },
 ];
 
 /** Four big way-finding tiles; "Thuê ô vỉa hè" warmer, the main job of a vendor without a slot. */
@@ -360,7 +361,7 @@ export function ShortcutTiles({ onOpen }: { onOpen: (path: string) => void }) {
             key={s.path}
             type="button"
             onClick={() => onOpen(s.path)}
-            className={`group flex min-h-[104px] flex-col justify-between gap-sm rounded-[20px] p-md text-left ring-1 transition-[transform,box-shadow] duration-200 [transition-timing-function:var(--ease-out)] hover:-translate-y-0.5 hover:shadow-card-hover active:translate-y-0 ${
+            className={`group flex min-h-[104px] flex-col justify-between gap-sm rounded-[20px] p-md text-left ring-1 [&:last-child:nth-child(odd)]:col-span-2 transition-[transform,box-shadow] duration-200 [transition-timing-function:var(--ease-out)] hover:-translate-y-0.5 hover:shadow-card-hover active:translate-y-0 ${
               s.warm
                 ? 'bg-[#FFF3E8] ring-brand/25 dark:bg-[#2A2420]'
                 : 'bg-card shadow-card ring-border'

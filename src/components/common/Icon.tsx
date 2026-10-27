@@ -31,6 +31,7 @@ const ICON_MAP: Record<string, Glyph> = {
     Pi.PiClipboardTextFill,
     Pi.PiClipboardTextDuotone,
   ),
+  calculator: g(Pi.PiCalculator, Pi.PiCalculatorFill, Pi.PiCalculatorDuotone),
   'chart-bar': g(Pi.PiChartBar, Pi.PiChartBarFill, Pi.PiChartBarDuotone),
   'chart-line': g(Pi.PiChartLineUp, Pi.PiChartLineUpFill, Pi.PiChartLineUpDuotone),
   devices: g(Pi.PiDevices, Pi.PiDevicesFill),

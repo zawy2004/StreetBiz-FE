@@ -6,3 +6,4 @@ export * from './vendor-registration-api';
 export * from './vendor-kyc-api';
 export * from './commerce-api';
 export * from './finance-api';
+export * from './tax-api';

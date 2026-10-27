@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { env } from '@/core/config/env';
+import type { CreateTaxPolicyRequest, TaxPolicyVersionDto } from '@/core/api/tax-api';
 
 export type PlatformAdminProfile = { userId: number; name: string };
 
@@ -181,6 +182,12 @@ export const platformApi = {
     }
   },
   me: (token?: string) => platformRequest<PlatformAdminProfile>('/platform/me', {}, token),
+  taxPolicies: () => platformRequest<TaxPolicyVersionDto[]>('/platform/tax-policies'),
+  createTaxPolicy: (request: CreateTaxPolicyRequest) =>
+    platformRequest<TaxPolicyVersionDto>('/platform/tax-policies', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }),
   categories: () => platformRequest<FoodCategory[]>('/platform/food-categories'),
   createCategory: (name: string) =>
     platformRequest<FoodCategory>('/platform/food-categories', {
