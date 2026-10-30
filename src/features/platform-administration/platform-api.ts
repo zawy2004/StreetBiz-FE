@@ -1,7 +1,10 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { env } from '@/core/config/env';
+import { refreshAccessToken } from '@/core/api/client';
+import { getAccessToken } from '@/core/api/token-storage';
+import { env, isLiveApi } from '@/core/config/env';
+import { useAuthStore } from '@/store/auth-store';
 
 export type PlatformAdminProfile = { userId: number; name: string };
 
@@ -84,6 +87,20 @@ export const usePlatformSession = create<PlatformSession>()(
   ),
 );
 
+/**
+ * Signed in to the app as a platform administrator against the real backend: that session's own access
+ * token is the admin token, so there is nothing to connect. The backend still re-checks the role in the
+ * database on every call. Without it (the offline demo) the separate connect form is used.
+ */
+export const useSharedAdminSession = (): boolean =>
+  useAuthStore((state) => isLiveApi && state.user?.role_code === 'PLATFORM_ADMIN' && Boolean(getAccessToken()));
+
+const sharedAdminToken = (): string | null =>
+  isLiveApi && useAuthStore.getState().user?.role_code === 'PLATFORM_ADMIN' ? getAccessToken() : null;
+
+/** The token the next admin call carries: the app session's when there is one, else the connected one. */
+const currentToken = (): string => sharedAdminToken() ?? usePlatformSession.getState().token;
+
 export class PlatformApiError extends Error {
   constructor(
     public status: number,
@@ -97,7 +114,8 @@ export class PlatformApiError extends Error {
 async function platformFetch(
   path: string,
   init: RequestInit = {},
-  token = usePlatformSession.getState().token,
+  token = currentToken(),
+  retried = false,
 ): Promise<Response> {
   const base = env.apiBaseUrl.replace(/\/$/, '');
   if (!base) throw new PlatformApiError(0, 'Chưa cấu hình VITE_API_BASE_URL cho Backend.');
@@ -126,6 +144,16 @@ async function platformFetch(
       detail?: string;
       errors?: Record<string, string[]>;
     };
+    if (response.status === 401 && token && token === sharedAdminToken() && !retried) {
+      // The app session's access token ran out: rotate it once and ask again.
+      try {
+        const next = await refreshAccessToken();
+        return await platformFetch(path, init, next.accessToken, true);
+      } catch (refreshFailure) {
+        if (refreshFailure instanceof PlatformApiError) throw refreshFailure;
+        throw new PlatformApiError(401, 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      }
+    }
     if (response.status === 401 && token === usePlatformSession.getState().token) {
       usePlatformSession.getState().disconnect();
     }
@@ -148,7 +176,7 @@ async function platformFetch(
 async function platformRequest<T>(
   path: string,
   init: RequestInit = {},
-  token = usePlatformSession.getState().token,
+  token = currentToken(),
 ): Promise<T> {
   const response = await platformFetch(path, init, token);
   if (response.status === 204) return undefined as T;

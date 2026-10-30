@@ -6,6 +6,8 @@ import { AppHeader, Screen, Section } from '@/components/layout';
 import { FilterChips } from '@/components/forms';
 import { wardVendorReportsApi, type WardVendorReportSummary } from '@/core/api/ai-api';
 import { isLiveApi } from '@/core/config/env';
+import { QUEUE_REFRESH_MS } from '@/core/config/refresh';
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { reportTypeShort } from '@/features/vendor-reports/report-kinds';
 import { useMockDb } from '@/mocks/db';
 import { parseServerDate } from '../components/review/format';
@@ -279,8 +281,9 @@ function LiveInboxScreen() {
     };
   }, []);
 
-  const reload = () => {
-    setLoading(true);
+  // `quiet` keeps the list on screen while it is fetched again (the periodic refresh).
+  const reload = (quiet = false) => {
+    if (!quiet) setLoading(true);
     return Promise.allSettled([
       complianceApi.listEnrollments(),
       complianceApi.listRentalApplications('PENDING'),
@@ -321,6 +324,8 @@ function LiveInboxScreen() {
   useEffect(() => {
     reload();
   }, []);
+  // The queue is what the officer acts on: new filings appear without a manual reload.
+  useVisiblePolling(() => void reload(true), QUEUE_REFRESH_MS);
 
   const items: QueueItem[] = useMemo(() => {
     const regItems: QueueItem[] = enrollments.map((r) => {

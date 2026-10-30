@@ -7,10 +7,12 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: false,
-      refetchOnWindowFocus: false,
-      // Moving between tabs no longer re-downloads what was fetched moments ago.
-      // Mutations still invalidate their queries, and live screens (orders,
-      // complaints) poll with their own refetchInterval.
+      // Data older than staleTime is fetched again when the tab is focused or the network
+      // comes back, so a tab left open never stays stale for long. Moving between screens
+      // within staleTime still re-downloads nothing. Mutations invalidate their queries;
+      // live screens poll (core/config/refresh.ts) or use push (orders, chat).
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
       staleTime: 30_000,
     },
   },
