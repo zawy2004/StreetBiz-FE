@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { OVERVIEW_REFRESH_MS } from '@/core/config/refresh';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 
@@ -63,6 +64,7 @@ function DashboardContent() {
     queryFn: () => platformApi.dashboard(range),
     enabled: !customInvalid,
     placeholderData: keepPreviousData,
+    refetchInterval: OVERVIEW_REFRESH_MS,
   });
   const data = dashboard.data;
 

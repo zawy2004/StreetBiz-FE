@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { QUEUE_REFRESH_MS } from '@/core/config/refresh';
 import { useNavigate } from 'react-router-dom';
 
 import { Money, type IconName } from '@/components/common';
@@ -54,11 +55,13 @@ function ModerationContent() {
     queryKey: ['platform', 'reported-content'],
     queryFn: () => platformApi.reportedContent(),
     enabled: tab === 'CONTENT',
+    refetchInterval: QUEUE_REFRESH_MS,
   });
   const complaints = useQuery({
     queryKey: ['platform', 'order-complaints'],
     queryFn: () => platformApi.complaints(),
     enabled: tab === 'COMPLAINTS',
+    refetchInterval: QUEUE_REFRESH_MS,
   });
   const active = tab === 'CONTENT' ? reports : complaints;
 

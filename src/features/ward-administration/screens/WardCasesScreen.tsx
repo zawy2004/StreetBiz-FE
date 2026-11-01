@@ -1,5 +1,6 @@
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { QUEUE_REFRESH_MS } from '@/core/config/refresh';
 import { Button, Icon, Pagination } from '@/components/common';
 import { VERDICT_TONES } from '@/components/illustrations';
 import { AppHeader, Screen } from '@/components/layout';
@@ -37,6 +38,7 @@ function CasesContent() {
   const records = useQuery({
     queryKey: ['ward', userId, kind, page],
     queryFn: () => wardApi.list(kind, page),
+    refetchInterval: QUEUE_REFRESH_MS,
   });
   const items = records.data?.items ?? [];
   return (
