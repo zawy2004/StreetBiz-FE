@@ -46,7 +46,11 @@ export function useOnline(): boolean {
   );
 }
 
-const providerNames: Record<string, string> = { MOMO: 'MoMo', ZALOPAY: 'ZaloPay' };
+const providerNames: Record<string, string> = {
+  MOMO: 'MoMo',
+  ZALOPAY: 'ZaloPay',
+  SEPAY: 'SePay',
+};
 
 /** "MoMo" / "ZaloPay" for the gateway codes the backend sends; anything else as sent. */
 export function providerName(code: string | null | undefined): string | null {

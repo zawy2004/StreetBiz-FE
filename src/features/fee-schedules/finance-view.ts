@@ -11,9 +11,17 @@ export const PURPOSE_LABEL: Record<string, string> = {
   PENALTY: 'Biên bản phạt',
 };
 
+/** The fee/penalty pay button: a wallet opens its page, SePay shows a VietQR here. */
+export function payButtonLabel(provider: string, starting: boolean, waitingForTransfer: boolean): string {
+  if (starting) return 'Đang khởi tạo thanh toán…';
+  if (waitingForTransfer) return 'Đang chờ chuyển khoản…';
+  return provider === 'SEPAY' ? 'Tạo mã chuyển khoản VietQR' : 'Thanh toán qua MoMo / ZaloPay';
+}
+
 export const PROVIDER_LABEL: Record<string, string> = {
   MOMO: 'MoMo',
   ZALOPAY: 'ZaloPay',
+  SEPAY: 'Chuyển khoản (SePay)',
 };
 
 export const SOURCE_LABEL: Record<string, string> = {

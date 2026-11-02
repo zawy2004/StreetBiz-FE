@@ -11,19 +11,24 @@ import {
   financeApi,
   type FeeItemDetailDto,
   type FeeItemDto,
+  type PaymentProvider,
 } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { saveFile } from '@/core/utils/save-file';
 import { useMockDb } from '@/mocks/db';
 import { isSandboxPaymentUrl, redirectToPayment } from '@/features/orders/payment-redirect';
-import { rememberFinancePayment, useFinancePaymentReturn } from '../useFinancePaymentReturn';
-import { isPayableFee } from '../finance-view';
+import {
+  rememberFinancePayment,
+  useFinanceBankTransfer,
+  useFinancePaymentReturn,
+} from '../useFinancePaymentReturn';
 import { useFeeItems, usePayFeeCheckout } from '../useFinance';
 import { useFeeItemDetail } from '../useFeeSchedules';
 import { formatDay, paidShare } from '../schedule-progress';
 import { ProgressBar } from '../components/ScheduleComponents';
 import { PaidStamp, ReceiptFoot, ReceiptPaper, ReceiptRow } from '../components/Receipt';
 import { LoadingBlock } from '../components/FinanceParts';
+import { BankTransferSection } from '../components/BankTransferSection';
 import {
   CheckoutError,
   FeeSlip,
@@ -32,8 +37,9 @@ import {
   WalletPicker,
 } from '../components/PaymentParts';
 import { ReturnCheckTrack } from '../components/ReturnCheckTrack';
+import { isPayableFee, payButtonLabel } from '../finance-view';
 
-type Provider = 'MOMO' | 'ZALOPAY';
+type Provider = PaymentProvider;
 
 export function FeePaymentScreen() {
   return isLiveApi ? <LiveFeePaymentScreen /> : <MockFeePaymentScreen />;
@@ -70,12 +76,24 @@ function LiveFeePaymentScreen() {
   };
   // Back from MoMo on this page: the backend checks with MoMo, then the receipt shows.
   const momoReturn = useFinancePaymentReturn(() => afterPaid('MoMo đã xác nhận thanh toán'));
+  // SePay: the VietQR stays on this page until the backend reports the money in, then the
+  // instalment re-reads as PAID and this page turns into its receipt, as after MoMo.
+  const bank = useFinanceBankTransfer(
+    () => void afterPaid('Đã nhận chuyển khoản. Thanh toán thành công'),
+  );
   const fee = feeItems.find((f) => f.feeItemId === feeItemId);
 
   useEffect(() => {
     idempotencyKey.current = null;
     submitting.current = false;
   }, [feeItemId]);
+
+  const changeMethod = () => {
+    bank.cancel();
+    // A new method is a new checkout: the old key belongs to the transfer just left.
+    idempotencyKey.current = null;
+    submitting.current = false;
+  };
 
   const pay = () => {
     if (!fee || !isPayableFee(fee) || submitting.current || checkout.isPending) return;
@@ -85,6 +103,12 @@ function LiveFeePaymentScreen() {
       { feeItemId, provider, idempotencyKey: idempotencyKey.current },
       {
         onSuccess: async (result) => {
+          // SePay has no page to go to: show its VietQR here and wait for the money.
+          if (result.bankTransfer) {
+            submitting.current = false;
+            bank.start(result.transactionId, result.bankTransfer);
+            return;
+          }
           // A configured MoMo merchant returns a real https payment page: go there.
           if (!isSandboxPaymentUrl(result.paymentUrl)) {
             rememberFinancePayment(result.transactionId, pathname);
@@ -152,11 +176,9 @@ function LiveFeePaymentScreen() {
         <StickyActions>
           <PayBar amount={fee.amount}>
             <Button
-              label={
-                checkout.isPending ? 'Đang khởi tạo thanh toán…' : 'Thanh toán qua MoMo / ZaloPay'
-              }
+              label={payButtonLabel(provider, checkout.isPending, bank.transfer !== null)}
               loading={checkout.isPending}
-              disabled={checkout.isPending}
+              disabled={checkout.isPending || bank.transfer !== null}
               onPress={pay}
             />
           </PayBar>
@@ -176,11 +198,16 @@ function LiveFeePaymentScreen() {
           />
           {detail.data ? <ContractProgress detail={detail.data} /> : null}
         </div>
-        <div className="flex min-w-0 max-w-[640px] flex-col gap-md">
-          <WalletPicker value={provider} onChange={setProvider} disabled={checkout.isPending} />
-          {checkout.isError ? <CheckoutError message={errorMessage(checkout.error)} /> : null}
-          <SafePaySteps />
-        </div>
+        {bank.transfer ? (
+          <BankTransferSection bank={bank} onChangeMethod={changeMethod} />
+        ) : (
+          <div className="flex min-w-0 max-w-[640px] flex-col gap-md">
+            <WalletPicker value={provider} onChange={setProvider} disabled={checkout.isPending} />
+            {checkout.isError ? <CheckoutError message={errorMessage(checkout.error)} /> : null}
+            {bank.closedMessage ? <CheckoutError message={bank.closedMessage} /> : null}
+            <SafePaySteps />
+          </div>
+        )}
       </div>
     </Screen>
   );

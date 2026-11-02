@@ -21,13 +21,15 @@ import {
 const WALLETS: { value: PaymentProvider; label: string; description: string }[] = [
   { value: 'MOMO', label: 'MoMo', description: 'Thanh toán qua ví MoMo' },
   { value: 'ZALOPAY', label: 'ZaloPay', description: 'Thanh toán qua ví ZaloPay' },
+  { value: 'SEPAY', label: 'Chuyển khoản', description: 'Quét VietQR bằng app ngân hàng' },
 ];
 
 /**
- * The finance pages' own copy of the wallet choice, drawn as two large cards
+ * The finance pages' own copy of the wallet choice, drawn as large cards
  * (the buyer checkout keeps `PaymentProviderSelector`). Same fieldset, legend,
  * radio name, labels, descriptions and default as that selector. The wallet
- * names are words only: the project has no wallet logo assets.
+ * names are words only: the project has no wallet logo assets. The third card
+ * spans the whole row so no card is left half-width on its own.
  */
 export function WalletPicker({
   value,
@@ -50,7 +52,7 @@ export function WalletPicker({
             <label
               key={wallet.value}
               className={[
-                'relative flex min-h-20 cursor-pointer flex-col justify-center gap-1 rounded-[16px] px-sm py-sm transition-[box-shadow,background-color,transform] duration-150 active:scale-[.98] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary md:px-md',
+                'relative flex min-h-20 cursor-pointer flex-col justify-center gap-1 rounded-[16px] px-sm py-sm transition-[box-shadow,background-color,transform] duration-150 active:scale-[.98] last:col-span-2 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary md:px-md',
                 chosen
                   ? 'bg-[#FFF8F3] shadow-[0_10px_24px_-16px_rgb(var(--c-brand)/0.9)] ring-2 ring-brand dark:bg-[rgb(255_138_76/0.08)]'
                   : 'bg-card shadow-card ring-1 ring-border hover:ring-text/25',

@@ -152,7 +152,7 @@ export function useCheckoutOrder() {
       location,
     }: {
       cartId: number;
-      provider: 'MOMO' | 'ZALOPAY';
+      provider: 'MOMO' | 'ZALOPAY' | 'SEPAY';
       idempotencyKey: string;
       /** ORD-01: where the customer is; the server re-checks the pickup range against it. */
       location?: PickupLocation;
