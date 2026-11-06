@@ -176,6 +176,9 @@ function Dot({
           transition: 'width 160ms, height 160ms',
         }}
       >
+        {onSelect ? (
+          <span aria-hidden="true" className="absolute -inset-[11px] rounded-full" />
+        ) : null}
         {beacon ? (
           <span
             aria-hidden="true"

@@ -71,7 +71,7 @@ export function LocationBar({ showArea = true, tone = 'default' }: Props) {
               onChange={(e) =>
                 setFilters({ wardId: e.target.value ? Number(e.target.value) : null })
               }
-              className="min-w-0 flex-1 cursor-pointer truncate bg-transparent outline-none sm:flex-none [&>option]:text-[#17191C]"
+              className="min-w-0 flex-1 cursor-pointer self-stretch truncate bg-transparent outline-none sm:flex-none [&>option]:text-[#17191C]"
             >
               <option value="">Tất cả khu vực</option>
               {areaList.map((area) => (

@@ -1,9 +1,6 @@
-import {
-  HubConnectionBuilder,
-  HubConnectionState,
-  LogLevel,
-  type HubConnection,
-} from '@microsoft/signalr';
+import { HubConnectionBuilder, HubConnectionState, type HubConnection } from '@microsoft/signalr';
+
+import { signalRLogger } from '@/core/realtime-logger';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getAccessToken } from '@/core/api/token-storage';
 import { ApiError, errorMessage } from '@/core/api/problem';
@@ -122,7 +119,7 @@ export function useAssistant(role: AssistantRole, accountKey: string) {
         withCredentials: false,
       })
       .withAutomaticReconnect([0, 2000, 5000, 10000])
-      .configureLogging(LogLevel.Warning)
+      .configureLogging(signalRLogger)
       .build();
     connection.current = hub;
     let disposed = false;

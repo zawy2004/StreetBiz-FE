@@ -33,7 +33,7 @@ export function FilterChips<T extends string>({ options, value, onChange }: Prop
                   aria-hidden="true"
                   className={[
                     'min-w-5 rounded-full px-1.5 py-0.5 text-center text-badge font-tabular',
-                    active ? 'bg-white/25 text-on-primary' : 'bg-sunken text-muted',
+                    active ? 'bg-black/20 text-on-primary' : 'bg-sunken text-muted',
                   ].join(' ')}
                 >
                   {opt.count}

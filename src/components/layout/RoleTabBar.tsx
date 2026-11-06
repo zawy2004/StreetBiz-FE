@@ -6,6 +6,7 @@ import type { IconName } from '@/components/common/Icon';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { useIsDesktop } from '@/hooks/useBreakpoint';
 import { useAuthStore } from '@/store/auth-store';
+import { BottomSheet } from './BottomSheet';
 import { ThemeToggle } from './ThemeToggle';
 
 export const SIDEBAR_WIDTH = 248;
@@ -231,40 +232,99 @@ function NavGroup({ item, entries }: { item: RoleTabItem; entries: RoleTabChild[
   );
 }
 
+/**
+ * A phone fits five tabs at 390px before every label truncates ("Tổng …", "Hộp d…"). With more,
+ * the first four stay and the rest move behind a "Thêm" tab that opens a sheet.
+ */
+export const MAX_BOTTOM_TABS = 5;
+
+function TabFace({
+  icon,
+  label,
+  badge,
+  active,
+}: {
+  icon: IconName;
+  label: string;
+  badge?: number;
+  active: boolean;
+}) {
+  return (
+    <>
+      <span
+        className={`relative flex h-8 w-12 items-center justify-center rounded-full transition-colors duration-150 ${active ? 'bg-primary text-on-primary' : 'text-muted'}`}
+      >
+        <Icon name={icon} size={21} color="currentColor" weight={active ? 'fill' : 'regular'} />
+        <NavBadge count={badge} className="absolute right-0 top-0 -mr-1.5 -mt-1" />
+      </span>
+      <span
+        className={`max-w-full truncate px-1 text-body-xs ${active ? 'font-semibold text-text' : 'text-muted'}`}
+      >
+        {label}
+      </span>
+    </>
+  );
+}
+
+const TAB_CLASS =
+  'flex min-h-[60px] min-w-0 flex-1 flex-col items-center justify-center gap-1 py-xs';
+
 function BottomTabBar({ items }: { items: RoleTabItem[] }) {
+  const { pathname } = useLocation();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const overflow = items.length > MAX_BOTTOM_TABS;
+  const shown = overflow ? items.slice(0, MAX_BOTTOM_TABS - 1) : items;
+  const hidden = overflow ? items.slice(MAX_BOTTOM_TABS - 1) : [];
+  const moreActive = hidden.some((item) => under(pathname, item.to));
+  const moreBadge = hidden.reduce((sum, item) => sum + (item.badge ?? 0), 0);
+
   return (
     <nav
       aria-label="Điều hướng chính"
       className="flex shrink-0 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
-      {items.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          className="flex min-h-[60px] min-w-0 flex-1 flex-col items-center justify-center gap-1 py-xs"
-        >
+      {shown.map((item) => (
+        <NavLink key={item.to} to={item.to} className={TAB_CLASS}>
           {({ isActive }) => (
-            <>
-              <span
-                className={`relative flex h-8 w-12 items-center justify-center rounded-full transition-colors duration-150 ${isActive ? 'bg-primary text-on-primary' : 'text-muted'}`}
-              >
-                <Icon
-                  name={item.icon}
-                  size={21}
-                  color="currentColor"
-                  weight={isActive ? 'fill' : 'regular'}
-                />
-                <NavBadge count={item.badge} className="absolute right-0 top-0 -mr-1.5 -mt-1" />
-              </span>
-              <span
-                className={`max-w-full truncate px-1 text-body-xs ${isActive ? 'font-semibold text-text' : 'text-muted'}`}
-              >
-                {item.label}
-              </span>
-            </>
+            <TabFace icon={item.icon} label={item.label} badge={item.badge} active={isActive} />
           )}
         </NavLink>
       ))}
+      {overflow ? (
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={moreOpen}
+          onClick={() => setMoreOpen(true)}
+          className={TAB_CLASS}
+        >
+          <TabFace icon="dots-horizontal" label="Thêm" badge={moreBadge} active={moreActive} />
+        </button>
+      ) : null}
+      {overflow ? (
+        <BottomSheet visible={moreOpen} onClose={() => setMoreOpen(false)}>
+          <h2 className="px-xs pb-xs text-headline-sm text-text">Mục khác</h2>
+          <ul className="flex flex-col gap-0.5">
+            {hidden.map((item) => {
+              const active = under(pathname, item.to);
+              return (
+                <li key={item.to}>
+                  <Link
+                    to={item.to}
+                    onClick={() => setMoreOpen(false)}
+                    aria-current={active ? 'page' : undefined}
+                    className={`flex min-h-12 items-center gap-sm rounded-[14px] px-sm text-body-lg ${active ? 'bg-tint-primary font-semibold text-text' : 'text-text hover:bg-tint-muted'}`}
+                  >
+                    <Icon name={item.icon} size={22} color="currentColor" />
+                    <span className="min-w-0 flex-1">{item.label}</span>
+                    <NavBadge count={item.badge} />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </BottomSheet>
+      ) : null}
     </nav>
   );
 }

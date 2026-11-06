@@ -174,6 +174,8 @@ export type RentalContract = {
   cancelledAt: string | null;
   createdAt: string;
   updatedAt: string | null;
+  /** Whether a digital permit exists yet. Absent on an older API, where every contract is asked. */
+  hasPermit?: boolean;
 };
 
 export type RenewalRequest = {

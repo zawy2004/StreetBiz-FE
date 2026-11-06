@@ -165,7 +165,11 @@ export function PrintPriceBoardScreen() {
                 </p>
               </div>
               <div className="shrink-0 [&_[data-testid=qr-code]]:p-1">
-                <QrCode value={scanLinkFor(token, board.version)} size={112} />
+                <QrCode
+                  value={scanLinkFor(token, board.version)}
+                  size={112}
+                  label="Mã QR bảng giá"
+                />
               </div>
             </footer>
           </article>

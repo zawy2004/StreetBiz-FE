@@ -1,10 +1,12 @@
+import { useEffect, useRef, useState } from 'react';
+
 import { KerbTag } from '@/components/common';
 import type { RentalContract } from '@/core/api/side-api';
 import { contractProgress } from '@/features/sidewalk-slots/my-slots-view';
+import { visibleMonthLabels } from './term-timeline-labels';
 
 const DAY_MS = 86_400_000;
 const MAX_ROWS = 8;
-
 /** "2026-12-01" as local midnight, matching how contractProgress counts days. */
 function localDay(isoDate: string): number {
   const [y, m, d] = isoDate.slice(0, 10).split('-').map(Number);
@@ -19,6 +21,19 @@ type Props = { contracts: readonly RentalContract[]; today: Date };
  * last day, the part already gone solid and the rest pale. Bars are not links.
  */
 export function TermTimeline({ contracts, today }: Props) {
+  const labelRow = useRef<HTMLDivElement>(null);
+  // Before the row is measured (and in tests) assume a phone-width track.
+  const [trackWidth, setTrackWidth] = useState(0);
+  useEffect(() => {
+    const el = labelRow.current;
+    if (!el) return;
+    const measure = () => setTrackWidth(el.clientWidth);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   const rows = contracts.filter((c) => c.startDate && c.endDate);
   if (rows.length === 0) return null;
   const shown = rows.slice(0, MAX_ROWS);
@@ -41,6 +56,10 @@ export function TermTimeline({ contracts, today }: Props) {
     cursor.setMonth(cursor.getMonth() + 1);
   }
   const todayLabel = `Hôm nay ${today.getDate()}/${today.getMonth() + 1}`;
+  const labelled = visibleMonthLabels(
+    months.map((m) => (m.t - start) / span),
+    trackWidth || 260,
+  );
 
   return (
     <section
@@ -49,21 +68,18 @@ export function TermTimeline({ contracts, today }: Props) {
     >
       <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-sm gap-y-sm">
         <span />
-        <div className="relative h-5 text-[13px] font-semibold text-muted">
-          {months.map((m, i) => (
-            <span
-              key={m.key}
-              className={`absolute top-0 -translate-x-1/2 font-sign ${
-                // On a phone only the first, the current and the last month are labelled.
-                i === 0 || i === months.length - 1 || Math.abs(m.t - now) < 31 * DAY_MS
-                  ? ''
-                  : 'hidden sm:inline'
-              }`}
-              style={{ left: at(m.t) }}
-            >
-              {m.label}
-            </span>
-          ))}
+        <div ref={labelRow} className="relative h-5 text-[13px] font-semibold text-muted">
+          {months.map((m, i) =>
+            labelled.has(i) ? (
+              <span
+                key={m.key}
+                className="absolute top-0 -translate-x-1/2 font-sign"
+                style={{ left: at(m.t) }}
+              >
+                {m.label}
+              </span>
+            ) : null,
+          )}
         </div>
 
         {shown.map((c) => {
@@ -118,7 +134,7 @@ export function TermTimeline({ contracts, today }: Props) {
             style={{ left: at(now) }}
           />
           <span
-            className="absolute top-1 -translate-x-1/2 whitespace-nowrap rounded-full bg-brand px-2 py-0.5 text-body-xs font-bold text-white"
+            className="absolute top-1 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-2 py-0.5 text-body-xs font-bold text-on-primary"
             style={{ left: `clamp(48px, ${at(now)}, calc(100% - 48px))` }}
           >
             {todayLabel}

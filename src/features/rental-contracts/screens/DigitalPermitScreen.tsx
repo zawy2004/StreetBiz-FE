@@ -142,7 +142,7 @@ export function DigitalPermitScreen() {
             <div className="flex flex-col items-center gap-sm">
               <div className="relative">
                 <div className={valid ? '' : 'opacity-40'}>
-                  <QrCode value={qrValue} size={wide ? 280 : 248} />
+                  <QrCode value={qrValue} size={wide ? 280 : 248} label="Mã QR giấy phép số" />
                 </div>
                 {valid ? null : <InvalidBand />}
               </div>
@@ -298,7 +298,7 @@ function PermitFullscreen({
       </div>
       <div className="relative">
         <div className={valid ? '' : 'opacity-40'}>
-          <QrCode value={payload} size={size} />
+          <QrCode value={payload} size={size} label="Mã QR giấy phép số" />
         </div>
         {valid ? null : <InvalidBand />}
       </div>

@@ -116,7 +116,7 @@ export function FinanceTabs<T extends string>({
                 aria-hidden="true"
                 className={[
                   'min-w-[22px] rounded-full px-1.5 py-0.5 text-center font-sign text-[12px] font-bold tabular-nums leading-4',
-                  active ? 'bg-white/25 text-on-primary' : 'bg-sunken text-text',
+                  active ? 'bg-black/20 text-on-primary' : 'bg-sunken text-text',
                 ].join(' ')}
               >
                 {opt.count}

@@ -114,7 +114,9 @@ export function RecordViolationScreen() {
   }, [liveVendors, vendorId]);
   const [slotId] = useState(paramSlotId ?? '');
   const [contractId] = useState(paramContractId ?? '');
-  const [typeCode, setTypeCode] = useState('UNAUTHORIZED_BUSINESS_USE');
+  // Live: nothing is chosen until the officer picks a behaviour. Pre-selecting the first schedule
+  // row (often one without a legal basis) showed a red "Thiếu căn cứ pháp lý" before any choice.
+  const [typeCode, setTypeCode] = useState(isLiveApi ? '' : 'UNAUTHORIZED_BUSINESS_USE');
   const [description, setDescription] = useState('');
   const [photoUri, setPhotoUri] = useState<string>();
   const [photoFileUrl, setPhotoFileUrl] = useState<string>();
@@ -274,9 +276,6 @@ export function RecordViolationScreen() {
       .listPenaltySchedules()
       .then((data) => {
         setSchedules(data);
-        if (data.length > 0 && data[0]) {
-          setTypeCode(data[0].violationType);
-        }
       })
       .catch((err) => console.warn('Could not load penalty schedules:', err));
   }, []);
@@ -295,6 +294,10 @@ export function RecordViolationScreen() {
 
   // Step 1: Record Violation (PENDING_SANCTION)
   const submitRecord = async () => {
+    if (!typeCode) {
+      showToast('Vui lòng chọn hành vi vi phạm');
+      return;
+    }
     if (!description.trim()) {
       showToast('Vui lòng nhập mô tả hành vi vi phạm hiện trường');
       return;
@@ -675,12 +678,19 @@ export function RecordViolationScreen() {
           legalBasis: null,
           caption: 'Lập được biên bản nhưng chưa thể ra quyết định xử phạt tiền.',
         }
-    : {
-        state: 'unknown' as const,
-        amount: null,
-        legalBasis: schedules.length === 0 ? 'Căn cứ Nghị định 168/2024/NĐ-CP' : null,
-        caption: 'Biểu mức phạt của phường chưa tải được.',
-      };
+    : !typeCode && schedules.length > 0
+      ? {
+          state: 'unknown' as const,
+          amount: null,
+          legalBasis: null,
+          caption: 'Chọn hành vi vi phạm ở Mục 2 để xem mức phạt và căn cứ.',
+        }
+      : {
+          state: 'unknown' as const,
+          amount: null,
+          legalBasis: schedules.length === 0 ? 'Căn cứ Nghị định 168/2024/NĐ-CP' : null,
+          caption: 'Biểu mức phạt của phường chưa tải được.',
+        };
 
   const chosenSanction = sanctionOptions.find(
     (s) => s.scheduleId === sanctionScheduleId && s.legalBasis,
@@ -707,6 +717,11 @@ export function RecordViolationScreen() {
           caption: 'Chọn khung xử phạt trong phần Quyết định.',
         };
   const placard = createdViolation ? step2Placard : step1Placard;
+  // Said next to the disabled button, so it is clear why it cannot be pressed yet.
+  const missingForRecord = [
+    !typeCode ? 'hành vi vi phạm' : null,
+    !description.trim() ? 'mô tả hiện trường' : null,
+  ].filter((m): m is string => m !== null);
   const placardTitle = createdViolation ? 'Khung xử phạt đang chọn' : 'Mức phạt (trung bình khung)';
 
   const noAuthority = isLiveApi && sanctionAuthorityTitle === null;
@@ -785,18 +800,25 @@ export function RecordViolationScreen() {
       footer={
         <StickyActions>
           {!createdViolation ? (
-            <Button
-              label={
-                photoUploading
-                  ? 'Đang tải ảnh lên...'
-                  : loading
-                    ? 'Đang lập biên bản...'
-                    : 'Lập biên bản vi phạm (Bước 1)'
-              }
-              variant="danger"
-              disabled={loading || photoUploading || !description.trim()}
-              onPress={submitRecord}
-            />
+            <div className="flex w-full flex-col gap-1 lg:w-auto lg:items-end">
+              {missingForRecord.length > 0 && !loading && !photoUploading ? (
+                <p id="record-missing" className="text-body-sm text-muted">
+                  Còn thiếu: {missingForRecord.join(', ')}
+                </p>
+              ) : null}
+              <Button
+                label={
+                  photoUploading
+                    ? 'Đang tải ảnh lên...'
+                    : loading
+                      ? 'Đang lập biên bản...'
+                      : 'Lập biên bản vi phạm (Bước 1)'
+                }
+                variant="danger"
+                disabled={loading || photoUploading || missingForRecord.length > 0}
+                onPress={submitRecord}
+              />
+            </div>
           ) : (
             <div className="flex w-full gap-sm">
               <div className="flex-1">
@@ -849,7 +871,14 @@ export function RecordViolationScreen() {
               {plate ? <SlotPlate slotCode={plate.slotCode} size="sm" /> : null}
               <span className="text-body-md text-muted">
                 Mức phạt{' '}
-                <span className="font-tabular font-sign text-[18px] font-extrabold text-[#8F1717] [font-stretch:86%] dark:text-[#FF9A90]">
+                <span
+                  className={`font-tabular font-sign text-[18px] font-extrabold [font-stretch:86%] ${
+                    // Red only for a fine or a missing legal basis, not while nothing is chosen yet.
+                    placard.state === 'unknown'
+                      ? 'text-muted'
+                      : 'text-[#8F1717] dark:text-[#FF9A90]'
+                  }`}
+                >
                   {amountSummary}
                 </span>
               </span>
