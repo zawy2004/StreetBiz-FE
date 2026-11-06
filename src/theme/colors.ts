@@ -55,7 +55,7 @@ export const colors = {
  * where `var()` does not resolve. Keep in sync with src/index.css.
  */
 export const palette = {
-  light: { primary: '#CF4A0B', brand: '#FF6A1F', tertiary: '#0B7F43', muted: '#566173', indigo: '#0A5FA8', ink: '#111C2B', accent: '#FFB703', kerb: '#FF6A1F' },
+  light: { primary: '#B53F08', brand: '#FF6A1F', tertiary: '#0A743D', muted: '#566173', indigo: '#0A5FA8', ink: '#111C2B', accent: '#FFB703', kerb: '#FF6A1F' },
   dark: { primary: '#FF8A4C', brand: '#FF7A33', tertiary: '#4ED18A', muted: '#A7B3C0', indigo: '#7DB6F5', ink: '#EEF2F6', accent: '#FFC233', kerb: '#FF7A33' },
 } as const;
 

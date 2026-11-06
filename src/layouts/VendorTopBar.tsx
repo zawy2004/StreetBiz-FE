@@ -36,8 +36,8 @@ export function VendorTopBar() {
         {onWorkspace && <RouteSelect />}
         {onWorkspace && isDesktop && <SlotSearch />}
         <div className="ml-auto flex items-center gap-xs">
-          {onWorkspace && <LayersToggle />}
-          <HoldBasket />
+          {onWorkspace && isDesktop && <LayersToggle />}
+          <HoldBasket compact={!isDesktop} />
           <NotificationBell />
           <div className="ml-xs flex items-center gap-xs border-l border-border pl-sm">
             {isDesktop && (
@@ -60,8 +60,9 @@ export function VendorTopBar() {
         </div>
       </div>
       {onWorkspace && !isDesktop && (
-        <div className="border-t border-border px-md py-xs">
+        <div className="flex items-center gap-xs border-t border-border px-md py-xs">
           <SlotSearch />
+          <LayersToggle />
         </div>
       )}
     </header>
@@ -74,14 +75,14 @@ function RouteSelect() {
   const selectZone = useWorkspaceStore((s) => s.selectZone);
 
   return (
-    <label className="flex h-11 min-w-0 max-w-[280px] items-center gap-xs rounded-full bg-card px-sm text-label font-semibold text-text shadow-card ring-1 ring-border transition-colors hover:ring-text/25">
+    <label className="flex h-11 min-w-0 flex-1 items-center gap-xs rounded-full lg:max-w-[280px] lg:flex-none bg-card px-sm text-label font-semibold text-text shadow-card ring-1 ring-border transition-colors hover:ring-text/25">
       <Icon name="map-marker" size={18} color={colors.primary} weight="fill" />
       <span className="sr-only">Tuyến</span>
       <select
         aria-label="Tuyến"
         value={zoneId ?? ''}
         onChange={(e) => selectZone(Number(e.target.value))}
-        className="min-w-0 flex-1 cursor-pointer truncate bg-transparent outline-none"
+        className="min-w-0 flex-1 cursor-pointer self-stretch truncate bg-transparent outline-none"
       >
         {zones.map((z) => (
           <option key={z.zoneId} value={z.zoneId}>
@@ -109,7 +110,7 @@ function SlotSearch() {
       <div className="flex h-11 items-center gap-xs rounded-full bg-sunken px-sm ring-1 ring-transparent transition-shadow focus-within:bg-card focus-within:ring-primary/50">
         <Icon name="magnify" size={18} color={colors.muted} />
         <input
-          className="min-w-0 flex-1 bg-transparent text-body-sm text-text outline-none"
+          className="min-w-0 flex-1 self-stretch bg-transparent text-body-sm text-text outline-none"
           placeholder="Tìm ô số, tuyến đường…"
           aria-label="Tìm ô"
           value={query}
@@ -155,21 +156,29 @@ function LayersToggle() {
       title="Hiện/ẩn hành lang kỹ thuật và tiện ích"
       onClick={toggle}
       className={[
-        'flex h-12 w-12 items-center justify-center rounded-full ring-1 transition-colors lg:h-11 lg:w-11',
-        showFeatures ? 'bg-tint-primary ring-primary/40' : 'bg-card ring-border hover:bg-sunken',
+        'flex h-11 shrink-0 items-center gap-1.5 rounded-full px-sm text-label font-semibold ring-1 transition-colors',
+        showFeatures
+          ? 'bg-tint-primary text-primary-pressed ring-primary/40'
+          : 'bg-card text-text ring-border hover:bg-sunken',
       ].join(' ')}
     >
       <Icon
         name="layers-outline"
-        size={22}
+        size={20}
         color={showFeatures ? colors.primaryPressed : colors.muted}
         weight={showFeatures ? 'fill' : 'regular'}
       />
+      <span aria-hidden="true">Tiện ích</span>
     </button>
   );
 }
 
-function HoldBasket() {
+/**
+ * "Giỏ giữ chỗ": the slots this vendor holds while finishing an application. The bookmark icon
+ * alone did not say that, so the desktop button carries the words; on a phone, where the bar is
+ * tight, the button only appears while something is held.
+ */
+function HoldBasket({ compact = false }: { compact?: boolean }) {
   const navigate = useNavigate();
   const location = useLocation();
   const userId = useAuthStore((s) => s.user?.id);
@@ -191,6 +200,8 @@ function HoldBasket() {
     if (q.data) slotById.set(q.data.slotId, q.data);
   });
 
+  if (compact && holds.length === 0 && !open) return null;
+
   const openHold = (hold: SlotHold) => {
     const slot = slotById.get(hold.slotId);
     if (!slot) return;
@@ -204,9 +215,10 @@ function HoldBasket() {
       <button
         type="button"
         aria-label={`Giỏ giữ chỗ (${holds.length})`}
+        title="Giỏ giữ chỗ: các ô bạn đang giữ trong lúc hoàn tất đơn thuê"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="relative flex h-12 w-12 items-center justify-center rounded-full bg-card ring-1 ring-border transition-colors hover:bg-sunken lg:h-11 lg:w-11"
+        className={`relative flex h-12 items-center justify-center gap-1.5 rounded-full bg-card ring-1 ring-border transition-colors hover:bg-sunken lg:h-11 ${compact ? 'w-12' : 'px-sm'}`}
       >
         <Icon
           name="bookmark-outline"
@@ -214,6 +226,11 @@ function HoldBasket() {
           color={colors.text}
           weight={holds.length > 0 ? 'fill' : 'regular'}
         />
+        {compact ? null : (
+          <span aria-hidden="true" className="text-label font-semibold text-text">
+            Giữ chỗ
+          </span>
+        )}
         {holds.length > 0 && (
           <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-badge font-tabular text-on-accent ring-2 ring-card">
             {holds.length}

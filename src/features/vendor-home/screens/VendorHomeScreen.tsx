@@ -20,7 +20,7 @@ import {
   TodayBoard,
 } from '../components/HomeParts';
 import { PermitPass, PermitPassSkeleton, type PermitCard } from '../components/PermitPass';
-import { buildTodos, type SlotsNearApproval } from '../todos';
+import { buildTodos, upcomingFees, vietnamToday, type SlotsNearApproval } from '../todos';
 
 /**
  * Vendor home: "the board at the counter at dawn". How many things are waiting
@@ -45,7 +45,9 @@ export function VendorHomeScreen() {
   const online = useOnline();
 
   const slotsNear = useSlotsNearApproval(registrations);
-  const todos = buildTodos(registrations, feeItems, penalties, slotsNear);
+  const today = vietnamToday();
+  const todos = buildTodos(registrations, feeItems, penalties, slotsNear, today);
+  const upcoming = upcomingFees(feeItems, today);
 
   const latest = registrations.reduce<(typeof registrations)[number] | null>(
     (acc, r) => (!acc || Date.parse(r.createdAt) > Date.parse(acc.createdAt) ? r : acc),
@@ -69,6 +71,8 @@ export function VendorHomeScreen() {
         <div className="flex min-w-0 flex-col gap-lg">
           <TodayBoard
             todos={todos}
+            upcoming={upcoming}
+            onOpenFinance={() => navigate('/vendor/finance')}
             loading={registrationsLoading || feesLoading || penaltiesLoading}
             onOpen={(path) => navigate(path)}
           />
@@ -127,7 +131,11 @@ function useCurrentPermit(): { card: PermitCard | null; loading: boolean } {
     queryFn: () => sideApi.listContracts(),
     enabled: isLiveApi,
   });
-  const active = (contracts.data ?? []).filter((c) => c.contractStatus === 'ACTIVE');
+  // Ask only for permits that exist: probing every active contract logged a 404 in the console
+  // for each one without a permit yet. An older API sends no hasPermit, so it is still asked.
+  const active = (contracts.data ?? []).filter(
+    (c) => c.contractStatus === 'ACTIVE' && c.hasPermit !== false,
+  );
   const permits = useQueries({
     queries: active.map((contract) => ({
       queryKey: ['side', user?.id, 'permit', contract.contractId],
@@ -190,7 +198,12 @@ function useCurrentPermit(): { card: PermitCard | null; loading: boolean } {
 }
 
 /** Rental applications still in flight, or already granted (SlotConstants: Open + Approved). */
-const SLOT_APPLICATION_TAKEN = new Set(['PENDING', 'UNDER_REVIEW', 'MORE_INFORMATION_REQUIRED', 'APPROVED']);
+const SLOT_APPLICATION_TAKEN = new Set([
+  'PENDING',
+  'UNDER_REVIEW',
+  'MORE_INFORMATION_REQUIRED',
+  'APPROVED',
+]);
 /** Contracts that already give the vendor a slot. */
 const SLOT_CONTRACT_HELD = new Set(['ACTIVE', 'SUSPENDED']);
 /** "Gần chỗ bạn bán": a short walk from the spot the registration recorded. */
@@ -230,21 +243,31 @@ function useSlotsNearApproval(registrations: ApiRegistration[]): SlotsNearApprov
 
   const near = useQuery({
     queryKey: ['side', userId, 'slots', { lat, lng, radiusMeters: NEAR_RADIUS_METERS }],
-    queryFn: () => sideApi.searchSlots({ lat: lat!, lng: lng!, radiusMeters: NEAR_RADIUS_METERS, take: 50 }),
+    queryFn: () =>
+      sideApi.searchSlots({ lat: lat!, lng: lng!, radiusMeters: NEAR_RADIUS_METERS, take: 50 }),
     enabled: ready && lat != null && lng != null,
   });
 
   if (!ready || !approved) return null;
   if (lat == null || lng == null) {
-    return { registrationId: approved.registrationId, displayName: approved.displayName, count: 0, nearest: null };
+    return {
+      registrationId: approved.registrationId,
+      displayName: approved.displayName,
+      count: 0,
+      nearest: null,
+    };
   }
   if (!near.isSuccess) return null;
-  const free = [...near.data].sort((a, b) => (a.distanceMeters ?? Infinity) - (b.distanceMeters ?? Infinity));
+  const free = [...near.data].sort(
+    (a, b) => (a.distanceMeters ?? Infinity) - (b.distanceMeters ?? Infinity),
+  );
   return {
     registrationId: approved.registrationId,
     displayName: approved.displayName,
     count: free.length,
-    nearest: free[0] ? { zoneId: free[0].zoneId, slotId: free[0].slotId, zoneName: free[0].zoneName } : null,
+    nearest: free[0]
+      ? { zoneId: free[0].zoneId, slotId: free[0].slotId, zoneName: free[0].zoneName }
+      : null,
   };
 }
 

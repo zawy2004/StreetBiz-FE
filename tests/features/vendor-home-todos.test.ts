@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ApiRegistration, FeeItemDto, PenaltyListDto } from '@/core/api';
-import { buildTodos, payableSummary, type SlotsNearApproval } from '@/features/vendor-home/todos';
+import {
+  buildTodos,
+  FEE_DUE_SOON_DAYS,
+  payableSummary,
+  upcomingFees,
+  vietnamToday,
+  type SlotsNearApproval,
+} from '@/features/vendor-home/todos';
+
+const TODAY = '2026-11-03';
 
 const registration = (over: Partial<ApiRegistration>) =>
   ({
@@ -67,6 +76,7 @@ describe('buildTodos', () => {
       [fee({ feeItemId: 11 })],
       [penalty({ penaltyId: 12 })],
       near,
+      TODAY,
     );
 
     expect(todos.map((t) => t.kind)).toEqual(['registration', 'slots', 'fee', 'penalty']);
@@ -104,6 +114,8 @@ describe('buildTodos', () => {
         fee({ feeItemId: 2, itemStatus: 'PENDING', slotCode: '' }),
       ],
       [],
+      null,
+      TODAY,
     );
 
     expect(todos[0]).toMatchObject({
@@ -164,6 +176,71 @@ describe('buildTodos', () => {
   });
 });
 
+describe('fees due now versus later', () => {
+  it('leaves instalments due more than a week ahead off the board', () => {
+    const todos = buildTodos(
+      [],
+      [
+        fee({ feeItemId: 1, dueDate: '2026-11-10' }), // exactly 7 days ahead: due now
+        fee({ feeItemId: 2, dueDate: '2026-11-11' }), // 8 days ahead: later
+        fee({ feeItemId: 3, dueDate: '2027-07-13', periodLabel: 'Kỳ 13/13' }),
+      ],
+      [],
+      null,
+      TODAY,
+    );
+
+    expect(FEE_DUE_SOON_DAYS).toBe(7);
+    expect(todos.map((t) => t.key)).toEqual(['fee-1']);
+  });
+
+  it('always lists an overdue instalment, however old, before the ones still due', () => {
+    const todos = buildTodos(
+      [],
+      [
+        fee({ feeItemId: 1, dueDate: '2026-11-05', itemStatus: 'PENDING' }),
+        fee({ feeItemId: 2, dueDate: '2026-10-23', itemStatus: 'OVERDUE' }),
+        fee({ feeItemId: 3, dueDate: '2026-11-04', itemStatus: 'PENDING' }),
+        fee({ feeItemId: 4, dueDate: '2026-09-23', itemStatus: 'OVERDUE' }),
+      ],
+      [],
+      null,
+      TODAY,
+    );
+
+    expect(todos.map((t) => t.key)).toEqual(['fee-4', 'fee-2', 'fee-3', 'fee-1']);
+  });
+
+  it('does not count later instalments in the amount to pay now', () => {
+    const fees = [
+      fee({ feeItemId: 1, amount: 990_000, dueDate: '2026-10-08', itemStatus: 'OVERDUE' }),
+      fee({ feeItemId: 2, amount: 990_000, dueDate: '2027-01-13' }),
+      fee({ feeItemId: 3, amount: 165_000, dueDate: '2027-07-13' }),
+    ];
+
+    expect(payableSummary(buildTodos([], fees, [], null, TODAY)).total).toBe(990_000);
+    expect(upcomingFees(fees, TODAY)).toEqual({
+      count: 2,
+      total: 1_155_000,
+      nextDueDate: '2027-01-13',
+    });
+  });
+
+  it('reports nothing upcoming when every unpaid instalment is due now or already paid', () => {
+    const fees = [
+      fee({ feeItemId: 1, dueDate: '2026-11-04' }),
+      fee({ feeItemId: 2, dueDate: '2027-01-13', itemStatus: 'PAID' }),
+    ];
+
+    expect(upcomingFees(fees, TODAY)).toEqual({ count: 0, total: 0, nextDueDate: null });
+  });
+
+  it('reads today in Vietnam time, not UTC', () => {
+    // 20:00 UTC on 2 Nov is already 03:00 on 3 Nov in Hà Nội.
+    expect(vietnamToday(new Date('2026-11-02T20:00:00Z'))).toBe('2026-11-03');
+  });
+});
+
 describe('payableSummary', () => {
   it('adds up only the money and counts each kind', () => {
     const todos = buildTodos(
@@ -173,6 +250,8 @@ describe('payableSummary', () => {
         fee({ feeItemId: 2, amount: 165_000, itemStatus: 'OVERDUE' }),
       ],
       [penalty({ amount: 500_000 })],
+      null,
+      TODAY,
     );
 
     expect(payableSummary(todos)).toEqual({

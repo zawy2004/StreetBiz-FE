@@ -1,4 +1,5 @@
 import { formatVnd, Icon, KerbTag, type IconName } from '@/components/common';
+import { useScrollFade } from '@/hooks/useScrollFade';
 import type { FeeItemDto } from '@/core/api';
 import { addMonths, hcmDay, monthKey, monthRange, shortMonthLabel } from '../finance-view';
 
@@ -34,6 +35,8 @@ const OTHER_PLATE = {
  * assistive tech and take no focus (the rows underneath are what opens).
  */
 export function FeeKerbCalendar({ fees, now }: { fees: FeeItemDto[]; now: Date }) {
+  // The months run past the screen edge on a phone; the faded edge says the grid scrolls.
+  const { ref: scroller, style: fade } = useScrollFade<HTMLDivElement>();
   const today = hcmDay(now);
   const thisMonth = today.slice(0, 7);
   const keys = fees.map((f) => monthKey(f.dueDate));
@@ -62,7 +65,12 @@ export function FeeKerbCalendar({ fees, now }: { fees: FeeItemDto[]; now: Date }
           {`${fees.length} kỳ phí trên ${lanes.length} ô, ${overdue > 0 ? `${overdue} kỳ quá hạn` : 'không có kỳ quá hạn'}`}
         </span>
       </figcaption>
-      <div aria-hidden="true" className="no-scrollbar -mx-md overflow-x-auto px-md">
+      <div
+        ref={scroller}
+        aria-hidden="true"
+        style={fade}
+        className="no-scrollbar -mx-md overflow-x-auto px-md"
+      >
         <div
           className="relative grid min-w-max items-center gap-y-xs"
           style={{

@@ -108,7 +108,7 @@ function ChipSelect<T extends string>({
         aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value as T | 'ALL')}
-        className="cursor-pointer appearance-none bg-transparent pr-5 outline-none"
+        className="cursor-pointer appearance-none self-stretch bg-transparent pr-5 outline-none"
       >
         <option value="ALL" className="text-text">
           {label}

@@ -13,6 +13,9 @@ type TaskBoardProps = {
   pendingCount: number;
   pendingRegistrations: number;
   pendingApplications: number;
+  /** Renewals and citizen reports waiting: Hộp duyệt counts them too, so the total must. */
+  pendingRenewals?: number;
+  pendingReports?: number;
   openViolations: number;
   onOpenInbox: () => void;
   onOpenViolations: () => void;
@@ -26,10 +29,18 @@ export function WardTaskBoard({
   pendingCount,
   pendingRegistrations,
   pendingApplications,
+  pendingRenewals = 0,
+  pendingReports = 0,
   openViolations,
   onOpenInbox,
   onOpenViolations,
 }: TaskBoardProps) {
+  const breakdown = [
+    [pendingRegistrations, 'đăng ký điểm bán'],
+    [pendingApplications, 'đơn thuê ô'],
+    [pendingRenewals, 'gia hạn'],
+    [pendingReports, 'phản ánh'],
+  ] as const;
   const allClear = pendingCount === 0 && openViolations === 0;
   const clear = VERDICT_TONES.ok;
   const danger = VERDICT_TONES.danger;
@@ -66,9 +77,14 @@ export function WardTaskBoard({
             </span>
           </button>
           <p className="text-[14px] leading-[22px] text-text/80">
-            <span className="font-semibold font-tabular">{pendingRegistrations}</span> đăng ký điểm
-            bán + <span className="font-semibold font-tabular">{pendingApplications}</span> đơn thuê
-            ô<span className="text-muted"> · chưa gồm gia hạn</span>
+            {breakdown
+              .filter(([n], i) => n > 0 || i < 2)
+              .map(([n, label], i) => (
+                <span key={label}>
+                  {i > 0 ? ' · ' : ''}
+                  <span className="font-semibold font-tabular">{n}</span> {label}
+                </span>
+              ))}
           </p>
           <div className="mt-auto pt-xs md:max-w-[260px]">
             <Button

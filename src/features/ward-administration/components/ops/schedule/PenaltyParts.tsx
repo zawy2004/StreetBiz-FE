@@ -101,7 +101,7 @@ export function PenaltyFilterBar({
               className={[
                 'min-w-6 rounded-full px-1.5 py-0.5 text-center text-body-xs font-bold font-tabular',
                 on
-                  ? 'bg-white/25 text-on-primary'
+                  ? 'bg-black/20 text-on-primary'
                   : warn
                     ? 'bg-[#FDEBEA] text-[#8F1717] dark:bg-[#3A1414] dark:text-[#FF9A90]'
                     : 'bg-sunken text-muted',

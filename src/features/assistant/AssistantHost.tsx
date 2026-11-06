@@ -4,6 +4,7 @@ import { PiSparkleFill } from 'react-icons/pi';
 import { env } from '@/core/config/env';
 import { useAuthStore } from '@/store/auth-store';
 import { EmberOrb } from './EmberOrb';
+import { useScrollAway } from './useScrollAway';
 import './assistant.css';
 
 const AssistantPanel = lazy(() =>
@@ -18,6 +19,7 @@ export function AssistantHost() {
   const launcher = useRef<HTMLButtonElement>(null);
   const user = useAuthStore((s) => s.user);
   const { pathname } = useLocation();
+  const away = useScrollAway(pathname);
   const fullPage = pathname === '/assistant';
   if (!env.enableChatbot)
     return fullPage ? (
@@ -32,7 +34,7 @@ export function AssistantHost() {
           type="button"
           aria-label={unread ? 'Mở Trợ lý StreetBiz, có câu trả lời mới' : 'Mở Trợ lý StreetBiz'}
           aria-haspopup="dialog"
-          className="sb-launcher"
+          className={away ? 'sb-launcher is-away' : 'sb-launcher'}
           onClick={() => {
             setVisited(true);
             setOpen(true);

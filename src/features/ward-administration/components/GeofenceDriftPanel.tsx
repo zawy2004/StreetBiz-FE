@@ -71,7 +71,7 @@ function DriftItemCard({ item }: { item: GeofenceDriftItem }) {
       </AiSuggestionCard>
       <button
         type="button"
-        className="mt-xs flex items-center gap-1 text-body-sm text-indigo"
+        className="mt-xs flex min-h-11 items-center gap-1 text-body-sm text-indigo"
         onClick={() => setExpanded((v) => !v)}
       >
         <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.indigo} />

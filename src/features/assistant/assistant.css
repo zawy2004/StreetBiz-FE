@@ -144,8 +144,9 @@
   position: fixed;
   z-index: 40;
   right: 16px;
-  /* Above the phone/tablet tab bar (SH01 may set --sb-bottom-chrome). */
-  bottom: calc(var(--sb-bottom-chrome, 72px) + 16px);
+  /* Above the phone/tablet tab bar (SH01 may set --sb-bottom-chrome) and above the current
+     screen's action bar, whose height Screen publishes as --sb-screen-footer. */
+  bottom: calc(var(--sb-bottom-chrome, 72px) + var(--sb-screen-footer, 0px) + 16px);
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -171,6 +172,27 @@
 }
 .sb-launcher:active {
   transform: scale(0.97);
+}
+/* Steps aside while content scrolls down (useScrollAway); keyboard focus always brings it back. */
+.sb-launcher.is-away:not(:focus-visible) {
+  transform: translateY(calc(100% + 24px));
+  opacity: 0;
+  pointer-events: none;
+}
+.sb-launcher {
+  transition:
+    transform 220ms var(--ai-ease),
+    opacity 180ms ease,
+    box-shadow 180ms var(--ai-ease),
+    border-color 180ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sb-launcher {
+    transition: opacity 120ms ease;
+  }
+  .sb-launcher.is-away:not(:focus-visible) {
+    transform: none;
+  }
 }
 .sb-launcher:focus-visible {
   outline: 3px solid var(--ai-cta);
@@ -214,7 +236,7 @@
 @media (min-width: 1024px) {
   .sb-launcher {
     right: 24px;
-    bottom: 24px;
+    bottom: calc(var(--sb-screen-footer, 0px) + 24px);
   }
 }
 @media (max-width: 640px) {
