@@ -11,17 +11,34 @@ export const PURPOSE_LABEL: Record<string, string> = {
   PENALTY: 'Biên bản phạt',
 };
 
-/** The fee/penalty pay button: a wallet opens its page, SePay shows a VietQR here. */
-export function payButtonLabel(provider: string, starting: boolean, waitingForTransfer: boolean): string {
+/** Providers that show a VietQR on the page itself, instead of leaving for a wallet. */
+export const isBankTransferProvider = (provider: string | undefined | null) =>
+  provider === 'SEPAY' || provider === 'PAYOS';
+
+/**
+ * The fee pay button: a wallet opens its page, a bank transfer (SePay, payOS) shows a VietQR here.
+ * No provider means nothing can be paid online right now.
+ */
+export function payButtonLabel(
+  provider: string | undefined,
+  starting: boolean,
+  waitingForTransfer: boolean,
+): string {
   if (starting) return 'Đang khởi tạo thanh toán…';
   if (waitingForTransfer) return 'Đang chờ chuyển khoản…';
-  return provider === 'SEPAY' ? 'Tạo mã chuyển khoản VietQR' : 'Thanh toán qua MoMo / ZaloPay';
+  if (!provider) return 'Chưa có phương thức thanh toán';
+  return isBankTransferProvider(provider) ? 'Tạo mã chuyển khoản VietQR' : 'Thanh toán qua MoMo / ZaloPay';
 }
 
 export const PROVIDER_LABEL: Record<string, string> = {
   MOMO: 'MoMo',
   ZALOPAY: 'ZaloPay',
   SEPAY: 'Chuyển khoản (SePay)',
+  PAYOS: 'Chuyển khoản VietQR (payOS)',
+  // A fine paid to the State Treasury and recorded by the ward from the receipt.
+  TREASURY: 'Nộp Kho bạc',
+  CASH: 'Tiền mặt',
+  BANK_TRANSFER: 'Chuyển khoản trực tiếp',
 };
 
 export const SOURCE_LABEL: Record<string, string> = {

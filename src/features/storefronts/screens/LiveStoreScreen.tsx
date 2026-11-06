@@ -165,6 +165,7 @@ export function LiveStoreScreen() {
       newOrders={newOrders.data?.totalItems}
       onOrders={() => navigate('/vendor/store/orders')}
       onSales={() => navigate('/vendor/store/sales')}
+      onPayout={() => navigate('/vendor/finance/payout-account')}
     />
   );
   const openStall =

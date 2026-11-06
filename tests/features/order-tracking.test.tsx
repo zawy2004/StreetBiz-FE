@@ -8,7 +8,7 @@ import { vi } from 'vitest';
 import type { CommerceCart } from '@/core/api';
 import type { OrderTracking, PickupRangeInfo } from '@/features/orders/types/order.types';
 
-const legacyApi = vi.hoisted(() => ({ cart: vi.fn() }));
+const legacyApi = vi.hoisted(() => ({ cart: vi.fn(), storefrontPaymentOptions: vi.fn() }));
 const ordersApi = vi.hoisted(() => ({
   checkout: vi.fn(),
   pickupRange: vi.fn(),
@@ -212,6 +212,12 @@ describe('checkout pickup range (ORD-01)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.storefrontPaymentOptions.mockResolvedValue({
+      mode: 'SANDBOX',
+      providers: ['MOMO', 'ZALOPAY', 'SEPAY'],
+      message: '',
+      payee: null,
+    });
     ordersApi.pickupRange.mockResolvedValue(range);
     vi.stubGlobal('crypto', { randomUUID: () => 'uuid-1' });
     useAuthStore.setState({

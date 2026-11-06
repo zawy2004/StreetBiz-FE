@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   financeApi,
@@ -8,9 +8,11 @@ import {
   type PaymentProvider,
   type PaymentTransactionDto,
   type PenaltyListDto,
+  type SubmitPenaltyReceiptBody,
   type VendorViolationDto,
 } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
+import { PAYMENT_OPTIONS_KEY } from '@/features/payout-accounts/usePayoutAccount';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 import { VIOLATION_TYPES } from '@/mocks/seed';
@@ -24,6 +26,7 @@ export const FINANCE_KEYS = {
   violations: ['finance', 'violations'] as const,
   invoices: ['finance', 'invoices'] as const,
   invoice: (invoiceId: number) => ['finance', 'invoices', invoiceId] as const,
+  treasury: (penaltyId: number) => ['finance', 'treasury', penaltyId] as const,
 };
 
 const idNumber = (id: string) => Number(id.replace(/\D/g, '')) || 0;
@@ -354,17 +357,33 @@ export function usePayFeeCheckout() {
   });
 }
 
-/** FEE-04: only meaningful against the live API — mock payment stays instant and local to the screen. */
-export function usePayPenaltyCheckout() {
+/**
+ * The payment methods for one fee. PAYOS appears, naming the ward, only once the ward has
+ * connected its own receiving account; a short stale time keeps a just-connected ward visible.
+ */
+export function useFeePaymentOptions(feeItemId: number) {
+  return useQuery({
+    queryKey: [...PAYMENT_OPTIONS_KEY, 'fee', feeItemId] as const,
+    queryFn: () => financeApi.feePaymentOptions(feeItemId),
+    enabled: isLiveApi && Number.isFinite(feeItemId),
+    staleTime: 30_000,
+  });
+}
+
+/** How to pay one fine to the State Treasury, and the household's receipt so far. */
+export function usePenaltyTreasury(penaltyId: number) {
+  return useQuery({
+    queryKey: FINANCE_KEYS.treasury(penaltyId),
+    queryFn: () => financeApi.penaltyTreasury(penaltyId),
+    enabled: isLiveApi && Number.isFinite(penaltyId),
+  });
+}
+
+/** The household's Treasury receipt for the ward to check; the fine's views re-read afterwards. */
+export function useSubmitPenaltyReceipt(penaltyId: number) {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      penaltyId,
-      provider,
-      idempotencyKey,
-    }: {
-      penaltyId: number;
-      provider: PaymentProvider;
-      idempotencyKey: string;
-    }) => financeApi.payPenaltyCheckout(penaltyId, provider, idempotencyKey),
+    mutationFn: (body: SubmitPenaltyReceiptBody) => financeApi.submitPenaltyReceipt(penaltyId, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['finance'] }),
   });
 }

@@ -50,6 +50,7 @@ const providerNames: Record<string, string> = {
   MOMO: 'MoMo',
   ZALOPAY: 'ZaloPay',
   SEPAY: 'SePay',
+  PAYOS: 'payOS',
 };
 
 /** "MoMo" / "ZaloPay" for the gateway codes the backend sends; anything else as sent. */

@@ -1,8 +1,19 @@
 import { useId, type ReactNode } from 'react';
 
-import { Button, formatVnd, Icon } from '@/components/common';
+import { Button, formatVnd, Icon, QrCode } from '@/components/common';
 import { showToast } from '@/components/feedback';
 import type { BankTransferDto } from '@/core/api/finance-api';
+
+/** A link from the server is opened only if it is an http(s) page: never a script or data URL. */
+function openableUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+  } catch {
+    return null;
+  }
+}
 
 async function copy(value: string, what: string) {
   try {
@@ -24,13 +35,16 @@ type Props = {
 
 /**
  * "Chuyển khoản qua VietQR": the QR for the payer's banking app and the same
- * details to type by hand, each with a copy button. The transfer content is
+ * details to type by hand, each with a copy button. SePay serves the QR as an
+ * image; payOS gives its content, drawn here, and its hosted payment page. The transfer content is
  * the payment code and is marked as required: without it the money cannot be
  * matched to this payment. Nothing here says the payment worked; the screen
  * moves on only when the backend reports SUCCESS.
  */
 export function BankTransferPanel({ transfer, checking = false, onCheck, children }: Props) {
   const titleId = useId();
+  const qrLabel = `Mã VietQR chuyển ${formatVnd(transfer.amount)} tới ${transfer.bankName} ${transfer.accountNumber}, nội dung ${transfer.transferContent}`;
+  const checkoutUrl = openableUrl(transfer.checkoutUrl);
   return (
     <section
       aria-labelledby={titleId}
@@ -53,13 +67,19 @@ export function BankTransferPanel({ transfer, checking = false, onCheck, childre
         </div>
       </header>
 
-      <img
-        src={transfer.qrImageUrl}
-        alt={`Mã VietQR chuyển ${formatVnd(transfer.amount)} tới ${transfer.bankName} ${transfer.accountNumber}, nội dung ${transfer.transferContent}`}
-        width={240}
-        height={240}
-        className="mx-auto aspect-square w-[240px] max-w-full rounded-[16px] bg-white p-2 ring-1 ring-border"
-      />
+      {transfer.qrContent ? (
+        <div role="img" aria-label={qrLabel} className="mx-auto max-w-full">
+          <QrCode value={transfer.qrContent} size={224} />
+        </div>
+      ) : (
+        <img
+          src={transfer.qrImageUrl}
+          alt={qrLabel}
+          width={240}
+          height={240}
+          className="mx-auto aspect-square w-[240px] max-w-full rounded-[16px] bg-white p-2 ring-1 ring-border"
+        />
+      )}
 
       <dl className="flex flex-col divide-y divide-border rounded-[16px] bg-sunken/60 px-sm">
         <Detail label="Ngân hàng" value={transfer.bankName} />
@@ -88,6 +108,18 @@ export function BankTransferPanel({ transfer, checking = false, onCheck, childre
           số tiền. Thiếu hoặc sai nội dung, hệ thống không nhận ra khoản của bạn.
         </span>
       </p>
+
+      {checkoutUrl ? (
+        <a
+          href={checkoutUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-xs self-center rounded-full px-sm py-xs text-body-md font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+        >
+          <Icon name="open-in-new" size={18} color="currentColor" />
+          Mở trang thanh toán
+        </a>
+      ) : null}
 
       <p
         role="status"

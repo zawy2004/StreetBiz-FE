@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { vi } from 'vitest';
 
-import type { BankTransferDto, FeeItemDto, FinanceCheckoutDto } from '@/core/api';
+import type { BankTransferDto, FeeItemDetailDto, FeeItemDto, FinanceCheckoutDto } from '@/core/api';
 import type { Order } from '@/features/orders/types/order.types';
 
 const client = vi.hoisted(() => ({ apiGet: vi.fn(), apiGetBlob: vi.fn(), apiPost: vi.fn() }));
@@ -62,6 +62,57 @@ const fee: FeeItemDto = {
   paidAt: null,
 };
 
+/** The instalment's own detail, read beside the list; once paid it carries the invoice the receipt shows. */
+function feeDetail(paid: boolean): FeeItemDetailDto {
+  return {
+    contract: {
+      contractId: 1,
+      slotCode: 'NVL-01',
+      zoneName: 'Nguyễn Văn Linh',
+      wardName: 'Phường Hải Châu 1',
+      address: null,
+      startDate: '2026-08-01',
+      endDate: '2026-10-30',
+      contractStatus: 'ACTIVE',
+      totalAmount: 3_120_000,
+      paidAmount: paid ? 3_120_000 : 2_080_000,
+      outstandingAmount: paid ? 0 : 1_040_000,
+      instalmentCount: 3,
+      paidCount: paid ? 3 : 2,
+      overdueCount: 0,
+      nextDue: null,
+    },
+    item: {
+      feeItemId: 3,
+      ordinal: 3,
+      ofCount: 3,
+      periodLabel: fee.periodLabel,
+      dueDate: fee.dueDate,
+      amount: fee.amount,
+      itemStatus: paid ? 'PAID' : 'PENDING',
+      paidAt: paid ? '2026-10-18T03:00:00Z' : null,
+      invoiceId: paid ? 41 : null,
+      invoiceNumber: paid ? 'HD-2026-000041' : null,
+      daysOverdue: null,
+      daysUntilDue: paid ? null : 2,
+    },
+  };
+}
+
+/** GET answers for the fee screen: the list, the instalment's detail, and the remembered QR. */
+function feeReads(isPaid: () => boolean = () => false) {
+  return async (url: string) =>
+    url === '/vendor/finance/fees'
+      ? [{ ...fee, itemStatus: isPaid() ? 'PAID' : 'PENDING' }]
+      : url === '/vendor/finance/fees/3'
+        ? feeDetail(isPaid())
+        : url === '/vendor/finance/payments/9/bank-transfer'
+          ? transfer
+          : url === '/vendor/finance/fees/3/payment-options'
+            ? { mode: 'LIVE', providers: ['MOMO', 'ZALOPAY', 'SEPAY'], message: '', payee: null }
+            : [];
+}
+
 const checkout: FinanceCheckoutDto = {
   transactionId: 9,
   purpose: 'RENTAL_FEE',
@@ -103,9 +154,9 @@ describe('fee payment by SePay bank transfer', () => {
     sessionStorage.clear();
   });
 
-  it('shows the VietQR on the page instead of leaving it, and moves on once the money is in', async () => {
+  it('shows the VietQR on the page instead of leaving it, and shows the receipt once the money is in', async () => {
     let paid = false;
-    client.apiGet.mockImplementation(async (url: string) => (url === '/vendor/finance/fees' ? [fee] : []));
+    client.apiGet.mockImplementation(feeReads(() => paid));
     client.apiPost.mockImplementation(async (url: string) =>
       url.endsWith('/checkout') ? checkout : { transactionId: 9, status: paid ? 'SUCCESS' : 'PENDING' },
     );
@@ -131,7 +182,10 @@ describe('fee payment by SePay bank transfer', () => {
 
     paid = true;
     await userEvent.click(checkNow());
-    expect(await screen.findByText('FINANCE HOME')).toBeInTheDocument();
+    // The instalment re-reads as PAID, so the page turns into its receipt (as after MoMo).
+    expect(await screen.findByRole('heading', { name: 'Thanh toán thành công' })).toBeInTheDocument();
+    expect(screen.getByText('HD-2026-000041')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /Mã VietQR/ })).not.toBeInTheDocument();
   });
 
   it('brings the same QR back after a reload', async () => {
@@ -139,13 +193,7 @@ describe('fee payment by SePay bank transfer', () => {
       'streetbiz.financeBankTransfer',
       JSON.stringify({ transactionId: 9, path: '/vendor/finance/fees/3/payment' }),
     );
-    client.apiGet.mockImplementation(async (url: string) =>
-      url === '/vendor/finance/fees'
-        ? [fee]
-        : url === '/vendor/finance/payments/9/bank-transfer'
-          ? transfer
-          : [],
-    );
+    client.apiGet.mockImplementation(feeReads());
     renderFeePayment();
 
     expect(await qrImage()).toBeInTheDocument();
@@ -153,7 +201,7 @@ describe('fee payment by SePay bank transfer', () => {
   });
 
   it('copies the transfer content exactly as it must be sent', async () => {
-    client.apiGet.mockImplementation(async (url: string) => (url === '/vendor/finance/fees' ? [fee] : []));
+    client.apiGet.mockImplementation(feeReads());
     client.apiPost.mockResolvedValue(checkout);
     renderFeePayment();
     await userEvent.click(await screen.findByRole('radio', { name: /Chuyển khoản/ }));
@@ -168,7 +216,7 @@ describe('fee payment by SePay bank transfer', () => {
   });
 
   it('goes back to the wallet choice with a fresh checkout when the vendor changes method', async () => {
-    client.apiGet.mockImplementation(async (url: string) => (url === '/vendor/finance/fees' ? [fee] : []));
+    client.apiGet.mockImplementation(feeReads());
     client.apiPost.mockResolvedValue(checkout);
     renderFeePayment();
     await userEvent.click(await screen.findByRole('radio', { name: /Chuyển khoản/ }));

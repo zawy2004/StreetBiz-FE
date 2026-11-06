@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/feedback';
 import { FoodImage } from '@/features/buyer-discovery/components/FoodImage';
 import type { FoodPhoto } from '@/features/buyer-discovery/food-photos';
 import { usePrefersReducedMotion } from '@/features/orders/components/order-display';
+import type { PayeeDto } from '@/core/api';
 import type { PaymentProvider } from '@/features/orders/types/order.types';
 
 /**
@@ -15,6 +16,12 @@ import type { PaymentProvider } from '@/features/orders/types/order.types';
  */
 
 const PROVIDERS: { value: PaymentProvider; label: string; description: string; icon: string }[] = [
+  {
+    value: 'PAYOS',
+    label: 'Chuyển khoản VietQR',
+    description: 'Trả thẳng vào tài khoản của quán',
+    icon: 'bank',
+  },
   { value: 'MOMO', label: 'MoMo', description: 'Thanh toán qua ví MoMo', icon: 'wallet-outline' },
   { value: 'ZALOPAY', label: 'ZaloPay', description: 'Thanh toán qua ví ZaloPay', icon: 'wallet-outline' },
   {
@@ -32,24 +39,33 @@ const providerLabel = (provider: PaymentProvider) =>
  * The wallets and bank transfer as large tiles. Each is a real, visible radio
  * input inside its label (name "paymentProvider"), so arrow keys move between
  * them and a test can `.check()` the input itself. On two columns the last
- * tile spans the row rather than sit half-width on its own.
+ * tile spans the row rather than sit half-width on its own. Only the methods the
+ * server offers for this stall are drawn (`providers`); the payOS tile names the
+ * household that would be paid (`payee`).
  */
 export function ProviderTiles({
   value,
   onChange,
   disabled,
+  providers,
+  payee,
 }: {
-  value: PaymentProvider;
+  value: PaymentProvider | undefined;
   onChange: (provider: PaymentProvider) => void;
   disabled?: boolean;
+  providers?: readonly PaymentProvider[];
+  payee?: PayeeDto | null;
 }) {
+  const offered = providers
+    ? PROVIDERS.filter((provider) => providers.includes(provider.value))
+    : PROVIDERS;
   return (
     <fieldset className="min-w-0">
       <legend className="mb-sm font-sign text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">
         Phương thức thanh toán
       </legend>
       <div className="grid gap-sm sm:grid-cols-2">
-        {PROVIDERS.map((provider) => {
+        {offered.map((provider) => {
           const selected = value === provider.value;
           return (
             <label
@@ -83,7 +99,11 @@ export function ProviderTiles({
                 <span className="block font-sign text-[20px] font-bold leading-6 text-text">
                   {provider.label}
                 </span>
-                <span className="mt-0.5 block text-body-sm text-muted">{provider.description}</span>
+                <span className="mt-0.5 block text-body-sm text-muted">
+                  {provider.value === 'PAYOS' && payee
+                    ? `Trả thẳng cho ${payee.name}`
+                    : provider.description}
+                </span>
               </span>
               {selected ? (
                 <span aria-hidden="true" className="sb-pop text-primary">
@@ -95,6 +115,36 @@ export function ProviderTiles({
         })}
       </div>
     </fieldset>
+  );
+}
+
+/**
+ * The locked state of the payment choice: the stall has not connected a receiving account, so no
+ * online order can be taken. The tiles stay out; the customer is told what to do instead.
+ */
+export function StoreNotOnline({ message }: { message?: string }) {
+  return (
+    <section
+      aria-label="Quán chưa nhận thanh toán online"
+      className="flex items-start gap-sm rounded-[18px] border-2 border-dashed border-border bg-sunken/50 p-md"
+    >
+      <span
+        aria-hidden="true"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-sunken text-muted"
+      >
+        <Icon name="lock-outline" size={24} color="currentColor" />
+      </span>
+      <div className="min-w-0">
+        <p className="font-sign text-[18px] font-bold leading-6 text-text">
+          Quán chưa nhận thanh toán online
+        </p>
+        <p className="mt-0.5 text-body-md text-muted">
+          Quán chưa kết nối tài khoản nhận tiền nên chưa nhận được đơn trả trước. Bạn có thể mua
+          trực tiếp tại quầy.
+        </p>
+        {message ? <p className="mt-xs text-body-sm text-muted">{message}</p> : null}
+      </div>
+    </section>
   );
 }
 
@@ -176,7 +226,7 @@ export function CheckoutBoard({
 
 /** "Sau khi bấm": what happens next, worded for the wallet chosen. */
 export function AfterPayNote({ provider, amount }: { provider: PaymentProvider; amount: number }) {
-  const byBank = provider === 'SEPAY';
+  const byBank = provider === 'SEPAY' || provider === 'PAYOS';
   const rows: { icon: string; text: ReactNode }[] = [
     {
       icon: byBank ? 'qrcode' : 'wallet-outline',

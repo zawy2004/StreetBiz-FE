@@ -176,17 +176,26 @@ export function ListHeading({
   );
 }
 
-/** The wallet line every payment slip ends with (kept word for word from the old summary). */
-export function WalletChannelLine() {
+/**
+ * The line every payment slip ends with: how it is paid. A slip that knows the payee or the
+ * channel says so; the default is the wallet line kept word for word from the old summary.
+ */
+export function WalletChannelLine({
+  label = 'Ví điện tử MoMo / ZaloPay',
+  icon = 'wallet-outline',
+}: {
+  label?: string;
+  icon?: string;
+}) {
   return (
     <div className="flex items-center gap-sm">
       <span
         aria-hidden="true"
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#E6F6EC] text-[#0B5D33] dark:bg-[#10301F] dark:text-[#8BE3B0]"
       >
-        <Icon name="wallet-outline" size={20} color="currentColor" />
+        <Icon name={icon} size={20} color="currentColor" />
       </span>
-      <span className="flex-1 text-body-lg text-text">Ví điện tử MoMo / ZaloPay</span>
+      <span className="flex-1 text-body-lg text-text">{label}</span>
       <span className="text-tertiary">
         <Icon name="check-circle" size={22} color="currentColor" />
       </span>

@@ -22,7 +22,7 @@ import {
   useFinanceBankTransfer,
   useFinancePaymentReturn,
 } from '../useFinancePaymentReturn';
-import { useFeeItems, usePayFeeCheckout } from '../useFinance';
+import { useFeeItems, useFeePaymentOptions, usePayFeeCheckout } from '../useFinance';
 import { useFeeItemDetail } from '../useFeeSchedules';
 import { formatDay, paidShare } from '../schedule-progress';
 import { ProgressBar } from '../components/ScheduleComponents';
@@ -32,6 +32,7 @@ import { BankTransferSection } from '../components/BankTransferSection';
 import {
   CheckoutError,
   FeeSlip,
+  NoOnlinePayment,
   PayBar,
   SafePaySteps,
   WalletPicker,
@@ -50,7 +51,7 @@ function LiveFeePaymentScreen() {
   const feeItemId = Number(id);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [provider, setProvider] = useState<Provider>('MOMO');
+  const [chosen, setChosen] = useState<Provider | null>(null);
   const idempotencyKey = useRef<string | null>(null);
   const submitting = useRef(false);
   // The fee list is enough to pay. The instalment's own detail adds the contract's progress and,
@@ -58,6 +59,11 @@ function LiveFeePaymentScreen() {
   const { feeItems, isLoading, isError, error, refetch } = useFeeItems();
   const detail = useFeeItemDetail(feeItemId);
   const checkout = usePayFeeCheckout();
+  // The methods the server offers for this fee: the ward's own payOS account is one of them only
+  // once the ward has connected it. Until the vendor picks, the first offered is selected.
+  const options = useFeePaymentOptions(feeItemId);
+  const offered = options.data?.providers ?? [];
+  const provider = chosen && offered.includes(chosen) ? chosen : offered[0];
   const { pathname } = useLocation();
   // Every finance view (lists, summary, schedules, this item) re-reads after a payment. A read
   // still in flight is cancelled first: back from MoMo, the page's first read of this instalment
@@ -96,7 +102,7 @@ function LiveFeePaymentScreen() {
   };
 
   const pay = () => {
-    if (!fee || !isPayableFee(fee) || submitting.current || checkout.isPending) return;
+    if (!fee || !provider || !isPayableFee(fee) || submitting.current || checkout.isPending) return;
     submitting.current = true;
     idempotencyKey.current ??= crypto.randomUUID();
     checkout.mutate(
@@ -178,7 +184,7 @@ function LiveFeePaymentScreen() {
             <Button
               label={payButtonLabel(provider, checkout.isPending, bank.transfer !== null)}
               loading={checkout.isPending}
-              disabled={checkout.isPending || bank.transfer !== null}
+              disabled={!provider || checkout.isPending || bank.transfer !== null}
               onPress={pay}
             />
           </PayBar>
@@ -195,6 +201,7 @@ function LiveFeePaymentScreen() {
             dueDate={fee.dueDate}
             slotCode={fee.slotCode}
             status={fee.itemStatus}
+            payeeName={provider === 'PAYOS' ? options.data?.payee?.name : null}
           />
           {detail.data ? <ContractProgress detail={detail.data} /> : null}
         </div>
@@ -202,7 +209,29 @@ function LiveFeePaymentScreen() {
           <BankTransferSection bank={bank} onChangeMethod={changeMethod} />
         ) : (
           <div className="flex min-w-0 max-w-[640px] flex-col gap-md">
-            <WalletPicker value={provider} onChange={setProvider} disabled={checkout.isPending} />
+            {options.isPending ? (
+              <Skeleton className="h-20 w-full !rounded-[16px]" />
+            ) : options.isError ? (
+              <>
+                <CheckoutError message={errorMessage(options.error)} />
+                <Button
+                  label="Tải lại phương thức thanh toán"
+                  variant="outline"
+                  fullWidth={false}
+                  onPress={() => void options.refetch()}
+                />
+              </>
+            ) : offered.length === 0 ? (
+              <NoOnlinePayment message={options.data?.message} />
+            ) : (
+              <WalletPicker
+                value={provider}
+                onChange={setChosen}
+                disabled={checkout.isPending}
+                providers={offered}
+                payee={options.data?.payee}
+              />
+            )}
             {checkout.isError ? <CheckoutError message={errorMessage(checkout.error)} /> : null}
             {bank.closedMessage ? <CheckoutError message={bank.closedMessage} /> : null}
             <SafePaySteps />

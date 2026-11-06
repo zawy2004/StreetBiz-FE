@@ -2,7 +2,7 @@ import { useId, type ReactNode } from 'react';
 
 import { formatVnd, Icon, KerbTag, type IconName } from '@/components/common';
 import { StatusChip } from '@/components/status';
-import type { PaymentProvider } from '@/core/api';
+import type { PayeeDto, PaymentProvider } from '@/core/api';
 import { feeUrgency } from '../finance-view';
 import { TearLine, WalletChannelLine } from './FinanceParts';
 import {
@@ -19,34 +19,45 @@ import {
 /* ------------------------------------------------------------------------ */
 
 const WALLETS: { value: PaymentProvider; label: string; description: string }[] = [
+  {
+    value: 'PAYOS',
+    label: 'Chuyển khoản VietQR',
+    description: 'Trả thẳng vào tài khoản của bên nhận',
+  },
   { value: 'MOMO', label: 'MoMo', description: 'Thanh toán qua ví MoMo' },
   { value: 'ZALOPAY', label: 'ZaloPay', description: 'Thanh toán qua ví ZaloPay' },
   { value: 'SEPAY', label: 'Chuyển khoản', description: 'Quét VietQR bằng app ngân hàng' },
 ];
 
 /**
- * The finance pages' own copy of the wallet choice, drawn as large cards
+ * The finance pages' own copy of the payment choice, drawn as large cards
  * (the buyer checkout keeps `PaymentProviderSelector`). Same fieldset, legend,
- * radio name, labels, descriptions and default as that selector. The wallet
- * names are words only: the project has no wallet logo assets. The third card
- * spans the whole row so no card is left half-width on its own.
+ * radio name and labels as that selector. Only the methods the server offers for this
+ * payment are drawn (`providers`), and when it names who is paid (`payee`) the bank-transfer
+ * card says so. The wallet names are words only: the project has no wallet logo assets. A
+ * last card on its own spans the whole row so none is left half-width.
  */
 export function WalletPicker({
   value,
   onChange,
   disabled,
+  providers,
+  payee,
 }: {
-  value: PaymentProvider;
+  value: PaymentProvider | undefined;
   onChange: (provider: PaymentProvider) => void;
   disabled?: boolean;
+  providers?: readonly PaymentProvider[];
+  payee?: PayeeDto | null;
 }) {
+  const offered = providers ? WALLETS.filter((wallet) => providers.includes(wallet.value)) : WALLETS;
   return (
     <fieldset className="min-w-0">
       <legend className="mb-sm font-sign text-[18px] font-bold leading-6 text-text">
         Phương thức thanh toán
       </legend>
       <div className="grid grid-cols-2 gap-sm">
-        {WALLETS.map((wallet) => {
+        {offered.map((wallet) => {
           const chosen = value === wallet.value;
           return (
             <label
@@ -74,7 +85,7 @@ export function WalletPicker({
                 {wallet.label}
               </span>
               <span className={`text-body-sm text-muted ${disabled ? 'opacity-50' : ''}`}>
-                {wallet.description}
+                {wallet.value === 'PAYOS' && payee ? `Trả thẳng cho ${payee.name}` : wallet.description}
               </span>
               {chosen ? (
                 <span
@@ -89,6 +100,31 @@ export function WalletPicker({
         })}
       </div>
     </fieldset>
+  );
+}
+
+/**
+ * Nothing can be paid online right now: the ward has not connected a receiving account (and no
+ * platform gateway is on). Says so and what to do instead, rather than showing an empty choice.
+ */
+export function NoOnlinePayment({ message }: { message?: string }) {
+  return (
+    <section
+      aria-label="Chưa thanh toán online được"
+      className="flex flex-col gap-xs rounded-[20px] bg-card p-md ring-1 ring-border/80"
+    >
+      <h2 className="flex items-center gap-xs font-sign text-[18px] font-bold leading-6 text-text">
+        <span className="text-muted">
+          <Icon name="bank" size={22} color="currentColor" />
+        </span>
+        Chưa thanh toán online được
+      </h2>
+      <p className="text-body-md text-text">
+        Phường chưa mở nhận phí thuê ô qua chuyển khoản. Bạn có thể nộp trực tiếp tại phường, hoặc
+        thử lại sau khi phường kết nối tài khoản nhận tiền.
+      </p>
+      {message ? <p className="text-body-sm text-muted">{message}</p> : null}
+    </section>
   );
 }
 
@@ -120,6 +156,8 @@ type FeeSlipProps = {
   dueDate: string;
   slotCode?: string | null;
   status?: string;
+  /** Who the fee is paid to (the ward), once the server has said; otherwise the generic wallet line. */
+  payeeName?: string | null;
 };
 
 /**
@@ -128,7 +166,7 @@ type FeeSlipProps = {
  * and how late it is, a tear line, and the wallet line it is paid through.
  * The status chip is whatever the server says the instalment is.
  */
-export function FeeSlip({ periodLabel, amount, dueDate, slotCode, status }: FeeSlipProps) {
+export function FeeSlip({ periodLabel, amount, dueDate, slotCode, status, payeeName }: FeeSlipProps) {
   const entered = useEntered();
   const urgency = status ? feeUrgency({ dueDate, itemStatus: status }) : null;
   return (
@@ -165,7 +203,11 @@ export function FeeSlip({ periodLabel, amount, dueDate, slotCode, status }: FeeS
         </div>
         <TearLine entered={entered} />
         <div className="px-md md:px-lg">
-          <WalletChannelLine />
+          {payeeName ? (
+            <WalletChannelLine label={`Trả thẳng cho ${payeeName}`} icon="bank" />
+          ) : (
+            <WalletChannelLine />
+          )}
         </div>
       </section>
     </div>
@@ -256,7 +298,7 @@ export function PenaltyNotice({ violationLabel, amount, slotCode, issuedAt, stat
           <Amount value={amount} />
         </div>
 
-        <WalletChannelLine />
+        <WalletChannelLine label="Nộp vào Kho bạc Nhà nước" icon="bank" />
       </div>
     </article>
   );
@@ -267,11 +309,11 @@ export function PenaltyNotice({ violationLabel, amount, slotCode, issuedAt, stat
 /* ------------------------------------------------------------------------ */
 
 const SAFE_STEPS: { icon: IconName; text: string }[] = [
-  { icon: 'wallet-outline', text: 'Chọn ví và bấm thanh toán.' },
-  { icon: 'send-outline', text: 'Xác nhận trong ứng dụng ví.' },
+  { icon: 'wallet-outline', text: 'Chọn phương thức và bấm thanh toán.' },
+  { icon: 'send-outline', text: 'Xác nhận trong ứng dụng ví hoặc quét VietQR bằng app ngân hàng.' },
   {
     icon: 'cloud-check-outline',
-    text: 'Quay lại StreetBiz: hệ thống hỏi lại ví rồi mới ghi nhận và xuất hoá đơn.',
+    text: 'Quay lại StreetBiz: hệ thống hỏi lại cổng thanh toán rồi mới ghi nhận và xuất hoá đơn.',
   },
 ];
 
@@ -296,13 +338,14 @@ export function SafePaySteps() {
   );
 }
 
-/** "Về biên bản này": who decides the fine and when the notice changes state. */
+/** "Về biên bản này": who decides the fine, and why StreetBiz does not collect it. */
 export function PenaltyNote() {
   return (
     <SideNote title="Về biên bản này" icon="information-outline">
       <p className="text-body-md text-text">
-        Mức phạt do Cán bộ Phường quyết định theo biểu mức phạt của phường. Biên bản chuyển sang Đã
-        thanh toán sau khi hệ thống nhận xác nhận từ ví.
+        Mức phạt do Cán bộ Phường quyết định theo biểu mức phạt của phường. Tiền phạt là khoản thu
+        của Nhà nước nên nộp vào Kho bạc, StreetBiz không thu hộ. Biên bản chuyển sang Đã thanh toán
+        sau khi phường đối chiếu biên lai của bạn với Kho bạc.
       </p>
     </SideNote>
   );

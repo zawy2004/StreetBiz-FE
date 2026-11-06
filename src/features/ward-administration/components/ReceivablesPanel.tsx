@@ -3,6 +3,7 @@ import { Section } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { showToast } from '@/components/feedback';
 import { errorMessage, type WardRefundDto } from '@/core/api';
+import { PROVIDER_LABEL } from '@/features/fee-schedules/finance-view';
 import { useMarkRefunded, useReceivables, useWardRefunds } from '../useWardReports';
 
 const day = (iso: string) => new Date(iso).toLocaleDateString('vi-VN');
@@ -10,6 +11,8 @@ const day = (iso: string) => new Date(iso).toLocaleDateString('vi-VN');
 function RefundRow({ refund, first }: { refund: WardRefundDto; first: boolean }) {
   const mark = useMarkRefunded();
   const waiting = refund.status === 'REFUND_REQUIRED';
+  // A fine paid to the State Treasury is returned by the Treasury, not by the ward or StreetBiz.
+  const byTreasury = refund.provider === 'TREASURY';
   return (
     <div>
       {first ? null : <Divider />}
@@ -17,7 +20,8 @@ function RefundRow({ refund, first }: { refund: WardRefundDto; first: boolean })
         <div className="min-w-0">
           <p className="truncate text-headline-sm text-text">{refund.vendorName}</p>
           <p className="text-body-sm text-muted">
-            {refund.label} · {refund.provider} · nhận {day(refund.receivedAt)}
+            {refund.label} · {PROVIDER_LABEL[refund.provider] ?? refund.provider} · nhận{' '}
+            {day(refund.receivedAt)}
           </p>
           <div className="mt-2xs">
             <StatusChip code={refund.status} />
@@ -27,7 +31,7 @@ function RefundRow({ refund, first }: { refund: WardRefundDto; first: boolean })
           <Money amountVnd={refund.amount} className="whitespace-nowrap" />
           {waiting ? (
             <Button
-              label="Đã hoàn tiền"
+              label={byTreasury ? 'Kho bạc đã hoàn' : 'Đã hoàn tiền'}
               size="sm"
               variant="outline"
               fullWidth={false}
@@ -91,7 +95,8 @@ export function ReceivablesPanel() {
           </Card>
           <p className="text-body-sm text-muted">
             Hộ kinh doanh đã trả hai lần cho cùng một khoản. Hoàn tiền qua cổng thanh toán hoặc trực tiếp,
-            rồi bấm &ldquo;Đã hoàn tiền&rdquo; để ghi lại.
+            rồi bấm &ldquo;Đã hoàn tiền&rdquo; để ghi lại. Tiền phạt đã nộp Kho bạc mà quyết định bị huỷ
+            thì do Kho bạc hoàn trả cho hộ; bấm &ldquo;Kho bạc đã hoàn&rdquo; khi hộ đã nhận lại tiền.
           </p>
         </Section>
       ) : null}

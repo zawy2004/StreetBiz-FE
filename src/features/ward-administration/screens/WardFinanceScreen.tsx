@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { Button, formatVnd } from '@/components/common';
+import { Button, formatVnd, Icon } from '@/components/common';
 import { EmptyState, ErrorState, showToast } from '@/components/feedback';
 import { SegmentedControl, TextField } from '@/components/forms';
 import { AppHeader, Screen, Section } from '@/components/layout';
@@ -24,6 +24,7 @@ import {
   summariseContracts,
   type ContractFilter,
 } from '../components/finance/finance-model';
+import { PenaltyReceiptsPanel } from '../components/finance/PenaltyReceiptsPanel';
 import { DecisionDeskCard } from '../components/review/PermitDossierParts';
 import { WardGate } from '../components/WardGate';
 import {
@@ -44,10 +45,14 @@ const STATUS_LABEL: Record<string, string> = {
   WAIVED: 'Đã miễn',
 };
 
-function StatusPill({ status }: { status: string }) {
+/** A fine is CANCELLED when its decision was annulled; a fee instalment is CANCELLED when waived. */
+const PENALTY_LABEL: Record<string, string> = { ...STATUS_LABEL, CANCELLED: 'Quyết định đã huỷ' };
+
+function StatusPill({ status, penalty = false }: { status: string; penalty?: boolean }) {
   const tone =
     status === 'PAID' ? 'ok' : status === 'OVERDUE' ? 'danger' : status === 'PENDING' || status === 'UNPAID' ? 'pending' : 'neutral';
-  return <StatusChip label={STATUS_LABEL[status] ?? status} tone={tone} />;
+  const labels = penalty ? PENALTY_LABEL : STATUS_LABEL;
+  return <StatusChip label={labels[status] ?? status} tone={tone} />;
 }
 
 const METHOD_OPTIONS: { value: OfflineMethod; label: string }[] = [
@@ -97,7 +102,7 @@ function ActionPanel({
 
 type Open =
   | { kind: 'ADJUST' | 'WAIVE' | 'PAY'; target: 'FEE'; id: number }
-  | { kind: 'WAIVE' | 'PAY'; target: 'PENALTY'; id: number }
+  | { kind: 'WAIVE' | 'PAY' | 'ANNUL'; target: 'PENALTY'; id: number }
   | { kind: 'REFUND' }
   | { kind: 'SLOT_PRICE' }
   | null;
@@ -150,6 +155,10 @@ function ContractDetail({ contractId }: { contractId: number }) {
   });
   const waivePenalty = useMutation({
     mutationFn: (id: number) => wardFinanceApi.waivePenalty(id, reason.trim()),
+    ...done,
+  });
+  const annul = useMutation({
+    mutationFn: (id: number) => wardFinanceApi.annulPaidPenalty(id, reason.trim()),
     ...done,
   });
   const pay = useMutation({
@@ -288,6 +297,30 @@ function ContractDetail({ contractId }: { contractId: number }) {
         </ActionPanel>
       );
     }
+    if (open.kind === 'ANNUL') {
+      return (
+        <ActionPanel
+          title="Ghi nhận quyết định xử phạt đã bị huỷ"
+          confirmLabel="Xác nhận huỷ quyết định"
+          pending={annul.isPending}
+          disabled={!hasReason}
+          onCancel={close}
+          onConfirm={() => annul.mutate(id)}
+        >
+          <TextField
+            label="Lý do huỷ quyết định *"
+            value={reason}
+            onChangeText={setReason}
+            multiline
+            maxLength={500}
+          />
+          <p className="text-body-sm text-muted">
+            Khoản phạt chuyển sang Đã huỷ. Số tiền hộ đã nộp do Kho bạc hoàn trả, StreetBiz không giữ
+            tiền này; khi Kho bạc đã hoàn, ghi nhận ở Báo cáo thu → Cần hoàn tiền.
+          </p>
+        </ActionPanel>
+      );
+    }
     return (
       <ActionPanel
         title="Ghi nhận khoản đã thu ngoài hệ thống"
@@ -303,7 +336,19 @@ function ContractDetail({ contractId }: { contractId: number }) {
   };
 
   const penaltyActions = (p: WardPenaltyItem) =>
-    p.status === 'UNPAID' ? (
+    p.status === 'PAID' ? (
+      <div className="flex flex-wrap gap-xs">
+        <Button
+          label="Quyết định đã bị huỷ"
+          variant="ghost"
+          fullWidth={false}
+          onPress={() => {
+            close();
+            setOpen({ kind: 'ANNUL', target: 'PENALTY', id: p.penaltyId });
+          }}
+        />
+      </div>
+    ) : p.status === 'UNPAID' ? (
       <div className="flex flex-wrap gap-xs">
         <Button
           label="Ghi nhận đã thu"
@@ -384,7 +429,7 @@ function ContractDetail({ contractId }: { contractId: number }) {
                     lead={formatDateVn(p.createdAt.slice(0, 10))}
                     title={p.violationType}
                     amount={p.amount}
-                    status={<StatusPill status={p.status} />}
+                    status={<StatusPill status={p.status} penalty />}
                     notes={
                       p.decisionNumber || p.waiverReason ? (
                         <p className="text-body-sm text-muted">
@@ -586,6 +631,8 @@ function ContractList() {
         <WardOwedHero summary={summariseContracts(list.data)} />
       </div>
 
+      <PenaltyReceiptsPanel />
+
       <div className="flex flex-col gap-sm md:flex-row md:items-center md:justify-between">
         <SegmentedControl
           value={filter}
@@ -621,6 +668,7 @@ function ContractList() {
 }
 
 export function WardFinanceScreen() {
+  const navigate = useNavigate();
   const { contractId } = useParams();
   const id = contractId ? Number(contractId) : null;
   return (
@@ -630,6 +678,17 @@ export function WardFinanceScreen() {
           title="Thu phí & điều chỉnh"
           subtitle="Sửa tay các khoản tiền: kỳ phí, tiền phạt, tiền cọc, giá riêng của ô"
           back={Boolean(id)}
+          right={
+            id ? undefined : (
+              <Button
+                label="Tài khoản nhận phí"
+                variant="outline"
+                fullWidth={false}
+                icon={<Icon name="bank" size={18} color="currentColor" />}
+                onPress={() => navigate('/ward/finance/payout-account')}
+              />
+            )
+          }
         />
         {id ? <ContractDetail contractId={id} /> : <ContractList />}
       </Screen>

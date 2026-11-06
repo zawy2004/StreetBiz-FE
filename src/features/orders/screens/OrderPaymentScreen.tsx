@@ -24,6 +24,10 @@ import { useCustomerOrder, useRefreshAfterOrderMutation } from '../hooks/useOrde
 /** Only Development has the sandbox confirm/fail endpoints; elsewhere a real gateway is used. */
 const sandboxPayments = isDev && env.enablePaymentSandbox;
 
+/** A bank transfer by VietQR (SePay, payOS): shown on this page, settled when the money lands. */
+const isBankTransfer = (provider: string | null | undefined) =>
+  provider === 'SEPAY' || provider === 'PAYOS';
+
 export function OrderPaymentScreen() {
   const { orderId } = useParams();
   const navigate = useNavigate();
@@ -55,7 +59,9 @@ export function OrderPaymentScreen() {
       if (kind === 'sync') {
         if (next.orderStatus === 'PLACED') {
           showToast(
-            next.paymentProvider === 'SEPAY' ? 'Đã nhận chuyển khoản' : 'MoMo đã xác nhận thanh toán',
+            isBankTransfer(next.paymentProvider)
+              ? 'Đã nhận chuyển khoản'
+              : 'MoMo đã xác nhận thanh toán',
           );
         }
         return;
@@ -82,9 +88,9 @@ export function OrderPaymentScreen() {
     }
   }, [pendingOnLoad, action]);
 
-  // SePay: show the order's VietQR and keep checking until the transfer lands.
+  // SePay or payOS: show the order's VietQR and keep checking until the transfer lands.
   const awaitingTransfer =
-    order.data?.orderStatus === 'PENDING_PAYMENT' && order.data.paymentProvider === 'SEPAY';
+    order.data?.orderStatus === 'PENDING_PAYMENT' && isBankTransfer(order.data.paymentProvider);
   const transfer = useQuery({
     queryKey: ['orders', 'bank-transfer', Number(orderId)],
     queryFn: () => orderApi.bankTransfer(Number(orderId)),

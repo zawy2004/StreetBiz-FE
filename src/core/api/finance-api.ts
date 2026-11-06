@@ -6,7 +6,28 @@ import { apiGet, apiGetBlob, apiPost } from './client';
  * from `Application/Common/Security/FinanceConstants.cs`.
  */
 
-export type PaymentProvider = 'MOMO' | 'ZALOPAY' | 'SEPAY';
+export type PaymentProvider = 'MOMO' | 'ZALOPAY' | 'SEPAY' | 'PAYOS';
+
+/** Who a payment goes to: the payee's own payOS account (never StreetBiz's). Numbers are masked. */
+export type PayeeDto = {
+  name: string;
+  bankName: string | null;
+  accountNumberMasked: string | null;
+  accountName: string | null;
+};
+
+/**
+ * The payment methods offered for one thing to pay. `PAYOS` is present only when the payee
+ * (the ward for a rental fee, the household for an order) has connected its own receiving
+ * account; `payee` then names who is being paid.
+ */
+export type PaymentOptionsDto = {
+  /** LIVE = real gateways/transfers; SANDBOX = in-app simulated payment; UNAVAILABLE = nothing to pay with. */
+  mode: 'LIVE' | 'SANDBOX' | 'UNAVAILABLE';
+  providers: PaymentProvider[];
+  message: string;
+  payee: PayeeDto | null;
+};
 
 /** FeeScheduleItems.item_status (DB CHECK). */
 export const FEE_ITEM_STATUS = {
@@ -194,8 +215,10 @@ export type FeeItemDetailDto = {
 };
 
 /**
- * A SePay bank transfer: the VietQR and what to type if the payer cannot scan
- * it. `transferContent` carries the payment code and must be sent unchanged.
+ * A bank transfer by VietQR (SePay or payOS): the QR and what to type if the payer cannot scan
+ * it. `transferContent` carries the payment code and must be sent unchanged. SePay serves the
+ * QR as an image (`qrImageUrl`); payOS gives the QR's content (`qrContent`, drawn here) and the
+ * hosted payment page (`checkoutUrl`).
  */
 export type BankTransferDto = {
   bankName: string;
@@ -204,6 +227,46 @@ export type BankTransferDto = {
   amount: number;
   transferContent: string;
   qrImageUrl: string;
+  qrContent?: string | null;
+  checkoutUrl?: string | null;
+};
+
+/** One receipt a household uploaded for a fine it paid to the State Treasury. */
+export type PenaltyReceiptDto = {
+  receiptId: number;
+  penaltyId: number;
+  status: 'SUBMITTED' | 'ACCEPTED' | 'REJECTED';
+  receiptUrl: string;
+  reference: string | null;
+  paidOn: string;
+  note: string | null;
+  submittedAt: string;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+};
+
+/** How to pay a fine to the Treasury, and where the household's receipt stands. */
+export type PenaltyTreasuryDto = {
+  penaltyId: number;
+  amount: number;
+  decisionNumber: string | null;
+  violationLabel: string;
+  slotCode: string | null;
+  wardName: string | null;
+  penaltyStatus: string;
+  issuedAt: string;
+  /** False once paid, waived or cancelled, or while a receipt waits for the ward. */
+  canSubmit: boolean;
+  instructions: string[];
+  latestReceipt: PenaltyReceiptDto | null;
+};
+
+export type SubmitPenaltyReceiptBody = {
+  receiptUrl: string;
+  reference: string | null;
+  /** "YYYY-MM-DD". */
+  paidOn: string;
+  note: string | null;
 };
 
 export type FinanceCheckoutDto = {
@@ -213,7 +276,7 @@ export type FinanceCheckoutDto = {
   provider: string;
   amount: number;
   paymentUrl: string;
-  /** Set for SEPAY: show this QR instead of redirecting to `paymentUrl`. */
+  /** Set for SEPAY and PAYOS: show this QR instead of redirecting to `paymentUrl`. */
   bankTransfer?: BankTransferDto | null;
 };
 
@@ -243,13 +306,20 @@ export const financeApi = {
   penalties: (status?: string) =>
     apiGet<PenaltyListDto[]>(`/vendor/finance/penalties${queryString({ status })}`),
 
-  /** FEE-04. */
-  payPenaltyCheckout: (penaltyId: number, provider: PaymentProvider, idempotencyKey: string) =>
-    apiPost<FinanceCheckoutDto>(
-      `/vendor/finance/penalties/${penaltyId}/checkout`,
-      { provider },
-      { headers: { 'Idempotency-Key': idempotencyKey } },
-    ),
+  /** The methods this fee can be paid with; PAYOS names the ward that would be paid. */
+  feePaymentOptions: (feeItemId: number) =>
+    apiGet<PaymentOptionsDto>(`/vendor/finance/fees/${feeItemId}/payment-options`),
+
+  /**
+   * Fines are paid to the State Treasury, not through StreetBiz: how to pay and the receipt so far.
+   * Replaces the online penalty checkout.
+   */
+  penaltyTreasury: (penaltyId: number) =>
+    apiGet<PenaltyTreasuryDto>(`/vendor/finance/penalties/${penaltyId}/treasury`),
+
+  /** The receipt (a file from `uploadEvidenceFile`) for the ward to check; 409 while one is waiting. */
+  submitPenaltyReceipt: (penaltyId: number, body: SubmitPenaltyReceiptBody) =>
+    apiPost<PenaltyReceiptDto>(`/vendor/finance/penalties/${penaltyId}/receipts`, body),
 
   /**
    * Development-only stand-in for a real signed callback (mirrors Commerce's
@@ -267,7 +337,7 @@ export const financeApi = {
       `/vendor/finance/payments/${transactionId}/sync`,
     ),
 
-  /** The VietQR of a payment still waiting for its SePay bank transfer (404 once settled). */
+  /** The VietQR of a payment still waiting for its bank transfer (SePay or payOS; 404 once settled). */
   bankTransfer: (transactionId: number) =>
     apiGet<BankTransferDto>(`/vendor/finance/payments/${transactionId}/bank-transfer`),
 

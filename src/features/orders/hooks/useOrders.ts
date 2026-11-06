@@ -8,6 +8,7 @@ import {
   type Order,
   type OrderListFilters,
   type OrderStatus,
+  type PaymentProvider,
   type PickupLocation,
 } from '../types/order.types';
 import { useOrderRealtime } from '../realtime/useOrderRealtime';
@@ -152,7 +153,7 @@ export function useCheckoutOrder() {
       location,
     }: {
       cartId: number;
-      provider: 'MOMO' | 'ZALOPAY' | 'SEPAY';
+      provider: PaymentProvider;
       idempotencyKey: string;
       /** ORD-01: where the customer is; the server re-checks the pickup range against it. */
       location?: PickupLocation;

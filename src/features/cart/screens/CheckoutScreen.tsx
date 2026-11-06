@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import { Button, Icon } from '@/components/common';
-import { ErrorState, showToast } from '@/components/feedback';
+import { ErrorState, Skeleton, showToast } from '@/components/feedback';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { commerceApi, errorMessage } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
@@ -24,11 +24,14 @@ import {
   PickupPoint,
   PickupPointArt,
   ProviderTiles,
+  StoreNotOnline,
 } from '../components/CheckoutParts';
+import type { PaymentProvider } from '@/features/orders/types/order.types';
+import { PAYMENT_OPTIONS_KEY } from '@/features/payout-accounts/usePayoutAccount';
 import { PickupRangeNotice } from '@/features/orders/pickup/PickupRangeNotice';
 import { usePickupRange } from '@/features/orders/pickup/usePickupRange';
 
-type Provider = 'MOMO' | 'ZALOPAY' | 'SEPAY';
+type Provider = PaymentProvider;
 
 export function CheckoutScreen() {
   return isLiveApi ? <LiveCheckoutScreen /> : <MockCheckoutScreen />;
@@ -45,7 +48,7 @@ function LiveCheckoutScreen() {
   const isDesktop = useIsDesktop();
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
-  const [provider, setProvider] = useState<Provider>('MOMO');
+  const [chosen, setChosen] = useState<Provider | null>(null);
   const idempotencyKey = useRef<string | null>(null);
   const submitting = useRef(false);
   const cart = useQuery({
@@ -54,6 +57,17 @@ function LiveCheckoutScreen() {
     enabled: user?.role_code === 'CUSTOMER',
   });
   const place = useCheckoutOrder();
+  // The methods this stall takes: its own payOS account is one only once the household has
+  // connected it (it is named to the customer); without any, the stall takes no online order.
+  const storefrontId = cart.data?.storefrontId;
+  const options = useQuery({
+    queryKey: [...PAYMENT_OPTIONS_KEY, 'storefront', storefrontId],
+    queryFn: () => commerceApi.storefrontPaymentOptions(storefrontId!),
+    enabled: user?.role_code === 'CUSTOMER' && Boolean(storefrontId),
+    staleTime: 30_000,
+  });
+  const offered = options.data?.providers ?? [];
+  const provider = chosen && offered.includes(chosen) ? chosen : offered[0];
   // ORD-01: called before any early return, like every hook. Idle (no location prompt) until
   // there is a cart that can actually be checked out.
   const range = usePickupRange(
@@ -64,7 +78,7 @@ function LiveCheckoutScreen() {
     submitting.current = false;
   }, [cart.data?.cartId]);
   const startCheckout = () => {
-    if (!cart.data || submitting.current || place.isPending || !range.canOrder) return;
+    if (!cart.data || !provider || submitting.current || place.isPending || !range.canOrder) return;
     submitting.current = true;
     idempotencyKey.current ??= crypto.randomUUID();
     place.mutate(
@@ -82,7 +96,7 @@ function LiveCheckoutScreen() {
             queryClient.invalidateQueries({ queryKey: ['commerce', 'cart'] }),
             queryClient.invalidateQueries({ queryKey: ['orders', 'customer', 'list'] }),
           ]);
-          // The simulator and SePay's VietQR both live on the order's own payment page.
+          // The simulator and the VietQR (SePay, payOS) both live on the order's own payment page.
           if (checkout.bankTransfer || isSandboxPaymentUrl(checkout.paymentUrl)) {
             navigate(`/customer/orders/${checkout.orderId}/payment`, { replace: true });
             return;
@@ -202,7 +216,7 @@ function LiveCheckoutScreen() {
       <Button
         label={place.isPending ? 'Đang khởi tạo thanh toán…' : 'Thanh toán và đặt món'}
         loading={place.isPending}
-        disabled={place.isPending || blocked || !range.canOrder}
+        disabled={place.isPending || blocked || !range.canOrder || !provider}
         onPress={startCheckout}
       />
       {/* The shared button draws only a spinner while loading, so the words go here. */}
@@ -239,8 +253,30 @@ function LiveCheckoutScreen() {
       </ul>
     </section>
   );
-  const providers = (
-    <ProviderTiles value={provider} onChange={setProvider} disabled={place.isPending} />
+  const providers = options.isPending ? (
+    <Skeleton className="h-[88px] w-full !rounded-[18px]" />
+  ) : options.isError ? (
+    <div className="flex flex-col gap-xs">
+      <p role="alert" className="text-body-md text-error">
+        {errorMessage(options.error)}
+      </p>
+      <Button
+        label="Tải lại phương thức thanh toán"
+        variant="outline"
+        fullWidth={false}
+        onPress={() => void options.refetch()}
+      />
+    </div>
+  ) : offered.length === 0 ? (
+    <StoreNotOnline message={options.data?.message} />
+  ) : (
+    <ProviderTiles
+      value={provider}
+      onChange={setChosen}
+      disabled={place.isPending}
+      providers={offered}
+      payee={options.data?.payee}
+    />
   );
   const pickup = (
     <div className="flex flex-col gap-sm">
@@ -274,7 +310,7 @@ function LiveCheckoutScreen() {
               <hr className="border-border" />
               {pickup}
               <hr className="border-border" />
-              <AfterPayNote provider={provider} amount={data.subtotal} />
+              {provider ? <AfterPayNote provider={provider} amount={data.subtotal} /> : null}
               <p className="text-center text-body-sm text-muted">{FOOTNOTE}</p>
             </>
           )}
@@ -290,7 +326,7 @@ function LiveCheckoutScreen() {
             {isDesktop ? (
               <>
                 {submit}
-                <AfterPayNote provider={provider} amount={data.subtotal} />
+                {provider ? <AfterPayNote provider={provider} amount={data.subtotal} /> : null}
                 <p className="border-t border-[#FFD9BF] pt-sm text-body-sm text-muted dark:border-white/10">
                   {FOOTNOTE}
                 </p>
