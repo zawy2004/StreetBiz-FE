@@ -88,7 +88,7 @@ export function ReceiptFoot() {
         <span className="mt-0.5 shrink-0 text-tertiary">
           <Icon name="cloud-check-outline" size={16} color="currentColor" />
         </span>
-        Hoá đơn được hệ thống xuất sau khi ví xác nhận thanh toán.
+        Hoá đơn được hệ thống xuất sau khi cổng thanh toán xác nhận.
       </p>
     </div>
   );
