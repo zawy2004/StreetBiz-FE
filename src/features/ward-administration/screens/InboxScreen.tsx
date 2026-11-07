@@ -13,6 +13,7 @@ import { useMockDb } from '@/mocks/db';
 import { parseServerDate } from '../components/review/format';
 import {
   complianceApi,
+  isOpenRegistration,
   type WardEnrollmentItem,
   type WardRentalApplicationItem,
   type WardRenewalItem,
@@ -328,7 +329,9 @@ function LiveInboxScreen() {
   useVisiblePolling(() => void reload(true), QUEUE_REFRESH_MS);
 
   const items: QueueItem[] = useMemo(() => {
-    const regItems: QueueItem[] = enrollments.map((r) => {
+    // /ward/enrollments returns every registration of the ward; only open files belong in the
+    // queue (an approved or withdrawn one counted as "Đang chờ" made it disagree with Tổng quan).
+    const regItems: QueueItem[] = enrollments.filter(isOpenRegistration).map((r) => {
       const risk = riskQueue.find((q) => q.registrationId === r.id);
       return {
         key: `REG-${r.id}`,

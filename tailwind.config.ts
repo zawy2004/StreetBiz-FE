@@ -67,6 +67,7 @@ export default {
         'gold-border': 'rgb(var(--c-secondary) / 0.3)',
         error: tw('error'),
         'error-bg': tw('error-bg'),
+        'on-error': tw('on-error'),
         // Aliases for classes the codebase already used without a definition.
         danger: tw('error'),
         ok: tw('tertiary'),

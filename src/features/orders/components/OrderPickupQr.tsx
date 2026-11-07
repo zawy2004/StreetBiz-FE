@@ -56,7 +56,7 @@ export function OrderPickupQr({ order }: { order: Order }) {
               aria-label="Mã QR nhận hàng"
               className="rounded-[20px] bg-white p-1 ring-1 ring-[#E1E5EA]"
             >
-              <QrCode value={code.data.token} size={220} />
+              <QrCode value={code.data.token} size={220} label="Mã QR nhận hàng" />
             </div>
             <p className="max-w-[32ch] text-body-md text-text">
               Đưa mã này cho quán quét khi nhận hàng.

@@ -35,9 +35,12 @@
 :root {
   color-scheme: light;
 
-  --c-primary: 207 74 11; /* Cam phố #CF4A0B — buttons/text (white 4.5:1) */
+  /* Cam phố #B53F08 — buttons/text. Was #CF4A0B: white on it passed (4.53:1) but orange text on
+     the warm tints (#F3E7E2, #FAEDE7, #EEEFF1) fell to 3.7–4.4:1. Now >= 4.7:1 on every tint
+     the app uses, white on it 5.7:1. */
+  --c-primary: 181 63 8;
   --c-brand: 255 106 31; /* vivid orange for large marks, never small text */
-  --c-primary-pressed: 184 63 8;
+  --c-primary-pressed: 154 53 6;
   --c-on-primary: 255 255 255;
 
   --c-accent: 255 183 3; /* Xoài #FFB703 — ratings, advisories, ink text */
@@ -48,7 +51,9 @@
   --c-secondary-bg: 255 244 209;
   --c-on-secondary: 122 84 0;
 
-  --c-tertiary: 11 127 67; /* Lá chuối #0B7F43 */
+  /* Lá chuối #0A743D. Was #0B7F43, which read 4.06–4.43:1 on the green status chips
+     (#DBE9E4, #E2F0E8); now >= 4.69:1. */
+  --c-tertiary: 10 116 61;
   --c-on-tertiary: 6 52 28;
 
   --c-indigo: 10 95 168; /* Biển xanh #0A5FA8: Vietnamese street-sign blue for civic actions and selected states (white text 6.5:1) */
@@ -69,6 +74,7 @@
 
   --c-error: 180 35 24;
   --c-error-bg: 254 236 234;
+  --c-on-error: 255 255 255; /* white on #B42318: 6.6:1 */
 
   /* Chart series (categorical, fixed order; validated for CVD and contrast on the card surface).
      Never reused for status: ok/pending/danger keep tertiary/secondary/error. */
@@ -122,6 +128,8 @@
 
   --c-error: 255 122 110;
   --c-error-bg: 58 29 28;
+  /* The dark-mode red is light, so its badge text is dark: white on it was 2.5:1, this 7.2:1. */
+  --c-on-error: 42 10 8;
 
   --c-series-1: 57 135 229; /* #3987e5, stepped for the dark card surface */
   --c-series-2: 217 89 38; /* #d95926 */
@@ -769,5 +777,31 @@ body:has(.sb-launcher) .sb-clear-launcher {
   .sb-spotlight,
   .sb-spotlight:hover {
     transform: none;
+  }
+}
+
+/* Map zoom buttons: Goong (mapbox-gl) draws them 29px and Leaflet 30px, below a comfortable
+   tap target. 40px everywhere, 44px on touch screens. The icons are centred backgrounds. */
+/* Doubled class: goong-js's stylesheet loads after this file with the same single-class rule. */
+.mapboxgl-ctrl.mapboxgl-ctrl-group button {
+  width: 40px;
+  height: 40px;
+}
+.leaflet-bar.leaflet-bar a,
+.leaflet-touch .leaflet-bar a {
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+}
+@media (pointer: coarse) {
+  .mapboxgl-ctrl.mapboxgl-ctrl-group button {
+    width: 44px;
+    height: 44px;
+  }
+  .leaflet-bar a,
+  .leaflet-touch .leaflet-bar a {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
   }
 }

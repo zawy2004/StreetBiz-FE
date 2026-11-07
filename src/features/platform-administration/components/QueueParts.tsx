@@ -63,7 +63,7 @@ export function QueueTabs<T extends string>({
                 <span className="sr-only">{` (${opt.count})`}</span>
                 <span
                   aria-hidden="true"
-                  className={`min-w-6 rounded-full px-1.5 py-0.5 text-center text-badge font-tabular ${active ? 'bg-white/25 text-on-primary' : 'bg-sunken text-muted'}`}
+                  className={`min-w-6 rounded-full px-1.5 py-0.5 text-center text-badge font-tabular ${active ? 'bg-black/20 text-on-primary' : 'bg-sunken text-muted'}`}
                 >
                   {opt.count}
                 </span>

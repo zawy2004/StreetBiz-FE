@@ -144,8 +144,15 @@ function renderScreen() {
 const STEP1 = 'Lập biên bản vi phạm (Bước 1)';
 const ISSUE = 'Ban hành Quyết định (Bước 2)';
 
+/** Nothing is pre-selected any more: the officer picks the behaviour (Mục 2) first. */
+async function chooseBehaviour(user: ReturnType<typeof userEvent.setup>) {
+  const [behaviour] = await screen.findAllByRole('radio', { name: /Sử dụng trái phép vỉa hè/ });
+  await user.click(behaviour!);
+}
+
 async function fillAndRecord(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByRole('radio', { name: 'Bánh mì Cô Lan (Trần Thị Lan)', checked: true });
+  await chooseBehaviour(user);
   await user.type(
     screen.getByLabelText('Mô tả chi tiết vi phạm tại hiện trường'),
     '  Kê bàn ghế lấn vạch  ',
@@ -175,6 +182,18 @@ describe('RecordViolationScreen (live, WARD-12)', { timeout: 20_000 }, () => {
 
     await screen.findByRole('radio', { name: 'Bánh mì Cô Lan (Trần Thị Lan)', checked: true });
     expect(screen.getByRole('button', { name: STEP1 })).toBeDisabled();
+    expect(screen.getByText('Còn thiếu: hành vi vi phạm, mô tả hiện trường')).toBeInTheDocument();
+    // No behaviour chosen yet, so the fine panel asks for one instead of warning in red.
+    expect(
+      screen.getAllByText('Chọn hành vi vi phạm ở Mục 2 để xem mức phạt và căn cứ.').length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.queryByText('Thiếu căn cứ pháp lý hoặc mức phạt hiệu lực'),
+    ).not.toBeInTheDocument();
+
+    await chooseBehaviour(user);
+    expect(screen.getByRole('button', { name: STEP1 })).toBeDisabled();
+    expect(screen.getByText('Còn thiếu: mô tả hiện trường')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Mô tả chi tiết vi phạm tại hiện trường'), 'Lấn vạch');
     await user.upload(

@@ -11,8 +11,8 @@ import { OrderProgressStrip } from '../tracking/OrderProgressStrip';
 /**
  * C12: one past order as a ticket stub. The body names the stall and the
  * dishes; past the perforation, the stub carries the total and the status.
- * The whole card opens the order (it stays a button holding "Xem chi tiết",
- * as before).
+ * The whole card opens the order; "Xem chi tiết" is only a real button when the
+ * card carries its own actions and so cannot be a button itself.
  */
 export function OrderCard({
   order,
@@ -70,7 +70,16 @@ export function OrderCard({
           <div className="shrink-0">
             <OrderStatusBadge status={order.orderStatus} />
           </div>
-          {onPress ? (
+          {onPress && !actions ? (
+            // The whole card is already the button: a second button inside it is invalid HTML
+            // (React warns, screen readers announce it twice), so this is only the visual cue.
+            <span
+              aria-hidden="true"
+              className="flex min-h-11 shrink-0 items-center rounded-full px-xs text-label text-primary group-hover:underline sm:-ml-xs"
+            >
+              Xem chi tiết
+            </span>
+          ) : onPress ? (
             <button
               type="button"
               onClick={onPress}

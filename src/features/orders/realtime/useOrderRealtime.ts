@@ -1,9 +1,6 @@
-import {
-  HubConnectionBuilder,
-  HubConnectionState,
-  LogLevel,
-  type HubConnection,
-} from '@microsoft/signalr';
+import { HubConnectionBuilder, HubConnectionState, type HubConnection } from '@microsoft/signalr';
+
+import { signalRLogger } from '@/core/realtime-logger';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
@@ -66,7 +63,7 @@ export function useOrderRealtime(
         withCredentials: false,
       })
       .withAutomaticReconnect([0, 2_000, 5_000, 10_000])
-      .configureLogging(LogLevel.Warning)
+      .configureLogging(signalRLogger)
       .build();
 
     connection.on('OrderUpdated', onOrderUpdated);

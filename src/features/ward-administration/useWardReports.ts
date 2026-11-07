@@ -10,10 +10,13 @@ import { isLiveApi } from '@/core/config/env';
 import { OVERVIEW_REFRESH_MS } from '@/core/config/refresh';
 import { useMockDb } from '@/mocks/db';
 import { VIOLATION_TYPES } from '@/mocks/seed';
+import { complianceApi } from './ward-api';
 
 export const WARD_REPORT_KEYS = {
-  collectionReport: (from: string, to: string) => ['ward', 'reports', 'collection', from, to] as const,
+  collectionReport: (from: string, to: string) =>
+    ['ward', 'reports', 'collection', from, to] as const,
   dashboard: ['ward', 'dashboard'] as const,
+  pendingRenewals: ['ward', 'renewals', 'open-count'] as const,
   summary: (from: string, to: string) => ['ward', 'reports', 'summary', from, to] as const,
 };
 
@@ -118,6 +121,30 @@ function mockReportFigures(
 }
 
 /** WARD-15. */
+/**
+ * Renewals waiting for the ward (PENDING or UNDER_REVIEW), the same two lists Hộp duyệt loads,
+ * for the dashboard total. The dashboard endpoint does not count them.
+ */
+export function usePendingRenewalCount(): number {
+  const mockRenewals = useMockDb((s) => s.renewals);
+  const query = useQuery({
+    queryKey: WARD_REPORT_KEYS.pendingRenewals,
+    queryFn: async () => {
+      const [pending, reviewing] = await Promise.all([
+        complianceApi.listRenewals('PENDING'),
+        complianceApi.listRenewals('UNDER_REVIEW'),
+      ]);
+      return pending.length + reviewing.length;
+    },
+    enabled: isLiveApi,
+    refetchInterval: OVERVIEW_REFRESH_MS,
+  });
+  if (!isLiveApi) {
+    return mockRenewals.filter((r) => r.renewal_status === 'PENDING').length;
+  }
+  return query.data ?? 0;
+}
+
 export function useWardDashboard() {
   const slots = useMockDb((s) => s.slots);
   const registrations = useMockDb((s) => s.registrations);

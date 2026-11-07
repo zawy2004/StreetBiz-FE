@@ -132,6 +132,19 @@ export type WardEnrollmentItem = {
   vendorId: number;
 };
 /** Mẫu số 01 Phụ lục II, Thông tư 68/2025/TT-BTC -- chủ hộ kinh doanh. */
+/**
+ * Registration statuses that still wait for the ward. The same three statuses the backend
+ * counts as pendingRegistrations on the dashboard, so Hộp duyệt and Tổng quan agree.
+ */
+export const OPEN_REGISTRATION_STATUSES = new Set([
+  'SUBMITTED',
+  'UNDER_REVIEW',
+  'MORE_INFORMATION_REQUIRED',
+]);
+
+export const isOpenRegistration = (r: Pick<WardEnrollmentItem, 'status'>) =>
+  OPEN_REGISTRATION_STATUSES.has(r.status);
+
 export type WardOwnerProfile = {
   dateOfBirth: string | null;
   gender: string | null;
@@ -722,9 +735,19 @@ export function statusLabel(kind: CaseKind, status: string): string {
   return statusLabels[status] ?? status;
 }
 
+/** Every RegistrationEvidence.evidence_type, in the words of EvidenceTypes.Label on the server. */
 export const evidenceLabels: Record<string, string> = {
-  IDENTITY_DOCUMENT: 'CCCD gắn chip',
+  IDENTITY_DOCUMENT: 'CCCD mặt trước',
+  IDENTITY_DOCUMENT_BACK: 'CCCD mặt sau',
+  PORTRAIT_SELFIE: 'Ảnh chân dung',
   BUSINESS_LICENSE: 'Giấy phép kinh doanh',
   ADDRESS_PROOF: 'Giấy tờ địa chỉ',
   OTHER: 'Giấy tờ khác',
 };
+
+/**
+ * The name an officer reads under a document. An older API sent the database code as the label
+ * ("IDENTITY_DOCUMENT_BACK"), so a label that is still a code is translated here too.
+ */
+export const evidenceLabel = (ev: { type: string; label?: string | null }) =>
+  evidenceLabels[ev.type] ?? (ev.label && !/^[A-Z_]+$/.test(ev.label) ? ev.label : 'Giấy tờ khác');

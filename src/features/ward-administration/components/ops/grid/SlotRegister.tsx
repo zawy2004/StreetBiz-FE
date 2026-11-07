@@ -62,7 +62,7 @@ export function StatusFilterChips({
               {opt.label}
               <span
                 className={`rounded-full px-1.5 font-tabular text-body-xs font-bold ${
-                  selected ? 'bg-white/25' : 'bg-sunken text-muted'
+                  selected ? 'bg-black/20' : 'bg-sunken text-muted'
                 }`}
               >
                 {opt.count}

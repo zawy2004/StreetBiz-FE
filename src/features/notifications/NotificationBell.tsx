@@ -82,7 +82,7 @@ export function NotificationBell({ align = 'right', variant = 'ring' }: Props) {
           weight={unread > 0 || open ? 'fill' : 'regular'}
         />
         {unread > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-error px-1 text-badge font-tabular text-white ring-2 ring-card">
+          <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-error px-1 text-badge font-tabular text-on-error ring-2 ring-card">
             {unread > 99 ? '99+' : unread}
           </span>
         ) : null}

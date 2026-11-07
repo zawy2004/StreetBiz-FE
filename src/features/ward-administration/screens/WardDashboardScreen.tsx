@@ -6,7 +6,7 @@ import { AiHint } from '@/components/status';
 import { useWards } from '@/core/auth/useWards';
 import { env } from '@/core/config/env';
 import { useAuthStore } from '@/store/auth-store';
-import { useWardDashboard } from '../useWardReports';
+import { usePendingRenewalCount, useWardDashboard } from '../useWardReports';
 import {
   CollectionLedger,
   DashboardSkeleton,
@@ -55,8 +55,16 @@ export function WardDashboardScreen() {
   const navigate = useNavigate();
   const { dashboard, isLoading } = useWardDashboard();
   const wardName = useWardName();
+  const pendingRenewals = usePendingRenewalCount();
+  const pendingReports = dashboard?.openReports ?? 0;
+  // The same queue Hộp duyệt counts as "Đang chờ": registrations, rental applications,
+  // renewals and citizen reports. It used to leave the last two out, so the two screens
+  // showed different totals for the same work.
   const pendingCount = dashboard
-    ? dashboard.pendingRegistrations + dashboard.pendingApplications
+    ? dashboard.pendingRegistrations +
+      dashboard.pendingApplications +
+      pendingRenewals +
+      pendingReports
     : 0;
   const today = formatTodayVi();
 
@@ -77,16 +85,19 @@ export function WardDashboardScreen() {
           <>
             <IconButton
               icon="cash-multiple"
+              label="Thu phí"
               accessibilityLabel="Thu phí và điều chỉnh"
               onPress={() => navigate('/ward/finance')}
             />
             <IconButton
               icon="cog-outline"
-              accessibilityLabel="Cấu hình"
+              label="Giá & khung giờ"
+              accessibilityLabel="Cấu hình giá và khung giờ"
               onPress={() => navigate('/ward/settings/pricing')}
             />
             <IconButton
               icon="account-circle-outline"
+              label="Tài khoản"
               accessibilityLabel="Tài khoản"
               onPress={() => navigate('/account')}
             />
@@ -103,6 +114,8 @@ export function WardDashboardScreen() {
               pendingCount={pendingCount}
               pendingRegistrations={dashboard.pendingRegistrations}
               pendingApplications={dashboard.pendingApplications}
+              pendingRenewals={pendingRenewals}
+              pendingReports={pendingReports}
               openViolations={dashboard.openViolations}
               onOpenInbox={() => navigate('/ward/inbox')}
               onOpenViolations={() => navigate('/ward/reports')}
