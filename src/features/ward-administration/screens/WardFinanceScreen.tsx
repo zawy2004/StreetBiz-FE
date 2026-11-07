@@ -680,13 +680,22 @@ export function WardFinanceScreen() {
           back={Boolean(id)}
           right={
             id ? undefined : (
-              <Button
-                label="Tài khoản nhận phí"
-                variant="outline"
-                fullWidth={false}
-                icon={<Icon name="bank" size={18} color="currentColor" />}
-                onPress={() => navigate('/ward/finance/payout-account')}
-              />
+              <>
+                <Button
+                  label="Lịch sử thu"
+                  variant="outline"
+                  fullWidth={false}
+                  icon={<Icon name="receipt-text-outline" size={18} color="currentColor" />}
+                  onPress={() => navigate('/ward/finance/receipts')}
+                />
+                <Button
+                  label="Tài khoản nhận phí"
+                  variant="outline"
+                  fullWidth={false}
+                  icon={<Icon name="bank" size={18} color="currentColor" />}
+                  onPress={() => navigate('/ward/finance/payout-account')}
+                />
+              </>
             )
           }
         />

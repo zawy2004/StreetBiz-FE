@@ -318,6 +318,10 @@ const WardFinanceScreen = lazyScreen(
   () => import('@/features/ward-administration/screens/WardFinanceScreen'),
   'WardFinanceScreen',
 );
+const WardReceiptsScreen = lazyScreen(
+  () => import('@/features/ward-administration/screens/WardReceiptsScreen'),
+  'WardReceiptsScreen',
+);
 const VendorPayoutAccountScreen = lazyScreen(
   () => import('@/features/payout-accounts/screens'),
   'VendorPayoutAccountScreen',
@@ -638,6 +642,7 @@ export function AppRouter() {
           <Route path="reports" element={<CollectionReportScreen />} />
           <Route path="finance" element={<WardFinanceScreen />} />
           <Route path="finance/payout-account" element={<WardPayoutAccountScreen />} />
+          <Route path="finance/receipts" element={<WardReceiptsScreen />} />
           <Route path="finance/:contractId" element={<WardFinanceScreen />} />
           <Route path="reports/debtors" element={<WardDebtorsScreen />} />
           <Route path="inbox" element={<InboxScreen />} />

@@ -1,7 +1,45 @@
+import type { ReportPeriod } from '../../../useWardReports';
+
 /**
  * Pure helpers for the ward collection report (W19). Everything is derived from
  * the period the screen already asks for and the report it already loaded.
  */
+
+/** The periods the ward's money screens offer (the report and the receipt list). */
+export type PeriodKey = 'THIS_MONTH' | 'LAST_MONTH' | 'LAST_90_DAYS' | 'CUSTOM';
+
+export const PERIOD_OPTIONS: { value: PeriodKey; label: string }[] = [
+  { value: 'THIS_MONTH', label: 'Tháng này' },
+  { value: 'LAST_MONTH', label: 'Tháng trước' },
+  { value: 'LAST_90_DAYS', label: '90 ngày' },
+  { value: 'CUSTOM', label: 'Tuỳ chọn' },
+];
+
+/** Local calendar date, not toISOString(): that is UTC and would be yesterday before 07:00. */
+export function isoDay(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+export function periodFor(key: Exclude<PeriodKey, 'CUSTOM'>, today: Date): ReportPeriod {
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  switch (key) {
+    case 'LAST_MONTH':
+      return { from: isoDay(new Date(year, month - 1, 1)), to: isoDay(new Date(year, month, 0)) };
+    case 'LAST_90_DAYS':
+      return { from: isoDay(new Date(year, month, today.getDate() - 89)), to: isoDay(today) };
+    default:
+      return { from: isoDay(new Date(year, month, 1)), to: isoDay(today) };
+  }
+}
+
+/** "2026-11-07" as "07/11/2026". */
+export const displayDay = (iso: string) => {
+  const [year, month, day] = iso.split('-');
+  return `${day}/${month}/${year}`;
+};
 
 /** Calendar days in an ISO `YYYY-MM-DD` range, both ends included. */
 export function periodDays(from: string, to: string): number {

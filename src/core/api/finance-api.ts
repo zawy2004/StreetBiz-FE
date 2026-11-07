@@ -169,6 +169,29 @@ export type ReceivablesDto = {
   refundsPendingAmount: number;
 };
 
+/**
+ * One receipt in the ward's "lịch sử thu": who paid what, when, how, and the reference to check it
+ * against (`PAYOS-{orderCode}` in payOS's own list, the Treasury receipt number, the officer's note).
+ * `paymentStatus` is SUCCESS, or REFUND_REQUIRED / REFUNDED once the money is owed back.
+ */
+export type WardReceiptDto = {
+  invoiceId: number;
+  invoiceNumber: string;
+  issuedAt: string;
+  kind: 'FEE' | 'PENALTY';
+  payerName: string | null;
+  payerPhone: string | null;
+  slotCode: string | null;
+  description: string;
+  amount: number;
+  provider: string | null;
+  providerReference: string | null;
+  paymentStatus: 'SUCCESS' | 'REFUND_REQUIRED' | 'REFUNDED' | null;
+};
+
+/** The receipts of a period, newest first, with the period the server actually used. */
+export type WardReceiptListDto = { from: string; to: string; items: WardReceiptDto[] };
+
 /** A payment owed back to a vendor (REFUND_REQUIRED) or already paid back (REFUNDED). */
 export type WardRefundDto = {
   transactionId: number;
@@ -504,6 +527,13 @@ export const wardReportApi = {
   /** On-time rate for fees falling due in the period, and figures by zone. */
   performance: (from?: string, to?: string) =>
     apiGet<CollectionPerformanceDto>(`/ward/reports/performance${queryString({ from, to })}`),
+
+  /** "Lịch sử thu": every receipt of the ward in the period (default: this month), newest first. */
+  receipts: (from?: string, to?: string) =>
+    apiGet<WardReceiptListDto>(`/ward/reports/receipts${queryString({ from, to })}`),
+
+  /** One receipt of the ward as the household's PDF (fetched with the bearer token, not linked). */
+  receiptPdf: (invoiceId: number) => apiGetBlob(`/ward/reports/receipts/${invoiceId}/pdf`),
 
   /** Overdue fees by age, fees due in the next 30 days, and payments owed back. */
   receivables: () => apiGet<ReceivablesDto>('/ward/reports/receivables'),
