@@ -41,7 +41,7 @@ const screens = await import('@/features/fee-schedules/screens');
 
 const platformOptions: PaymentOptionsDto = {
   mode: 'SANDBOX',
-  providers: ['MOMO', 'ZALOPAY', 'SEPAY'],
+  providers: ['MOMO', 'ZALOPAY'],
   message: '',
   payee: null,
 };

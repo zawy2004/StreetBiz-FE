@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -47,6 +47,7 @@ vi.mock('@/core/config/env', async (importOriginal) => {
 
 const { FeePaymentScreen } = await import('@/features/fee-schedules/screens/FeePaymentScreen');
 const { OrderPaymentScreen } = await import('@/features/orders/screens/OrderPaymentScreen');
+const { useBankTransferPolling } = await import('@/components/payment');
 
 const QR = '00020101021238540010A000000727012400069704220110012345678902080QRIBFTTA5303704';
 
@@ -56,7 +57,6 @@ const transfer: BankTransferDto = {
   accountName: 'UBND PHUONG HAI CHAU 1',
   amount: 1_040_000,
   transferContent: 'SB11',
-  qrImageUrl: '',
   qrContent: QR,
   checkoutUrl: 'https://pay.payos.vn/web/abc123',
 };
@@ -245,6 +245,47 @@ describe('fee payment into the ward\'s own payOS account', () => {
     expect(screen.getByRole('button', { name: 'Đang chờ chuyển khoản…' })).toBeDisabled();
   });
 
+  it('copies the transfer content exactly as it must be sent', async () => {
+    client.apiGet.mockImplementation(feeReads(wardOptions));
+    client.apiPost.mockResolvedValue(checkout);
+    renderFeePayment();
+    await userEvent.click(await screen.findByRole('button', { name: 'Tạo mã chuyển khoản VietQR' }));
+    await qr();
+
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Sao chép nội dung chuyển khoản' }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('SB11'));
+  });
+
+  it('goes back to the method choice with a fresh checkout when the vendor changes method', async () => {
+    client.apiGet.mockImplementation(feeReads(wardOptions));
+    client.apiPost.mockResolvedValue(checkout);
+    renderFeePayment();
+    await userEvent.click(await screen.findByRole('button', { name: 'Tạo mã chuyển khoản VietQR' }));
+    await qr();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Chọn phương thức khác' }));
+
+    expect(screen.queryByRole('img', { name: /Mã VietQR/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /MoMo/ })).toBeInTheDocument();
+    expect(sessionStorage.getItem('streetbiz.financeBankTransfer')).toBeNull();
+  });
+
+  it('still gives the details to type by hand when there is no QR to draw', async () => {
+    client.apiGet.mockImplementation(feeReads(wardOptions));
+    client.apiPost.mockResolvedValue({ ...checkout, bankTransfer: { ...transfer, qrContent: null } });
+    renderFeePayment();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Tạo mã chuyển khoản VietQR' }));
+
+    expect(await screen.findByText(/Không hiển thị được mã QR/)).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /Mã VietQR/ })).not.toBeInTheDocument();
+    expect(screen.getByText('0123456789')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Mở trang thanh toán/ })).toBeInTheDocument();
+  });
+
   it('lets the vendor pay by another method the server still offers', async () => {
     client.apiGet.mockImplementation(feeReads(wardOptions));
     client.apiPost.mockResolvedValue({
@@ -342,7 +383,7 @@ const pendingOrder: Order = {
 describe('order payment into the household\'s own payOS account', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('shows the order QR from the content payOS returned, like a SePay transfer', async () => {
+  it('shows the order QR from the content payOS returned', async () => {
     client.apiGet.mockResolvedValue({ mode: 'LIVE', providers: ['PAYOS'], message: '', payee: null });
     ordersApi.customerOrder.mockResolvedValue(pendingOrder);
     ordersApi.syncPayment.mockResolvedValue(pendingOrder);
@@ -392,5 +433,54 @@ describe('order payment into the household\'s own payOS account', () => {
     expect(await screen.findByText('Đặt món thành công')).toBeInTheDocument();
     expect(screen.queryByRole('img', { name: /Mã VietQR/ })).not.toBeInTheDocument();
     expect(ordersApi.syncPayment).toHaveBeenCalledWith(19);
+  });
+
+  it('a MoMo order keeps its own check button and asks for no QR', async () => {
+    client.apiGet.mockResolvedValue({ mode: 'LIVE', providers: ['MOMO'], message: '', payee: null });
+    const momoOrder = { ...pendingOrder, paymentProvider: 'MOMO' } as Order;
+    ordersApi.customerOrder.mockResolvedValue(momoOrder);
+    ordersApi.syncPayment.mockResolvedValue(momoOrder);
+
+    renderAt(
+      ['/customer/orders/19/payment'],
+      <Route path="/customer/orders/:orderId/payment" element={<OrderPaymentScreen />} />,
+    );
+
+    expect(await screen.findByRole('button', { name: 'Kiểm tra lại' })).toBeInTheDocument();
+    expect(ordersApi.bankTransfer).not.toHaveBeenCalled();
+  });
+});
+
+function Poller({ active, poll }: { active: boolean; poll: () => void }) {
+  useBankTransferPolling(active, poll, 1000);
+  return null;
+}
+
+describe('bank transfer polling', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('checks on every tick while waiting and stops once it is not', () => {
+    vi.useFakeTimers();
+    const poll = vi.fn();
+    const view = render(<Poller active poll={poll} />);
+
+    vi.advanceTimersByTime(3000);
+    expect(poll).toHaveBeenCalledTimes(3);
+
+    view.rerender(<Poller active={false} poll={poll} />);
+    vi.advanceTimersByTime(3000);
+    expect(poll).toHaveBeenCalledTimes(3);
+  });
+
+  it('skips ticks while the tab is hidden', () => {
+    vi.useFakeTimers();
+    const poll = vi.fn();
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    render(<Poller active poll={poll} />);
+
+    vi.advanceTimersByTime(3000);
+
+    expect(poll).not.toHaveBeenCalled();
+    visibility.mockRestore();
   });
 });

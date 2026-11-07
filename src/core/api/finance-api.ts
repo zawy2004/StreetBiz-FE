@@ -6,7 +6,7 @@ import { apiGet, apiGetBlob, apiPost } from './client';
  * from `Application/Common/Security/FinanceConstants.cs`.
  */
 
-export type PaymentProvider = 'MOMO' | 'ZALOPAY' | 'SEPAY' | 'PAYOS';
+export type PaymentProvider = 'MOMO' | 'ZALOPAY' | 'PAYOS';
 
 /** Who a payment goes to: the payee's own payOS account (never StreetBiz's). Numbers are masked. */
 export type PayeeDto = {
@@ -238,10 +238,9 @@ export type FeeItemDetailDto = {
 };
 
 /**
- * A bank transfer by VietQR (SePay or payOS): the QR and what to type if the payer cannot scan
- * it. `transferContent` carries the payment code and must be sent unchanged. SePay serves the
- * QR as an image (`qrImageUrl`); payOS gives the QR's content (`qrContent`, drawn here) and the
- * hosted payment page (`checkoutUrl`).
+ * A bank transfer by VietQR through payOS: the QR and what to type if the payer cannot scan
+ * it. `transferContent` carries the payment code and must be sent unchanged. `qrContent` is the
+ * QR's content (drawn here) and `checkoutUrl` payOS's hosted payment page.
  */
 export type BankTransferDto = {
   bankName: string;
@@ -249,7 +248,6 @@ export type BankTransferDto = {
   accountName: string | null;
   amount: number;
   transferContent: string;
-  qrImageUrl: string;
   qrContent?: string | null;
   checkoutUrl?: string | null;
 };
@@ -299,7 +297,7 @@ export type FinanceCheckoutDto = {
   provider: string;
   amount: number;
   paymentUrl: string;
-  /** Set for SEPAY and PAYOS: show this QR instead of redirecting to `paymentUrl`. */
+  /** Set for PAYOS: show this QR instead of redirecting to `paymentUrl`. */
   bankTransfer?: BankTransferDto | null;
 };
 
@@ -360,7 +358,7 @@ export const financeApi = {
       `/vendor/finance/payments/${transactionId}/sync`,
     ),
 
-  /** The VietQR of a payment still waiting for its bank transfer (SePay or payOS; 404 once settled). */
+  /** The VietQR of a payment still waiting for its payOS bank transfer (404 once settled). */
   bankTransfer: (transactionId: number) =>
     apiGet<BankTransferDto>(`/vendor/finance/payments/${transactionId}/bank-transfer`),
 

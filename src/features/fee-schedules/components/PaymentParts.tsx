@@ -26,7 +26,6 @@ const WALLETS: { value: PaymentProvider; label: string; description: string }[] 
   },
   { value: 'MOMO', label: 'MoMo', description: 'Thanh toán qua ví MoMo' },
   { value: 'ZALOPAY', label: 'ZaloPay', description: 'Thanh toán qua ví ZaloPay' },
-  { value: 'SEPAY', label: 'Chuyển khoản', description: 'Quét VietQR bằng app ngân hàng' },
 ];
 
 /**

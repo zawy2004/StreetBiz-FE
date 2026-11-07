@@ -35,8 +35,8 @@ type Props = {
 
 /**
  * "Chuyển khoản qua VietQR": the QR for the payer's banking app and the same
- * details to type by hand, each with a copy button. SePay serves the QR as an
- * image; payOS gives its content, drawn here, and its hosted payment page. The transfer content is
+ * details to type by hand, each with a copy button. payOS gives the QR's
+ * content, drawn here, and its hosted payment page. The transfer content is
  * the payment code and is marked as required: without it the money cannot be
  * matched to this payment. Nothing here says the payment worked; the screen
  * moves on only when the backend reports SUCCESS.
@@ -72,13 +72,10 @@ export function BankTransferPanel({ transfer, checking = false, onCheck, childre
           <QrCode value={transfer.qrContent} size={224} />
         </div>
       ) : (
-        <img
-          src={transfer.qrImageUrl}
-          alt={qrLabel}
-          width={240}
-          height={240}
-          className="mx-auto aspect-square w-[240px] max-w-full rounded-[16px] bg-white p-2 ring-1 ring-border"
-        />
+        <p className="rounded-[16px] bg-sunken/60 p-sm text-body-md text-muted">
+          Không hiển thị được mã QR. Hãy chuyển khoản theo thông tin dưới đây
+          {checkoutUrl ? ' hoặc mở trang thanh toán' : ''}.
+        </p>
       )}
 
       <dl className="flex flex-col divide-y divide-border rounded-[16px] bg-sunken/60 px-sm">

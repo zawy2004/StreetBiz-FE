@@ -10,7 +10,7 @@ export type OrderStatus =
   | 'COMPLETED'
   | 'CANCELLED';
 
-export type PaymentProvider = 'MOMO' | 'ZALOPAY' | 'SEPAY' | 'PAYOS';
+export type PaymentProvider = 'MOMO' | 'ZALOPAY' | 'PAYOS';
 export type RefundStatus = 'PENDING' | 'SUCCESS' | 'FAILED';
 
 export interface OrderItem {
@@ -159,7 +159,7 @@ export interface CheckoutResponse {
   provider: PaymentProvider;
   amount: number;
   paymentUrl: string;
-  /** Set for SEPAY and PAYOS: the payment page shows this QR instead of redirecting. */
+  /** Set for PAYOS: the payment page shows this QR instead of redirecting. */
   bankTransfer?: BankTransferDto | null;
 }
 

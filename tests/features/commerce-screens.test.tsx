@@ -167,7 +167,7 @@ describe('order UI contracts', () => {
     });
     legacyApi.storefrontPaymentOptions.mockResolvedValue({
       mode: 'SANDBOX',
-      providers: ['MOMO', 'ZALOPAY', 'SEPAY'],
+      providers: ['MOMO', 'ZALOPAY'],
       message: '',
       payee: null,
     });

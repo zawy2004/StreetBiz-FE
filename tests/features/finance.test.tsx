@@ -160,7 +160,7 @@ describe('fee payment (live API)', () => {
       url === '/vendor/finance/fees/3'
         ? feeDetail(paid)
         : url === '/vendor/finance/fees/3/payment-options'
-          ? { mode: 'SANDBOX', providers: ['MOMO', 'ZALOPAY', 'SEPAY'], message: '', payee: null }
+          ? { mode: 'SANDBOX', providers: ['MOMO', 'ZALOPAY'], message: '', payee: null }
           : [fee],
     );
   });

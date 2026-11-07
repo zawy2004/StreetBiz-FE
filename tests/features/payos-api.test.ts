@@ -115,14 +115,13 @@ describe('receiving accounts', () => {
 });
 
 describe('payment wording', () => {
-  it('shows a VietQR for a bank transfer by SePay or payOS and a wallet page for the rest', () => {
+  it('shows a VietQR for a payOS bank transfer and a wallet page for the rest', () => {
     expect(isBankTransferProvider('PAYOS')).toBe(true);
-    expect(isBankTransferProvider('SEPAY')).toBe(true);
+    expect(isBankTransferProvider('SEPAY')).toBe(false);
     expect(isBankTransferProvider('MOMO')).toBe(false);
     expect(isBankTransferProvider(undefined)).toBe(false);
 
     expect(payButtonLabel('PAYOS', false, false)).toBe('Tạo mã chuyển khoản VietQR');
-    expect(payButtonLabel('SEPAY', false, false)).toBe('Tạo mã chuyển khoản VietQR');
     expect(payButtonLabel('ZALOPAY', false, false)).toBe('Thanh toán qua MoMo / ZaloPay');
     expect(payButtonLabel('PAYOS', true, false)).toBe('Đang khởi tạo thanh toán…');
     expect(payButtonLabel('PAYOS', false, true)).toBe('Đang chờ chuyển khoản…');

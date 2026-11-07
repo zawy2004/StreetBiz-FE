@@ -13,10 +13,10 @@ export const PURPOSE_LABEL: Record<string, string> = {
 
 /** Providers that show a VietQR on the page itself, instead of leaving for a wallet. */
 export const isBankTransferProvider = (provider: string | undefined | null) =>
-  provider === 'SEPAY' || provider === 'PAYOS';
+  provider === 'PAYOS';
 
 /**
- * The fee pay button: a wallet opens its page, a bank transfer (SePay, payOS) shows a VietQR here.
+ * The fee pay button: a wallet opens its page, a payOS bank transfer shows a VietQR here.
  * No provider means nothing can be paid online right now.
  */
 export function payButtonLabel(
@@ -33,7 +33,6 @@ export function payButtonLabel(
 export const PROVIDER_LABEL: Record<string, string> = {
   MOMO: 'MoMo',
   ZALOPAY: 'ZaloPay',
-  SEPAY: 'Chuyển khoản (SePay)',
   PAYOS: 'Chuyển khoản VietQR (payOS)',
   // A fine paid to the State Treasury and recorded by the ward from the receipt.
   TREASURY: 'Nộp Kho bạc',

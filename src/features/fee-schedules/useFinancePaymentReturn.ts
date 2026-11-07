@@ -123,9 +123,9 @@ function forgetTransfer() {
 }
 
 /**
- * A fee or penalty paid by SePay bank transfer: there is no page to leave for,
+ * A fee paid by payOS bank transfer: there is no page to leave for,
  * so the VietQR stays on this page while it checks with the backend every few
- * seconds (SePay's webhook settles the payment there). A reload brings the same
+ * seconds (payOS's webhook or status API settles the payment there). A reload brings the same
  * QR back. `onPaid` runs once the backend reports SUCCESS.
  */
 export function useFinanceBankTransfer(onPaid: () => void) {

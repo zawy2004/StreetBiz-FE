@@ -96,7 +96,7 @@ function LiveCheckoutScreen() {
             queryClient.invalidateQueries({ queryKey: ['commerce', 'cart'] }),
             queryClient.invalidateQueries({ queryKey: ['orders', 'customer', 'list'] }),
           ]);
-          // The simulator and the VietQR (SePay, payOS) both live on the order's own payment page.
+          // The simulator and the payOS VietQR both live on the order's own payment page.
           if (checkout.bankTransfer || isSandboxPaymentUrl(checkout.paymentUrl)) {
             navigate(`/customer/orders/${checkout.orderId}/payment`, { replace: true });
             return;

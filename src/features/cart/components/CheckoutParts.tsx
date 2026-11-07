@@ -24,12 +24,6 @@ const PROVIDERS: { value: PaymentProvider; label: string; description: string; i
   },
   { value: 'MOMO', label: 'MoMo', description: 'Thanh toán qua ví MoMo', icon: 'wallet-outline' },
   { value: 'ZALOPAY', label: 'ZaloPay', description: 'Thanh toán qua ví ZaloPay', icon: 'wallet-outline' },
-  {
-    value: 'SEPAY',
-    label: 'Chuyển khoản',
-    description: 'Quét VietQR bằng app ngân hàng',
-    icon: 'bank',
-  },
 ];
 
 const providerLabel = (provider: PaymentProvider) =>
@@ -226,7 +220,7 @@ export function CheckoutBoard({
 
 /** "Sau khi bấm": what happens next, worded for the wallet chosen. */
 export function AfterPayNote({ provider, amount }: { provider: PaymentProvider; amount: number }) {
-  const byBank = provider === 'SEPAY' || provider === 'PAYOS';
+  const byBank = provider === 'PAYOS';
   const rows: { icon: string; text: ReactNode }[] = [
     {
       icon: byBank ? 'qrcode' : 'wallet-outline',

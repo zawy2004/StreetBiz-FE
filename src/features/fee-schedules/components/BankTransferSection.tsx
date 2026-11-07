@@ -7,7 +7,7 @@ import { errorMessage, financeApi } from '@/core/api';
 import { env, isDev } from '@/core/config/env';
 import type { useFinanceBankTransfer } from '../useFinancePaymentReturn';
 
-/** Only Development has the sandbox confirm endpoint; elsewhere SePay's webhook settles the transfer. */
+/** Only Development has the sandbox confirm endpoint; elsewhere the payOS webhook settles the transfer. */
 const sandboxPayments = isDev && env.enablePaymentSandbox;
 
 /**

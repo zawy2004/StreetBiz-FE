@@ -121,7 +121,7 @@ export const orderApi = {
   /** Backend asks the payment provider (MoMo) for the real state and applies it. */
   syncPayment: async (orderId: number) =>
     mapOrder(await apiPost<BackendOrder>(`/orders/${orderId}/payment/sync`)),
-  /** The VietQR of an order still waiting for its SePay bank transfer (404 once settled). */
+  /** The VietQR of an order still waiting for its payOS bank transfer (404 once settled). */
   bankTransfer: (orderId: number) =>
     apiGet<BankTransferDto>(`/orders/${orderId}/payment/bank-transfer`),
   /** Development sandbox only: the backend 404s these outside Development. */

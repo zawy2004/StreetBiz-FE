@@ -82,7 +82,7 @@ function LiveFeePaymentScreen() {
   };
   // Back from MoMo on this page: the backend checks with MoMo, then the receipt shows.
   const momoReturn = useFinancePaymentReturn(() => afterPaid('MoMo đã xác nhận thanh toán'));
-  // SePay: the VietQR stays on this page until the backend reports the money in, then the
+  // payOS: the VietQR stays on this page until the backend reports the money in, then the
   // instalment re-reads as PAID and this page turns into its receipt, as after MoMo.
   const bank = useFinanceBankTransfer(
     () => void afterPaid('Đã nhận chuyển khoản. Thanh toán thành công'),
@@ -109,7 +109,7 @@ function LiveFeePaymentScreen() {
       { feeItemId, provider, idempotencyKey: idempotencyKey.current },
       {
         onSuccess: async (result) => {
-          // SePay has no page to go to: show its VietQR here and wait for the money.
+          // A bank transfer has no page to go to: show its VietQR here and wait for the money.
           if (result.bankTransfer) {
             submitting.current = false;
             bank.start(result.transactionId, result.bankTransfer);

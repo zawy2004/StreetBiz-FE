@@ -49,7 +49,6 @@ export function useOnline(): boolean {
 const providerNames: Record<string, string> = {
   MOMO: 'MoMo',
   ZALOPAY: 'ZaloPay',
-  SEPAY: 'SePay',
   PAYOS: 'payOS',
 };
 

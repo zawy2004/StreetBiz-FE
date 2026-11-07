@@ -201,7 +201,7 @@ beforeEach(() => {
   // The methods this stall takes: the platform's own gateways, no household payOS account.
   legacyApi.storefrontPaymentOptions.mockResolvedValue({
     mode: 'SANDBOX',
-    providers: ['MOMO', 'ZALOPAY', 'SEPAY'],
+    providers: ['MOMO', 'ZALOPAY'],
     message: '',
     payee: null,
   });
