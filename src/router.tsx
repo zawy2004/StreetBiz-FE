@@ -318,6 +318,18 @@ const WardFinanceScreen = lazyScreen(
   () => import('@/features/ward-administration/screens/WardFinanceScreen'),
   'WardFinanceScreen',
 );
+const WardReceiptsScreen = lazyScreen(
+  () => import('@/features/ward-administration/screens/WardReceiptsScreen'),
+  'WardReceiptsScreen',
+);
+const VendorPayoutAccountScreen = lazyScreen(
+  () => import('@/features/payout-accounts/screens'),
+  'VendorPayoutAccountScreen',
+);
+const WardPayoutAccountScreen = lazyScreen(
+  () => import('@/features/payout-accounts/screens'),
+  'WardPayoutAccountScreen',
+);
 const WardDebtorsScreen = lazyScreen(
   () => import('@/features/ward-administration/screens'),
   'WardDebtorsScreen',
@@ -413,6 +425,17 @@ const OrderComplaintReviewScreen = lazyScreen(
 const PlatformDashboardScreen = lazyScreen(
   () => import('@/features/platform-administration/screens'),
   'PlatformDashboardScreen',
+);
+
+const TaxHomeScreen = lazyScreen(() => import('@/features/tax/screens'), 'TaxHomeScreen');
+const RevenueLedgerScreen = lazyScreen(() => import('@/features/tax/screens'), 'RevenueLedgerScreen');
+const TaxFilingsScreen = lazyScreen(() => import('@/features/tax/screens'), 'TaxFilingsScreen');
+const TaxEstimateScreen = lazyScreen(() => import('@/features/tax/screens'), 'TaxEstimateScreen');
+const TaxSettingsScreen = lazyScreen(() => import('@/features/tax/screens'), 'TaxSettingsScreen');
+const WardTaxScreen = lazyScreen(() => import('@/features/tax/screens'), 'WardTaxScreen');
+const TaxPoliciesScreen = lazyScreen(
+  () => import('@/features/platform-administration/screens'),
+  'TaxPoliciesScreen',
 );
 
 /** Guests land on the public landing page; signed-in users go straight to their role home. */
@@ -606,6 +629,12 @@ export function AppRouter() {
           <Route path="finance/payments" element={<PaymentHistoryScreen />} />
           <Route path="finance/violations" element={<VendorViolationsScreen />} />
           <Route path="finance/contracts/:id" element={<ContractScheduleScreen />} />
+          <Route path="finance/payout-account" element={<VendorPayoutAccountScreen />} />
+          <Route path="tax" element={<TaxHomeScreen />} />
+          <Route path="tax/ledger" element={<RevenueLedgerScreen />} />
+          <Route path="tax/filings" element={<TaxFilingsScreen />} />
+          <Route path="tax/estimate" element={<TaxEstimateScreen />} />
+          <Route path="tax/settings" element={<TaxSettingsScreen />} />
           <Route path="chat" element={<ConversationsScreen />} />
           <Route path="chat/:conversationId" element={<ChatThreadScreen />} />
           <Route path="store" element={<StoreScreen />} />
@@ -628,7 +657,10 @@ export function AppRouter() {
           <Route path="dashboard" element={<WardDashboardScreen />} />
           <Route path="reports" element={<CollectionReportScreen />} />
           <Route path="finance" element={<WardFinanceScreen />} />
+          <Route path="finance/payout-account" element={<WardPayoutAccountScreen />} />
+          <Route path="finance/receipts" element={<WardReceiptsScreen />} />
           <Route path="finance/:contractId" element={<WardFinanceScreen />} />
+          <Route path="tax" element={<WardTaxScreen />} />
           <Route path="reports/debtors" element={<WardDebtorsScreen />} />
           <Route path="inbox" element={<InboxScreen />} />
           <Route path="inbox/reviews" element={<WardCasesScreen />} />
@@ -663,6 +695,7 @@ export function AppRouter() {
           <Route path="accounts" element={<AccountsScreen />} />
           <Route path="categories" element={<CategoriesScreen />} />
           <Route path="moderation" element={<ModerationScreen />} />
+          <Route path="tax-policies" element={<TaxPoliciesScreen />} />
           <Route path="moderation/content/:reportId" element={<ReportedContentReviewScreen />} />
           <Route
             path="moderation/complaints/:complaintId"

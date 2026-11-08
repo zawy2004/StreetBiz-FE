@@ -323,4 +323,49 @@ describe('ward receivables and refunds', () => {
 
     expect(client.apiPost).toHaveBeenCalledWith('/ward/reports/refunds/9/mark-refunded', { note: null });
   });
+
+  it('says a fine paid to the Treasury is returned by the Treasury, not by the ward', async () => {
+    const { ReceivablesPanel } = await import('@/features/ward-administration/components/ReceivablesPanel');
+    client.apiGet.mockImplementation(async (path: string) =>
+      path.endsWith('/receivables')
+        ? {
+            asOf: '2026-10-11',
+            overdueAmount: 0,
+            aging: [],
+            dueNext30Count: 0,
+            dueNext30Amount: 0,
+            refundsPending: 1,
+            refundsPendingAmount: 1_000_000,
+          }
+        : [
+            {
+              transactionId: 13,
+              kind: 'PENALTY',
+              vendorName: 'Phạm Thị Lan',
+              vendorPhone: '0905000101',
+              slotCode: 'NVL-08',
+              label: 'tiền phạt: Cản trở lối đi bộ',
+              provider: 'TREASURY',
+              providerReference: 'KB-0003',
+              amount: 1_000_000,
+              receivedAt: '2026-10-11T07:00:00Z',
+              status: 'REFUND_REQUIRED',
+              refundedAt: null,
+            },
+          ],
+    );
+    client.apiPost.mockResolvedValue({});
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ReceivablesPanel />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText(/Nộp Kho bạc/)).toBeInTheDocument();
+    expect(screen.getByText(/do Kho bạc hoàn trả cho hộ/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Kho bạc đã hoàn' }));
+
+    expect(client.apiPost).toHaveBeenCalledWith('/ward/reports/refunds/13/mark-refunded', { note: null });
+  });
 });

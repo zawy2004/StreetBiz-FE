@@ -16,6 +16,7 @@ import type { Order } from '@/features/orders/types/order.types';
 const legacyApi = vi.hoisted(() => ({
   cart: vi.fn(),
   paymentOptions: vi.fn(),
+  storefrontPaymentOptions: vi.fn(),
   customerOrder: vi.fn(),
   review: vi.fn(),
   saveReview: vi.fn(),
@@ -197,6 +198,13 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.unstubAllGlobals();
   legacyApi.paymentOptions.mockResolvedValue({ mode: 'SANDBOX', providers: ['MOMO'], message: '' });
+  // The methods this stall takes: the platform's own gateways, no household payOS account.
+  legacyApi.storefrontPaymentOptions.mockResolvedValue({
+    mode: 'SANDBOX',
+    providers: ['MOMO', 'ZALOPAY'],
+    message: '',
+    payee: null,
+  });
   ordersApi.syncPayment.mockImplementation(async () => order('PENDING_PAYMENT'));
   // ORD-01: these screens are not about the pickup range, so the rule is off here.
   ordersApi.pickupRange.mockResolvedValue({
@@ -300,6 +308,83 @@ describe('C11 checkout', () => {
     const zalo = await screen.findByRole('radio', { name: /ZaloPay/ });
     expect(zalo.tagName).toBe('INPUT');
     expect(screen.getByRole('radio', { name: /MoMo/ })).toBeChecked();
+  });
+
+  it("offers the household's own payOS account first, naming who is paid, and sends PAYOS", async () => {
+    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.storefrontPaymentOptions.mockResolvedValue({
+      mode: 'LIVE',
+      providers: ['PAYOS'],
+      message: 'Chuyển khoản ngân hàng qua VietQR, hệ thống tự xác nhận khi tiền về.',
+      payee: {
+        name: 'Bếp Việt',
+        bankName: 'Vietcombank',
+        accountNumberMasked: '••••••4321',
+        accountName: 'PHAM THI LAN',
+      },
+    });
+    ordersApi.checkout.mockImplementation(() => new Promise(() => undefined));
+    vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'uuid-1') });
+    const user = userEvent.setup();
+    renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
+
+    const payos = await screen.findByRole('radio', { name: /Chuyển khoản VietQR/ });
+    expect(payos).toBeChecked();
+    expect(screen.getByText('Trả thẳng cho Bếp Việt')).toBeInTheDocument();
+    // Only what this stall takes: no wallet it has not got.
+    expect(screen.queryByRole('radio', { name: /MoMo/ })).not.toBeInTheDocument();
+    expect(legacyApi.storefrontPaymentOptions).toHaveBeenCalledWith(cart.storefrontId);
+
+    await user.click(screen.getByRole('button', { name: 'Thanh toán và đặt món' }));
+
+    expect(ordersApi.checkout).toHaveBeenCalledWith(
+      expect.objectContaining({ cartId: cart.cartId, provider: 'PAYOS' }),
+      'uuid-1',
+    );
+    expect(screen.getAllByText(/tiền về tài khoản/).length).toBeGreaterThan(0);
+  });
+
+  it('takes no order, and says so, when the stall has not connected a receiving account', async () => {
+    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.storefrontPaymentOptions.mockResolvedValue({
+      mode: 'UNAVAILABLE',
+      providers: [],
+      message: 'Thanh toán trực tuyến chưa sẵn sàng. Vui lòng thử lại sau.',
+      payee: null,
+    });
+    renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
+
+    expect(
+      await screen.findByRole('region', { name: 'Quán chưa nhận thanh toán online' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/mua trực tiếp tại quầy/)).toBeInTheDocument();
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Thanh toán và đặt món' })).toBeDisabled();
+    expect(ordersApi.checkout).not.toHaveBeenCalled();
+  });
+
+  it('lets the customer retry when the stall\'s payment methods could not be read', async () => {
+    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.storefrontPaymentOptions
+      .mockRejectedValueOnce(new ApiError('server_error', 503, 'Mạng chập chờn.'))
+      .mockResolvedValue({
+        mode: 'SANDBOX',
+        providers: ['MOMO'],
+        message: '',
+        payee: null,
+      });
+    const user = userEvent.setup();
+    renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Mạng chập chờn.');
+    expect(screen.getByRole('button', { name: 'Thanh toán và đặt món' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Tải lại phương thức thanh toán' }));
+
+    expect(await screen.findByRole('radio', { name: /MoMo/ })).toBeChecked();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Thanh toán và đặt món' })).toBeEnabled(),
+    );
   });
 });
 

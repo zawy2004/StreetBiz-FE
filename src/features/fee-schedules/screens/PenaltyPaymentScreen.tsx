@@ -1,153 +1,85 @@
-import { useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/common';
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { ErrorState, Skeleton, showToast } from '@/components/feedback';
-import { ApiError, errorMessage, financeApi } from '@/core/api';
+import { errorMessage } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
-import { isSandboxPaymentUrl, redirectToPayment } from '@/features/orders/payment-redirect';
-import { rememberFinancePayment, useFinancePaymentReturn } from '../useFinancePaymentReturn';
-import { FINANCE_KEYS, usePenalties, usePayPenaltyCheckout } from '../useFinance';
+import { usePenaltyTreasury } from '../useFinance';
 import { LoadingBlock } from '../components/FinanceParts';
-import {
-  CheckoutError,
-  PayBar,
-  PenaltyNote,
-  PenaltyNotice,
-  WalletPicker,
-} from '../components/PaymentParts';
-import { ReturnCheckTrack } from '../components/ReturnCheckTrack';
-
-type Provider = 'MOMO' | 'ZALOPAY';
+import { PenaltyNote, PenaltyNotice } from '../components/PaymentParts';
+import { ReceiptForm, ReceiptStatus, TreasuryGuide } from '../components/TreasuryReceipt';
 
 export function PenaltyPaymentScreen() {
   return isLiveApi ? <LivePenaltyPaymentScreen /> : <MockPenaltyPaymentScreen />;
 }
 
+const TITLE = 'Nộp phạt vào Kho bạc';
+
+/**
+ * A fine is paid to the State Treasury, not through StreetBiz: this page tells the household how,
+ * takes the receipt it gets, and shows where the ward's check of it stands. Only the ward can mark
+ * the fine as paid (after matching the receipt with the Treasury), never this page.
+ */
 function LivePenaltyPaymentScreen() {
   const { id } = useParams<{ id: string }>();
   const penaltyId = Number(id);
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [provider, setProvider] = useState<Provider>('MOMO');
-  const idempotencyKey = useRef<string | null>(null);
-  const submitting = useRef(false);
-  const { penalties, isLoading, isError, error, refetch } = usePenalties();
-  const checkout = usePayPenaltyCheckout();
-  const { pathname } = useLocation();
-  // Back from MoMo on this page: the backend checks with MoMo, then we leave for the finance home.
-  const momoReturn = useFinancePaymentReturn(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['finance'] });
-    showToast('MoMo đã xác nhận thanh toán');
-    navigate('/vendor/finance', { replace: true });
-  });
-  const penalty = penalties.find((p) => p.penaltyId === penaltyId);
+  const treasury = usePenaltyTreasury(penaltyId);
 
-  useEffect(() => {
-    idempotencyKey.current = null;
-    submitting.current = false;
-  }, [penaltyId]);
+  const toFinance = (
+    <StickyActions>
+      <Button label="Về trang Tài chính" variant="outline" onPress={() => navigate('/vendor/finance')} />
+    </StickyActions>
+  );
 
-  const pay = () => {
-    if (!penalty || submitting.current || checkout.isPending) return;
-    submitting.current = true;
-    idempotencyKey.current ??= crypto.randomUUID();
-    checkout.mutate(
-      { penaltyId, provider, idempotencyKey: idempotencyKey.current },
-      {
-        onSuccess: async (result) => {
-          // A configured MoMo merchant returns a real https payment page: go there.
-          if (!isSandboxPaymentUrl(result.paymentUrl)) {
-            rememberFinancePayment(result.transactionId, pathname);
-            showToast('Đang chuyển đến cổng thanh toán MoMo.');
-            redirectToPayment(result.paymentUrl);
-            return;
-          }
-          try {
-            // Development-only: no real MoMo/ZaloPay sandbox account is wired up, so
-            // confirm here instead of letting the redirect below hit a dead custom-scheme URL.
-            await financeApi.sandboxConfirmPayment(result.transactionId);
-            await Promise.all([
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.penalties() }),
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.summary }),
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.payments }),
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.violations }),
-            ]);
-            showToast('Thanh toán thành công');
-            navigate(-1);
-          } catch (err) {
-            if (err instanceof ApiError && err.status === 404) {
-              showToast('Đang chuyển đến cổng thanh toán.');
-              redirectToPayment(result.paymentUrl);
-              return;
-            }
-            // e.g. already paid from another tab: refresh so the penalty stops looking payable.
-            await Promise.all([
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.penalties() }),
-              queryClient.invalidateQueries({ queryKey: FINANCE_KEYS.summary }),
-            ]);
-            submitting.current = false;
-            showToast(errorMessage(err));
-          }
-        },
-        onError: () => {
-          submitting.current = false;
-        },
-      },
-    );
-  };
-
-  if (isLoading) {
+  if (treasury.isPending) {
     return (
       <Screen>
-        <AppHeader title="Thanh toán biên bản phạt" back />
+        <AppHeader title={TITLE} back />
         <NoticeSkeleton />
       </Screen>
     );
   }
-  if (isError) {
+  if (treasury.isError) {
     return (
       <Screen>
-        <AppHeader title="Thanh toán biên bản phạt" back />
-        <ErrorState message={errorMessage(error)} onRetry={() => refetch()} />
+        <AppHeader title={TITLE} back />
+        <ErrorState message={errorMessage(treasury.error)} onRetry={() => treasury.refetch()} />
       </Screen>
     );
   }
-  if (!penalty) return <ErrorState message="Không tìm thấy biên bản phạt." />;
 
+  const fine = treasury.data;
+  const paid = fine.penaltyStatus === 'PAID';
   return (
-    <Screen
-      footer={
-        <StickyActions>
-          <PayBar amount={penalty.amount}>
-            <Button
-              label={
-                checkout.isPending ? 'Đang khởi tạo thanh toán…' : 'Thanh toán qua MoMo / ZaloPay'
-              }
-              loading={checkout.isPending}
-              disabled={checkout.isPending}
-              onPress={pay}
-            />
-          </PayBar>
-        </StickyActions>
-      }
-    >
-      <AppHeader title="Thanh toán biên bản phạt" back />
-      <ReturnCheckTrack state={momoReturn.state} onRetry={momoReturn.retry} />
+    <Screen footer={toFinance}>
+      <AppHeader title={TITLE} back />
       <div className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
-        <PenaltyNotice
-          violationLabel={penalty.violationLabel}
-          amount={penalty.amount}
-          slotCode={penalty.slotCode}
-          issuedAt={penalty.issuedAt}
-          status={penalty.penaltyStatus}
-        />
         <div className="flex min-w-0 max-w-[640px] flex-col gap-md">
-          <WalletPicker value={provider} onChange={setProvider} disabled={checkout.isPending} />
-          {checkout.isError ? <CheckoutError message={errorMessage(checkout.error)} /> : null}
+          <PenaltyNotice
+            violationLabel={fine.violationLabel}
+            amount={fine.amount}
+            slotCode={fine.slotCode}
+            issuedAt={fine.issuedAt}
+            status={fine.penaltyStatus}
+          />
+          {fine.latestReceipt ? <ReceiptStatus receipt={fine.latestReceipt} /> : null}
+          {paid ? (
+            <p role="status" className="text-body-md text-text/80">
+              Phường đã ghi nhận khoản phạt này là đã nộp. Hoá đơn nằm trong mục Hoá đơn.
+            </p>
+          ) : null}
+        </div>
+        <div className="flex min-w-0 max-w-[640px] flex-col gap-md">
+          {fine.canSubmit ? (
+            <>
+              <TreasuryGuide instructions={fine.instructions} />
+              <ReceiptForm penaltyId={penaltyId} issuedAt={fine.issuedAt} />
+            </>
+          ) : null}
           <PenaltyNote />
         </div>
       </div>
@@ -155,6 +87,7 @@ function LivePenaltyPaymentScreen() {
   );
 }
 
+/** The demo build has no server to check a receipt, so it keeps the instant local "paid". */
 function MockPenaltyPaymentScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -169,7 +102,7 @@ function MockPenaltyPaymentScreen() {
     setTimeout(() => {
       payPenalty(penalty.id);
       setProcessing(false);
-      showToast('Thanh toán thành công');
+      showToast('Đã ghi nhận nộp phạt');
       navigate(-1);
     }, 900);
   };
@@ -178,13 +111,11 @@ function MockPenaltyPaymentScreen() {
     <Screen
       footer={
         <StickyActions>
-          <PayBar amount={penalty.amount}>
-            <Button label="Thanh toán qua MoMo / ZaloPay" onPress={pay} loading={processing} />
-          </PayBar>
+          <Button label="Tôi đã nộp phạt vào Kho bạc" onPress={pay} loading={processing} />
         </StickyActions>
       }
     >
-      <AppHeader title="Thanh toán biên bản phạt" back />
+      <AppHeader title={TITLE} back />
       <PenaltyNotice
         violationLabel={penalty.reason}
         amount={penalty.amount}
@@ -195,7 +126,7 @@ function MockPenaltyPaymentScreen() {
   );
 }
 
-/** The notice in outline (its red margin already ruled) while the list loads. */
+/** The notice in outline (its red margin already ruled) while the fine loads. */
 function NoticeSkeleton() {
   return (
     <LoadingBlock>
@@ -206,10 +137,7 @@ function NoticeSkeleton() {
           <Skeleton className="h-8 w-4/5" />
           <Skeleton className="h-12 w-3/5" />
         </div>
-        <div className="grid max-w-[640px] grid-cols-2 gap-sm self-start">
-          <Skeleton className="h-20 w-full !rounded-[16px]" />
-          <Skeleton className="h-20 w-full !rounded-[16px]" />
-        </div>
+        <Skeleton className="h-48 w-full max-w-[640px] !rounded-[20px]" />
       </div>
     </LoadingBlock>
   );

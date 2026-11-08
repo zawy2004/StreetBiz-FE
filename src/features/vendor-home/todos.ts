@@ -146,7 +146,7 @@ export function buildTodos(
       .map<Todo>((p) => ({
         key: `penalty-${p.penaltyId}`,
         kind: 'penalty',
-        title: `Thanh toán biên bản phạt`,
+        title: `Nộp phạt vào Kho bạc`,
         path: `/vendor/finance/penalties/${p.penaltyId}/payment`,
         amount: p.amount,
         date: p.issuedAt,

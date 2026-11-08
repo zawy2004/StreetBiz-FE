@@ -4,3 +4,4 @@ export * from './CategoriesScreen';
 export * from './ModerationScreen';
 export * from './ReportedContentReviewScreen';
 export * from './OrderComplaintReviewScreen';
+export * from './TaxPoliciesScreen';

@@ -22,7 +22,14 @@ import {
   ViolationLedger,
 } from '../components/ops/report/ReportParts';
 import { ReportSummaryCard } from '../components/ops/report/ReportSummaryCard';
-import { daysInMonth, periodDays } from '../components/ops/report/report-model';
+import {
+  daysInMonth,
+  displayDay,
+  PERIOD_OPTIONS,
+  periodDays,
+  periodFor,
+  type PeriodKey,
+} from '../components/ops/report/report-model';
 import {
   useCollectionPerformance,
   useCollectionReport,
@@ -31,33 +38,6 @@ import {
   useWardDebtors,
   type ReportPeriod,
 } from '../useWardReports';
-
-type PeriodKey = 'THIS_MONTH' | 'LAST_MONTH' | 'LAST_90_DAYS' | 'CUSTOM';
-
-/** Local calendar date, not toISOString(): that is UTC and would be yesterday before 07:00. */
-function isoDay(date: Date): string {
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${date.getFullYear()}-${month}-${day}`;
-}
-
-function periodFor(key: Exclude<PeriodKey, 'CUSTOM'>, today: Date): ReportPeriod {
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  switch (key) {
-    case 'LAST_MONTH':
-      return { from: isoDay(new Date(year, month - 1, 1)), to: isoDay(new Date(year, month, 0)) };
-    case 'LAST_90_DAYS':
-      return { from: isoDay(new Date(year, month, today.getDate() - 89)), to: isoDay(today) };
-    default:
-      return { from: isoDay(new Date(year, month, 1)), to: isoDay(today) };
-  }
-}
-
-const displayDay = (iso: string) => {
-  const [year, month, day] = iso.split('-');
-  return `${day}/${month}/${year}`;
-};
 
 const percent = (rate: number) => `${Math.round(rate * 1000) / 10}`.replace('.', ',') + '%';
 
@@ -99,16 +79,7 @@ export function CollectionReportScreen() {
   };
 
   const periodControl = (
-    <SegmentedControl
-      value={periodKey}
-      onChange={setPeriodKey}
-      options={[
-        { value: 'THIS_MONTH', label: 'Tháng này' },
-        { value: 'LAST_MONTH', label: 'Tháng trước' },
-        { value: 'LAST_90_DAYS', label: '90 ngày' },
-        { value: 'CUSTOM', label: 'Tuỳ chọn' },
-      ]}
-    />
+    <SegmentedControl value={periodKey} onChange={setPeriodKey} options={PERIOD_OPTIONS} />
   );
 
   // Display only, from the period already asked for: its length, and how far into this month.
@@ -126,15 +97,24 @@ export function CollectionReportScreen() {
       </div>
       <div className="flex shrink-0 flex-col gap-xs md:items-end md:pb-1">
         <div className="[&_[role=tab]]:h-10">{periodControl}</div>
-        <Button
-          label="Xuất Excel"
-          size="sm"
-          variant="outline"
-          fullWidth={false}
-          loading={exporting}
-          disabled={exporting}
-          onPress={() => void exportXlsx()}
-        />
+        <div className="flex flex-wrap gap-xs md:justify-end">
+          <Button
+            label="Xem từng khoản thu"
+            size="sm"
+            variant="outline"
+            fullWidth={false}
+            onPress={() => navigate('/ward/finance/receipts')}
+          />
+          <Button
+            label="Xuất Excel"
+            size="sm"
+            variant="outline"
+            fullWidth={false}
+            loading={exporting}
+            disabled={exporting}
+            onPress={() => void exportXlsx()}
+          />
+        </div>
       </div>
     </div>
   );

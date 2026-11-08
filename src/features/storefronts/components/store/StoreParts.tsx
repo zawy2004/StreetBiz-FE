@@ -191,10 +191,13 @@ export function StoreShortcuts({
   newOrders,
   onOrders,
   onSales,
+  onPayout,
 }: {
   newOrders: number | undefined;
   onOrders: () => void;
   onSales: () => void;
+  /** Where the money for orders lands: without a receiving account the stall takes no online order. */
+  onPayout?: () => void;
 }) {
   const tile =
     'group flex min-h-16 min-w-0 items-center gap-sm rounded-[18px] bg-card px-sm py-xs text-left shadow-card ring-1 ring-border transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-hover md:px-md';
@@ -252,6 +255,25 @@ export function StoreShortcuts({
           className="shrink-0 text-muted transition-transform group-hover:translate-x-0.5"
         />
       </button>
+      {onPayout ? (
+        <button type="button" onClick={onPayout} className={`${tile} col-span-2`}>
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-tint-primary text-primary">
+            <Icon name="bank" size={20} color="currentColor" weight="duotone" />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="text-body-md font-semibold text-text">Tài khoản nhận tiền</span>
+            <span className="truncate text-body-sm text-muted">
+              Khách trả thẳng vào tài khoản của bạn
+            </span>
+          </span>
+          <Icon
+            name="chevron-right"
+            size={18}
+            color="currentColor"
+            className="shrink-0 text-muted transition-transform group-hover:translate-x-0.5"
+          />
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -157,7 +157,11 @@ describe('fee payment (live API)', () => {
     vi.clearAllMocks();
     paid = false;
     client.apiGet.mockImplementation(async (url: string) =>
-      url === '/vendor/finance/fees/3' ? feeDetail(paid) : [fee],
+      url === '/vendor/finance/fees/3'
+        ? feeDetail(paid)
+        : url === '/vendor/finance/fees/3/payment-options'
+          ? { mode: 'SANDBOX', providers: ['MOMO', 'ZALOPAY'], message: '', payee: null }
+          : [fee],
     );
   });
 

@@ -199,7 +199,18 @@ export const WARD_COLLECTION_KEYS = {
   debtors: ['ward', 'reports', 'debtors'] as const,
   receivables: ['ward', 'reports', 'receivables'] as const,
   refunds: ['ward', 'reports', 'refunds'] as const,
+  receipts: (from: string, to: string) => ['ward', 'reports', 'receipts', from, to] as const,
 };
+
+/** "Lịch sử thu": the period's receipts, one by one (live only, like the other collection reads). */
+export function useWardReceipts(period: ReportPeriod) {
+  return useQuery({
+    queryKey: WARD_COLLECTION_KEYS.receipts(period.from, period.to),
+    queryFn: () => wardReportApi.receipts(period.from, period.to),
+    enabled: isLiveApi,
+    placeholderData: keepPreviousData,
+  });
+}
 
 /**
  * WARD-14 collections: on-time rate and zones for the period. Live only: the demo database keeps

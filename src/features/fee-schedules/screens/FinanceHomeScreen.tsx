@@ -46,6 +46,7 @@ export function FinanceHomeScreen() {
 
   const openPayments = () => navigate('/vendor/finance/payments');
   const openViolations = () => navigate('/vendor/finance/violations');
+  const openPayoutAccount = () => navigate('/vendor/finance/payout-account');
   const year = now.getFullYear();
   const downloadStatement = async () => {
     if (!isLiveApi) {
@@ -84,6 +85,13 @@ export function FinanceHomeScreen() {
               onPress={openViolations}
             />
             <Button
+              label="Tài khoản nhận tiền"
+              variant="outline"
+              fullWidth={false}
+              icon={<Icon name="bank" size={18} color="currentColor" />}
+              onPress={openPayoutAccount}
+            />
+            <Button
               label={`Tải sao kê ${year} (Excel)`}
               variant="outline"
               fullWidth={false}
@@ -105,6 +113,12 @@ export function FinanceHomeScreen() {
       <div className="grid grid-cols-2 gap-sm sm:grid-cols-3 lg:hidden">
         <ShortcutTile icon="history" label="Lịch sử thanh toán" onPress={openPayments} />
         <ShortcutTile icon="gavel" label="Lịch sử vi phạm" onPress={openViolations} />
+        <ShortcutTile
+          icon="bank"
+          label="Tài khoản nhận tiền"
+          onPress={openPayoutAccount}
+          className="col-span-2 sm:col-span-1"
+        />
         <ShortcutTile
           icon="file-document-outline"
           label={downloading ? 'Đang tải sao kê…' : `Tải sao kê ${year} (Excel)`}

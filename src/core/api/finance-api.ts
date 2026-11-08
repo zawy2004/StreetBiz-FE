@@ -6,7 +6,28 @@ import { apiGet, apiGetBlob, apiPost } from './client';
  * from `Application/Common/Security/FinanceConstants.cs`.
  */
 
-export type PaymentProvider = 'MOMO' | 'ZALOPAY';
+export type PaymentProvider = 'MOMO' | 'ZALOPAY' | 'PAYOS';
+
+/** Who a payment goes to: the payee's own payOS account (never StreetBiz's). Numbers are masked. */
+export type PayeeDto = {
+  name: string;
+  bankName: string | null;
+  accountNumberMasked: string | null;
+  accountName: string | null;
+};
+
+/**
+ * The payment methods offered for one thing to pay. `PAYOS` is present only when the payee
+ * (the ward for a rental fee, the household for an order) has connected its own receiving
+ * account; `payee` then names who is being paid.
+ */
+export type PaymentOptionsDto = {
+  /** LIVE = real gateways/transfers; SANDBOX = in-app simulated payment; UNAVAILABLE = nothing to pay with. */
+  mode: 'LIVE' | 'SANDBOX' | 'UNAVAILABLE';
+  providers: PaymentProvider[];
+  message: string;
+  payee: PayeeDto | null;
+};
 
 /** FeeScheduleItems.item_status (DB CHECK). */
 export const FEE_ITEM_STATUS = {
@@ -148,6 +169,29 @@ export type ReceivablesDto = {
   refundsPendingAmount: number;
 };
 
+/**
+ * One receipt in the ward's "lịch sử thu": who paid what, when, how, and the reference to check it
+ * against (`PAYOS-{orderCode}` in payOS's own list, the Treasury receipt number, the officer's note).
+ * `paymentStatus` is SUCCESS, or REFUND_REQUIRED / REFUNDED once the money is owed back.
+ */
+export type WardReceiptDto = {
+  invoiceId: number;
+  invoiceNumber: string;
+  issuedAt: string;
+  kind: 'FEE' | 'PENALTY';
+  payerName: string | null;
+  payerPhone: string | null;
+  slotCode: string | null;
+  description: string;
+  amount: number;
+  provider: string | null;
+  providerReference: string | null;
+  paymentStatus: 'SUCCESS' | 'REFUND_REQUIRED' | 'REFUNDED' | null;
+};
+
+/** The receipts of a period, newest first, with the period the server actually used. */
+export type WardReceiptListDto = { from: string; to: string; items: WardReceiptDto[] };
+
 /** A payment owed back to a vendor (REFUND_REQUIRED) or already paid back (REFUNDED). */
 export type WardRefundDto = {
   transactionId: number;
@@ -193,6 +237,59 @@ export type FeeItemDetailDto = {
   item: ScheduleItemDto;
 };
 
+/**
+ * A bank transfer by VietQR through payOS: the QR and what to type if the payer cannot scan
+ * it. `transferContent` carries the payment code and must be sent unchanged. `qrContent` is the
+ * QR's content (drawn here) and `checkoutUrl` payOS's hosted payment page.
+ */
+export type BankTransferDto = {
+  bankName: string;
+  accountNumber: string;
+  accountName: string | null;
+  amount: number;
+  transferContent: string;
+  qrContent?: string | null;
+  checkoutUrl?: string | null;
+};
+
+/** One receipt a household uploaded for a fine it paid to the State Treasury. */
+export type PenaltyReceiptDto = {
+  receiptId: number;
+  penaltyId: number;
+  status: 'SUBMITTED' | 'ACCEPTED' | 'REJECTED';
+  receiptUrl: string;
+  reference: string | null;
+  paidOn: string;
+  note: string | null;
+  submittedAt: string;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+};
+
+/** How to pay a fine to the Treasury, and where the household's receipt stands. */
+export type PenaltyTreasuryDto = {
+  penaltyId: number;
+  amount: number;
+  decisionNumber: string | null;
+  violationLabel: string;
+  slotCode: string | null;
+  wardName: string | null;
+  penaltyStatus: string;
+  issuedAt: string;
+  /** False once paid, waived or cancelled, or while a receipt waits for the ward. */
+  canSubmit: boolean;
+  instructions: string[];
+  latestReceipt: PenaltyReceiptDto | null;
+};
+
+export type SubmitPenaltyReceiptBody = {
+  receiptUrl: string;
+  reference: string | null;
+  /** "YYYY-MM-DD". */
+  paidOn: string;
+  note: string | null;
+};
+
 export type FinanceCheckoutDto = {
   transactionId: number;
   purpose: string;
@@ -200,6 +297,8 @@ export type FinanceCheckoutDto = {
   provider: string;
   amount: number;
   paymentUrl: string;
+  /** Set for PAYOS: show this QR instead of redirecting to `paymentUrl`. */
+  bankTransfer?: BankTransferDto | null;
 };
 
 function queryString(params: Record<string, string | undefined>): string {
@@ -228,13 +327,20 @@ export const financeApi = {
   penalties: (status?: string) =>
     apiGet<PenaltyListDto[]>(`/vendor/finance/penalties${queryString({ status })}`),
 
-  /** FEE-04. */
-  payPenaltyCheckout: (penaltyId: number, provider: PaymentProvider, idempotencyKey: string) =>
-    apiPost<FinanceCheckoutDto>(
-      `/vendor/finance/penalties/${penaltyId}/checkout`,
-      { provider },
-      { headers: { 'Idempotency-Key': idempotencyKey } },
-    ),
+  /** The methods this fee can be paid with; PAYOS names the ward that would be paid. */
+  feePaymentOptions: (feeItemId: number) =>
+    apiGet<PaymentOptionsDto>(`/vendor/finance/fees/${feeItemId}/payment-options`),
+
+  /**
+   * Fines are paid to the State Treasury, not through StreetBiz: how to pay and the receipt so far.
+   * Replaces the online penalty checkout.
+   */
+  penaltyTreasury: (penaltyId: number) =>
+    apiGet<PenaltyTreasuryDto>(`/vendor/finance/penalties/${penaltyId}/treasury`),
+
+  /** The receipt (a file from `uploadEvidenceFile`) for the ward to check; 409 while one is waiting. */
+  submitPenaltyReceipt: (penaltyId: number, body: SubmitPenaltyReceiptBody) =>
+    apiPost<PenaltyReceiptDto>(`/vendor/finance/penalties/${penaltyId}/receipts`, body),
 
   /**
    * Development-only stand-in for a real signed callback (mirrors Commerce's
@@ -251,6 +357,10 @@ export const financeApi = {
     apiPost<{ transactionId: number; status: 'PENDING' | 'SUCCESS' | 'FAILED' }>(
       `/vendor/finance/payments/${transactionId}/sync`,
     ),
+
+  /** The VietQR of a payment still waiting for its payOS bank transfer (404 once settled). */
+  bankTransfer: (transactionId: number) =>
+    apiGet<BankTransferDto>(`/vendor/finance/payments/${transactionId}/bank-transfer`),
 
   /** FEE-05: the caller's fee/penalty payment attempts, most recent first. */
   payments: () => apiGet<PaymentTransactionDto[]>('/vendor/finance/payments'),
@@ -415,6 +525,13 @@ export const wardReportApi = {
   /** On-time rate for fees falling due in the period, and figures by zone. */
   performance: (from?: string, to?: string) =>
     apiGet<CollectionPerformanceDto>(`/ward/reports/performance${queryString({ from, to })}`),
+
+  /** "Lịch sử thu": every receipt of the ward in the period (default: this month), newest first. */
+  receipts: (from?: string, to?: string) =>
+    apiGet<WardReceiptListDto>(`/ward/reports/receipts${queryString({ from, to })}`),
+
+  /** One receipt of the ward as the household's PDF (fetched with the bearer token, not linked). */
+  receiptPdf: (invoiceId: number) => apiGetBlob(`/ward/reports/receipts/${invoiceId}/pdf`),
 
   /** Overdue fees by age, fees due in the next 30 days, and payments owed back. */
   receivables: () => apiGet<ReceivablesDto>('/ward/reports/receivables'),

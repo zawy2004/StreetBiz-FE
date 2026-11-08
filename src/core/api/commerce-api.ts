@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPost, apiPut } from './client';
+import type { PaymentOptionsDto } from './finance-api';
 
 export type MarketplaceMenuItem = {
   menuItemId: number;
@@ -205,12 +206,8 @@ export type SalesSummary = {
   orders: CommerceOrder[];
 };
 
-export type PaymentOptions = {
-  /** LIVE = MoMo's own (test) gateway is configured; SANDBOX = in-app simulated payment. */
-  mode: 'LIVE' | 'SANDBOX' | 'UNAVAILABLE';
-  providers: ('MOMO' | 'ZALOPAY')[];
-  message: string;
-};
+/** The platform-wide methods, whoever is paid (see `storefrontPaymentOptions` for one stall's). */
+export type PaymentOptions = PaymentOptionsDto;
 export type CustomerComplaint = {
   complaintId: number;
   orderId: number;
@@ -228,6 +225,13 @@ export const commerceApi = {
   saveReview: (orderId: number, rating: number, text: string) =>
     apiPut<OrderReview>(`/orders/${orderId}/review`, { rating, text }),
   paymentOptions: () => apiGet<PaymentOptions>('/orders/payment-options'),
+  /**
+   * The methods for an order from this stall. PAYOS appears, naming the household, only when the
+   * household has connected its own receiving account; without it the stall takes no online order
+   * by bank transfer.
+   */
+  storefrontPaymentOptions: (storefrontId: number) =>
+    apiGet<PaymentOptions>(`/orders/storefronts/${storefrontId}/payment-options`),
   failSandboxPayment: (orderId: number) =>
     apiPost<CommerceOrder>(`/orders/${orderId}/payment/sandbox-fail`),
   confirmSandboxRefund: (orderId: number) =>
