@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPost, apiPut, apiUpload } from './client';
+import { shrinkImage } from '@/core/utils/shrink-image';
 
 export type SellerStore = {
   storefrontId: number;
@@ -137,9 +138,9 @@ export const sellerStoreApi = {
   categories: () => apiGet<SellerCategory[]>('/seller/storefronts/food-categories'),
   menu: (id: number) => apiGet<SellerMenu>(`/seller/storefronts/${id}/menu-items`),
   /** Stores a dish photo (public) and returns the URL to send as `imageUrl`. */
-  uploadMenuImage: (file: File) => {
+  uploadMenuImage: async (file: File) => {
     const form = new FormData();
-    form.append('file', file);
+    form.append('file', await shrinkImage(file));
     return apiUpload<{ fileUrl: string }>('/uploads/menu-images', form);
   },
   saveItem: (storeId: number, id: number | null, input: MenuInput) =>
