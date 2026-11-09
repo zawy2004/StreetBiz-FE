@@ -37,6 +37,10 @@ export function NewRegistrationDetailsScreen() {
   // Same ['wards'] query the picker below runs; used only to name the ward on the preview.
   const { wards } = useWards();
   const formRef = useRef<HTMLDivElement>(null);
+  // What the person typed, kept as text: echoing the parsed number back would turn "16." into
+  // "16" and swallow the decimal point, so 16.0678 typed key by key would end up as 160678.
+  const [latitudeText, setLatitudeText] = useState(() => draft.addressLatitude?.toString() ?? '');
+  const [longitudeText, setLongitudeText] = useState(() => draft.addressLongitude?.toString() ?? '');
 
   const needsAddress = draft.vendorType === VENDOR_TYPE.fixedStorefront;
 
@@ -138,10 +142,12 @@ export function NewRegistrationDetailsScreen() {
               <div className="min-w-0">
                 <TextField
                   label="Vĩ độ (không bắt buộc)"
-                  value={draft.addressLatitude?.toString() ?? ''}
+                  value={latitudeText}
                   onChangeText={(v) => {
                     const parsed = parseOptionalCoordinate(v);
-                    if (parsed !== undefined) draft.setField('addressLatitude', parsed);
+                    if (parsed === undefined) return;
+                    setLatitudeText(v);
+                    draft.setField('addressLatitude', parsed);
                   }}
                   keyboardType="numeric"
                   placeholder="16.0678"
@@ -150,10 +156,12 @@ export function NewRegistrationDetailsScreen() {
               <div className="min-w-0">
                 <TextField
                   label="Kinh độ (không bắt buộc)"
-                  value={draft.addressLongitude?.toString() ?? ''}
+                  value={longitudeText}
                   onChangeText={(v) => {
                     const parsed = parseOptionalCoordinate(v);
-                    if (parsed !== undefined) draft.setField('addressLongitude', parsed);
+                    if (parsed === undefined) return;
+                    setLongitudeText(v);
+                    draft.setField('addressLongitude', parsed);
                   }}
                   keyboardType="numeric"
                   placeholder="108.2208"
