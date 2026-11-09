@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { AccountPlate } from '../components/AccountPlate';
@@ -30,9 +30,12 @@ export function ResetPasswordScreen() {
   const [otpRejected, setOtpRejected] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  /** Set once the reset succeeded, so clearing the pending flow does not bounce back to the request step. */
+  const finished = useRef(false);
+
   // Reaching this screen without a phone and code means the flow was skipped or reloaded.
   useEffect(() => {
-    if (!phone || !otp) navigate('/auth/password/reset-request', { replace: true });
+    if (!finished.current && (!phone || !otp)) navigate('/auth/password/reset-request', { replace: true });
   }, [phone, otp, navigate]);
 
   const submit = async (event?: FormEvent) => {
@@ -63,6 +66,7 @@ export function ResetPasswordScreen() {
         if (!user) throw new Error('Không tìm thấy tài khoản.');
         db.updateUserPassword(user.id, password);
       }
+      finished.current = true;
       clearPending();
       showToast('Đặt lại mật khẩu thành công. Vui lòng đăng nhập.');
       navigate('/auth/sign-in', { replace: true });
