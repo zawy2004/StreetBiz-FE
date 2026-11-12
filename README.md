@@ -223,6 +223,27 @@ screen, three status tones only, no decorative legal citations or raw
 coordinates — see the `streetbiz-fe-ui-decisions` note for the full
 rationale.
 
+## Deploy (Vercel)
+
+The web app is deployed on Vercel from this repository (`vercel.json`: Vite build to `dist/`,
+SPA rewrite, cache headers for hashed `/assets`). The API and its database run on a VPS
+(see StreetBiz-BE `docs/deploy-vps.md`).
+
+In _Vercel → Project → Settings → Environment Variables_ set, then redeploy (`VITE_*` values are
+baked in at build time):
+
+| Variable                                        | Value                                                                                                                 |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `VITE_API_BASE_URL`                             | `https://<api-domain>/api`, the VPS behind Caddy; must be https (the build refuses localhost or plain http on Vercel) |
+| `VITE_APP_ENV`                                  | `production` or empty (`development` lists the demo accounts on the sign-in page)                                     |
+| `VITE_GOONG_MAPTILES_KEY`, `VITE_CARTO_API_KEY` | Optional map tile keys                                                                                                |
+
+The API must allow this site's origin: `Cors__AllowedOrigins__0=https://<vercel-domain>` in the
+VPS `api.env`, and `Permit__PublicScanBaseUrl` set to the same domain for printed QR codes.
+
+Pull requests run `.github/workflows/ci.yml` (lint, typecheck, tests, production build); Vercel
+builds and deploys on its own.
+
 ## Prepared but not yet wired
 
 - Workflows outside Authentication, Vendor Onboarding, Ward slot review,

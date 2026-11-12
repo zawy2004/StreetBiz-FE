@@ -14,7 +14,7 @@ function checkProductionEnv(mode: string) {
   const apiBase = env.VITE_API_BASE_URL?.trim();
   if (!apiBase) {
     throw new Error(
-      'VITE_API_BASE_URL is not set. Point it at the deployed API (https://<app>.azurewebsites.net/api), ' +
+      'VITE_API_BASE_URL is not set. Point it at the deployed API on the VPS (https://<api-domain>/api), ' +
         'or set VITE_USE_MOCK_API=true for a demo build with no backend.',
     );
   }
