@@ -199,7 +199,8 @@ export const vendorRegistrationApi = {
   },
 
   /** Evidence files require the bearer token, so they are fetched rather than linked. */
-  downloadEvidenceFile: (fileUrl: string) => apiGetBlob(apiPathFromFileUrl(fileUrl)),
+  // async: a refused (non-upload) URL becomes a rejected promise the caller's .catch handles.
+  downloadEvidenceFile: async (fileUrl: string) => apiGetBlob(apiPathFromFileUrl(fileUrl)),
 
   /** REG-02 */
   submitEvidence: (registrationId: number, payload: EvidencePayload) =>

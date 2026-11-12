@@ -3,17 +3,7 @@ import { useId, type ReactNode } from 'react';
 import { Button, formatVnd, Icon, QrCode } from '@/components/common';
 import { showToast } from '@/components/feedback';
 import type { BankTransferDto } from '@/core/api/finance-api';
-
-/** A link from the server is opened only if it is an http(s) page: never a script or data URL. */
-function openableUrl(value: string | null | undefined): string | null {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
-  } catch {
-    return null;
-  }
-}
+import { safeWebUrl } from '@/core/security/safe-url';
 
 async function copy(value: string, what: string) {
   try {
@@ -44,7 +34,7 @@ type Props = {
 export function BankTransferPanel({ transfer, checking = false, onCheck, children }: Props) {
   const titleId = useId();
   const qrLabel = `Mã VietQR chuyển ${formatVnd(transfer.amount)} tới ${transfer.bankName} ${transfer.accountNumber}, nội dung ${transfer.transferContent}`;
-  const checkoutUrl = openableUrl(transfer.checkoutUrl);
+  const checkoutUrl = safeWebUrl(transfer.checkoutUrl);
   return (
     <section
       aria-labelledby={titleId}

@@ -35,6 +35,7 @@ import {
   SoldOutToggle,
 } from '../components/menu/MenuParts';
 import { buyerVisibility } from '../menu-view';
+import { safeWebUrl } from '@/core/security/safe-url';
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
@@ -487,14 +488,16 @@ export function LiveMenuScreen() {
         loading={board.isPending || permit.isLoading}
         canPrint={Boolean(printHref)}
         onPrint={() => {
-          if (printHref) window.open(printHref, '_blank', 'noopener,noreferrer');
+          const target = safeWebUrl(printHref);
+          if (target) window.open(target, '_blank', 'noopener,noreferrer');
         }}
         slots={(board.data?.boards ?? []).flatMap((slot) =>
-          slot.printUrl
+          safeWebUrl(slot.printUrl)
             ? [
                 {
                   slotCode: slot.slotCode,
-                  onPrint: () => window.open(slot.printUrl!, '_blank', 'noopener,noreferrer'),
+                  onPrint: () =>
+                    window.open(safeWebUrl(slot.printUrl)!, '_blank', 'noopener,noreferrer'),
                 },
               ]
             : [],

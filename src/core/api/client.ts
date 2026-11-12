@@ -6,6 +6,7 @@ import axios, {
 } from 'axios';
 
 import { env } from '@/core/config/env';
+import { isApiRequestUrl, uploadsApiPath } from '@/core/security/safe-url';
 import { ApiError, isTokenFailure, timeoutError, toApiError } from './problem';
 import { clearTokens, getTokens, setTokens, type AuthTokens } from './token-storage';
 
@@ -40,7 +41,9 @@ export const http: AxiosInstance = axios.create({
 });
 
 http.interceptors.request.use((config) => {
-  if (!isAnonymous(config.url)) {
+  // The token only ever goes to our own API: an absolute URL to another host (a link planted in
+  // stored data) is sent without it.
+  if (!isAnonymous(config.url) && isApiRequestUrl(config.url, config.baseURL ?? env.apiBaseUrl)) {
     const token = getTokens()?.accessToken;
     if (token) config.headers.Authorization = `Bearer ${token}`;
   }
@@ -208,8 +211,9 @@ export async function apiGetBlob(url: string): Promise<Blob> {
 
 /**
  * File URLs stored by the backend are origin-relative (`/api/uploads/...`), while
- * the client's baseURL already ends in `/api`; drop the duplicate segment.
+ * the client's baseURL already ends in `/api`; drop the duplicate segment. Anything that is not
+ * an uploaded file is refused (see uploadsApiPath).
  */
 export function apiPathFromFileUrl(fileUrl: string): string {
-  return fileUrl.startsWith('/api/') ? fileUrl.slice('/api'.length) : fileUrl;
+  return uploadsApiPath(fileUrl);
 }
