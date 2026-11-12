@@ -1,5 +1,19 @@
-export function redirectToPayment(paymentUrl: string): void {
-  window.location.assign(paymentUrl);
+import { showToast } from '@/components/feedback';
+import { safeWebUrl } from '@/core/security/safe-url';
+
+/**
+ * Sends the browser to the payment provider. Only a web page is followed: a `javascript:` (or any
+ * other non-http) URL would run code in our origin, so it is refused with a message instead.
+ * Returns whether the browser is leaving.
+ */
+export function redirectToPayment(paymentUrl: string): boolean {
+  const target = safeWebUrl(paymentUrl);
+  if (!target) {
+    showToast('Liên kết thanh toán không hợp lệ. Vui lòng thử lại.');
+    return false;
+  }
+  window.location.assign(target);
+  return true;
 }
 
 /**
