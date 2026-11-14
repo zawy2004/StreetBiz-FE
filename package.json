@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@goongmaps/goong-map-react": "^1.1.2",
-    "@hookform/resolvers": "^5.9.1",
+    "@hookform/resolvers": "^7.0.5",
     "@microsoft/signalr": "^10.0.11",
     "@tanstack/react-query": "^5.107.1",
     "axios": "^1.21.1",
