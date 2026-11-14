@@ -5,6 +5,7 @@ import { Button } from '@/components/common';
 import { EmptyState, ErrorState, showToast } from '@/components/feedback';
 import { AppHeader, Screen } from '@/components/layout';
 import { errorMessage } from '@/core/api';
+import { apiAssetUrl } from '@/core/api/asset-url';
 import { sellerStoreApi, type SellerStore, type StoreInput } from '@/core/api/seller-store-api';
 import { storefrontPhotos } from '@/features/buyer-discovery/food-photos';
 import { orderApi } from '@/features/orders/api/orderApi';
@@ -47,6 +48,24 @@ export function LiveStoreScreen() {
   const [description, setDescription] = useState('');
   const [contractId, setContractId] = useState('');
   const [status, setStatus] = useState('OPEN');
+  /** The stall photo: undefined = unchanged, '' = removed, a URL = newly uploaded. */
+  const [photoUrl, setPhotoUrl] = useState<string | undefined>(undefined);
+  const [photoPreview, setPhotoPreview] = useState<string | undefined>(undefined);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const upload = useMutation({
+    mutationFn: (file: File) => sellerStoreApi.uploadMenuImage(file),
+    onSuccess: (result) => setPhotoUrl(result.fileUrl),
+    onError: (error) => {
+      setPhotoPreview(undefined);
+      setPhotoError(errorMessage(error));
+    },
+  });
+  const resetPhoto = (current: string | null) => {
+    setPhotoUrl(undefined);
+    setPhotoPreview(current ? apiAssetUrl(current) : undefined);
+    setPhotoError(null);
+    upload.reset();
+  };
   const save = useMutation({
     mutationFn: ({ id, input }: { id: number | null; input: StoreInput }) =>
       sellerStoreApi.saveStore(id, input),
@@ -117,6 +136,7 @@ export function LiveStoreScreen() {
         name: name.trim(),
         description: description.trim() || null,
         availabilityStatus: status,
+        ...(photoUrl !== undefined ? { imageUrl: photoUrl } : {}),
       },
     });
   };
@@ -130,6 +150,7 @@ export function LiveStoreScreen() {
     setName('');
     setDescription('');
     setStatus('OPEN');
+    resetPhoto(null);
     setContractId(String(choices[0]!.contractId));
     save.reset();
   };
@@ -151,8 +172,26 @@ export function LiveStoreScreen() {
       slotCode={editedContract?.slotCode}
       contractEnd={editedContract?.endDate}
       photoKey={editedStore?.storefrontId ?? 0}
+      photo={{
+        preview: photoPreview,
+        uploading: upload.isPending,
+        error: photoError,
+        onPick: (preview, file) => {
+          setPhotoError(null);
+          setPhotoPreview(preview);
+          setPhotoUrl(undefined);
+          upload.mutate(file);
+        },
+        onInvalid: setPhotoError,
+        onRemove: () => {
+          upload.reset();
+          setPhotoPreview(undefined);
+          setPhotoError(null);
+          setPhotoUrl('');
+        },
+      }}
       saving={save.isPending}
-      canSave={Boolean(name.trim()) && !(editing === 'new' && !selected)}
+      canSave={Boolean(name.trim()) && !(editing === 'new' && !selected) && !upload.isPending}
       error={save.isError ? errorMessage(save.error) : null}
       onSave={submit}
       onClose={() => setEditing(null)}
@@ -192,6 +231,7 @@ export function LiveStoreScreen() {
               storefrontId: store.storefrontId,
               storefrontName: store.name,
               description: store.description,
+              imageUrl: store.imageUrl,
             }),
             slotCode: contract?.slotCode,
             contractEnd: contract?.endDate,
@@ -223,6 +263,7 @@ export function LiveStoreScreen() {
                   setName(store.name);
                   setDescription(store.description ?? '');
                   setStatus(store.availabilityStatus);
+                  resetPhoto(store.imageUrl ?? null);
                   save.reset();
                 }}
               />

@@ -3,7 +3,9 @@ import { forwardRef, type Ref } from 'react';
 import { Button, Icon } from '@/components/common';
 import { SelectField, TextField } from '@/components/forms';
 import { storefrontPhotos } from '@/features/buyer-discovery/food-photos';
+import { photoFileProblem } from '@/core/utils/photo-file';
 import { displayDate, STATUS_CONSEQUENCE } from '../../store-view';
+import { DishPhotoField } from '../menu/MenuParts';
 import { StorefrontFacade } from './StoreParts';
 
 type Choice = { contractId: number; slotCode: string; endDate: string };
@@ -24,6 +26,15 @@ type Props = {
   contractEnd?: string;
   /** Stable id for the preview photo (the stall's own when editing). */
   photoKey: number;
+  /** The stall's own photo: what is shown now and the upload in progress. */
+  photo: {
+    preview?: string;
+    uploading: boolean;
+    error: string | null;
+    onPick: (preview: string, file: File) => void;
+    onInvalid: (message: string) => void;
+    onRemove: () => void;
+  };
   saving: boolean;
   canSave: boolean;
   error: string | null;
@@ -52,6 +63,7 @@ export const StoreEditorPanel = forwardRef<HTMLElement, Props>(function StoreEdi
     slotCode,
     contractEnd,
     photoKey,
+    photo,
     saving,
     canSave,
     error,
@@ -90,6 +102,7 @@ export const StoreEditorPanel = forwardRef<HTMLElement, Props>(function StoreEdi
               storefrontId: photoKey,
               storefrontName: name || 'quán',
               description,
+              imageUrl: photo.preview,
             }),
             slotCode: previewSlot,
             contractEnd: previewEnd,
@@ -108,6 +121,37 @@ export const StoreEditorPanel = forwardRef<HTMLElement, Props>(function StoreEdi
           }))}
         />
       ) : null}
+      <div className="flex flex-col gap-xs">
+        <DishPhotoField
+          label={photo.preview ? 'Đổi ảnh gian hàng' : 'Ảnh gian hàng'}
+          uri={photo.preview}
+          error={Boolean(photo.error)}
+          uploading={photo.uploading}
+          validate={photoFileProblem}
+          onInvalid={photo.onInvalid}
+          onChange={photo.onPick}
+        />
+        <div className="flex items-start justify-between gap-sm">
+          <p
+            className={`text-body-sm ${photo.error ? 'text-error' : 'text-muted'}`}
+            role={photo.error ? 'alert' : undefined}
+          >
+            {photo.error ??
+              (photo.uploading
+                ? 'Đang tải ảnh lên…'
+                : 'Ảnh mặt tiền hoặc món nổi bật. Không có ảnh thì khách thấy ảnh minh hoạ.')}
+          </p>
+          {photo.preview && !photo.uploading ? (
+            <button
+              type="button"
+              onClick={photo.onRemove}
+              className="shrink-0 text-label font-semibold text-muted underline-offset-2 hover:underline"
+            >
+              Gỡ ảnh
+            </button>
+          ) : null}
+        </div>
+      </div>
       <TextField
         ref={nameRef}
         label="Tên gian hàng"

@@ -8,8 +8,13 @@ export type SellerStore = {
   name: string;
   description: string | null;
   availabilityStatus: string;
+  /** The stall's own photo (`/api/uploads/menu-images/...`), or null for the illustrative one. */
+  imageUrl?: string | null;
 };
-export type StoreInput = Omit<SellerStore, 'storefrontId'>;
+export type StoreInput = Omit<SellerStore, 'storefrontId' | 'imageUrl'> & {
+  /** From `uploadMenuImage`; '' removes the photo, omitted keeps it. */
+  imageUrl?: string;
+};
 /** Where a dish stands with ATTP; MISSING and PENDING dishes are not shown to buyers. */
 export type DishFoodSafetyStatus = 'NOT_REQUIRED' | 'MISSING' | 'PENDING' | 'APPROVED';
 export type SellerMenuItem = {
@@ -137,7 +142,7 @@ export const sellerStoreApi = {
     apiPut<StoreHours>(`/seller/storefronts/${id}/business-hours`, { hours }),
   categories: () => apiGet<SellerCategory[]>('/seller/storefronts/food-categories'),
   menu: (id: number) => apiGet<SellerMenu>(`/seller/storefronts/${id}/menu-items`),
-  /** Stores a dish photo (public) and returns the URL to send as `imageUrl`. */
+  /** Stores a dish or store photo (public) and returns the URL to send as `imageUrl`. */
   uploadMenuImage: async (file: File) => {
     const form = new FormData();
     form.append('file', await shrinkImage(file));

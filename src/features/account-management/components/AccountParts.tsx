@@ -1,4 +1,4 @@
-import { useId, useRef, type KeyboardEvent } from 'react';
+import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
 
 import { Button, Icon, type IconName } from '@/components/common';
 import { StatusChip } from '@/components/status';
@@ -19,13 +19,24 @@ type PlateProps = {
   role: RoleCode;
   phone: string;
   suspended: boolean;
+  /** Profile photo; without it the plate shows the initial letter. */
+  avatarUrl?: string;
+  /** Change/remove photo buttons, rendered under the name. */
+  photoActions?: ReactNode;
 };
 
 /**
  * The name board in front of the stall: kerb along the top edge, a large
  * monogram, the name, the legal capacity as a stamped plate, and the phone.
  */
-export function AccountIdentityPlate({ fullName, role, phone, suspended }: PlateProps) {
+export function AccountIdentityPlate({
+  fullName,
+  role,
+  phone,
+  suspended,
+  avatarUrl,
+  photoActions,
+}: PlateProps) {
   const initial = fullName.trim().charAt(0).toUpperCase() || '?';
   return (
     <section
@@ -35,12 +46,20 @@ export function AccountIdentityPlate({ fullName, role, phone, suspended }: Plate
       <div aria-hidden="true" className="sb-kerb" style={{ height: 8 }} />
       <div className="flex flex-col gap-md p-md md:p-lg">
         <div className="flex items-start gap-md">
-          <span
-            aria-hidden="true"
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-tint-primary font-sign text-[28px] font-bold text-primary-pressed ring-[3px] ring-brand ring-offset-2 ring-offset-card [@container_(min-width:560px)]:h-[88px] [@container_(min-width:560px)]:w-[88px] [@container_(min-width:560px)]:text-[36px]"
-          >
-            {initial}
-          </span>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={`Ảnh đại diện của ${fullName}`}
+              className="h-16 w-16 shrink-0 rounded-full object-cover ring-[3px] ring-brand ring-offset-2 ring-offset-card [@container_(min-width:560px)]:h-[88px] [@container_(min-width:560px)]:w-[88px]"
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-tint-primary font-sign text-[28px] font-bold text-primary-pressed ring-[3px] ring-brand ring-offset-2 ring-offset-card [@container_(min-width:560px)]:h-[88px] [@container_(min-width:560px)]:w-[88px] [@container_(min-width:560px)]:text-[36px]"
+            >
+              {initial}
+            </span>
+          )}
           <div className="flex min-w-0 flex-1 flex-col gap-xs pt-1">
             <h2
               title={fullName}
@@ -57,6 +76,7 @@ export function AccountIdentityPlate({ fullName, role, phone, suspended }: Plate
                 tone={suspended ? 'danger' : 'ok'}
               />
             </div>
+            {photoActions}
           </div>
         </div>
         <dl className="flex flex-col gap-sm border-t border-dashed border-border pt-md">
