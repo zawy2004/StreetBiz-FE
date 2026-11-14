@@ -28,7 +28,8 @@ export function FilterChips<T extends string>({ options, value, onChange }: Prop
             {opt.label}
             {opt.count !== undefined ? (
               <>
-                <span className="sr-only">{` (${opt.count})`}</span>
+                {' '}
+                <span className="sr-only">{`(${opt.count})`}</span>
                 <span
                   aria-hidden="true"
                   className={[

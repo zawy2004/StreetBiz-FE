@@ -382,7 +382,7 @@ export function ShiftShortcuts({
               <Icon name={s.icon} size={28} color="currentColor" weight="duotone" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[16px] font-semibold leading-6 text-text">{s.title}</span>
+              <span className="block text-[16px] font-semibold leading-6 text-text">{s.title}</span>{' '}
               <span className="mt-0.5 hidden text-[14px] leading-[22px] text-muted sm:block">
                 {s.description}
               </span>
