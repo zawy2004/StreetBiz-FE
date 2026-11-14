@@ -123,8 +123,10 @@ function DemoNotice() {
 function ConsentStep() {
   const start = useVoiceSessionStore((s) => s.start);
   const { registrations, isLoading } = useRegistrations();
-  const [voice, setVoice] = useState(true);
-  const [biometric, setBiometric] = useState(true);
+  // Consent must be an affirmative act (Luật BVDLCN 2025 / NĐ 356/2025), never pre-ticked. Declining
+  // either one still works: the vendor types instead of speaking, or fills the owner part by hand.
+  const [voice, setVoice] = useState(false);
+  const [biometric, setBiometric] = useState(false);
   // BR-09: the server refuses a second registration while one is SUBMITTED / UNDER_REVIEW.
   const pending = registrations.find(
     (r) => r.registrationStatus === 'SUBMITTED' || r.registrationStatus === 'UNDER_REVIEW',
