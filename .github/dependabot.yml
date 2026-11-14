@@ -1,29 +1,50 @@
-# Weekly update PRs into develop. They go through CI like any other PR; nothing merges on its own.
+# Dependabot opens a PR only when there is something worth doing:
+#   - security fixes: as soon as an advisory affects a package (Dependabot security updates,
+#     enabled in Settings -> Code security). The limits and schedule below do not apply to them;
+#   - routine updates: once a month, at most two PRs, one for every minor/patch bump and one
+#     for the majors that are not ignored below. A red major PR is closed, not fixed in place.
+# PRs target develop and go through CI; nothing merges on its own. Config is read from main.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     target-branch: develop
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
       time: '06:00'
       timezone: Asia/Ho_Chi_Minh
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
     commit-message:
       prefix: build
     labels: [dependencies]
     groups:
-      # One PR for routine patch/minor bumps; majors (React, Vite, ...) come one at a time.
       minor-and-patch:
+        applies-to: version-updates
         update-types: [minor, patch]
+      major:
+        applies-to: version-updates
+        update-types: [major]
+    ignore:
+      # Tailwind 4 replaces tailwind.config.ts with CSS-first config: a migration, not a bump.
+      - dependency-name: 'tailwindcss'
+        update-types: [version-update:semver-major]
+      # ESLint 10 / react-hooks 7 change the flat config and add rules that fail the lint step.
+      - dependency-name: 'eslint'
+        update-types: [version-update:semver-major]
+      - dependency-name: '@eslint/js'
+        update-types: [version-update:semver-major]
+      - dependency-name: 'eslint-plugin-react-hooks'
+        update-types: [version-update:semver-major]
+      # Type definitions follow the Node version CI and Vercel run (22), not the latest Node.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /
     target-branch: develop
     schedule:
       interval: monthly
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     commit-message:
       prefix: ci
     labels: [dependencies]
