@@ -35,7 +35,7 @@ describe('safeWebUrl', () => {
 });
 
 describe('isApiRequestUrl', () => {
-  const api = 'https://streetbiz-api.azurewebsites.net/api';
+  const api = 'https://api.streetbiz.example/api';
 
   it('treats relative paths as API requests', () => {
     expect(isApiRequestUrl('/uploads/evidence/5/a.jpg', api)).toBe(true);
@@ -43,13 +43,13 @@ describe('isApiRequestUrl', () => {
   });
 
   it('accepts an absolute URL on the API origin', () => {
-    expect(isApiRequestUrl('https://streetbiz-api.azurewebsites.net/api/orders', api)).toBe(true);
+    expect(isApiRequestUrl('https://api.streetbiz.example/api/orders', api)).toBe(true);
   });
 
   it.each([
     'https://evil.example/steal',
     '//evil.example/steal',
-    'http://streetbiz-api.azurewebsites.net/api/x',
+    'http://api.streetbiz.example/api/x',
   ])('never sends the token to %s', (url) => {
     expect(isApiRequestUrl(url, api)).toBe(false);
   });
