@@ -1,7 +1,7 @@
-import { apiAssetUrl } from '@/core/api/asset-url';
+import { apiAssetUrl, staticPhotoUrl } from '@/core/api/asset-url';
 
 /**
- * Stock photos (public/images/food, credits in CREDITS.md there) shown when a
+ * Stock photos (served by the API from /static/food; credits in StreetBiz-BE wwwroot/static/food/CREDITS.md) shown when a
  * stall or dish has no photo of its own, so the discovery screens are not a
  * wall of grey tiles. A vendor's own `imageUrl` always wins; a stock photo is
  * flagged `illustrative` so the UI can label it "Ảnh minh họa".
@@ -66,7 +66,7 @@ const RULES: [RegExp, PhotoKey][] = [
 /** Stalls that match nothing still get a photo, picked by id so each keeps its own. */
 const STALL_FALLBACKS: PhotoKey[] = ['bun-cha', 'pho', 'com-tam', 'banh-mi', 'banh-cuon'];
 
-const photoUrl = (key: PhotoKey) => `${import.meta.env.BASE_URL}images/food/${key}.jpg`;
+const photoUrl = (key: PhotoKey) => staticPhotoUrl(`food/${key}.jpg`);
 
 /** Lowercase, accents off, "đ" → "d", punctuation to spaces. */
 function fold(text: string): string {
@@ -105,8 +105,11 @@ export function storefrontPhotos(storefront: {
   imageUrl?: string | null;
 }): FoodPhoto[] {
   const key =
-    matchKey([storefront.storefrontName, storefront.description, ...(storefront.categories ?? [])]) ??
-    STALL_FALLBACKS[Math.abs(storefront.storefrontId) % STALL_FALLBACKS.length]!;
+    matchKey([
+      storefront.storefrontName,
+      storefront.description,
+      ...(storefront.categories ?? []),
+    ]) ?? STALL_FALLBACKS[Math.abs(storefront.storefrontId) % STALL_FALLBACKS.length]!;
   return candidates(storefront.imageUrl, key);
 }
 

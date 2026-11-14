@@ -4,7 +4,7 @@ import { Icon } from '@/components/common';
 import { foodPhoto } from './paint-in';
 
 type Props = {
-  /** File key in public/images/food (e.g. `banh-mi`). */
+  /** File key under the API's /static/food (e.g. `banh-mi`). */
   dish: string;
   /** Empty for decoration; the dish name when the photo carries meaning. */
   alt?: string;

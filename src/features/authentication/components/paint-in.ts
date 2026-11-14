@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { staticPhotoUrl } from '@/core/api/asset-url';
 
 /**
  * Presentation helpers for the one-off entrance moments of the public pages
@@ -59,7 +60,7 @@ export function motionDelay(ms: number, reduced: boolean): string {
 
 export const EASE_OUT = 'cubic-bezier(.2,.8,.2,1)';
 
-/** Public food photos (Wikimedia, CC; see public/images/food/CREDITS.md). */
+/** Public food photos (Wikimedia, CC; served by the API, credits in StreetBiz-BE src/StreetBiz.API/wwwroot/static/food/CREDITS.md). */
 export function foodPhoto(key: string): string {
-  return `${import.meta.env.BASE_URL}images/food/${key}.jpg`;
+  return staticPhotoUrl(`food/${key}.jpg`);
 }
