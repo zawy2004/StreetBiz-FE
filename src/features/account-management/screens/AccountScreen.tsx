@@ -17,6 +17,7 @@ import {
   SignOutZone,
   ThemePreviewPicker,
 } from '../components/AccountParts';
+import { ProfilePhotoActions } from '../components/ProfilePhotoActions';
 import '../account.css';
 
 const DEMO_ROLES: RoleCode[] = ['CUSTOMER', 'VENDOR', 'WARD_AUTHORITY', 'PLATFORM_ADMIN'];
@@ -75,6 +76,10 @@ export function AccountScreen() {
             role={user.role_code}
             phone={user.phone}
             suspended={user.account_status === 'SUSPENDED'}
+            avatarUrl={user.avatarUrl}
+            photoActions={
+              isLiveApi ? <ProfilePhotoActions hasPhoto={Boolean(user.avatarUrl)} /> : undefined
+            }
           />
         </div>
 

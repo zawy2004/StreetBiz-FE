@@ -150,4 +150,54 @@ describe('LiveStoreScreen', () => {
 
     expect(await screen.findByText(/Mất kết nối máy chủ/)).toBeInTheDocument();
   });
+
+  it('uploads a stall photo and sends its URL with the store', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:stall');
+    stub([store], [contract(1)]);
+    const upload = vi
+      .spyOn(sellerStoreApi, 'uploadMenuImage')
+      .mockResolvedValue({ fileUrl: '/api/uploads/menu-images/5/abc.jpg' });
+    const save = vi.spyOn(sellerStoreApi, 'saveStore').mockResolvedValue(store);
+    const user = userEvent.setup();
+    mount();
+
+    await user.click(await screen.findByRole('button', { name: 'Sửa gian hàng' }));
+    const photo = new File([new Uint8Array([1, 2, 3])], 'stall.jpg', { type: 'image/jpeg' });
+    await user.upload(screen.getByLabelText('Ảnh gian hàng'), photo);
+    await waitFor(() => expect(upload).toHaveBeenCalledWith(photo));
+    await user.click(screen.getByRole('button', { name: 'Lưu gian hàng' }));
+
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(7, expect.objectContaining({ imageUrl: '/api/uploads/menu-images/5/abc.jpg' })),
+    );
+  });
+
+  it('removes the stall photo with an empty imageUrl', async () => {
+    stub([{ ...store, imageUrl: '/api/uploads/menu-images/5/old.jpg' }], [contract(1)]);
+    const save = vi.spyOn(sellerStoreApi, 'saveStore').mockResolvedValue(store);
+    const user = userEvent.setup();
+    mount();
+
+    await user.click(await screen.findByRole('button', { name: 'Sửa gian hàng' }));
+    await user.click(screen.getByRole('button', { name: 'Gỡ ảnh' }));
+    await user.click(screen.getByRole('button', { name: 'Lưu gian hàng' }));
+
+    await waitFor(() => expect(save).toHaveBeenCalledWith(7, expect.objectContaining({ imageUrl: '' })));
+  });
+
+  it('refuses a file that is not a photo without uploading it', async () => {
+    stub([store], [contract(1)]);
+    const upload = vi.spyOn(sellerStoreApi, 'uploadMenuImage');
+    const user = userEvent.setup({ applyAccept: false });
+    mount();
+
+    await user.click(await screen.findByRole('button', { name: 'Sửa gian hàng' }));
+    await user.upload(
+      screen.getByLabelText('Ảnh gian hàng'),
+      new File(['%PDF'], 'menu.pdf', { type: 'application/pdf' }),
+    );
+
+    expect(await screen.findByText('Chỉ chấp nhận ảnh JPG, PNG hoặc WEBP.')).toBeInTheDocument();
+    expect(upload).not.toHaveBeenCalled();
+  });
 });
