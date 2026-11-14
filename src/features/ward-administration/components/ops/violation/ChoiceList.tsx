@@ -80,7 +80,10 @@ export function ChoiceList({ value, onChange, groups, labelledBy, scroll }: Prop
                   >
                     {choice.label}
                     {choice.aside ? (
-                      <span className="font-normal text-muted"> {choice.aside}</span>
+                      <>
+                        {' '}
+                        <span className="font-normal text-muted">{choice.aside}</span>
+                      </>
                     ) : null}
                   </span>
                   {choice.detail ? (
