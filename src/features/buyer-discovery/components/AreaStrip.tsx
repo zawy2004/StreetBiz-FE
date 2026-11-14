@@ -5,6 +5,7 @@ import type { ServiceArea } from '@/core/api/commerce-api';
 import { formatDistance } from '../discovery-format';
 import { useDiscoveryStore } from '../discovery-store';
 import { useServiceAreas } from '../useDiscovery';
+import { staticPhotoUrl } from '@/core/api/asset-url';
 
 /** Stock dishes to dress each ward card; they stand for the street, not for one stall. */
 const COVERS = [
@@ -18,8 +19,7 @@ const COVERS = [
   'banh-trang-nuong',
 ] as const;
 
-const cover = (index: number) =>
-  `${import.meta.env.BASE_URL}images/food/${COVERS[index % COVERS.length]}.jpg`;
+const cover = (index: number) => staticPhotoUrl(`food/${COVERS[index % COVERS.length]}.jpg`);
 
 type Props = {
   /** Called after a ward is picked, so the screen can bring the listing back into view. */

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import { staticPhotoUrl } from '@/core/api/asset-url';
 import { menuItemPhotos, storefrontPhotos } from '@/features/buyer-discovery/food-photos';
 
-const stock = (name: string) => `/images/food/${name}.jpg`;
+// Stock photos are served by the API (StreetBiz-BE wwwroot/static), not bundled with the web app.
+const stock = (name: string) => staticPhotoUrl(`food/${name}.jpg`);
 const item = (itemName: string, extra: Partial<Parameters<typeof menuItemPhotos>[0]> = {}) =>
   menuItemPhotos({ itemName, ...extra });
 
@@ -51,5 +53,12 @@ describe('storefrontPhotos', () => {
     const a = storefrontPhotos({ storefrontId: 7, storefrontName: 'Quán Cô Ba' });
     expect(a).toHaveLength(1);
     expect(a).toEqual(storefrontPhotos({ storefrontId: 7, storefrontName: 'Quán Cô Ba' }));
+  });
+});
+
+describe('staticPhotoUrl', () => {
+  it('points at the API host, never at the web origin', () => {
+    expect(stock('pho')).toMatch(/\/static\/food\/pho\.jpg$/);
+    expect(stock('pho')).not.toContain('/images/');
   });
 });
