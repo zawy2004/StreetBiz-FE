@@ -144,7 +144,7 @@ function Sidebar({ roleLabel, items, bell }: Props) {
             to={accountTo}
             className="flex items-center gap-sm rounded-[10px] p-xs transition-colors hover:bg-sunken"
           >
-            <Avatar name={user.fullName} size={34} />
+            <Avatar uri={user.avatarUrl} name={user.fullName} size={34} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-label font-semibold text-text">{user.fullName}</p>
               <p className="truncate text-body-xs text-muted">Tài khoản và bảo mật</p>

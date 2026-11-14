@@ -15,7 +15,10 @@ import { VoicePlayer } from '@/features/assistant/voice/voice-player';
 
 const mock = vi.hoisted(() => ({ briefing: vi.fn(), capabilities: {} as Record<string, unknown> }));
 vi.mock('@/core/config/env', () => ({ isLiveApi: true, env: { apiBaseUrl: 'http://localhost:5000/api' } }));
-vi.mock('@/core/api/asset-url', () => ({ apiAssetUrl: (url: string) => url }));
+vi.mock('@/core/api/asset-url', () => ({
+  apiAssetUrl: (url: string) => url,
+  staticPhotoUrl: (path: string) => `/static/${path}`,
+}));
 vi.mock('@/features/assistant/assistant-api', () => ({ assistantApi: { briefing: mock.briefing } }));
 vi.mock('@/features/assistant/useAssistant', () => ({
   useAssistant: () => ({

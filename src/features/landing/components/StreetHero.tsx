@@ -10,8 +10,9 @@ import {
   usePaintIn,
 } from '@/features/authentication/components/paint-in';
 import { ctaClass } from './link-styles';
+import { staticPhotoUrl } from '@/core/api/asset-url';
 
-const street = (w: number) => `${import.meta.env.BASE_URL}images/hero/hanoi-street-${w}.webp`;
+const street = (w: number) => staticPhotoUrl(`hero/hanoi-street-${w}.webp`);
 
 const TRUST: { icon: IconName; label: string }[] = [
   { icon: 'qrcode', label: 'Giấy phép QR' },

@@ -11,6 +11,7 @@ import {
   type AuthResult,
   type RegisterPayload,
 } from '@/core/api';
+import { apiAssetUrl } from '@/core/api/asset-url';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
 import type { MockUser } from '@/mocks/types';
@@ -32,6 +33,7 @@ function toAppUser(apiUser: ApiUser): MockUser {
     role_code: apiUser.roleCode,
     wardUnitId: apiUser.wardUnitId ?? undefined,
     account_status: apiUser.accountStatus === 'SUSPENDED' ? 'SUSPENDED' : 'ACTIVE',
+    avatarUrl: apiUser.avatarUrl ? apiAssetUrl(apiUser.avatarUrl) : undefined,
   };
 }
 
@@ -45,6 +47,8 @@ type AuthState = {
   register: (payload: RegisterPayload) => Promise<MockUser>;
   signOut: () => Promise<void>;
   setUser: (user: MockUser) => void;
+  /** After the profile photo changed: the URL the API returned, or null once removed. */
+  setAvatarUrl: (avatarUrl: string | null) => void;
   clearSessionExpired: () => void;
   /** Dev-only: jump straight to the first demo account for a role (mock mode). */
   switchRoleDemo: (role: RoleCode) => void;
@@ -145,6 +149,12 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setUser: (user) => set({ user }),
+      setAvatarUrl: (avatarUrl) =>
+        set((state) =>
+          state.user
+            ? { user: { ...state.user, avatarUrl: avatarUrl ? apiAssetUrl(avatarUrl) : undefined } }
+            : {},
+        ),
       clearSessionExpired: () => set({ sessionExpired: false }),
 
       switchRoleDemo: (role) => {

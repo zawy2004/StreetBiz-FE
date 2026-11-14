@@ -4,10 +4,11 @@ import { Icon } from '@/components/common';
 import { ThemeSwitchButton } from '@/components/layout';
 import { Steam } from '@/components/illustrations';
 import { LocationBar } from '@/features/buyer-discovery/components/LocationBar';
+import { staticPhotoUrl } from '@/core/api/asset-url';
 
-const photo = (key: string) => `${import.meta.env.BASE_URL}images/food/${key}.jpg`;
+const photo = (key: string) => staticPhotoUrl(`food/${key}.jpg`);
 const delay = (ms: number) => ({ '--delay': `${ms}ms` }) as CSSProperties;
-const street = (w: number) => `${import.meta.env.BASE_URL}images/hero/hanoi-street-${w}.webp`;
+const street = (w: number) => staticPhotoUrl(`hero/hanoi-street-${w}.webp`);
 
 type Props = {
   isDesktop: boolean;

@@ -2,8 +2,9 @@ import { useState, type CSSProperties } from 'react';
 
 import { Icon, type IconName } from '@/components/common';
 import { categoryIcon } from '../../category-icons';
+import { staticPhotoUrl } from '@/core/api/asset-url';
 
-/** Stock dishes (public/images/food, credits there). Each photo matches the dish it names. */
+/** Stock dishes (served by the API from /static/food, credits in StreetBiz-BE wwwroot/static/food). Each photo matches the dish it names. */
 const CRAVINGS = [
   { key: 'bun-cha', label: 'Bún chả' },
   { key: 'banh-mi', label: 'Bánh mì' },
@@ -15,7 +16,7 @@ const CRAVINGS = [
   { key: 'banh-cuon', label: 'Bánh cuốn' },
 ] as const;
 
-const photo = (key: string) => `${import.meta.env.BASE_URL}images/food/${key}.jpg`;
+const photo = (key: string) => staticPhotoUrl(`food/${key}.jpg`);
 
 const TIPS: { icon: IconName; text: string }[] = [
   { icon: 'magnify', text: 'Gõ tên món hoặc tên quán' },

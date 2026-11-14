@@ -2,10 +2,14 @@ import { StrictMode } from 'react';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { staticPhotoUrl } from '@/core/api/asset-url';
 import { AssistantVendorResults } from '@/features/assistant/AssistantVendorResults';
 import type { AssistantAction, AssistantCard } from '@/features/assistant/types';
 
-vi.mock('@/core/api/asset-url', () => ({ apiAssetUrl: (url: string) => url }));
+vi.mock('@/core/api/asset-url', () => ({
+  apiAssetUrl: (url: string) => url,
+  staticPhotoUrl: (path: string) => `/static/${path}`,
+}));
 const originalShow = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, 'showModal');
 const originalClose = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, 'close');
 beforeEach(() => {
@@ -107,7 +111,7 @@ describe('buyer vendor quick preview', () => {
         onNavigate={vi.fn()}
       />,
     );
-    expect(screen.getByRole('img')).toHaveAttribute('src', '/images/food/bun-cha.jpg');
+    expect(screen.getByRole('img')).toHaveAttribute('src', staticPhotoUrl('food/bun-cha.jpg'));
     expect(screen.getByText('Ảnh minh họa')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Xem nhanh Quầy 2' })).not.toBeInTheDocument();
   });
@@ -132,12 +136,12 @@ describe('buyer vendor quick preview', () => {
   it('shows a clearly labelled local illustration in the tile and preview when the vendor has no photo', async () => {
     const vendor = { ...card(1), title: 'Bánh mì & Xôi Cô Lan', imageUrl: null };
     render(<AssistantVendorResults cards={[vendor]} actions={[action(1)]} onNavigate={vi.fn()} />);
-    expect(screen.getByRole('img')).toHaveAttribute('src', '/images/food/banh-mi.jpg');
+    expect(screen.getByRole('img')).toHaveAttribute('src', staticPhotoUrl('food/banh-mi.jpg'));
     expect(screen.getByRole('img')).toHaveAccessibleName(/Ảnh minh họa.*không phải ảnh thực tế/);
     expect(screen.getByText('Ảnh minh họa')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Xem nhanh Bánh mì & Xôi Cô Lan' }));
     const dialog = within(screen.getByRole('dialog'));
-    expect(dialog.getByRole('img')).toHaveAttribute('src', '/images/food/banh-mi.jpg');
+    expect(dialog.getByRole('img')).toHaveAttribute('src', staticPhotoUrl('food/banh-mi.jpg'));
     expect(dialog.getByText('Ảnh minh họa')).toBeVisible();
     expect(dialog.queryByText('Ảnh niêm yết')).not.toBeInTheDocument();
   });
@@ -147,7 +151,7 @@ describe('buyer vendor quick preview', () => {
     expect(screen.getByRole('img')).toHaveAttribute('src', card(1).imageUrl);
     expect(screen.queryByText('Ảnh minh họa')).not.toBeInTheDocument();
     fireEvent.error(screen.getByRole('img'));
-    expect(screen.getByRole('img')).toHaveAttribute('src', '/images/food/bun-cha.jpg');
+    expect(screen.getByRole('img')).toHaveAttribute('src', staticPhotoUrl('food/bun-cha.jpg'));
     expect(screen.getByText('Ảnh minh họa')).toBeVisible();
     fireEvent.error(screen.getByRole('img'));
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
