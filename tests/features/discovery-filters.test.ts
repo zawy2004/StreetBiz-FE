@@ -20,6 +20,7 @@ describe('hasActiveFilters', () => {
     { openNow: true },
     { radiusMeters: 1000 },
     { maxPrice: 30_000 },
+    { minRating: 4 },
   ])('is on for %o', (patch) => {
     expect(hasActiveFilters({ ...NO_DISCOVERY_FILTERS, ...patch })).toBe(true);
   });
@@ -34,8 +35,16 @@ describe('storefrontQuery', () => {
       openNow: undefined,
       position: undefined,
       radiusMeters: undefined,
+      minRating: undefined,
+      maxPrice: undefined,
       sort: 'name',
     });
+  });
+
+  it('sends the rating floor and the price cap so storefronts can be narrowed by both (DISC-05)', () => {
+    const query = storefrontQuery({ ...NO_DISCOVERY_FILTERS, minRating: 4, maxPrice: 50_000 }, null, '');
+
+    expect(query).toMatchObject({ minRating: 4, maxPrice: 50_000 });
   });
 
   it('passes the area, category, opening hours and position, and sorts by distance by default', () => {
@@ -76,5 +85,37 @@ describe('search sort', () => {
     expect(menuSortFor('PRICE_ASC')).toBe('price_asc');
     expect(menuSortFor('PRICE_DESC')).toBe('price_desc');
     expect(menuSortFor('RATING')).toBe('name');
+  });
+});
+
+describe('menuItemQuery', () => {
+  it('sends the rating floor with the price cap and the other filters (DISC-05)', () => {
+    expect(
+      menuItemQuery(
+        { ...NO_DISCOVERY_FILTERS, wardId: 3, categoryId: 2, openNow: true, maxPrice: 30_000, minRating: 3 },
+        ' xôi ',
+        'price_asc',
+      ),
+    ).toEqual({
+      query: 'xôi',
+      wardId: 3,
+      categoryId: 2,
+      openNow: true,
+      maxPrice: 30_000,
+      minRating: 3,
+      sort: 'price_asc',
+    });
+  });
+
+  it('leaves everything unset when nothing is chosen', () => {
+    expect(menuItemQuery(NO_DISCOVERY_FILTERS, '')).toEqual({
+      query: undefined,
+      wardId: undefined,
+      categoryId: undefined,
+      openNow: undefined,
+      maxPrice: undefined,
+      minRating: undefined,
+      sort: 'name',
+    });
   });
 });

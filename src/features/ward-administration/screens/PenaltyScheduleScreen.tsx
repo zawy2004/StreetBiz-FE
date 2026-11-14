@@ -292,7 +292,8 @@ function PenaltyScheduleContent() {
             <p className="text-body-md text-text/85">
               Mức phạt áp dụng là <strong>mức trung bình của khung</strong> (Luật Xử lý vi phạm hành
               chính, Điều 23 khoản 4), hệ thống tự tính từ khung bạn nhập, không nhập tay số tiền.
-              Việc giảm hoặc tăng mức phạt theo tình tiết giảm nhẹ, tăng nặng chưa được hỗ trợ.
+              Khi có tình tiết giảm nhẹ hoặc tăng nặng, cán bộ điều chỉnh mức phạt ở bước ra quyết
+              định xử phạt, trong phạm vi khung và kèm lý do.
             </p>
           </div>
           {covered === 0 && active.length > 0 && <BlankSheetArt />}

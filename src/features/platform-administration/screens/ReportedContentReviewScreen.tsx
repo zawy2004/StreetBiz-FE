@@ -22,6 +22,8 @@ const CONTENT_LABEL: Record<string, string> = {
 const DISMISS_CONSEQUENCE = 'Báo cáo sẽ được đóng mà không thay đổi nội dung.';
 const HIDE_CONSEQUENCE =
   'Nội dung sẽ không còn được hiển thị công khai và các báo cáo trùng sẽ được đóng.';
+const RESTORE_CONSEQUENCE =
+  'Người bán lấy lại quyền với nội dung này. Gian hàng vẫn tạm ngưng và món ăn ở trạng thái hết hàng cho đến khi người bán mở lại; các báo cáo đã ẩn nội dung này được đóng.';
 
 export function ReportedContentReviewScreen() {
   return (
@@ -34,15 +36,17 @@ export function ReportedContentReviewScreen() {
 function ReportedContentReviewContent() {
   const { reportId } = useParams<{ reportId: string }>();
   const queryClient = useQueryClient();
-  const [confirmation, setConfirmation] = useState<'dismiss' | 'hide'>();
+  const [confirmation, setConfirmation] = useState<'dismiss' | 'hide' | 'restore'>();
   const report = useQuery({
     queryKey: ['platform', 'reported-content', reportId],
     queryFn: () => platformApi.reportedContentDetail(reportId!),
     enabled: Boolean(reportId),
   });
   const decide = useMutation({
-    mutationFn: (decision: 'dismiss' | 'hide') =>
-      platformApi.decideReportedContent(reportId!, decision, report.data!.status),
+    mutationFn: (decision: 'dismiss' | 'hide' | 'restore') =>
+      decision === 'restore'
+        ? platformApi.restoreReportedContent(reportId!, report.data!.status)
+        : platformApi.decideReportedContent(reportId!, decision, report.data!.status),
     onSuccess: async (_, decision) => {
       setConfirmation(undefined);
       await Promise.all([
@@ -51,7 +55,13 @@ function ReportedContentReviewContent() {
           queryKey: ['platform', 'reported-content', reportId],
         }),
       ]);
-      showToast(decision === 'hide' ? 'Đã ẩn nội dung vi phạm' : 'Đã bỏ qua báo cáo');
+      showToast(
+        decision === 'hide'
+          ? 'Đã ẩn nội dung vi phạm'
+          : decision === 'restore'
+            ? 'Đã khôi phục nội dung'
+            : 'Đã bỏ qua báo cáo',
+      );
     },
   });
 
@@ -61,6 +71,7 @@ function ReportedContentReviewContent() {
   const [focused, setFocused] = useState<'dismiss' | 'hide'>('dismiss');
   const dismissId = useId();
   const hideId = useId();
+  const restoreId = useId();
   const firstStatus = useRef<string>(undefined);
   if (report.data && firstStatus.current === undefined) firstStatus.current = report.data.status;
 
@@ -82,6 +93,7 @@ function ReportedContentReviewContent() {
 
   const data = report.data;
   const pending = data.status === 'PENDING';
+  const hidden = data.status === 'HIDDEN';
   const reviewedDay = formatDay(data.reviewedAt);
   const stampAnimates = firstStatus.current === 'PENDING' && !pending && !prefersReducedMotion();
   const hideDisabled = !data.contentExists || decide.isPending;
@@ -271,6 +283,27 @@ function ReportedContentReviewContent() {
               Báo cáo đã được xử lý
             </p>
             <StatusChip code={data.status} />
+            {hidden ? (
+              <div className="mt-xs flex flex-col gap-xs border-t border-border pt-sm">
+                <PanelButton
+                  label="Khôi phục nội dung"
+                  variant="outline"
+                  disabled={!data.contentExists || decide.isPending}
+                  describedBy={restoreId}
+                  onPress={() => setConfirmation('restore')}
+                  icon={
+                    !data.contentExists ? (
+                      <Icon name="lock-outline" size={17} color="currentColor" />
+                    ) : undefined
+                  }
+                  className="w-full"
+                />
+                <p id={restoreId} className="text-body-sm text-muted">
+                  {RESTORE_CONSEQUENCE}
+                  {!data.contentExists ? ' Nội dung không còn tồn tại.' : ''}
+                </p>
+              </div>
+            ) : null}
             {errorLine}
           </PanelCard>
         ) : null}
@@ -278,13 +311,27 @@ function ReportedContentReviewContent() {
 
       <ConfirmDialog
         visible={Boolean(confirmation)}
-        title={confirmation === 'hide' ? 'Ẩn nội dung vi phạm?' : 'Bỏ qua báo cáo?'}
+        title={
+          confirmation === 'hide'
+            ? 'Ẩn nội dung vi phạm?'
+            : confirmation === 'restore'
+              ? 'Khôi phục nội dung?'
+              : 'Bỏ qua báo cáo?'
+        }
         description={
           confirmation === 'hide'
-            ? 'Nội dung sẽ không còn được hiển thị công khai và các báo cáo trùng sẽ được đóng.'
-            : 'Báo cáo sẽ được đóng mà không thay đổi nội dung.'
+            ? HIDE_CONSEQUENCE
+            : confirmation === 'restore'
+              ? RESTORE_CONSEQUENCE
+              : DISMISS_CONSEQUENCE
         }
-        confirmLabel={confirmation === 'hide' ? 'Ẩn nội dung' : 'Bỏ qua'}
+        confirmLabel={
+          confirmation === 'hide'
+            ? 'Ẩn nội dung'
+            : confirmation === 'restore'
+              ? 'Khôi phục'
+              : 'Bỏ qua'
+        }
         confirmVariant={confirmation === 'hide' ? 'danger' : 'primary'}
         onCancel={() => setConfirmation(undefined)}
         onConfirm={() => confirmation && decide.mutate(confirmation)}

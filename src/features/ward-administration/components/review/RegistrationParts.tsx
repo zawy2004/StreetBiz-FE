@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 
 import { Icon } from '@/components/common';
 import { VERDICT_TONES } from '@/components/illustrations';
-import type { WardEvidence, WardKycCheck } from '../../ward-api';
+import { evidenceLabel, type WardEvidence, type WardKycCheck } from '../../ward-api';
 import { useGrowOnMount } from './helpers';
+import { safeWebUrl } from '@/core/security/safe-url';
 
 type StepState = 'todo' | 'done' | 'locked' | 'open' | 'demo';
 
@@ -288,13 +289,16 @@ export function EvidenceLightTable({ evidence }: { evidence: WardEvidence[] }) {
 
 function EvidenceTile({ ev }: { ev: WardEvidence }) {
   const [broken, setBroken] = useState(false);
+  const label = evidenceLabel(ev);
+  // Opened in a new tab: only a web URL is linked, never a planted `javascript:` one.
+  const fileHref = safeWebUrl(ev.fileUrl);
   useEffect(() => setBroken(false), [ev.fileUrl]);
   const frame =
     'flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[14px] bg-sunken ring-1 ring-border sm:w-[240px]';
   return (
     <li className="flex min-w-0 flex-col gap-1.5 sm:w-[240px]">
-      {ev.fileUrl ? (
-        <a href={ev.fileUrl} target="_blank" rel="noreferrer" className={`group ${frame}`}>
+      {fileHref ? (
+        <a href={fileHref} target="_blank" rel="noopener noreferrer" className={`group ${frame}`}>
           {broken ? (
             <span className="flex flex-col items-center gap-1 px-sm text-center text-body-sm text-muted">
               <Icon name="file-document-outline" size={28} color="currentColor" weight="duotone" />
@@ -302,8 +306,8 @@ function EvidenceTile({ ev }: { ev: WardEvidence }) {
             </span>
           ) : (
             <img
-              src={ev.fileUrl}
-              alt={ev.label}
+              src={fileHref}
+              alt={label}
               loading="lazy"
               onError={() => setBroken(true)}
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
@@ -318,8 +322,8 @@ function EvidenceTile({ ev }: { ev: WardEvidence }) {
           Chưa có ảnh
         </div>
       )}
-      <span className="truncate text-body-sm font-medium text-text" title={ev.label}>
-        {ev.label}
+      <span className="truncate text-body-sm font-medium text-text" title={label}>
+        {label}
       </span>
     </li>
   );

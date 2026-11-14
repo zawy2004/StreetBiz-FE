@@ -133,7 +133,7 @@ function feeDetail(paid: boolean): FeeItemDetailDto {
       contractId: 1,
       slotCode: 'NVL-01',
       zoneName: 'Nguyễn Văn Linh',
-      wardName: 'Hải Châu 1',
+      wardName: 'Phường Hải Châu',
       address: null,
       startDate: '2026-08-01',
       endDate: '2026-10-30',
@@ -157,7 +157,11 @@ describe('fee payment (live API)', () => {
     vi.clearAllMocks();
     paid = false;
     client.apiGet.mockImplementation(async (url: string) =>
-      url === '/vendor/finance/fees/3' ? feeDetail(paid) : [fee],
+      url === '/vendor/finance/fees/3'
+        ? feeDetail(paid)
+        : url === '/vendor/finance/fees/3/payment-options'
+          ? { mode: 'SANDBOX', providers: ['MOMO', 'ZALOPAY'], message: '', payee: null }
+          : [fee],
     );
   });
 

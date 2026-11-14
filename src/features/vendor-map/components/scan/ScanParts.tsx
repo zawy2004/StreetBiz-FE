@@ -78,7 +78,7 @@ export function CodeSlot({ code, onCodeChange, error, checking, onCheck }: SlotP
             id={id}
             value={code}
             onChange={(e) => onCodeChange(e.target.value)}
-            placeholder="Dán nội dung mã QR"
+            placeholder="Dán nội dung mã QR hoặc đường link /q/…"
             rows={3}
             spellCheck={false}
             aria-invalid={error ? true : undefined}
@@ -126,9 +126,12 @@ export function CodeSlot({ code, onCodeChange, error, checking, onCheck }: SlotP
 }
 
 const STEPS: { icon: IconName; text: string }[] = [
-  { icon: 'qrcode', text: 'Tìm tấm giấy phép có mã QR ở quầy.' },
-  { icon: 'qrcode-scan', text: 'Quét bằng camera điện thoại, sao chép nội dung mã.' },
-  { icon: 'clipboard-text-outline', text: 'Dán vào ô nhập mã rồi bấm Kiểm tra.' },
+  { icon: 'qrcode', text: 'Tìm mã QR trên bảng giá hoặc giấy phép ở quầy.' },
+  { icon: 'qrcode-scan', text: 'Quét bằng camera điện thoại: mã mới mở thẳng trang kiểm tra.' },
+  {
+    icon: 'clipboard-text-outline',
+    text: 'Hoặc dán nội dung mã, đường link vào ô rồi bấm Kiểm tra.',
+  },
 ];
 
 /** Before any check: a permit pass hanging at a stall, its stamp waiting, and the three steps. */

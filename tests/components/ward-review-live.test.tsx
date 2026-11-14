@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactElement } from 'react';
 import { vi } from 'vitest';
 
+import { wardVendorReportsApi } from '@/core/api/ai-api';
 import { InboxScreen } from '@/features/ward-administration/screens/InboxScreen';
 import { RenewalReviewScreen } from '@/features/ward-administration/screens/RenewalReviewScreen';
 import { WardCaseScreen } from '@/features/ward-administration/screens/WardCaseScreen';
@@ -170,6 +171,7 @@ describe('ward review screens (live)', () => {
       Promise.resolve(status === 'PENDING' ? [renewal] : []),
     );
     vi.spyOn(complianceApi, 'riskQueue').mockResolvedValue([]);
+    vi.spyOn(wardVendorReportsApi, 'list').mockResolvedValue([]);
     const batch = vi.spyOn(complianceApi, 'batchDecideRenewals').mockResolvedValue({
       totalRequested: 1,
       successCount: 1,

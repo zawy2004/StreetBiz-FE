@@ -10,6 +10,7 @@ import type {
   FeeItem,
   Invoice,
   MenuItem,
+  MenuPriceChange,
   MockUser,
   Order,
   Penalty,
@@ -50,6 +51,8 @@ type State = {
   sessions: UserSession[];
   storefronts: Storefront[];
   menuItems: MenuItem[];
+  /** Append-only, newest last: what the vendor's "Lịch sử giá" lists in demo mode. */
+  priceHistory: MenuPriceChange[];
   orders: Order[];
   reviews: Review[];
   complaints: Complaint[];
@@ -111,7 +114,15 @@ type State = {
 
   addComment: (c: Omit<VendorComment, 'id' | 'created_at'>) => void;
   addReport: (r: Omit<VendorReport, 'id' | 'report_status' | 'created_at'>) => void;
-  resolveReport: (id: string) => void;
+  /** WARD-19 demo: the officer closes a pending report; it stays as it was once closed. */
+  resolveReport: (
+    id: string,
+    outcome: {
+      resolution: 'DISMISSED' | 'MEDIATED' | 'VIOLATION_RECORDED';
+      note: string;
+      refundAmount?: number | null;
+    },
+  ) => void;
 
   markNotificationRead: (id: string) => void;
   revokeSession: (id: string) => void;
@@ -135,6 +146,28 @@ type State = {
   removeFoodCategory: (id: string) => void;
 };
 
+/** One price-history row for a dish as it now stands (demo: the vendor of the demo stall). */
+function priceRow(
+  item: MenuItem,
+  kind: MenuPriceChange['change_kind'],
+  previousPrice: number | null,
+): MenuPriceChange {
+  return {
+    id: makeId('PRH'),
+    menuItemId: item.id,
+    storefrontId: item.storefrontId,
+    name: item.name,
+    nameEn: item.nameEn,
+    priceUnit: item.priceUnit,
+    price: item.price,
+    previousPrice,
+    isListed: true,
+    change_kind: kind,
+    changed_at: nowIso(),
+    changed_by_name: 'Người bán',
+  };
+}
+
 export const useMockDb = create<State>((set, get) => ({
   users: [...seed.USERS],
   vendors: [...seed.VENDORS],
@@ -157,6 +190,7 @@ export const useMockDb = create<State>((set, get) => ({
   sessions: [...seed.USER_SESSIONS],
   storefronts: [...seed.STOREFRONTS],
   menuItems: [...seed.MENU_ITEMS],
+  priceHistory: [...seed.MENU_PRICE_HISTORY],
   orders: [...seed.ORDERS],
   reviews: [...seed.REVIEWS],
   complaints: [...seed.COMPLAINTS],
@@ -486,9 +520,20 @@ export const useMockDb = create<State>((set, get) => ({
         { ...r, id: makeId('RPT'), report_status: 'PENDING', created_at: nowIso() },
       ],
     })),
-  resolveReport: (id) =>
+  resolveReport: (id, outcome) =>
     set((s) => ({
-      reports: s.reports.map((r) => (r.id === id ? { ...r, report_status: 'RESOLVED' } : r)),
+      reports: s.reports.map((r) =>
+        r.id === id && r.report_status === 'PENDING'
+          ? {
+              ...r,
+              report_status: outcome.resolution === 'DISMISSED' ? 'DISMISSED' : 'REVIEWED',
+              resolution: outcome.resolution,
+              resolution_note: outcome.note,
+              refund_amount: outcome.refundAmount ?? undefined,
+              reviewed_at: nowIso(),
+            }
+          : r,
+      ),
     })),
 
   markNotificationRead: (id) =>
@@ -506,10 +551,42 @@ export const useMockDb = create<State>((set, get) => ({
     set((s) => ({
       storefronts: s.storefronts.map((st) => (st.id === id ? { ...st, ...patch } : st)),
     })),
-  addMenuItem: (m) => set((s) => ({ menuItems: [...s.menuItems, { ...m, id: makeId('ITEM') }] })),
+  addMenuItem: (m) =>
+    set((s) => {
+      const item = { ...m, id: makeId('ITEM') };
+      return {
+        menuItems: [...s.menuItems, item],
+        priceHistory: [...s.priceHistory, priceRow(item, 'CREATED', null)],
+      };
+    }),
   updateMenuItem: (id, patch) =>
-    set((s) => ({ menuItems: s.menuItems.map((m) => (m.id === id ? { ...m, ...patch } : m)) })),
-  removeMenuItem: (id) => set((s) => ({ menuItems: s.menuItems.filter((m) => m.id !== id) })),
+    set((s) => {
+      const before = s.menuItems.find((m) => m.id === id);
+      if (!before) return {};
+      const after = { ...before, ...patch };
+      // Like the server: only a change to what the board says about the dish is a new row.
+      const boardChanged =
+        before.name !== after.name ||
+        before.nameEn !== after.nameEn ||
+        before.price !== after.price ||
+        before.priceUnit !== after.priceUnit;
+      return {
+        menuItems: s.menuItems.map((m) => (m.id === id ? after : m)),
+        priceHistory: boardChanged
+          ? [...s.priceHistory, priceRow(after, 'UPDATED', before.price)]
+          : s.priceHistory,
+      };
+    }),
+  removeMenuItem: (id) =>
+    set((s) => {
+      const item = s.menuItems.find((m) => m.id === id);
+      return {
+        menuItems: s.menuItems.filter((m) => m.id !== id),
+        priceHistory: item
+          ? [...s.priceHistory, { ...priceRow(item, 'ARCHIVED', item.price), isListed: false }]
+          : s.priceHistory,
+      };
+    }),
 
   placeOrder: (o) => {
     const order: Order = {

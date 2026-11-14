@@ -75,6 +75,10 @@ export function DigitalPermitScreen() {
   const { label, tone } = statusLabel(permit.data.effectiveStatus);
   const verdict = VERDICT_TONES[tone];
   const contractState = statusLabel(permit.data.contractStatus).label;
+  // A link (`/q/<token>`) when the server has a public base URL, so any phone camera opens the
+  // check page; otherwise the bare signed token, as before. Either way the token itself is
+  // printed below for typing in by hand.
+  const qrValue = permit.data.qrUrl || permit.data.qrPayload;
 
   const zoomButton = (
     <Button
@@ -138,7 +142,7 @@ export function DigitalPermitScreen() {
             <div className="flex flex-col items-center gap-sm">
               <div className="relative">
                 <div className={valid ? '' : 'opacity-40'}>
-                  <QrCode value={permit.data.qrPayload} size={wide ? 280 : 248} />
+                  <QrCode value={qrValue} size={wide ? 280 : 248} label="Mã QR giấy phép số" />
                 </div>
                 {valid ? null : <InvalidBand />}
               </div>
@@ -216,7 +220,7 @@ export function DigitalPermitScreen() {
 
       {fullscreen ? (
         <PermitFullscreen
-          payload={permit.data.qrPayload}
+          payload={qrValue}
           slotCode={contract.data?.slotCode}
           label={label.toUpperCase()}
           inkClass={verdict.ink}
@@ -294,7 +298,7 @@ function PermitFullscreen({
       </div>
       <div className="relative">
         <div className={valid ? '' : 'opacity-40'}>
-          <QrCode value={payload} size={size} />
+          <QrCode value={payload} size={size} label="Mã QR giấy phép số" />
         </div>
         {valid ? null : <InvalidBand />}
       </div>

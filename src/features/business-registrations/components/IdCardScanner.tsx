@@ -39,6 +39,8 @@ type Props = {
   id?: string;
   /** Called with the fields OCR just wrote into the form. */
   onExtracted?: (keys: AiFilledKey[]) => void;
+  /** Called with the whole reading (the voice flow greets the vendor by name from it). */
+  onExtraction?: (result: KycIdCardExtraction) => void;
 };
 
 /**
@@ -50,7 +52,7 @@ type Props = {
  * Authority officer still confirms identity by hand before the enrollment can be approved
  * (BR-41); nothing here approves anything.
  */
-export function IdCardScanner({ id, onExtracted }: Props) {
+export function IdCardScanner({ id, onExtracted, onExtraction }: Props) {
   const draft = useNewRegistrationStore();
   const headingId = useId();
   const consentRef = useRef<HTMLDivElement>(null);
@@ -159,6 +161,7 @@ export function IdCardScanner({ id, onExtracted }: Props) {
       });
       setExtraction(result);
       onExtracted?.(applyExtraction(result));
+      onExtraction?.(result);
       showToast(
         result.isAiGenerated
           ? 'Đã đọc thông tin từ CCCD — vui lòng kiểm tra lại từng trường.'

@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -57,6 +57,11 @@ const needsInfoRegistration: ApiRegistration = {
   householdMembers: [],
 };
 
+function SlotsProbe() {
+  const location = useLocation();
+  return <div>slot workspace {location.search}</div>;
+}
+
 function renderVendorHome() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -65,6 +70,7 @@ function renderVendorHome() {
         <Routes>
           <Route path="/vendor/home" element={<VendorHomeScreen />} />
           <Route path="/vendor/registrations/:id" element={<div>registration detail</div>} />
+          <Route path="/vendor/slots" element={<SlotsProbe />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -118,6 +124,45 @@ describe('VendorHomeScreen (live API)', () => {
     await user.click(await screen.findByText('Bổ sung hồ sơ: Xoi ga Ba Nam'));
 
     expect(await screen.findByText('registration detail')).toBeInTheDocument();
+  });
+
+  it('after approval, counts the free slots near the registered spot and opens that street', async () => {
+    api.list.mockResolvedValue([
+      {
+        ...needsInfoRegistration,
+        registrationStatus: 'APPROVED',
+        displayName: 'Bun bo Co Hoa',
+        addressLatitude: 16.06864,
+        addressLongitude: 108.219763,
+      },
+    ]);
+    vi.spyOn(sideApi, 'listApplications').mockResolvedValue([]);
+    const search = vi.spyOn(sideApi, 'searchSlots').mockResolvedValue([
+      { slotId: 9, zoneId: 4, zoneName: 'Hùng Vương', distanceMeters: 220 },
+      { slotId: 7, zoneId: 3, zoneName: 'Ông Ích Khiêm', distanceMeters: 80 },
+    ] as never);
+    const user = userEvent.setup();
+
+    renderVendorHome();
+
+    await user.click(await screen.findByText('Hồ sơ đã duyệt — có 2 ô trống gần chỗ bạn bán'));
+    expect(search).toHaveBeenCalledWith({ lat: 16.06864, lng: 108.219763, radiusMeters: 300, take: 50 });
+    expect(await screen.findByText('slot workspace ?zone=3&slot=7')).toBeInTheDocument();
+  });
+
+  it('says nothing about slots once the vendor already applied for one', async () => {
+    api.list.mockResolvedValue([
+      { ...needsInfoRegistration, registrationStatus: 'APPROVED', addressLatitude: 16.07, addressLongitude: 108.22 },
+    ]);
+    vi.spyOn(sideApi, 'listApplications').mockResolvedValue([{ applicationStatus: 'PENDING' }] as never);
+    const search = vi.spyOn(sideApi, 'searchSlots').mockResolvedValue([]);
+
+    renderVendorHome();
+
+    expect(await screen.findByText('Việc cần làm')).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(search).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Hồ sơ đã duyệt/)).not.toBeInTheDocument();
   });
 
   it('shows the empty state once the real registration list is confirmed empty', async () => {

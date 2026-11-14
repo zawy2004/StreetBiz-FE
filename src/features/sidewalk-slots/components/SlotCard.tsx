@@ -137,7 +137,7 @@ export const SlotCard = memo(function SlotCard({
         <span className="truncate text-body-sm font-semibold text-text" title={title}>
           {title}
         </span>
-        <span className="truncate text-body-xs opacity-80">{size ?? 'Chưa đo'}</span>
+        <span className="truncate text-body-xs opacity-90">{size ?? 'Chưa đo'}</span>
       </div>
 
       <div className="relative flex items-center justify-between gap-1 pt-1">

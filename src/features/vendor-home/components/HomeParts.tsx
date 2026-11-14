@@ -11,7 +11,11 @@ import {
 } from '@/features/business-registrations/components/registration-art';
 import { formatCountdown, secondsUntil } from '@/features/sidewalk-slots/slot-format';
 import { useNow } from '@/features/sidewalk-slots/useNow';
-import { payableSummary, type Todo, type TodoKind } from '../todos';
+import { payableSummary, type Todo, type TodoKind, type upcomingFees } from '../todos';
+
+type UpcomingFees = ReturnType<typeof upcomingFees>;
+
+const dayMonth = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 import { useCountUp } from './count-up';
 
 const VN_TZ = 'Asia/Ho_Chi_Minh';
@@ -93,6 +97,13 @@ const TICKET_TONE: Record<
     icon: 'cash-multiple',
     press: 'active:bg-[#FFF3D1] dark:active:bg-[#3A2A08]',
   },
+  slots: {
+    bar: 'bg-tertiary',
+    wash: 'bg-[#E6F6EC] dark:bg-[#10301F]',
+    ink: 'text-[#0B5D33] dark:text-[#8BE3B0]',
+    icon: 'map-marker-radius-outline',
+    press: 'active:bg-[#E6F6EC] dark:active:bg-[#10301F]',
+  },
   registration: {
     bar: 'bg-[#2B3640] dark:bg-[#C5D0DA]',
     wash: 'bg-[#EEF1F4] dark:bg-[#1D2833]',
@@ -106,6 +117,9 @@ const VISIBLE_TICKETS = 4;
 
 type BoardProps = {
   todos: Todo[];
+  /** Unpaid instalments beyond the due-soon window: one line, not tickets. */
+  upcoming?: UpcomingFees;
+  onOpenFinance?: () => void;
   /** First load still running: draw the board's outline, not "no todos". */
   loading: boolean;
   onOpen: (path: string) => void;
@@ -115,7 +129,7 @@ type BoardProps = {
  * "Bảng việc hôm nay": how many things are waiting and how much has to be paid,
  * in large signage figures, then one ticket per todo pinned under them.
  */
-export function TodayBoard({ todos, loading, onOpen }: BoardProps) {
+export function TodayBoard({ todos, upcoming, onOpenFinance, loading, onOpen }: BoardProps) {
   const headingId = useId();
   const [expanded, setExpanded] = useState(false);
   const summary = payableSummary(todos);
@@ -158,7 +172,11 @@ export function TodayBoard({ todos, loading, onOpen }: BoardProps) {
               </p>
             </div>
           </div>
-        ) : (
+        ) : null}
+        {!loading && todos.length === 0 && upcoming && upcoming.count > 0 ? (
+          <UpcomingLine upcoming={upcoming} onOpen={onOpenFinance} />
+        ) : null}
+        {(loading && todos.length === 0) || todos.length === 0 ? null : (
           <>
             <div className="mt-xs flex flex-col gap-y-sm sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-x-lg">
               <div>
@@ -217,6 +235,9 @@ export function TodayBoard({ todos, loading, onOpen }: BoardProps) {
                 />
               </button>
             ) : null}
+            {upcoming && upcoming.count > 0 ? (
+              <UpcomingLine upcoming={upcoming} onOpen={onOpenFinance} />
+            ) : null}
           </>
         )}
       </div>
@@ -265,6 +286,10 @@ function TodoTicket({ todo, onOpen }: { todo: Todo; onOpen: (path: string) => vo
               {date ? <span>lập {date}</span> : null}
               {todo.slotCode ? <KerbTag code={todo.slotCode} /> : null}
             </>
+          ) : todo.kind === 'slots' ? (
+            <span className="line-clamp-1">
+              {todo.note ? `Gần nhất: ${todo.note} · chọn ô rồi xin thuê` : 'Chọn ô rồi xin thuê'}
+            </span>
           ) : (
             <span className="line-clamp-1">
               {todo.note ? `Phường: “${todo.note}”` : 'Phường yêu cầu bổ sung hồ sơ'}
@@ -291,6 +316,32 @@ function TodoTicket({ todo, onOpen }: { todo: Todo; onOpen: (path: string) => vo
         className="shrink-0 text-muted transition-transform duration-150 group-hover:translate-x-0.5"
       />
     </button>
+  );
+}
+
+/** "Sắp tới": the instalments not yet due, summed on one line that opens the fee schedule. */
+function UpcomingLine({ upcoming, onOpen }: { upcoming: UpcomingFees; onOpen?: () => void }) {
+  const text = (
+    <>
+      <span className="font-semibold text-text">Sắp tới:</span> {upcoming.count} kỳ phí,{' '}
+      {formatVnd(upcoming.total)}
+      {upcoming.nextDueDate ? ` · kỳ gần nhất hạn ${dayMonth(upcoming.nextDueDate)}` : ''}
+    </>
+  );
+  return onOpen ? (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="mt-sm flex w-full items-center justify-between gap-sm rounded-[14px] bg-tint-muted px-md py-sm text-left text-body-md text-muted transition-colors hover:bg-tint-primary"
+    >
+      <span className="min-w-0">{text}</span>
+      <span className="flex shrink-0 items-center gap-1 font-semibold text-text">
+        Lịch phí
+        <Icon name="chevron-right" size={16} color="currentColor" />
+      </span>
+    </button>
+  ) : (
+    <p className="mt-sm text-body-md text-muted">{text}</p>
   );
 }
 
@@ -344,6 +395,7 @@ const SHORTCUTS: { icon: IconName; label: string; path: string; warm?: boolean }
   { icon: 'map-marker-radius-outline', label: 'Thuê ô vỉa hè', path: '/vendor/slots', warm: true },
   { icon: 'qrcode-scan', label: 'Quét mã nhận hàng', path: '/vendor/orders/scan' },
   { icon: 'silverware-fork-knife', label: 'Cửa hàng & thực đơn', path: '/vendor/store' },
+  { icon: 'calculator', label: 'Thuế & doanh thu', path: '/vendor/tax' },
 ];
 
 /** Four big way-finding tiles; "Thuê ô vỉa hè" warmer, the main job of a vendor without a slot. */
@@ -360,7 +412,7 @@ export function ShortcutTiles({ onOpen }: { onOpen: (path: string) => void }) {
             key={s.path}
             type="button"
             onClick={() => onOpen(s.path)}
-            className={`group flex min-h-[104px] flex-col justify-between gap-sm rounded-[20px] p-md text-left ring-1 transition-[transform,box-shadow] duration-200 [transition-timing-function:var(--ease-out)] hover:-translate-y-0.5 hover:shadow-card-hover active:translate-y-0 ${
+            className={`group flex min-h-[104px] flex-col justify-between gap-sm rounded-[20px] p-md text-left ring-1 [&:last-child:nth-child(odd)]:col-span-2 transition-[transform,box-shadow] duration-200 [transition-timing-function:var(--ease-out)] hover:-translate-y-0.5 hover:shadow-card-hover active:translate-y-0 ${
               s.warm
                 ? 'bg-[#FFF3E8] ring-brand/25 dark:bg-[#2A2420]'
                 : 'bg-card shadow-card ring-border'

@@ -8,8 +8,10 @@ import { appendPhrase } from '@/features/buyer-discovery/append-phrase';
 import { BuyerPageHeader } from '@/features/vendor-map/components/BuyerPageHeader';
 import { NoteArea } from '@/features/vendor-map/components/NoteArea';
 import { PhraseChips } from '@/features/vendor-map/components/PhraseChips';
+import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
 import { ChannelNote, ReportTargetCard } from '../components/ContentReportParts';
+import { LiveReportContentScreen } from './LiveReportContentScreen';
 
 type ContentType = 'STOREFRONT' | 'MENU_ITEM' | 'REVIEW';
 
@@ -26,6 +28,10 @@ const REASONS = [
  * reasons or one's own words), and which channel is for what. One narrow column.
  */
 export function ReportContentScreen() {
+  return isLiveApi ? <LiveReportContentScreen /> : <MockReportContentScreen />;
+}
+
+function MockReportContentScreen() {
   const [searchParams] = useSearchParams();
   const contentType = searchParams.get('contentType') as ContentType;
   const targetId = searchParams.get('targetId') ?? '';

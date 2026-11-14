@@ -14,6 +14,10 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.test.{ts,tsx}'],
+    // The default 5 s is shorter than a screen test needs when ~90 files run in parallel on a
+    // busy machine: the same test passes alone and times out in the full run.
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
     // Force mock mode so rendering a screen never reaches for StreetBiz-BE:
     // tests must not depend on a running API, and jsdom cannot satisfy CORS.
     env: {

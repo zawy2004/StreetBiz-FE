@@ -7,8 +7,10 @@ import { commerceApi, errorMessage } from '@/core/api';
 import { useCanStartChat, useStartChat } from '@/features/chat/hooks/useChat';
 import { OutOfRangeHint } from '@/features/orders/pickup/OutOfRangeHint';
 import { BackButton } from '../components/BackButton';
+import { ReportContentLink } from '../components/ReportContentLink';
 import { ActionRow } from '../components/storefront/ActionRow';
 import { HoursCard } from '../components/storefront/HoursCard';
+import { ReviewSummaryCard } from '../components/storefront/ReviewSummaryCard';
 import { SidewalkCard } from '../components/storefront/SidewalkCard';
 import { StorefrontHero } from '../components/storefront/StorefrontHero';
 import { StorefrontMenu } from '../components/storefront/StorefrontMenu';
@@ -98,8 +100,15 @@ export function StorefrontDetailScreen() {
             onOpenItem={(item) => navigate(`/customer/explore/items/${item.menuItemId}`)}
           />
         </div>
-        <div className="min-w-0 lg:self-start lg:[grid-area:hours]">
+        <div className="flex min-w-0 flex-col gap-sm lg:self-start lg:[grid-area:hours]">
+          <ReviewSummaryCard storefrontId={storefront.storefrontId} />
           <HoursCard weeklyHours={weeklyHours} />
+          <ReportContentLink
+            contentType="STOREFRONT"
+            targetId={storefront.storefrontId}
+            name={storefront.storefrontName}
+            label="Báo cáo quán này"
+          />
         </div>
       </div>
     </Screen>

@@ -9,6 +9,7 @@ export * from './SlotProposalReviewScreen';
 export * from './SlotTransferReviewScreen';
 export * from './AddressConflictReviewScreen';
 export * from './VendorReportReviewScreen';
+export * from './WardVendorReportsScreen';
 export * from './SlotOccupancyScreen';
 export * from './SlotGridEditorScreen';
 export * from './PricingScheduleScreen';

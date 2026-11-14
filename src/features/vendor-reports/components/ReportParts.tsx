@@ -15,7 +15,11 @@ export function ReportSheetHead({
   scannedPermitId,
   scannedSlotId,
 }: {
-  vendor: PublicVendorProfile;
+  /** The public profile, or what a live permit check knew when the stall has no public profile. */
+  vendor: Pick<
+    PublicVendorProfile,
+    'wardName' | 'displayName' | 'slotCode' | 'zoneName' | 'slotId'
+  >;
   scannedPermitId?: number;
   scannedSlotId?: number;
 }) {
@@ -29,7 +33,9 @@ export function ReportSheetHead({
       </p>
       <div className="flex flex-wrap items-center gap-sm">
         <SlotPlate code={vendor.slotCode} />
-        <span className="text-body-md font-semibold text-text">{vendor.zoneName}</span>
+        {vendor.zoneName ? (
+          <span className="text-body-md font-semibold text-text">{vendor.zoneName}</span>
+        ) : null}
       </div>
       {scannedPermitId ? (
         <p className="flex w-fit flex-wrap items-center gap-xs rounded-full bg-tint-primary py-1 pl-2.5 pr-1.5 text-body-sm font-semibold text-primary">
@@ -64,12 +70,15 @@ export function EvidenceFrame({
   onChange,
   onRemove,
   uploading,
+  hint = 'Chụp rõ quầy và vạch ô vỉa hè; ảnh JPG hoặc PNG.',
 }: {
   uri?: string;
   onChange: (uri: string, file: File) => void;
   onRemove: () => void;
   /** The report is being sent and a photo goes with it. */
   uploading: boolean;
+  /** What a useful photo shows for this kind of report. */
+  hint?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const pick = () => inputRef.current?.click();
@@ -154,7 +163,7 @@ export function EvidenceFrame({
           </button>
         </div>
       ) : (
-        <p className="text-body-sm text-muted">Chụp rõ quầy và vạch ô vỉa hè; ảnh JPG hoặc PNG.</p>
+        <p className="text-body-sm text-muted">{hint}</p>
       )}
     </div>
   );
@@ -199,7 +208,10 @@ export function AfterSubmitSteps({ across = false }: { across?: boolean }) {
           ))}
         </ol>
       </div>
-      <p className="text-body-sm text-muted">Bạn sẽ nhận mã phản ánh ngay khi gửi.</p>
+      <p className="text-body-sm text-muted">
+        Bạn nhận mã phản ánh ngay khi gửi, và thông báo khi phường có kết quả (xem ở mục Phản ánh
+        của tôi).
+      </p>
     </section>
   );
 }

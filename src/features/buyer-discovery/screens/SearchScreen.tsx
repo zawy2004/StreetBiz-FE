@@ -17,6 +17,7 @@ import { categoryIcon } from '../category-icons';
 import { FilterBar } from '../components/FilterBar';
 import { LocationBar } from '../components/LocationBar';
 import { StorefrontCard } from '../components/StorefrontCard';
+import { AiSearchAssist } from '../components/search/AiSearchAssist';
 import { CravingBoard } from '../components/search/CravingBoard';
 import { MenuItemResultCard } from '../components/search/MenuItemResultCard';
 import { ResultsHeader } from '../components/search/ResultsHeader';
@@ -55,6 +56,7 @@ function LiveSearchScreen() {
   const [sort, setSort] = useState<SearchSort>('NEAREST');
   const position = useDiscoveryStore((s) => s.position);
   const filters = useDiscoveryStore((s) => s.filters);
+  const setFilters = useDiscoveryStore((s) => s.setFilters);
   const text = useDebouncedValue(query.trim());
   // Results appear once there is something to ask for: a word, an area or any filter.
   const active = text.length > 0 || filters.wardId != null || hasActiveFilters(filters);
@@ -114,7 +116,7 @@ function LiveSearchScreen() {
   }
 
   const scopeNotes = [
-    filters.maxPrice != null ? 'Mức giá chỉ áp cho món' : null,
+    filters.maxPrice != null ? 'Quán hiện khi có ít nhất một món trong mức giá' : null,
     filters.radiusMeters != null && position ? 'Khoảng cách chỉ áp cho quán' : null,
   ].filter((note): note is string => note != null);
 
@@ -122,8 +124,18 @@ function LiveSearchScreen() {
     <SearchLayout
       query={query}
       setQuery={setQuery}
+      liveAi
       controls={
         <>
+          <AiSearchAssist
+            query={query}
+            hasPosition={position != null}
+            onApply={(application) => {
+              setQuery(application.text);
+              setFilters(application.filters);
+              if (application.sort) setSort(application.sort);
+            }}
+          />
           <LocationBar />
           <FilterBar showRadius={position != null} showPrice />
           {scopeNotes.length > 0 ? (
@@ -366,9 +378,12 @@ function SearchLayout({
   controls,
   header,
   children,
+  liveAi = false,
 }: {
   query: string;
   setQuery: (value: string) => void;
+  /** The live screen has the real AI reading of the sentence (AiSearchAssist), so the demo hint is not shown. */
+  liveAi?: boolean;
   controls?: ReactNode;
   header: ReactNode;
   children: ReactNode;
@@ -391,7 +406,7 @@ function SearchLayout({
       ) : null}
       <div aria-hidden="true" className="sb-kerb sb-kerb-thin" />
       <div className="cq mx-auto flex max-w-[1320px] flex-col gap-lg px-md pb-2xl pt-lg md:px-lg lg:px-xl lg:pt-xl">
-        {env.enableAiCompliance && query.length > 3 ? (
+        {env.enableAiCompliance && !liveAi && query.length > 3 ? (
           <AiHint title="Hiểu theo ngôn ngữ tự nhiên">
             Đang tìm theo từ khoá &ldquo;{query}&rdquo; — kết quả bao gồm cả tên món, danh mục và
             tên quán liên quan.

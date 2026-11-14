@@ -36,8 +36,8 @@ const { useDiscoveryStore } = await import('@/features/buyer-discovery/discovery
 
 const HERE = { latitude: 16.0605, longitude: 108.2145 };
 const AREAS: ServiceArea[] = [
-  { wardId: 1003, wardName: 'Phường Nam Dương', districtName: 'Quận Hải Châu', storefrontCount: 1, distanceMeters: 48 },
-  { wardId: 3, wardName: 'Phường Hòa Quý', districtName: 'Quận Ngũ Hành Sơn', storefrontCount: 1, distanceMeters: 6042 },
+  { wardId: 1003, wardName: 'Phường Hải Châu', districtName: 'Thành phố Đà Nẵng', storefrontCount: 1, distanceMeters: 48 },
+  { wardId: 3, wardName: 'Phường Ngũ Hành Sơn', districtName: 'Thành phố Đà Nẵng', storefrontCount: 1, distanceMeters: 6042 },
 ];
 const CATEGORIES = [
   { categoryId: 1, categoryName: 'Bún - Phở - Mì', itemCount: 2 },
@@ -83,7 +83,7 @@ beforeEach(() => {
   api.marketplaceCategories.mockResolvedValue(CATEGORIES);
   api.storefronts.mockResolvedValue([
     makeStorefront(),
-    makeStorefront({ storefrontId: 2, storefrontName: 'Bánh mì & Xôi Cô Lan', wardName: 'Phường Hòa Quý', isOpenNow: false, todayHours: [] }),
+    makeStorefront({ storefrontId: 2, storefrontName: 'Bánh mì & Xôi Cô Lan', wardName: 'Phường Ngũ Hành Sơn', isOpenNow: false, todayHours: [] }),
   ]);
   api.menuItems.mockResolvedValue([makeMenuItem()]);
   stubGeolocation('ok');
@@ -95,7 +95,7 @@ describe('Explore: storefronts (DISC-03)', () => {
 
     const first = (await screen.findByText('Bún chả Hải Châu')).closest('button')!;
     expect(within(first).getByText('ĐANG MỞ')).toBeInTheDocument();
-    expect(within(first).getByText(/Phường Nam Dương/)).toBeInTheDocument();
+    expect(within(first).getByText(/Phường Hải Châu/)).toBeInTheDocument();
     expect(within(first).getByText('Ô NVL-14')).toBeInTheDocument();
     expect(within(first).getByText(/4\.5 ★ \(3\)/)).toBeInTheDocument();
     expect(within(first).getByText(/10:00–21:00/)).toBeInTheDocument();
@@ -182,8 +182,8 @@ describe('Explore: service area (DISC-02)', () => {
     const select = await screen.findByRole('combobox', { name: 'Khu vực' });
     expect(within(select).getAllByRole('option').map((o) => o.textContent)).toEqual([
       'Tất cả khu vực',
-      'Phường Nam Dương (1)',
-      'Phường Hòa Quý (1)',
+      'Phường Hải Châu (1)',
+      'Phường Ngũ Hành Sơn (1)',
     ]);
 
     await user.selectOptions(select, '3');
@@ -199,7 +199,7 @@ describe('Explore: service area (DISC-02)', () => {
     await screen.findByText('Bún chả Hải Châu');
 
     await user.click(screen.getByRole('button', { name: /Tìm quanh tôi/ }));
-    await user.click(await screen.findByRole('button', { name: /Gần bạn nhất: Phường Nam Dương · 48 m/ }));
+    await user.click(await screen.findByRole('button', { name: /Gần bạn nhất: Phường Hải Châu · 48 m/ }));
 
     await waitFor(() => expect(lastStorefrontQuery()).toMatchObject({ wardId: 1003 }));
     expect(screen.queryByRole('button', { name: /Gần bạn nhất/ })).not.toBeInTheDocument();
@@ -341,7 +341,7 @@ describe('Storefront detail (DISC-06)', () => {
 
     expect(await screen.findByRole('heading', { name: 'Bún chả Hải Châu' })).toBeInTheDocument();
     expect(screen.getByText('ĐANG MỞ')).toBeInTheDocument();
-    expect(screen.getByText(/10 Nguyễn Văn Linh · Đường Nguyễn Văn Linh · Ô NVL-14 · Phường Nam Dương · 850 m/)).toBeInTheDocument();
+    expect(screen.getByText(/10 Nguyễn Văn Linh · Đường Nguyễn Văn Linh · Ô NVL-14 · Phường Hải Châu · 850 m/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Chỉ đường' })).toHaveAttribute(
       'href',
       'https://www.google.com/maps/dir/?api=1&destination=16.060169,108.214204',

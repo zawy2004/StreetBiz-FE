@@ -39,6 +39,8 @@ const ACTION_ICONS: Record<string, IconName> = {
   QUEUE: 'format-list-bulleted',
   REVIEW: 'comment-outline',
   REQUEST_INFO: 'file-document-outline',
+  EXTEND_GRACE: 'calendar-clock-outline',
+  CANCEL_RELEASE: 'undo',
 };
 
 export function WardCaseScreen({ kind: givenKind }: { kind?: CaseKind }) {
@@ -412,7 +414,13 @@ function CaseContent({ kind, id }: { kind: CaseKind; id: string }) {
                     >
                       <Button
                         label={actionLabels[action] ?? action}
-                        variant={action === 'REJECT' ? 'danger' : 'approve'}
+                        variant={
+                          action === 'REJECT'
+                            ? 'danger'
+                            : action === 'EXTEND_GRACE' || action === 'CANCEL_RELEASE'
+                              ? 'outline'
+                              : 'approve'
+                        }
                         icon={
                           <Icon
                             name={ACTION_ICONS[action] ?? 'check'}
@@ -426,6 +434,18 @@ function CaseContent({ kind, id }: { kind: CaseKind; id: string }) {
                     </span>
                   ))}
                 </div>
+                {data.actions.includes('EXTEND_GRACE') ? (
+                  <p className="flex items-start gap-xs rounded-[12px] bg-sunken/70 px-sm py-xs text-body-sm text-text/80">
+                    <Icon
+                      name="information-outline"
+                      size={16}
+                      color="currentColor"
+                      className="mt-0.5 shrink-0"
+                    />
+                    Ô cũ được trả sau thời gian ân hạn và chỉ khi hộ không còn nợ phí hay tiền phạt. Gia hạn
+                    cho thêm 7 ngày; giữ nguyên ô thì hộ không phải trả ô.
+                  </p>
+                ) : null}
                 {data.actions.includes('QUEUE') ? (
                   <p className="flex items-start gap-xs rounded-[12px] bg-sunken/70 px-sm py-xs text-body-sm text-text/80">
                     <Icon

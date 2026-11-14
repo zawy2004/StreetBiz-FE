@@ -134,7 +134,11 @@ export function PlateRail({
       aria-label="Kệ món"
       className="flex flex-col gap-md rounded-[28px] bg-[#FFF3E8] p-md ring-1 ring-brand/15 dark:bg-brand/10 md:p-lg"
     >
-      <ul className="no-scrollbar -mx-1 flex items-start gap-xs overflow-x-auto px-1 pb-1 pt-2 md:gap-md">
+      <ul
+        aria-label="Các món trên kệ"
+        tabIndex={0}
+        className="no-scrollbar -mx-1 flex items-start gap-xs overflow-x-auto px-1 pb-1 pt-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:gap-md"
+      >
         {dishes.map((dish) => (
           <Plate key={dish.id} dish={dish} fresh={drawn.current} />
         ))}

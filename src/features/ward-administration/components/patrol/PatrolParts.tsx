@@ -113,7 +113,7 @@ export function PermitVerdictBoard({
               : 'Chế độ dữ liệu mẫu, không tra cứu máy chủ'}
           </p>
         </div>
-        <div className="grid gap-sm sm:grid-cols-2">{actions}</div>
+        {actions ? <div className="grid gap-sm sm:grid-cols-2">{actions}</div> : null}
         {details}
         {hints}
       </div>
@@ -129,17 +129,21 @@ export function PermitFacts({
 }) {
   return (
     <dl className="grid gap-px overflow-hidden rounded-[16px] bg-border ring-1 ring-border sm:grid-cols-3">
+      {/* One div per term: a <dl> group may hold only <dt>/<dd>, so the side figure is a <dd>
+          in a second grid column rather than a sibling wrapper (axe definition-list/dlitem). */}
       {rows.map((row) => (
         <div
           key={row.label}
-          className="flex items-center justify-between gap-sm bg-card p-sm md:p-md"
+          className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-sm gap-y-1 bg-card p-sm md:p-md"
         >
-          <div className="flex min-w-0 flex-col gap-1">
-            <dt className="text-body-xs text-muted">{row.label}</dt>
-            <dd className="text-[17px] font-semibold leading-snug text-text">{row.value}</dd>
-            {row.note ? <dd className="text-body-sm font-medium">{row.note}</dd> : null}
-          </div>
-          {row.extra}
+          <dt className="col-start-1 text-body-xs text-muted">{row.label}</dt>
+          <dd className="col-start-1 text-[17px] font-semibold leading-snug text-text">
+            {row.value}
+          </dd>
+          {row.note ? <dd className="col-start-1 text-body-sm font-medium">{row.note}</dd> : null}
+          {row.extra ? (
+            <dd className="col-start-2 row-span-3 row-start-1 self-center">{row.extra}</dd>
+          ) : null}
         </div>
       ))}
     </dl>

@@ -181,14 +181,35 @@ export type VendorComment = {
   created_at: string;
 };
 
+export type MockPriceEvidence = {
+  menuItemId: string;
+  itemName: string;
+  priceUnit: string;
+  postedUnitPrice: number;
+  priceVersion: number;
+  priceVersionAt: string;
+  quantity: number;
+  chargedAmount: number;
+  purchasedAt: string;
+};
+
 export type VendorReport = {
   id: string;
   vendorId?: string;
+  slotId?: string;
   reporterId: string;
   reason: string;
   photoUri?: string;
+  /** PENDING, then REVIEWED (mediated / biên bản) or DISMISSED, as on the server. */
   report_status: string;
   created_at: string;
+  report_type?: 'GENERAL' | 'OVERCHARGE' | 'PRICE_NOT_POSTED';
+  due_at?: string;
+  resolution?: 'DISMISSED' | 'MEDIATED' | 'VIOLATION_RECORDED';
+  resolution_note?: string;
+  refund_amount?: number;
+  reviewed_at?: string;
+  price_evidence?: MockPriceEvidence;
 };
 
 export type FoodCategory = { id: string; name: string; itemCount: number };
@@ -231,11 +252,31 @@ export type MenuItem = {
   id: string;
   storefrontId: string;
   name: string;
+  /** Optional English name for the price board. */
+  nameEn?: string;
   price: number;
+  /** The unit the price is for ("ổ", "ly"...): required on a posted price. */
+  priceUnit: string;
   description: string;
   imageUri?: string;
   categoryId: string;
   availability_status: 'AVAILABLE' | 'SOLD_OUT';
+};
+
+/** One append-only row of a dish's price history (mirrors MenuItemPriceHistory). */
+export type MenuPriceChange = {
+  id: string;
+  menuItemId: string;
+  storefrontId: string;
+  name: string;
+  nameEn?: string;
+  priceUnit: string;
+  price: number;
+  previousPrice: number | null;
+  isListed: boolean;
+  change_kind: 'CREATED' | 'UPDATED' | 'ARCHIVED' | 'RESTORED';
+  changed_at: string;
+  changed_by_name: string;
 };
 
 export type CartItem = {

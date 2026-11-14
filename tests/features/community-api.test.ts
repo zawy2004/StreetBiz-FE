@@ -8,6 +8,8 @@ import {
 
 vi.mock('@/core/config/env', () => ({
   env: { apiBaseUrl: 'https://api.example.test/api' },
+  // community-api reads the app's own sign-in (auth-store), which reads this switch.
+  isLiveApi: false,
 }));
 
 describe('community vendor API', () => {

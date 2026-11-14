@@ -11,6 +11,7 @@ import { orderApi } from '@/features/orders/api/orderApi';
 import { orderKeys } from '@/features/orders/hooks/useOrders';
 import type { OrderListFilters } from '@/features/orders/types/order.types';
 import { useMediaQuery } from '@/hooks/useBreakpoint';
+import { BusinessHoursEditor } from '../components/store/BusinessHoursEditor';
 import { StoreEditorPanel } from '../components/store/StoreEditorPanel';
 import {
   OpenAnotherStall,
@@ -164,6 +165,7 @@ export function LiveStoreScreen() {
       newOrders={newOrders.data?.totalItems}
       onOrders={() => navigate('/vendor/store/orders')}
       onSales={() => navigate('/vendor/store/sales')}
+      onPayout={() => navigate('/vendor/finance/payout-account')}
     />
   );
   const openStall =
@@ -227,6 +229,7 @@ export function LiveStoreScreen() {
             </div>
           </div>
         </StorefrontFacade>
+        <BusinessHoursEditor storefrontId={store.storefrontId} />
         {!wide && editedStore?.storefrontId === store.storefrontId ? panel : null}
       </div>
     );

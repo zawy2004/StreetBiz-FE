@@ -7,22 +7,26 @@ import { vi } from 'vitest';
 
 import { ApiError } from '@/core/api/problem';
 import type {
+  FeeItemDetailDto,
   FeeItemDto,
-  FinanceCheckoutDto,
   InvoiceDetailDto,
+  PaymentOptionsDto,
   PaymentTransactionDto,
   PenaltyListDto,
+  PenaltyReceiptDto,
+  PenaltyTreasuryDto,
   VendorViolationDto,
 } from '@/core/api';
 
 // UI checks for the rebuilt vendor finance screens (V25–V31), against the live-API branch.
 
-const client = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }));
+const client = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiUpload: vi.fn() }));
 
 vi.mock('@/core/api/client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/core/api/client')>()),
   apiGet: client.apiGet,
   apiPost: client.apiPost,
+  apiUpload: client.apiUpload,
 }));
 vi.mock('@/features/orders/payment-redirect', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/orders/payment-redirect')>()),
@@ -34,6 +38,13 @@ vi.mock('@/core/config/env', async (importOriginal) => ({
 }));
 
 const screens = await import('@/features/fee-schedules/screens');
+
+const platformOptions: PaymentOptionsDto = {
+  mode: 'SANDBOX',
+  providers: ['MOMO', 'ZALOPAY'],
+  message: '',
+  payee: null,
+};
 
 const fees: FeeItemDto[] = [
   {
@@ -187,19 +198,61 @@ describe('V25 Tài chính', () => {
 });
 
 describe('V26 Thanh toán phí thuê ô', () => {
+  // The payment page pays from the fee list; the instalment with its contract
+  // (GET /vendor/finance/fees/{id}) adds the contract's progress and, once paid, the receipt.
+  const overdue: FeeItemDetailDto = {
+    contract: {
+      contractId: 1,
+      slotCode: 'NVL-01',
+      zoneName: 'Nguyễn Văn Linh',
+      wardName: 'Phường Hải Châu',
+      address: null,
+      startDate: '2026-09-01',
+      endDate: '2026-11-30',
+      contractStatus: 'ACTIVE',
+      totalAmount: 3_120_000,
+      paidAmount: 1_040_000,
+      outstandingAmount: 2_080_000,
+      instalmentCount: 3,
+      paidCount: 1,
+      overdueCount: 1,
+      nextDue: null,
+    },
+    item: {
+      feeItemId: 7,
+      ordinal: 2,
+      ofCount: 3,
+      periodLabel: 'Kỳ 2/3 · Tháng 10/2026',
+      dueDate: '2026-10-04',
+      amount: 1_040_000,
+      itemStatus: 'OVERDUE',
+      paidAt: null,
+      invoiceId: null,
+      invoiceNumber: null,
+      daysOverdue: 12,
+      daysUntilDue: null,
+    },
+  };
+
   it('shows the slot plate on the slip and never says the fee is paid before it is', async () => {
-    answer({ '/vendor/finance/fees': [fees[0]] });
+    answer({
+      '/vendor/finance/fees': [fees[0]],
+      '/vendor/finance/fees/7': overdue,
+      '/vendor/finance/fees/7/payment-options': platformOptions,
+    });
     renderAt(
       '/vendor/finance/fees/7/payment',
       <Route path="/vendor/finance/fees/:id/payment" element={<screens.FeePaymentScreen />} />,
     );
     const slip = await screen.findByRole('region', { name: 'Khoản phí cần thanh toán' });
     expect(within(slip).getByText('Ô NVL-01')).toBeInTheDocument();
+    expect(screen.getByText('Hợp đồng đã nộp 1/3 kỳ')).toBeInTheDocument();
     expect(screen.queryByText(/đã thanh toán/i)).not.toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /MoMo/ })).toBeChecked();
   });
 
   it('never lights the "recorded" stop while waiting for the wallet', async () => {
+    // Only the fee list answers: the page still works without the instalment's detail.
     answer({ '/vendor/finance/fees': [fees[0]] });
     client.apiPost.mockResolvedValue({ transactionId: 9, status: 'PENDING' });
     renderAt(
@@ -210,16 +263,95 @@ describe('V26 Thanh toán phí thuê ô', () => {
     expect(screen.getByText('SB-T9')).toBeInTheDocument();
     expect(screen.getByRole('status')).not.toHaveTextContent('StreetBiz ghi nhận');
   });
+
+  it('opens a paid instalment on its receipt, never on the pay button', async () => {
+    const paidDetail: FeeItemDetailDto = {
+      ...overdue,
+      item: {
+        ...overdue.item,
+        feeItemId: 6,
+        ordinal: 1,
+        periodLabel: 'Kỳ 1/3 · Tháng 09/2026',
+        dueDate: '2026-09-04',
+        itemStatus: 'PAID',
+        paidAt: '2026-09-03T02:00:00Z',
+        invoiceId: 31,
+        invoiceNumber: 'HD-2026-000001',
+        daysOverdue: null,
+      },
+    };
+    answer({ '/vendor/finance/fees': [fees[1]], '/vendor/finance/fees/6': paidDetail });
+    renderAt(
+      '/vendor/finance/fees/6/payment',
+      <Route path="/vendor/finance/fees/:id/payment" element={<screens.FeePaymentScreen />} />,
+    );
+    expect(await screen.findByText('HD-2026-000001')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xem hoá đơn' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Thanh toán qua MoMo/ })).not.toBeInTheDocument();
+  });
+
+  it('says a paid instalment is paid when its receipt cannot be read, instead of offering to pay', async () => {
+    // The list is the only read that answers: the detail (receipt) read fails.
+    answer({ '/vendor/finance/fees': [fees[1]] });
+    renderAt(
+      '/vendor/finance/fees/6/payment',
+      <Route path="/vendor/finance/fees/:id/payment" element={<screens.FeePaymentScreen />} />,
+    );
+    expect(
+      await screen.findByText('Kỳ phí này đã được thanh toán. Hoá đơn nằm trong mục Hoá đơn.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Thanh toán qua MoMo/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xem hoá đơn' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tải lại biên nhận' })).toBeInTheDocument();
+  });
+
+  it('refuses a cancelled instalment', async () => {
+    answer({
+      '/vendor/finance/fees': [{ ...fees[0], itemStatus: 'CANCELLED' }],
+      '/vendor/finance/fees/7': { ...overdue, item: { ...overdue.item, itemStatus: 'CANCELLED' } },
+    });
+    renderAt(
+      '/vendor/finance/fees/7/payment',
+      <Route path="/vendor/finance/fees/:id/payment" element={<screens.FeePaymentScreen />} />,
+    );
+    expect(
+      await screen.findByText('Kỳ phí này đã bị huỷ nên không cần thanh toán.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Thanh toán qua MoMo/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Xem hoá đơn' })).not.toBeInTheDocument();
+  });
 });
 
-describe('V27 Thanh toán biên bản phạt', () => {
-  const checkout: FinanceCheckoutDto = {
-    transactionId: 11,
-    purpose: 'PENALTY',
-    referenceId: 4,
-    provider: 'MOMO',
+describe('V27 Nộp phạt vào Kho bạc', () => {
+  // A fine is paid to the State Treasury, not through StreetBiz: the page tells how, takes the
+  // receipt and shows where the ward's check of it stands. There is no payment button.
+  const treasury: PenaltyTreasuryDto = {
+    penaltyId: 4,
     amount: 1_000_000,
-    paymentUrl: 'streetbiz://payment/sandbox/momo?referenceId=4&transactionId=11',
+    decisionNumber: 'QĐXP-2026/0004',
+    violationLabel: 'Cản trở lối đi bộ',
+    slotCode: 'NVL-08',
+    wardName: 'Phường Hải Châu',
+    penaltyStatus: 'UNPAID',
+    issuedAt: '2026-10-01T13:00:00Z',
+    canSubmit: true,
+    instructions: [
+      'Nộp tiền phạt vào tài khoản Kho bạc Nhà nước ghi trong quyết định xử phạt số QĐXP-2026/0004.',
+      'Nộp xong, chụp hoặc tải biên lai lên đây. StreetBiz không thu hộ và không chuyển tiền phạt.',
+    ],
+    latestReceipt: null,
+  };
+  const receipt: PenaltyReceiptDto = {
+    receiptId: 5,
+    penaltyId: 4,
+    status: 'SUBMITTED',
+    receiptUrl: '/api/uploads/evidence/7/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg',
+    reference: 'KB-2026-1',
+    paidOn: '2026-10-20',
+    note: null,
+    submittedAt: '2026-10-20T03:00:00Z',
+    reviewedAt: null,
+    reviewNote: null,
   };
   const renderPenalty = () =>
     renderAt(
@@ -230,37 +362,113 @@ describe('V27 Thanh toán biên bản phạt', () => {
       />,
     );
 
-  it('shows the notice with its slot and date', async () => {
-    answer({ '/vendor/finance/penalties': penalties });
+  it('shows the notice with its slot and date, and how to pay the Treasury', async () => {
+    answer({ '/vendor/finance/penalties/4/treasury': treasury });
     renderPenalty();
     const notice = await screen.findByRole('article', { name: 'Biên bản phạt' });
     expect(within(notice).getByText('Ô NVL-08')).toBeInTheDocument();
     expect(within(notice).getByText(/^Lập ngày /)).toBeInTheDocument();
     expect(within(notice).getByText('Cản trở lối đi bộ')).toBeInTheDocument();
+    expect(within(notice).getByText('Nộp vào Kho bạc Nhà nước')).toBeInTheDocument();
+    expect(
+      await screen.findByText(/tài khoản Kho bạc Nhà nước ghi trong quyết định/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/StreetBiz không thu hộ và không chuyển tiền phạt/)).toBeInTheDocument();
+    // Fines are not paid through a wallet any more.
+    expect(screen.queryByRole('button', { name: /Thanh toán qua MoMo/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    expect(screen.getByRole('form', { name: 'Gửi biên lai nộp phạt' })).toBeInTheDocument();
   });
 
-  it('checks out the penalty, retrying with the same Idempotency-Key, then goes back', async () => {
-    answer({ '/vendor/finance/penalties': penalties });
-    client.apiPost
-      .mockRejectedValueOnce(new ApiError('network_error', 0, 'Mất kết nối'))
-      .mockImplementation(async (url: string) =>
-        url.endsWith('/checkout') ? checkout : { outcome: 'APPLIED', callbackEventId: 1 },
-      );
+  it('asks for the receipt file before anything is sent', async () => {
+    answer({ '/vendor/finance/penalties/4/treasury': treasury });
     renderPenalty();
 
-    const pay = () => screen.findByRole('button', { name: /Thanh toán qua MoMo/ });
-    await userEvent.click(await pay());
-    expect(await screen.findByRole('alert')).toHaveTextContent('Mất kết nối');
-    await userEvent.click(await pay());
-    expect(await screen.findByText('FINANCE HOME')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: 'Gửi biên lai cho phường' }));
 
-    const calls = client.apiPost.mock.calls.filter(([url]) => String(url).endsWith('/checkout'));
-    expect(calls.map(([url]) => url)).toEqual([
-      '/vendor/finance/penalties/4/checkout',
-      '/vendor/finance/penalties/4/checkout',
-    ]);
-    expect(calls[0]?.[2].headers['Idempotency-Key']).toBe(calls[1]?.[2].headers['Idempotency-Key']);
-    expect(client.apiPost).toHaveBeenCalledWith('/vendor/finance/payments/11/sandbox-confirm');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chọn ảnh hoặc PDF biên lai');
+    expect(client.apiUpload).not.toHaveBeenCalled();
+    expect(client.apiPost).not.toHaveBeenCalled();
+  });
+
+  it('uploads the receipt once and sends it, even when the first send fails', async () => {
+    answer({ '/vendor/finance/penalties/4/treasury': treasury });
+    client.apiUpload.mockResolvedValue({
+      fileUrl: receipt.receiptUrl,
+      contentType: 'image/jpeg',
+      sizeBytes: 12,
+    });
+    client.apiPost
+      .mockRejectedValueOnce(new ApiError('network_error', 0, 'Mất kết nối'))
+      .mockResolvedValueOnce(receipt);
+    renderPenalty();
+
+    const picker = await screen.findByLabelText('Tải ảnh hoặc PDF biên lai');
+    await userEvent.upload(picker, new File(['x'], 'bien-lai.jpg', { type: 'image/jpeg' }));
+    await userEvent.type(screen.getByLabelText('Số chứng từ (nếu có)'), 'KB-2026-1');
+    const send = () => screen.findByRole('button', { name: 'Gửi biên lai cho phường' });
+
+    await userEvent.click(await send());
+    expect(await screen.findByRole('alert')).toHaveTextContent('Mất kết nối');
+    await userEvent.click(await send());
+
+    await waitFor(() => expect(client.apiPost).toHaveBeenCalledTimes(2));
+    // The file is stored once; the retry only repeats the send.
+    expect(client.apiUpload).toHaveBeenCalledTimes(1);
+    const [url, body] = client.apiPost.mock.calls[1] as [string, Record<string, unknown>];
+    expect(url).toBe('/vendor/finance/penalties/4/receipts');
+    expect(body).toMatchObject({
+      receiptUrl: receipt.receiptUrl,
+      reference: 'KB-2026-1',
+      note: null,
+    });
+    expect(body.paidOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('while a receipt waits shows where it stands and offers no second one', async () => {
+    answer({
+      '/vendor/finance/penalties/4/treasury': { ...treasury, canSubmit: false, latestReceipt: receipt },
+    });
+    renderPenalty();
+
+    const status = await screen.findByRole('region', { name: 'Biên lai đã gửi' });
+    expect(within(status).getByText('CHỜ PHƯỜNG KIỂM TRA')).toBeInTheDocument();
+    expect(within(status).getByText('KB-2026-1')).toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Gửi biên lai nộp phạt' })).not.toBeInTheDocument();
+  });
+
+  it("shows the ward's reason when the receipt was turned down and lets the household send another", async () => {
+    answer({
+      '/vendor/finance/penalties/4/treasury': {
+        ...treasury,
+        latestReceipt: {
+          ...receipt,
+          status: 'REJECTED',
+          reviewNote: 'Ảnh bị mờ, không đọc được số tiền.',
+        },
+      },
+    });
+    renderPenalty();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ảnh bị mờ, không đọc được số tiền.');
+    expect(screen.getByRole('form', { name: 'Gửi biên lai nộp phạt' })).toBeInTheDocument();
+  });
+
+  it('says the fine is recorded once the ward has accepted the receipt', async () => {
+    answer({
+      '/vendor/finance/penalties/4/treasury': {
+        ...treasury,
+        penaltyStatus: 'PAID',
+        canSubmit: false,
+        latestReceipt: { ...receipt, status: 'ACCEPTED' },
+      },
+    });
+    renderPenalty();
+
+    expect(
+      await screen.findByText(/Phường đã ghi nhận khoản phạt này là đã nộp/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Gửi biên lai nộp phạt' })).not.toBeInTheDocument();
   });
 });
 

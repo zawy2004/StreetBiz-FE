@@ -107,12 +107,27 @@ export function InvoiceDetailScreen() {
             <p className="relative whitespace-nowrap font-sign text-[clamp(32px,10.5vw,44px)] font-bold leading-none tracking-[-0.01em] tabular-nums text-text [font-stretch:88%] md:text-[56px]">
               {formatVnd(invoice.amount)}
             </p>
+            {invoice.amountInWords ? (
+              <p className="relative mt-xs text-body-sm italic text-muted">
+                Bằng chữ: {invoice.amountInWords}
+              </p>
+            ) : null}
             <p className="relative mt-xs text-body-md text-muted">
               Xuất ngày {new Date(invoice.issuedAt).toLocaleDateString('vi-VN')}
             </p>
           </div>
 
           <dl className="border-t border-border pt-xs">
+            {/* The lines the PDF prints; older servers leave them out. */}
+            {invoice.wardName ? (
+              <ReceiptRow label="Đơn vị thu">UBND {invoice.wardName}</ReceiptRow>
+            ) : null}
+            {invoice.payerName ? (
+              <ReceiptRow label="Người nộp">{invoice.payerName}</ReceiptRow>
+            ) : null}
+            {invoice.businessName ? (
+              <ReceiptRow label="Hộ kinh doanh">{invoice.businessName}</ReceiptRow>
+            ) : null}
             {itemSubtitle ? (
               <ReceiptRow label={itemLabel}>
                 <span title={itemSubtitle} className="line-clamp-3">
@@ -125,7 +140,15 @@ export function InvoiceDetailScreen() {
                 <KerbTag code={invoice.slotCode} />
               </ReceiptRow>
             ) : null}
+            {invoice.kind === 'PENALTY' && invoice.decisionNumber ? (
+              <ReceiptRow label="Quyết định xử phạt">{invoice.decisionNumber}</ReceiptRow>
+            ) : null}
             {provider ? <ReceiptRow label="Thanh toán qua">{provider}</ReceiptRow> : null}
+            {invoice.providerReference ? (
+              <ReceiptRow label="Mã giao dịch">
+                <span className="break-all">{invoice.providerReference}</span>
+              </ReceiptRow>
+            ) : null}
             {invoice.paidAt ? (
               <ReceiptRow label="Thanh toán lúc">
                 <span className="tabular-nums">

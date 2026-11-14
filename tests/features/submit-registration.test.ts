@@ -8,6 +8,7 @@ const api = vi.hoisted(() => ({
   update: vi.fn(),
   get: vi.fn(),
   submitEvidence: vi.fn(),
+  file: vi.fn(),
 }));
 
 vi.mock('@/core/api', async (importOriginal) => {
@@ -15,12 +16,10 @@ vi.mock('@/core/api', async (importOriginal) => {
   return { ...actual, vendorRegistrationApi: api };
 });
 
-const { useNewRegistrationStore } = await import(
-  '@/features/business-registrations/new-registration-store'
-);
-const { submitRegistrationDraft } = await import(
-  '@/features/business-registrations/submit-registration'
-);
+const { useNewRegistrationStore } =
+  await import('@/features/business-registrations/new-registration-store');
+const { submitRegistrationDraft } =
+  await import('@/features/business-registrations/submit-registration');
 
 const created: ApiRegistration = {
   registrationId: 42,
@@ -68,8 +67,18 @@ beforeEach(() => {
   s.setField('displayName', 'Xoi ga Ba Nam');
   s.setField('declaredAddress', '12 Le Duan');
   s.setField('wardUnitId', 10);
-  s.addEvidence({ evidenceType: 'IDENTITY_DOCUMENT', uri: 'preview-1', label: 'CCCD', file: file('id.jpg') });
-  s.addEvidence({ evidenceType: 'BUSINESS_LICENSE', uri: 'preview-2', label: 'GPKD', file: file('gpkd.jpg') });
+  s.addEvidence({
+    evidenceType: 'IDENTITY_DOCUMENT',
+    uri: 'preview-1',
+    label: 'CCCD',
+    file: file('id.jpg'),
+  });
+  s.addEvidence({
+    evidenceType: 'BUSINESS_LICENSE',
+    uri: 'preview-2',
+    label: 'GPKD',
+    file: file('gpkd.jpg'),
+  });
 
   api.uploadEvidenceFile.mockImplementation(async (f: File) => ({
     fileUrl: `/api/uploads/evidence/1/${f.name}`,
@@ -79,6 +88,11 @@ beforeEach(() => {
   api.submit.mockResolvedValue(created);
   api.update.mockResolvedValue(created);
   api.submitEvidence.mockResolvedValue({});
+  api.file.mockImplementation(async (id: number) => ({
+    ...created,
+    registrationId: id,
+    registrationStatus: 'SUBMITTED',
+  }));
 });
 
 describe('submitRegistrationDraft', () => {
@@ -129,5 +143,38 @@ describe('submitRegistrationDraft', () => {
 
     expect(api.update).toHaveBeenCalledWith(7, expect.anything());
     expect(api.submit).not.toHaveBeenCalled();
+  });
+
+  it('files a new draft with the ward after its documents are attached (REG-01)', async () => {
+    api.submit.mockResolvedValue({ ...created, registrationStatus: 'DRAFT' });
+
+    const result = await submitRegistrationDraft();
+
+    expect(api.file).toHaveBeenCalledWith(42);
+    expect(api.file.mock.invocationCallOrder[0]).toBeGreaterThan(
+      Math.max(...api.submitEvidence.mock.invocationCallOrder),
+    );
+    expect(result.registrationStatus).toBe('SUBMITTED');
+  });
+
+  it('files again on retry when filing failed, without creating a second application', async () => {
+    api.submit.mockResolvedValue({ ...created, registrationStatus: 'DRAFT' });
+    api.update.mockResolvedValue({ ...created, registrationStatus: 'DRAFT' });
+    api.file.mockRejectedValueOnce(new Error('network'));
+    await expect(submitRegistrationDraft()).rejects.toThrow('network');
+
+    await submitRegistrationDraft();
+
+    expect(api.submit).toHaveBeenCalledTimes(1);
+    expect(api.submitEvidence).toHaveBeenCalledTimes(2);
+    expect(api.file).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not file a registration the update already re-submitted', async () => {
+    useNewRegistrationStore.getState().setField('registrationId', 7);
+
+    await submitRegistrationDraft();
+
+    expect(api.file).not.toHaveBeenCalled();
   });
 });

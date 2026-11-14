@@ -498,9 +498,12 @@ function FoodSafetyPictogram() {
 export function InboxSignposts({
   onSlots,
   onFoodSafety,
+  onReports,
 }: {
   onSlots: () => void;
   onFoodSafety: () => void;
+  /** Citizen reports about vendors (AIB-01); the sign shows only when the screen can open them. */
+  onReports?: () => void;
 }) {
   const signs = [
     {
@@ -517,6 +520,17 @@ export function InboxSignposts({
       text: 'Xét hồ sơ, chuyển Chi cục ATTP kiểm tra và cập nhật kết quả',
       onPress: onFoodSafety,
     },
+    ...(onReports
+      ? [
+          {
+            key: 'reports',
+            art: <SlotsPictogram />,
+            title: 'Phản ánh về hộ bán hàng',
+            text: 'Người dân báo vi phạm; hệ thống đọc ảnh và kiểm tra giấy phép giúp bạn',
+            onPress: onReports,
+          },
+        ]
+      : []),
   ];
   return (
     <nav aria-label="Hồ sơ khác" className="grid gap-sm md:grid-cols-2 xl:grid-cols-1">

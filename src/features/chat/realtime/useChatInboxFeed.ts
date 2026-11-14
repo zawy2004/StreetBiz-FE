@@ -1,9 +1,6 @@
-import {
-  HubConnectionBuilder,
-  HubConnectionState,
-  LogLevel,
-  type HubConnection,
-} from '@microsoft/signalr';
+import { HubConnectionBuilder, HubConnectionState, type HubConnection } from '@microsoft/signalr';
+
+import { signalRLogger } from '@/core/realtime-logger';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
@@ -40,7 +37,7 @@ export function useChatInboxFeed(enabled: boolean) {
         withCredentials: false,
       })
       .withAutomaticReconnect([0, 2_000, 5_000, 10_000, 30_000])
-      .configureLogging(LogLevel.Warning)
+      .configureLogging(signalRLogger)
       .build();
 
     connection.on('ChatInboxChanged', (message: InboxChanged) => {

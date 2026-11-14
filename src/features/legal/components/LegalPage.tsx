@@ -14,7 +14,10 @@ export function LegalPage({ doc }: { doc: LegalDocument }) {
             <BrandLogo size={26} />
             <span className="font-sign text-[19px] font-bold text-text">StreetBiz</span>
           </Link>
-          <Link to="/" className="text-label font-semibold text-primary hover:underline">
+          <Link
+            to="/"
+            className="flex min-h-11 items-center text-label font-semibold text-primary hover:underline"
+          >
             Về trang chủ
           </Link>
         </div>
@@ -31,7 +34,10 @@ export function LegalPage({ doc }: { doc: LegalDocument }) {
           <ol className="flex list-decimal flex-col gap-1 pl-md text-body-md">
             {doc.sections.map((s) => (
               <li key={s.id}>
-                <a href={`#${s.id}`} className="text-primary hover:underline">
+                <a
+                  href={`#${s.id}`}
+                  className="inline-flex min-h-9 items-center text-primary hover:underline"
+                >
                   {s.title}
                 </a>
               </li>

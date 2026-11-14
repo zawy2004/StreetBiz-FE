@@ -11,9 +11,33 @@ export const PURPOSE_LABEL: Record<string, string> = {
   PENALTY: 'Biên bản phạt',
 };
 
+/** Providers that show a VietQR on the page itself, instead of leaving for a wallet. */
+export const isBankTransferProvider = (provider: string | undefined | null) =>
+  provider === 'PAYOS';
+
+/**
+ * The fee pay button: a wallet opens its page, a payOS bank transfer shows a VietQR here.
+ * No provider means nothing can be paid online right now.
+ */
+export function payButtonLabel(
+  provider: string | undefined,
+  starting: boolean,
+  waitingForTransfer: boolean,
+): string {
+  if (starting) return 'Đang khởi tạo thanh toán…';
+  if (waitingForTransfer) return 'Đang chờ chuyển khoản…';
+  if (!provider) return 'Chưa có phương thức thanh toán';
+  return isBankTransferProvider(provider) ? 'Tạo mã chuyển khoản VietQR' : 'Thanh toán qua MoMo / ZaloPay';
+}
+
 export const PROVIDER_LABEL: Record<string, string> = {
   MOMO: 'MoMo',
   ZALOPAY: 'ZaloPay',
+  PAYOS: 'Chuyển khoản VietQR (payOS)',
+  // A fine paid to the State Treasury and recorded by the ward from the receipt.
+  TREASURY: 'Nộp Kho bạc',
+  CASH: 'Tiền mặt',
+  BANK_TRANSFER: 'Chuyển khoản trực tiếp',
 };
 
 export const SOURCE_LABEL: Record<string, string> = {
@@ -67,9 +91,17 @@ export function daysFromToday(date: string, now: Date = new Date()): number {
 
 export type Urgency = { text: string; tone: 'danger' | 'pending' | 'neutral' };
 
+/**
+ * Whether the vendor can still pay this instalment: the server only accepts a checkout for a
+ * PENDING or OVERDUE one (PAID, CANCELLED and anything else are refused).
+ */
+export function isPayableFee(fee: Pick<FeeItemDto, 'itemStatus'>): boolean {
+  return fee.itemStatus === 'PENDING' || fee.itemStatus === 'OVERDUE';
+}
+
 /** "Quá hạn 6 ngày" / "Đến hạn hôm nay" / "Còn 12 ngày" for a fee still to pay; null once paid. */
 export function feeUrgency(fee: Pick<FeeItemDto, 'dueDate' | 'itemStatus'>, now = new Date()) {
-  if (fee.itemStatus !== 'PENDING' && fee.itemStatus !== 'OVERDUE') return null;
+  if (!isPayableFee(fee)) return null;
   const days = daysFromToday(fee.dueDate, now);
   if (days < 0) return { text: `Quá hạn ${-days} ngày`, tone: 'danger' } satisfies Urgency;
   if (days === 0) return { text: 'Đến hạn hôm nay', tone: 'pending' } satisfies Urgency;
@@ -78,16 +110,15 @@ export function feeUrgency(fee: Pick<FeeItemDto, 'dueDate' | 'itemStatus'>, now 
 
 /** Fees still to pay (overdue first, then the nearest due date) and the rest (latest first). */
 export function groupFees(fees: FeeItemDto[]) {
-  const payable = (f: FeeItemDto) => f.itemStatus === 'PENDING' || f.itemStatus === 'OVERDUE';
   const due = fees
-    .filter(payable)
+    .filter(isPayableFee)
     .sort(
       (a, b) =>
         Number(b.itemStatus === 'OVERDUE') - Number(a.itemStatus === 'OVERDUE') ||
         hcmDay(a.dueDate).localeCompare(hcmDay(b.dueDate)),
     );
   const settled = fees
-    .filter((f) => !payable(f))
+    .filter((f) => !isPayableFee(f))
     .sort((a, b) => hcmDay(b.dueDate).localeCompare(hcmDay(a.dueDate)));
   return { due, settled };
 }

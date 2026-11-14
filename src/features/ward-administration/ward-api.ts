@@ -132,6 +132,19 @@ export type WardEnrollmentItem = {
   vendorId: number;
 };
 /** Mẫu số 01 Phụ lục II, Thông tư 68/2025/TT-BTC -- chủ hộ kinh doanh. */
+/**
+ * Registration statuses that still wait for the ward. The same three statuses the backend
+ * counts as pendingRegistrations on the dashboard, so Hộp duyệt and Tổng quan agree.
+ */
+export const OPEN_REGISTRATION_STATUSES = new Set([
+  'SUBMITTED',
+  'UNDER_REVIEW',
+  'MORE_INFORMATION_REQUIRED',
+]);
+
+export const isOpenRegistration = (r: Pick<WardEnrollmentItem, 'status'>) =>
+  OPEN_REGISTRATION_STATUSES.has(r.status);
+
 export type WardOwnerProfile = {
   dateOfBirth: string | null;
   gender: string | null;
@@ -188,6 +201,9 @@ export type WardEnrollmentDetail = WardEnrollmentItem & {
   identityVerifiedByName: string | null;
   identityVerificationNote: string | null;
   kycChecks: WardKycCheck[];
+  /** X01: drafted by the voice assistant and accepted by the vendor before filing. A label only
+   * -- the review is the same. Absent from servers older than the voice assistant. */
+  assistedByAi?: boolean;
 };
 
 export type WardRentalApplicationItem = {
@@ -247,6 +263,9 @@ export type InspectPermitResult = {
   isLocationMatched: boolean;
   locationWarning: string | null;
   aiVisionResult: AiEncroachment | null;
+  /** False when the slot belongs to another ward: the permit's validity is shown, but the ids
+   * to act on are withheld and acting on it is that ward's job (absent from an older server). */
+  isOwnWard?: boolean;
 };
 
 export type PenaltyScheduleItem = {
@@ -346,7 +365,12 @@ export type WardPatrolHeatmapPoint = {
 };
 
 /** BR-41: the officer's accept/reject of a previously-logged AI suggestion (AiAssistanceLogs). */
-export type AiSuggestionFeedback = { aiLogId: number; accepted: boolean; reviewedAt: string; reviewerName: string };
+export type AiSuggestionFeedback = {
+  aiLogId: number;
+  accepted: boolean;
+  reviewedAt: string;
+  reviewerName: string;
+};
 
 // -- AIC-04: proposed-slot feasibility --
 export type AiProposalAssessment = {
@@ -394,7 +418,11 @@ export type GeofenceDriftItem = {
   isAiGenerated: boolean;
   aiLogId: number | null;
 };
-export type GeofenceDriftReport = { windowDays: number; toleranceMeters: number; items: GeofenceDriftItem[] };
+export type GeofenceDriftReport = {
+  windowDays: number;
+  toleranceMeters: number;
+  items: GeofenceDriftItem[];
+};
 
 // -- Renewal Review (WARD-09) --
 export type WardRenewalItem = {
@@ -470,7 +498,13 @@ export const complianceApi = {
       `/ward/enrollments?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page) })}`,
     ),
   getEnrollment: (id: string) => apiGet<WardEnrollmentDetail>(`/ward/enrollments/${id}`),
-  decideEnrollment: (id: string, decision: string, reason: string, expectedStatus: string) =>
+  /** The action word the API validates (WardComplianceUseCases), not the resulting status. */
+  decideEnrollment: (
+    id: string,
+    decision: 'APPROVE' | 'REJECT' | 'MORE_INFO',
+    reason: string,
+    expectedStatus: string,
+  ) =>
     apiPost<WardEnrollmentDetail>(`/ward/enrollments/${id}/decision`, {
       decision,
       reason,
@@ -569,12 +603,23 @@ export const complianceApi = {
     containmentMeasures?: string;
     explanationRequired?: boolean;
     explanationMethod?: string;
+    /**
+     * WARD-19: the citizen report this record is raised from. The server checks it is pending, in
+     * this ward and about the same vendor or slot (400 report_mismatch), then closes it as
+     * VIOLATION_RECORDED in the same transaction; a second record for it is refused (409).
+     */
+    sourceReportId?: number;
   }) => apiPost<WardViolationDetail>('/ward/violations', request),
   /** Điều 61 Luật XLVPHC: records the violator's giải trình before a sanction may issue. */
   recordExplanation: (id: number, content: string) =>
     apiPost<WardViolationDetail>(`/ward/violations/${id}/explanation`, { content }),
   /** Mẫu 01's handover block -- delivered or refused go together with their own reason. */
-  deliverViolation: (id: number, deliveredToName: string | null, refused: boolean, refusalReason: string | null) =>
+  deliverViolation: (
+    id: number,
+    deliveredToName: string | null,
+    refused: boolean,
+    refusalReason: string | null,
+  ) =>
     apiPost<WardViolationDetail>(`/ward/violations/${id}/deliver`, {
       deliveredToName,
       refused,
@@ -610,13 +655,26 @@ export const complianceApi = {
    * checks biometric consent server-side. Never send an evidence list / declared name-address
    * from the client -- an earlier draft did, and its shape drifted out of sync with the backend
    * (which only ever needed the registration id). */
+  // The server allows the AI check up to 30 s (a hung model, then its fallback).
   aiDocumentExtract: (registrationId: string) =>
-    apiPost<AiDocumentCheck>('/ward/ai/document-extract', {
-      registrationId: Number(registrationId),
-    }),
+    apiPost<AiDocumentCheck>(
+      '/ward/ai/document-extract',
+      { registrationId: Number(registrationId) },
+      { timeout: 45_000 },
+    ),
 
-  aiEncroachmentCheck: (photoUrl: string, slotWidth?: number, slotLength?: number, slotId?: number) =>
-    apiPost<AiEncroachment>('/ward/ai/encroachment-check', { photoUrl, slotWidth, slotLength, slotId }),
+  aiEncroachmentCheck: (
+    photoUrl: string,
+    slotWidth?: number,
+    slotLength?: number,
+    slotId?: number,
+  ) =>
+    apiPost<AiEncroachment>('/ward/ai/encroachment-check', {
+      photoUrl,
+      slotWidth,
+      slotLength,
+      slotId,
+    }),
 
   /** BR-41: accept or reject a previously-logged AI suggestion. Never the same action as
    * approving/saving whatever the suggestion was about. */
@@ -625,12 +683,6 @@ export const complianceApi = {
 
   /** AIC-06: permits whose QR scans repeatedly land away from their licensed slot. */
   geofenceDrift: () => apiGet<GeofenceDriftReport>('/ward/insights/geofence-drift'),
-
-  askVendorAssistant: (question: string, context?: string) =>
-    apiPost<{ answer: string; isAiGenerated: boolean }>('/ward/ai/vendor-assistant', {
-      question,
-      context,
-    }),
 
   /** Shared with REG-02; UploadsController also authorizes WARD_AUTHORITY for WARD-11/12 evidence. */
   uploadEvidence: (file: File): Promise<{ fileUrl: string }> => {
@@ -659,6 +711,9 @@ export const actionLabels: Record<string, string> = {
   QUEUE: 'Đưa vào hàng chờ',
   REVIEW: 'Nhận xét duyệt',
   REQUEST_INFO: 'Yêu cầu bổ sung',
+  // SIDE-10: the old slot of an address change waiting out its grace period.
+  EXTEND_GRACE: 'Gia hạn thời gian trả ô cũ',
+  CANCEL_RELEASE: 'Giữ nguyên ô cũ',
 };
 export const statusLabels: Record<string, string> = {
   PENDING: 'Chờ xử lý',
@@ -680,9 +735,19 @@ export function statusLabel(kind: CaseKind, status: string): string {
   return statusLabels[status] ?? status;
 }
 
+/** Every RegistrationEvidence.evidence_type, in the words of EvidenceTypes.Label on the server. */
 export const evidenceLabels: Record<string, string> = {
-  IDENTITY_DOCUMENT: 'CCCD gắn chip',
+  IDENTITY_DOCUMENT: 'CCCD mặt trước',
+  IDENTITY_DOCUMENT_BACK: 'CCCD mặt sau',
+  PORTRAIT_SELFIE: 'Ảnh chân dung',
   BUSINESS_LICENSE: 'Giấy phép kinh doanh',
   ADDRESS_PROOF: 'Giấy tờ địa chỉ',
   OTHER: 'Giấy tờ khác',
 };
+
+/**
+ * The name an officer reads under a document. An older API sent the database code as the label
+ * ("IDENTITY_DOCUMENT_BACK"), so a label that is still a code is translated here too.
+ */
+export const evidenceLabel = (ev: { type: string; label?: string | null }) =>
+  evidenceLabels[ev.type] ?? (ev.label && !/^[A-Z_]+$/.test(ev.label) ? ev.label : 'Giấy tờ khác');

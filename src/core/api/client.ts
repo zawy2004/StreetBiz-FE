@@ -6,12 +6,14 @@ import axios, {
 } from 'axios';
 
 import { env } from '@/core/config/env';
-import { ApiError, isTokenFailure, toApiError } from './problem';
+import { isApiRequestUrl, uploadsApiPath } from '@/core/security/safe-url';
+import { ApiError, isTokenFailure, timeoutError, toApiError } from './problem';
 import { clearTokens, getTokens, setTokens, type AuthTokens } from './token-storage';
 
 /** Endpoints that must never carry a bearer token or trigger a refresh retry. */
 const ANONYMOUS_PATHS = [
   '/auth/login',
+  '/auth/login-otp',
   '/auth/register',
   '/auth/send-otp',
   '/auth/refresh',
@@ -22,8 +24,14 @@ const ANONYMOUS_PATHS = [
 
 type RetriableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
 
+/**
+ * Whole-path match, query string ignored. A prefix match would treat `/auth/login-history`
+ * as `/auth/login` and send it without its bearer token (the server then answers 401).
+ */
 function isAnonymous(url: string | undefined): boolean {
-  return !!url && ANONYMOUS_PATHS.some((path) => url.startsWith(path));
+  if (!url) return false;
+  const path = url.split('?')[0] ?? url;
+  return ANONYMOUS_PATHS.includes(path);
 }
 
 export const http: AxiosInstance = axios.create({
@@ -33,7 +41,9 @@ export const http: AxiosInstance = axios.create({
 });
 
 http.interceptors.request.use((config) => {
-  if (!isAnonymous(config.url)) {
+  // The token only ever goes to our own API: an absolute URL to another host (a link planted in
+  // stored data) is sent without it.
+  if (!isAnonymous(config.url) && isApiRequestUrl(config.url, config.baseURL ?? env.apiBaseUrl)) {
     const token = getTokens()?.accessToken;
     if (token) config.headers.Authorization = `Bearer ${token}`;
   }
@@ -74,6 +84,24 @@ async function refreshTokens(): Promise<AuthTokens> {
   return next;
 }
 
+/**
+ * Rotates the session's tokens for callers that talk to the API without axios (the platform admin
+ * screens use fetch). Shares the in-flight refresh with the axios interceptor, and when the refresh
+ * token is rejected ends the session exactly as the interceptor does.
+ */
+export async function refreshAccessToken(): Promise<AuthTokens> {
+  try {
+    refreshInFlight ??= refreshTokens().finally(() => {
+      refreshInFlight = null;
+    });
+    return await refreshInFlight;
+  } catch {
+    clearTokens();
+    onSessionExpired?.();
+    throw new ApiError('unauthorized', 401, 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+  }
+}
+
 http.interceptors.response.use(
   (response) => {
     // ASP.NET renders a null result as 204 No Content, and axios surfaces that empty
@@ -99,8 +127,11 @@ http.interceptors.response.use(
     }
 
     // Only a token failure is worth a refresh: a handler that answers 401 for another
-    // reason would otherwise rotate the session for nothing.
+    // reason would otherwise rotate the session for nothing. In mock mode the signed-in
+    // user is a demo account the backend never issued, so a 401 from a module that still
+    // calls the server is that request's error, not the end of the demo session.
     const canRetry =
+      !env.useMockApi &&
       isTokenFailure(status, error.response?.data) &&
       config &&
       !config._retried &&
@@ -124,6 +155,15 @@ http.interceptors.response.use(
           'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
         );
       }
+    }
+
+    // axios gives up after its timeout with no response: say the server was slow, not that the
+    // connection is down (the eKYC calls used to report "không kết nối được máy chủ" here).
+    if (
+      !error.response &&
+      (error.code === AxiosError.ECONNABORTED || error.code === AxiosError.ETIMEDOUT)
+    ) {
+      throw timeoutError();
     }
 
     throw toApiError(status, error.response?.data);
@@ -171,8 +211,9 @@ export async function apiGetBlob(url: string): Promise<Blob> {
 
 /**
  * File URLs stored by the backend are origin-relative (`/api/uploads/...`), while
- * the client's baseURL already ends in `/api`; drop the duplicate segment.
+ * the client's baseURL already ends in `/api`; drop the duplicate segment. Anything that is not
+ * an uploaded file is refused (see uploadsApiPath).
  */
 export function apiPathFromFileUrl(fileUrl: string): string {
-  return fileUrl.startsWith('/api/') ? fileUrl.slice('/api'.length) : fileUrl;
+  return uploadsApiPath(fileUrl);
 }

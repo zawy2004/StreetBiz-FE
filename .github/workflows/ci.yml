@@ -1,0 +1,49 @@
+name: CI
+
+# Checks every pull request before it can be merged. Vercel still builds and deploys on its own;
+# this workflow deploys nothing and needs no secrets.
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, typecheck, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      # A production build, as on Vercel. The address is a placeholder that is never called;
+      # it only satisfies the build's check that a real API is configured.
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: https://ci.invalid/api
+          VITE_APP_ENV: production

@@ -97,6 +97,17 @@ returns:
 - **A sandbox URL** (`streetbiz://payment/sandbox/...`, no MoMo keys): the
   screen calls `sandbox-confirm` right away and returns to FinanceHome; if that
   404s (not Development) it falls back to `redirectToPayment`.
+- **A payOS bank transfer** (the checkout carries `bankTransfer`): there is no
+  page to leave for. `useFinanceBankTransfer` keeps `BankTransferPanel` (the
+  VietQR drawn from payOS's `qrContent`, the account and the transfer content,
+  each copyable, and a link to payOS's own page) on the page and calls `sync`
+  every 5 seconds; payOS's webhook, or the backend asking payOS, settles the
+  payment, and `SUCCESS` turns the page into the receipt. The money goes
+  straight into the ward's own payOS account. The transaction is remembered
+  in `sessionStorage`, so a reload fetches the same QR again
+  (`GET /vendor/finance/payments/{id}/bank-transfer`). Orders do the same on
+  `OrderPaymentScreen` (`GET /orders/{id}/payment/bank-transfer`), paid into the
+  household's account. Backend setup: StreetBiz-BE `docs/payos-payments.md`.
 - Any other failure (typically `422`: the item was just paid from another tab)
   refreshes the list and summary so the item stops looking payable.
 

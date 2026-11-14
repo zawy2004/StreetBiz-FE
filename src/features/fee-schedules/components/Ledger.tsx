@@ -4,9 +4,9 @@ import { formatVnd, Icon } from '@/components/common';
 import { SplitBar, SplitSwatch } from './FinanceParts';
 import { EASE_OUT } from './finance-styles';
 
-/** The line every invoice screen says: an invoice only exists once the wallet confirmed. */
+/** The line every invoice screen says: an invoice only exists once the payment gateway confirmed. */
 export const INVOICE_PROMISE =
-  'Hoá đơn được xuất tự động sau khi ví xác nhận thanh toán với hệ thống.';
+  'Hoá đơn được xuất tự động sau khi cổng thanh toán xác nhận với hệ thống.';
 
 type SummaryProps = {
   count: number;

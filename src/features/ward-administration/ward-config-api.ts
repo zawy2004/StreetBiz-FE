@@ -1,6 +1,7 @@
 import { ApiError, apiDelete, apiGet, apiPost, apiPut } from '@/core/api';
 import { apiUpload } from '@/core/api/client';
 import type { FeeCalcBasis } from '@/core/api/side-api';
+import { shrinkImage } from '@/core/utils/shrink-image';
 
 // WARD-01/02/03 Ward Configuration. Mirrors StreetBiz-BE Features/WardConfiguration/Contracts.cs.
 
@@ -336,9 +337,9 @@ export const wardConfigApi = {
       versionToken: slot.versionToken,
     }),
   /** Stores one slot photo (public) and returns the URL to send in `imageUrls`. */
-  uploadSlotImage: (file: File) => {
+  uploadSlotImage: async (file: File) => {
     const form = new FormData();
-    form.append('file', file);
+    form.append('file', await shrinkImage(file));
     return apiUpload<{ fileUrl: string }>('/uploads/slot-images', form);
   },
   setSlotStatus: (slot: WardSlot, status: 'AVAILABLE' | 'SUSPENDED', reason: string) =>

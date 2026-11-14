@@ -42,7 +42,7 @@ describe('ward review screens (mock mode)', () => {
         phone: '0905000004',
         password: '',
         role_code: 'WARD_AUTHORITY',
-        wardUnitType: 'Phường Hải Châu 1',
+        wardUnitType: 'Phường Hải Châu',
         account_status: 'ACTIVE',
       },
       sessionExpired: false,
@@ -56,9 +56,10 @@ describe('ward review screens (mock mode)', () => {
     useAuthStore.setState({ user: null, sessionExpired: false });
   });
 
-  it('dashboard: pending count is registrations + applications, and the board numbers navigate', () => {
+  it('dashboard: pending count is the whole inbox queue, and the board numbers navigate', () => {
     mount('/ward/dashboard', '/ward/dashboard', <WardDashboardScreen />);
-    const pending = screen.getByRole('button', { name: /^Hồ sơ chờ duyệt: 2\./ });
+    // Mock data: 1 registration + 1 rental application + 0 renewals + 2 citizen reports.
+    const pending = screen.getByRole('button', { name: /^Hồ sơ chờ duyệt: 4\./ });
     expect(screen.queryByRole('button', { name: /Tỷ lệ lấp đầy/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Hộp duyệt Hồ sơ đăng ký/ })).toBeInTheDocument();
     fireEvent.click(pending);

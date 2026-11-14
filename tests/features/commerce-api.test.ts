@@ -42,6 +42,18 @@ describe('commerce API contracts', () => {
     expect(client.apiGet).toHaveBeenNthCalledWith(2, '/marketplace/menu-items');
   });
 
+  it('sends the rating floor (and for storefronts the price cap) to the server (DISC-05)', async () => {
+    client.apiGet.mockResolvedValue([]);
+
+    await commerceApi.menuItems({ minRating: 4, maxPrice: 30000 });
+    await commerceApi.storefronts({ minRating: 3, maxPrice: 50000 });
+
+    expect(client.apiGet.mock.calls.map(([path]) => path)).toEqual([
+      '/marketplace/menu-items?minRating=4&maxPrice=30000',
+      '/marketplace/storefronts?minRating=3&maxPrice=50000',
+    ]);
+  });
+
   it('reads service areas, categories and storefronts, sending the position only when known', async () => {
     client.apiGet.mockResolvedValue([]);
     const here = { latitude: 16.0605, longitude: 108.2145 };

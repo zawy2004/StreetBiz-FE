@@ -16,6 +16,7 @@ import type { Order } from '@/features/orders/types/order.types';
 const legacyApi = vi.hoisted(() => ({
   cart: vi.fn(),
   paymentOptions: vi.fn(),
+  storefrontPaymentOptions: vi.fn(),
   customerOrder: vi.fn(),
   review: vi.fn(),
   saveReview: vi.fn(),
@@ -173,6 +174,7 @@ function renderAt(path: string, route: string, element: React.ReactNode) {
           <Route path={route} element={element} />
           <Route path="/customer/orders/:orderId" element={<div>order detail destination</div>} />
           <Route path="/customer/explore/cart" element={<div>cart destination</div>} />
+          <Route path="/customer/checkout" element={<div>checkout destination</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -196,6 +198,13 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.unstubAllGlobals();
   legacyApi.paymentOptions.mockResolvedValue({ mode: 'SANDBOX', providers: ['MOMO'], message: '' });
+  // The methods this stall takes: the platform's own gateways, no household payOS account.
+  legacyApi.storefrontPaymentOptions.mockResolvedValue({
+    mode: 'SANDBOX',
+    providers: ['MOMO', 'ZALOPAY'],
+    message: '',
+    payee: null,
+  });
   ordersApi.syncPayment.mockImplementation(async () => order('PENDING_PAYMENT'));
   // ORD-01: these screens are not about the pickup range, so the rule is off here.
   ordersApi.pickupRange.mockResolvedValue({
@@ -274,12 +283,108 @@ describe('C11 checkout', () => {
     expect(ordersApi.checkout.mock.calls[1]?.[1]).toBe('uuid-a');
   });
 
+  it('starts payment again with a NEW key after a payment failed (PAY-02)', async () => {
+    // First visit: the key is generated and the order is created; the payment then fails at the
+    // provider. Coming back to checkout is a new visit, so it must not replay the dead order's key.
+    legacyApi.cart.mockResolvedValue(cart);
+    ordersApi.checkout.mockImplementation(() => new Promise(() => undefined));
+    const uuid = vi.fn().mockReturnValueOnce('uuid-first').mockReturnValueOnce('uuid-second');
+    vi.stubGlobal('crypto', { randomUUID: uuid });
+    const user = userEvent.setup();
+
+    const first = renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Thanh toán và đặt món' }));
+    first.unmount();
+
+    renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Thanh toán và đặt món' }));
+
+    expect(ordersApi.checkout.mock.calls.map((call) => call[1])).toEqual(['uuid-first', 'uuid-second']);
+  });
+
   it('keeps the wallet choice a real, named radio', async () => {
     legacyApi.cart.mockResolvedValue(cart);
     renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
     const zalo = await screen.findByRole('radio', { name: /ZaloPay/ });
     expect(zalo.tagName).toBe('INPUT');
     expect(screen.getByRole('radio', { name: /MoMo/ })).toBeChecked();
+  });
+
+  it("offers the household's own payOS account first, naming who is paid, and sends PAYOS", async () => {
+    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.storefrontPaymentOptions.mockResolvedValue({
+      mode: 'LIVE',
+      providers: ['PAYOS'],
+      message: 'Chuyển khoản ngân hàng qua VietQR, hệ thống tự xác nhận khi tiền về.',
+      payee: {
+        name: 'Bếp Việt',
+        bankName: 'Vietcombank',
+        accountNumberMasked: '••••••4321',
+        accountName: 'PHAM THI LAN',
+      },
+    });
+    ordersApi.checkout.mockImplementation(() => new Promise(() => undefined));
+    vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'uuid-1') });
+    const user = userEvent.setup();
+    renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
+
+    const payos = await screen.findByRole('radio', { name: /Chuyển khoản VietQR/ });
+    expect(payos).toBeChecked();
+    expect(screen.getByText('Trả thẳng cho Bếp Việt')).toBeInTheDocument();
+    // Only what this stall takes: no wallet it has not got.
+    expect(screen.queryByRole('radio', { name: /MoMo/ })).not.toBeInTheDocument();
+    expect(legacyApi.storefrontPaymentOptions).toHaveBeenCalledWith(cart.storefrontId);
+
+    await user.click(screen.getByRole('button', { name: 'Thanh toán và đặt món' }));
+
+    expect(ordersApi.checkout).toHaveBeenCalledWith(
+      expect.objectContaining({ cartId: cart.cartId, provider: 'PAYOS' }),
+      'uuid-1',
+    );
+    expect(screen.getAllByText(/tiền về tài khoản/).length).toBeGreaterThan(0);
+  });
+
+  it('takes no order, and says so, when the stall has not connected a receiving account', async () => {
+    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.storefrontPaymentOptions.mockResolvedValue({
+      mode: 'UNAVAILABLE',
+      providers: [],
+      message: 'Thanh toán trực tuyến chưa sẵn sàng. Vui lòng thử lại sau.',
+      payee: null,
+    });
+    renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
+
+    expect(
+      await screen.findByRole('region', { name: 'Quán chưa nhận thanh toán online' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/mua trực tiếp tại quầy/)).toBeInTheDocument();
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Thanh toán và đặt món' })).toBeDisabled();
+    expect(ordersApi.checkout).not.toHaveBeenCalled();
+  });
+
+  it('lets the customer retry when the stall\'s payment methods could not be read', async () => {
+    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.storefrontPaymentOptions
+      .mockRejectedValueOnce(new ApiError('server_error', 503, 'Mạng chập chờn.'))
+      .mockResolvedValue({
+        mode: 'SANDBOX',
+        providers: ['MOMO'],
+        message: '',
+        payee: null,
+      });
+    const user = userEvent.setup();
+    renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Mạng chập chờn.');
+    expect(screen.getByRole('button', { name: 'Thanh toán và đặt món' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Tải lại phương thức thanh toán' }));
+
+    expect(await screen.findByRole('radio', { name: /MoMo/ })).toBeChecked();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Thanh toán và đặt món' })).toBeEnabled(),
+    );
   });
 });
 
@@ -392,6 +497,37 @@ describe('C14 payment status', () => {
   });
 });
 
+describe('C14b retry a failed payment (PAY-02)', () => {
+  it('offers "Thanh toán lại" next to the way back to the cart, and goes to a fresh checkout', async () => {
+    ordersApi.customerOrder.mockResolvedValue(order('CANCELLED'));
+    const user = userEvent.setup();
+    renderAt('/customer/orders/19/payment', '/customer/orders/:orderId/payment', <OrderPaymentScreen />);
+
+    expect(await screen.findByText('Thanh toán thất bại hoặc đơn đã bị huỷ')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Về giỏ hàng' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Thanh toán lại' }));
+
+    expect(await screen.findByText('checkout destination')).toBeInTheDocument();
+  });
+
+  it('does not offer it while the payment is still pending or once it has succeeded', async () => {
+    ordersApi.customerOrder.mockResolvedValue(order('PENDING_PAYMENT'));
+    const { unmount } = renderAt(
+      '/customer/orders/19/payment',
+      '/customer/orders/:orderId/payment',
+      <OrderPaymentScreen />,
+    );
+    await screen.findByText('Đang chờ cổng thanh toán xác nhận');
+    expect(screen.queryByRole('button', { name: 'Thanh toán lại' })).not.toBeInTheDocument();
+    unmount();
+
+    ordersApi.customerOrder.mockResolvedValue(order('PLACED'));
+    renderAt('/customer/orders/19/payment', '/customer/orders/:orderId/payment', <OrderPaymentScreen />);
+    await screen.findByText(/Đặt món thành công/);
+    expect(screen.queryByRole('button', { name: 'Thanh toán lại' })).not.toBeInTheDocument();
+  });
+});
+
 describe('C15 review', () => {
   it('marks only the chosen star as pressed and saves it', async () => {
     legacyApi.customerOrder.mockResolvedValue(commerceOrder('COMPLETED'));
@@ -422,6 +558,66 @@ describe('C15 review', () => {
     );
     expect(await screen.findByText('Chỉ đánh giá đơn đã hoàn tất.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Lưu đánh giá' })).not.toBeInTheDocument();
+  });
+
+  it('shows how long a submitted review can still be edited (REV-02)', async () => {
+    legacyApi.customerOrder.mockResolvedValue(commerceOrder('COMPLETED'));
+    legacyApi.review.mockResolvedValue({
+      reviewId: 3,
+      rating: 4,
+      text: 'Ngon',
+      editableUntil: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
+    });
+    renderAt(
+      '/customer/orders/19/review',
+      '/customer/orders/:orderId/review',
+      <OrderReviewScreen />,
+    );
+
+    expect(await screen.findByText(/Bạn có thể sửa đến/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lưu đánh giá' })).toBeInTheDocument();
+  });
+
+  it('turns an expired review read-only instead of offering a save that would be refused (REV-02)', async () => {
+    legacyApi.customerOrder.mockResolvedValue(commerceOrder('COMPLETED'));
+    legacyApi.review.mockResolvedValue({
+      reviewId: 3,
+      rating: 4,
+      text: 'Ngon, giao nhanh',
+      editableUntil: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+    });
+    renderAt(
+      '/customer/orders/19/review',
+      '/customer/orders/:orderId/review',
+      <OrderReviewScreen />,
+    );
+
+    expect(await screen.findByText('Đã quá thời hạn chỉnh sửa đánh giá')).toBeInTheDocument();
+    expect(screen.getByText('Ngon, giao nhanh')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Lưu đánh giá' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Nhận xét')).not.toBeInTheDocument();
+    expect(legacyApi.saveReview).not.toHaveBeenCalled();
+  });
+
+  it('shows the server refusal when a save arrives after the period closed (REV-02)', async () => {
+    legacyApi.customerOrder.mockResolvedValue(commerceOrder('COMPLETED'));
+    legacyApi.review.mockResolvedValue({
+      reviewId: 3,
+      rating: 4,
+      text: 'Ngon',
+      editableUntil: new Date(Date.now() + 60_000).toISOString(),
+    });
+    legacyApi.saveReview.mockRejectedValue(new Error('Đã quá thời hạn chỉnh sửa đánh giá (7 ngày kể từ lúc gửi), bạn không thể sửa nữa.'));
+    const user = userEvent.setup();
+    renderAt(
+      '/customer/orders/19/review',
+      '/customer/orders/:orderId/review',
+      <OrderReviewScreen />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Lưu đánh giá' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Đã quá thời hạn chỉnh sửa đánh giá');
   });
 });
 

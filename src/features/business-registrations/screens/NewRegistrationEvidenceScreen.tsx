@@ -38,6 +38,8 @@ import {
 } from '../new-registration-store';
 import { submitRegistrationDraft } from '../submit-registration';
 import { REGISTRATIONS_KEY } from '../useRegistrations';
+import { afterWizardFiled } from '../voice/voice-filing';
+import { VoiceReturnBanner } from '../voice/VoiceReturnBanner';
 
 const DOC_ART: Partial<
   Record<ApiEvidenceType, 'id-front' | 'id-back' | 'license' | 'address' | 'portrait'>
@@ -79,7 +81,9 @@ export function NewRegistrationEvidenceScreen() {
 
   const submission = useMutation({
     mutationFn: submitRegistrationDraft,
-    onSuccess: async () => {
+    onSuccess: async (registration) => {
+      // Began as a voice interview? Keep the officer's [AI] label (no-op otherwise).
+      await afterWizardFiled(registration);
       await queryClient.invalidateQueries({ queryKey: REGISTRATIONS_KEY });
       draft.reset();
       showToast(isEditing ? 'Đã cập nhật và gửi lại hồ sơ' : 'Đã nộp hồ sơ đăng ký');
@@ -127,7 +131,7 @@ export function NewRegistrationEvidenceScreen() {
         owner_name: user.fullName,
         phone: user.phone,
         address: draft.declaredAddress || undefined,
-        ward_unit_type: 'Phường Hải Châu 1',
+        ward_unit_type: 'Phường Hải Châu',
       });
       vendorId = vendor.id;
       setUser({ ...user, vendorId });
@@ -139,7 +143,7 @@ export function NewRegistrationEvidenceScreen() {
       owner_name: user.fullName,
       id_number: '',
       address: draft.declaredAddress || 'Lưu trú tại phường',
-      ward_unit_type: 'Phường Hải Châu 1',
+      ward_unit_type: 'Phường Hải Châu',
       fast_track: draft.vendorType === VENDOR_TYPE.fixedStorefront,
       evidence: draft.evidence.map((e) => ({ type: e.evidenceType, uri: e.uri, label: e.label })),
     });
@@ -216,6 +220,7 @@ export function NewRegistrationEvidenceScreen() {
       <AppHeader title={isEditing ? 'Cập nhật hồ sơ' : 'Đăng ký kinh doanh'} back />
       <WizardProgress step={4} />
       {isEditing ? <EditingBanner displayName={draft.displayName} /> : null}
+      <VoiceReturnBanner />
 
       <div className="grid items-start gap-lg xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-xl">
         <div className="flex min-w-0 flex-col gap-md">

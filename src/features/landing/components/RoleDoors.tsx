@@ -94,7 +94,12 @@ function BuyerDoor() {
   return (
     <article className="flex flex-col overflow-hidden rounded-[28px] bg-card shadow-card ring-1 ring-border md:col-span-2 xl:col-span-7 xl:row-span-2">
       {/* Phones: a swipeable strip; wider: three photos side by side. */}
-      <div className="no-scrollbar flex snap-x snap-mandatory gap-xs overflow-x-auto p-xs md:grid md:grid-cols-3 md:overflow-visible">
+      <div
+        role="region"
+        aria-label="Món ăn trên phố"
+        tabIndex={0}
+        className="no-scrollbar flex snap-x snap-mandatory gap-xs overflow-x-auto p-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:grid md:grid-cols-3 md:overflow-visible"
+      >
         {DISHES.map((dish) => (
           <figure
             key={dish.key}

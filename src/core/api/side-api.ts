@@ -174,6 +174,8 @@ export type RentalContract = {
   cancelledAt: string | null;
   createdAt: string;
   updatedAt: string | null;
+  /** Whether a digital permit exists yet. Absent on an older API, where every contract is asked. */
+  hasPermit?: boolean;
 };
 
 export type RenewalRequest = {
@@ -196,6 +198,11 @@ export type DigitalPermit = {
   permitStatus: string;
   contractStatus: string;
   effectiveStatus: string;
+  /**
+   * `{base}/q/{qrPayload}`: what the QR should encode so an ordinary phone camera opens the
+   * public check page. Null when the server has no public base URL; then the bare token is drawn.
+   */
+  qrUrl?: string | null;
 };
 
 export type AddressChangeRequest = {
@@ -210,6 +217,12 @@ export type AddressChangeRequest = {
   conflictResolutionNote: string | null;
   reviewedAt: string | null;
   createdAt: string;
+  /** SIDE-10: the slot being given back, where it stands, and until when the vendor may keep it. */
+  releasedSlotCode: string | null;
+  releaseState: 'PENDING_RELEASE' | 'RELEASED' | null;
+  releaseGraceEndsOn: string | null;
+  /** An overdue fee or an unpaid penalty is holding the slot back. */
+  releaseBlockedByDebt: boolean;
 };
 
 export type SlotTransferRequest = {

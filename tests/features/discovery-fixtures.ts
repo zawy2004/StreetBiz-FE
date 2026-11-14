@@ -9,7 +9,7 @@ export function makeStorefront(overrides: Partial<StorefrontSummary> = {}): Stor
     vendorId: 10002,
     address: null,
     wardId: 1003,
-    wardName: 'Phường Nam Dương',
+    wardName: 'Phường Hải Châu',
     zoneName: 'Đường Nguyễn Văn Linh',
     slotCode: 'NVL-14',
     latitude: 16.060169,

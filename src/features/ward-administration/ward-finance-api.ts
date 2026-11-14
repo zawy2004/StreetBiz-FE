@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from '@/core/api';
+import { apiGet, apiPost, apiPut, type PenaltyReceiptDto } from '@/core/api';
 
 // The ward's manual money handling. Mirrors StreetBiz-BE Features/WardFinance/WardFinance.cs.
 
@@ -81,7 +81,30 @@ export type WardFinanceContractDetail = {
 
 export type WardFinanceResult = { message: string };
 
+/** A Treasury receipt a household sent for a fine of this ward (the fine is paid to the Treasury, not through StreetBiz). */
+export type WardPenaltyReceipt = {
+  receipt: PenaltyReceiptDto;
+  vendorName: string | null;
+  amount: number;
+  decisionNumber: string | null;
+  violationLabel: string;
+  slotCode: string | null;
+  penaltyStatus: string;
+  reviewedByName: string | null;
+};
+
 export const wardFinanceApi = {
+  /** Receipts of this ward's fines, the ones waiting first. */
+  penaltyReceipts: (status?: PenaltyReceiptDto['status']) =>
+    apiGet<WardPenaltyReceipt[]>(`/ward/finance/penalty-receipts${status ? `?status=${status}` : ''}`),
+  /** The officer checked the receipt against the Treasury: the fine is paid, and its invoice is issued. */
+  acceptPenaltyReceipt: (receiptId: number, note: string | null) =>
+    apiPost<WardFinanceResult>(`/ward/finance/penalty-receipts/${receiptId}/accept`, { note }),
+  rejectPenaltyReceipt: (receiptId: number, reason: string) =>
+    apiPost<WardFinanceResult>(`/ward/finance/penalty-receipts/${receiptId}/reject`, { reason }),
+  /** The decision of a paid fine was annulled: the Treasury refunds it (see the refunds list). */
+  annulPaidPenalty: (penaltyId: number, reason: string) =>
+    apiPost<WardFinanceResult>(`/ward/finance/penalties/${penaltyId}/annul`, { reason }),
   listContracts: () => apiGet<WardFinanceContractItem[]>('/ward/finance/contracts'),
   getContract: (contractId: number) =>
     apiGet<WardFinanceContractDetail>(`/ward/finance/contracts/${contractId}`),

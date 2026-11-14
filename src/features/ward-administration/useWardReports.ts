@@ -7,12 +7,16 @@ import {
   type WardDashboardDto,
 } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
+import { OVERVIEW_REFRESH_MS } from '@/core/config/refresh';
 import { useMockDb } from '@/mocks/db';
 import { VIOLATION_TYPES } from '@/mocks/seed';
+import { complianceApi } from './ward-api';
 
 export const WARD_REPORT_KEYS = {
-  collectionReport: (from: string, to: string) => ['ward', 'reports', 'collection', from, to] as const,
+  collectionReport: (from: string, to: string) =>
+    ['ward', 'reports', 'collection', from, to] as const,
   dashboard: ['ward', 'dashboard'] as const,
+  pendingRenewals: ['ward', 'renewals', 'open-count'] as const,
   summary: (from: string, to: string) => ['ward', 'reports', 'summary', from, to] as const,
 };
 
@@ -98,7 +102,49 @@ export function useReportSummary(period: ReportPeriod): {
   return { summary, isLoading: isLiveApi && query.isLoading, isError: isLiveApi && query.isError };
 }
 
+/** The dashboard's report figures from the demo reports, counted the way the server does. */
+function mockReportFigures(
+  reports: { report_status: string; created_at: string; due_at?: string; reviewed_at?: string }[],
+  now = Date.now(),
+) {
+  const open = reports.filter((r) => r.report_status === 'PENDING');
+  const closedHours = reports
+    .filter((r) => r.reviewed_at && now - Date.parse(r.reviewed_at) <= 30 * 86_400_000)
+    .map((r) => (Date.parse(r.reviewed_at!) - Date.parse(r.created_at)) / 3_600_000);
+  return {
+    openReports: open.length,
+    overdueReports: open.filter((r) => r.due_at && Date.parse(r.due_at) < now).length,
+    avgResolutionHours30d: closedHours.length
+      ? closedHours.reduce((sum, h) => sum + h, 0) / closedHours.length
+      : null,
+  };
+}
+
 /** WARD-15. */
+/**
+ * Renewals waiting for the ward (PENDING or UNDER_REVIEW), the same two lists Hộp duyệt loads,
+ * for the dashboard total. The dashboard endpoint does not count them.
+ */
+export function usePendingRenewalCount(): number {
+  const mockRenewals = useMockDb((s) => s.renewals);
+  const query = useQuery({
+    queryKey: WARD_REPORT_KEYS.pendingRenewals,
+    queryFn: async () => {
+      const [pending, reviewing] = await Promise.all([
+        complianceApi.listRenewals('PENDING'),
+        complianceApi.listRenewals('UNDER_REVIEW'),
+      ]);
+      return pending.length + reviewing.length;
+    },
+    enabled: isLiveApi,
+    refetchInterval: OVERVIEW_REFRESH_MS,
+  });
+  if (!isLiveApi) {
+    return mockRenewals.filter((r) => r.renewal_status === 'PENDING').length;
+  }
+  return query.data ?? 0;
+}
+
 export function useWardDashboard() {
   const slots = useMockDb((s) => s.slots);
   const registrations = useMockDb((s) => s.registrations);
@@ -107,11 +153,13 @@ export function useWardDashboard() {
   const feeItems = useMockDb((s) => s.feeItems);
   const penalties = useMockDb((s) => s.penalties);
   const violations = useMockDb((s) => s.violations);
+  const reports = useMockDb((s) => s.reports);
 
   const query = useQuery({
     queryKey: WARD_REPORT_KEYS.dashboard,
     queryFn: wardReportApi.dashboard,
     enabled: isLiveApi,
+    refetchInterval: OVERVIEW_REFRESH_MS,
   });
 
   const rented = slots.filter((s) => s.slot_status === 'RENTED').length;
@@ -133,6 +181,7 @@ export function useWardDashboard() {
     revenueCollected: revenue,
     outstandingDebt,
     openViolations: violations.length,
+    ...mockReportFigures(reports),
   };
 
   return {
@@ -150,7 +199,18 @@ export const WARD_COLLECTION_KEYS = {
   debtors: ['ward', 'reports', 'debtors'] as const,
   receivables: ['ward', 'reports', 'receivables'] as const,
   refunds: ['ward', 'reports', 'refunds'] as const,
+  receipts: (from: string, to: string) => ['ward', 'reports', 'receipts', from, to] as const,
 };
+
+/** "Lịch sử thu": the period's receipts, one by one (live only, like the other collection reads). */
+export function useWardReceipts(period: ReportPeriod) {
+  return useQuery({
+    queryKey: WARD_COLLECTION_KEYS.receipts(period.from, period.to),
+    queryFn: () => wardReportApi.receipts(period.from, period.to),
+    enabled: isLiveApi,
+    placeholderData: keepPreviousData,
+  });
+}
 
 /**
  * WARD-14 collections: on-time rate and zones for the period. Live only: the demo database keeps

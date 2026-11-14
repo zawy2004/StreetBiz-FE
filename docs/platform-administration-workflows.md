@@ -1,6 +1,6 @@
 # Platform administration workflows
 
-The platform workspace now connects ADM-01 and ADM-03 through ADM-05 to live
+The platform workspace now connects ADM-01 through ADM-07 to live
 StreetBiz-BE APIs. The existing demo role session still controls navigation;
 the workflow uses a separate backend JWT session so a mock role switch can
 never grant backend administrator permissions.
@@ -9,6 +9,8 @@ never grant backend administrator permissions.
 
 | Use case  | Frontend route                                 | Purpose                                                            |
 | --------- | ---------------------------------------------- | ------------------------------------------------------------------ |
+| ADM-06/07 | `/platform/dashboard`                          | Platform figures for a period against the previous one; "Xuất báo cáo" opens the export panel (type, range, xlsx/csv, history). |
+| ADM-02    | `/platform/accounts`                           | Search Customer/Vendor accounts, open one, suspend (with a reason) or reactivate it. |
 | ADM-01    | `/platform/categories`                         | List, create, rename and delete unused food categories.            |
 | ADM-03/04 | `/platform/moderation`                         | Open the reported-content and complaint queues.                    |
 | ADM-03/04 | `/platform/moderation/content/:reportId`       | Inspect, dismiss or soft-hide reported content.                    |

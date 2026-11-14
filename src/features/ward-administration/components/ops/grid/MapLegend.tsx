@@ -43,7 +43,8 @@ export function MapLegend({
   return (
     <ul
       aria-label="Chú giải bản đồ"
-      className="no-scrollbar pointer-events-auto flex max-w-full gap-1 overflow-x-auto rounded-full bg-card/95 p-1 shadow-card ring-1 ring-border backdrop-blur-md"
+      tabIndex={0}
+      className="no-scrollbar pointer-events-auto flex max-w-full gap-1 overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded-full bg-card/95 p-1 shadow-card ring-1 ring-border backdrop-blur-md"
     >
       {counts.map(({ status, count }) => (
         <li

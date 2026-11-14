@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, configure, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,6 +19,11 @@ vi.mock('@/core/config/env', async (importOriginal) => {
 
 const { RecordViolationScreen } =
   await import('@/features/ward-administration/screens/RecordViolationScreen');
+
+// The screen's first paint waits on three mocked reads; with the whole suite running in parallel
+// that can outlast findBy*'s 1 s default (it did, intermittently). Each test file runs in its
+// own isolate, so this budget stays local to this file.
+configure({ asyncUtilTimeout: 5_000 });
 
 const SCHEDULES: PenaltyScheduleItem[] = [
   {
@@ -139,8 +144,15 @@ function renderScreen() {
 const STEP1 = 'Lập biên bản vi phạm (Bước 1)';
 const ISSUE = 'Ban hành Quyết định (Bước 2)';
 
+/** Nothing is pre-selected any more: the officer picks the behaviour (Mục 2) first. */
+async function chooseBehaviour(user: ReturnType<typeof userEvent.setup>) {
+  const [behaviour] = await screen.findAllByRole('radio', { name: /Sử dụng trái phép vỉa hè/ });
+  await user.click(behaviour!);
+}
+
 async function fillAndRecord(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByRole('radio', { name: 'Bánh mì Cô Lan (Trần Thị Lan)', checked: true });
+  await chooseBehaviour(user);
   await user.type(
     screen.getByLabelText('Mô tả chi tiết vi phạm tại hiện trường'),
     '  Kê bàn ghế lấn vạch  ',
@@ -149,7 +161,9 @@ async function fillAndRecord(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByText('Đã lập biên bản vi phạm #77');
 }
 
-describe('RecordViolationScreen (live, WARD-12)', () => {
+// Each case types a multi-step form key by key; with the whole suite running in parallel that
+// outlasts the 5 s default (it failed intermittently on develop too), so the budget is per file.
+describe('RecordViolationScreen (live, WARD-12)', { timeout: 20_000 }, () => {
   beforeEach(() => {
     useToastStore.setState({ message: null });
     URL.createObjectURL = vi.fn(() => 'blob:preview');
@@ -168,6 +182,18 @@ describe('RecordViolationScreen (live, WARD-12)', () => {
 
     await screen.findByRole('radio', { name: 'Bánh mì Cô Lan (Trần Thị Lan)', checked: true });
     expect(screen.getByRole('button', { name: STEP1 })).toBeDisabled();
+    expect(screen.getByText('Còn thiếu: hành vi vi phạm, mô tả hiện trường')).toBeInTheDocument();
+    // No behaviour chosen yet, so the fine panel asks for one instead of warning in red.
+    expect(
+      screen.getAllByText('Chọn hành vi vi phạm ở Mục 2 để xem mức phạt và căn cứ.').length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.queryByText('Thiếu căn cứ pháp lý hoặc mức phạt hiệu lực'),
+    ).not.toBeInTheDocument();
+
+    await chooseBehaviour(user);
+    expect(screen.getByRole('button', { name: STEP1 })).toBeDisabled();
+    expect(screen.getByText('Còn thiếu: mô tả hiện trường')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Mô tả chi tiết vi phạm tại hiện trường'), 'Lấn vạch');
     await user.upload(

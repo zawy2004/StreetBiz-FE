@@ -10,6 +10,7 @@ import { menuItemPhotos, type FoodPhoto } from '@/features/buyer-discovery/food-
 import { categoryIcon } from '@/features/buyer-discovery/category-icons';
 import { FoodImage } from '@/features/buyer-discovery/components/FoodImage';
 import { colors } from '@/theme';
+import { priceWithUnit } from '@/features/price-board/price-board-format';
 import { LiveMenuScreen } from './LiveMenuScreen';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
@@ -20,6 +21,7 @@ import {
   RemoveDishButton,
   SoldOutToggle,
 } from '../components/menu/MenuParts';
+import { PriceBoardStrip, PriceHistoryPanel, UnitChips } from '../components/menu/PriceBoardParts';
 
 export function MenuScreen() {
   return isLiveApi ? <LiveMenuScreen /> : <MockMenuScreen />;
@@ -38,8 +40,11 @@ function MockMenuScreen() {
   const addMenuItem = useMockDb((s) => s.addMenuItem);
   const updateMenuItem = useMockDb((s) => s.updateMenuItem);
   const removeMenuItem = useMockDb((s) => s.removeMenuItem);
+  const priceHistory = useMockDb((s) => s.priceHistory);
   const [name, setName] = useState('');
+  const [nameEn, setNameEn] = useState('');
   const [price, setPrice] = useState('');
+  const [priceUnit, setPriceUnit] = useState('');
 
   if (!storefront) {
     return (
@@ -50,19 +55,29 @@ function MockMenuScreen() {
     );
   }
 
+  // The demo stall's board: its rows newest first, its version the number of rows (as on the server).
+  const history = priceHistory
+    .filter((row) => row.storefrontId === storefront.id)
+    .slice()
+    .reverse();
+
   const submit = () => {
     const amount = Number(price);
-    if (!name.trim() || !amount) return;
+    if (!name.trim() || !amount || !priceUnit.trim()) return;
     addMenuItem({
       storefrontId: storefront.id,
-      name,
+      name: name.trim(),
+      nameEn: nameEn.trim() || undefined,
       price: amount,
+      priceUnit: priceUnit.trim(),
       description: '',
       categoryId: 'CAT-05',
       availability_status: 'AVAILABLE',
     });
     setName('');
+    setNameEn('');
     setPrice('');
+    setPriceUnit('');
     showToast('Đã thêm món');
   };
 
@@ -87,17 +102,45 @@ function MockMenuScreen() {
         }))}
       />
 
+      {/* Demo mode has no signed permit token, so there is no QR board to print. */}
+      <PriceBoardStrip
+        version={history.length}
+        updatedAt={history[0]?.changed_at}
+        loading={false}
+        canPrint={false}
+        onPrint={() => undefined}
+        cannotPrintNote="Bản demo không có mã QR ký số; in bảng giá khi chạy cùng máy chủ."
+      />
+
       <div className="grid gap-lg xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start xl:gap-xl">
         <div className="cq flex min-w-0 flex-col gap-md rounded-[28px] bg-card p-md shadow-sheet ring-1 ring-border md:p-lg xl:sticky xl:top-lg xl:col-start-2 xl:row-start-1">
           <Section title="Thêm món mới">
             <TextField label="Tên món" value={name} onChangeText={setName} />
+            <TextField
+              label="Tên tiếng Anh (không bắt buộc)"
+              value={nameEn}
+              onChangeText={setNameEn}
+              maxLength={180}
+            />
             <TextField
               label="Giá (đ)"
               value={price}
               onChangeText={setPrice}
               keyboardType="numeric"
             />
-            <Button label="Thêm vào thực đơn" onPress={submit} disabled={!name.trim() || !price} />
+            <TextField
+              label="Đơn vị tính *"
+              value={priceUnit}
+              onChangeText={setPriceUnit}
+              maxLength={30}
+              placeholder="VD: ổ, ly, phần, kg"
+            />
+            <UnitChips value={priceUnit} onPick={setPriceUnit} />
+            <Button
+              label="Thêm vào thực đơn"
+              onPress={submit}
+              disabled={!name.trim() || !price || !priceUnit.trim()}
+            />
           </Section>
           <DishPhotoTips />
         </div>
@@ -132,8 +175,15 @@ function MockMenuScreen() {
                         </span>
                         <StatusChip code={item.availability_status} />
                       </div>
+                      {item.nameEn ? (
+                        <p lang="en" className="-mt-xs text-body-md italic text-muted">
+                          {item.nameEn}
+                        </p>
+                      ) : null}
                       <p className="font-sign text-[20px] font-bold tabular-nums text-primary">
-                        {formatVnd(item.price)}
+                        {item.priceUnit
+                          ? priceWithUnit(item.price, item.priceUnit)
+                          : formatVnd(item.price)}
                       </p>
                       <div className="mt-auto flex flex-col gap-sm pt-xs sm:flex-row sm:items-center">
                         <SoldOutToggle
@@ -163,6 +213,20 @@ function MockMenuScreen() {
               </ul>
             )}
           </Section>
+          <PriceHistoryPanel
+            history={history.map((row) => ({
+              priceHistoryId: row.id,
+              name: row.name,
+              nameEn: row.nameEn ?? null,
+              priceUnit: row.priceUnit,
+              unitPrice: row.price,
+              previousUnitPrice: row.previousPrice,
+              isListed: row.isListed,
+              changeKind: row.change_kind,
+              changedAt: row.changed_at,
+              changedByName: row.changed_by_name,
+            }))}
+          />
         </div>
       </div>
     </Screen>

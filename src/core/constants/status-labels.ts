@@ -53,6 +53,7 @@ export const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> 
   PREPARING: { label: 'Đang chuẩn bị', tone: 'pending' },
   HIDDEN: { label: 'Đã ẩn', tone: 'neutral' },
   DISMISSED: { label: 'Đã bỏ qua', tone: 'neutral' },
+  REVIEWED: { label: 'Đã xem xét', tone: 'ok' },
   VISIBLE: { label: 'Đang hiển thị', tone: 'ok' },
   MISSING: { label: 'Không còn tồn tại', tone: 'danger' },
   ARCHIVED: { label: 'Đã lưu trữ', tone: 'neutral' },

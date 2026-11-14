@@ -24,6 +24,13 @@ export const env = {
   goongMaptilesKey: import.meta.env.VITE_GOONG_MAPTILES_KEY ?? '',
   /** Free key from https://carto.com/basemaps/apikey/ -- used by the ward slot grid map (still on Leaflet); falls back to Esri without it. */
   cartoApiKey: import.meta.env.VITE_CARTO_API_KEY ?? '',
+  /**
+   * Đà Nẵng's citizen feedback line (1022), digits only. The public permit page links to it
+   * for people who do not want a StreetBiz account: StreetBiz points to 1022, never replaces it.
+   */
+  cityFeedbackPhone: import.meta.env.VITE_CITY_FEEDBACK_PHONE || '02361022',
+  /** The city's online feedback portal (Góp ý Đà Nẵng). */
+  cityFeedbackUrl: import.meta.env.VITE_CITY_FEEDBACK_URL || 'https://gopy.danang.gov.vn',
 } as const;
 
 export const isDev = env.appEnv === 'development';

@@ -1,5 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+
+import { useScrollFade } from '@/hooks/useScrollFade';
 
 const TABS = [
   { to: '/vendor/slots/rental-applications', label: 'Đơn thuê ô' },
@@ -14,7 +16,9 @@ const TABS = [
  * kerb beneath it.
  */
 export function MySlotsTabs() {
-  const nav = useRef<HTMLElement>(null);
+  // The faded edge shows the strip goes on ("Chuyển nhượng ô", "Đề xuất ô mới" sat off-screen
+  // with nothing to say they were there).
+  const { ref: nav, style: fade, update } = useScrollFade<HTMLElement>();
   const { pathname } = useLocation();
 
   // On a narrow screen the strip scrolls sideways; keep the current tab in view.
@@ -22,12 +26,14 @@ export function MySlotsTabs() {
     nav.current
       ?.querySelector('[aria-current="page"]')
       ?.scrollIntoView?.({ inline: 'center', block: 'nearest' });
-  }, [pathname]);
+    update();
+  }, [pathname, nav, update]);
 
   return (
     <nav
       ref={nav}
       aria-label="Thuê ô của tôi"
+      style={fade}
       className="no-scrollbar -mx-md overflow-x-auto px-md py-1 md:mx-0 md:px-0"
     >
       <div className="flex w-max gap-1 rounded-[14px] bg-card p-1 shadow-card ring-1 ring-border">

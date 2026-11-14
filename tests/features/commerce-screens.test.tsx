@@ -11,6 +11,7 @@ import type { Order } from '@/features/orders/types/order.types';
 const legacyApi = vi.hoisted(() => ({
   cart: vi.fn(),
   paymentOptions: vi.fn(),
+  storefrontPaymentOptions: vi.fn(),
 }));
 const ordersApi = vi.hoisted(() => ({
   checkout: vi.fn(),
@@ -163,6 +164,12 @@ describe('order UI contracts', () => {
       mode: 'SANDBOX',
       providers: ['MOMO'],
       message: '',
+    });
+    legacyApi.storefrontPaymentOptions.mockResolvedValue({
+      mode: 'SANDBOX',
+      providers: ['MOMO', 'ZALOPAY'],
+      message: '',
+      payee: null,
     });
     ordersApi.syncPayment.mockImplementation(async () => order('PENDING_PAYMENT'));
     ordersApi.tracking.mockImplementation(() => new Promise(() => undefined));

@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Button, Icon } from '@/components/common';
@@ -6,6 +6,8 @@ import { FormGrid, SegmentedControl, SelectField, TextField } from '@/components
 import { AppHeader, Screen, StickyActions } from '@/components/layout';
 import { showToast } from '@/components/feedback';
 import { VERDICT_TONES } from '@/components/illustrations';
+import { wardVendorReportsApi } from '@/core/api/ai-api';
+import { vendorRegistrationApi } from '@/core/api/vendor-registration-api';
 import { isLiveApi } from '@/core/config/env';
 import { useMockDb } from '@/mocks/db';
 import { AiSuggestionCard } from '../components/AiSuggestionCard';
@@ -44,6 +46,7 @@ import { VendorPicker } from '../components/ops/violation/VendorPicker';
 import { SheetSection, ViolationSheet } from '../components/ops/violation/ViolationSheet';
 import { ViolationTypePicker } from '../components/ops/violation/ViolationTypePicker';
 import { daysUntil, parseFineBracket } from '../components/ops/violation/violation-utils';
+import { violationDescriptionFromReport } from '../vendor-report-view';
 
 const PENDING = VERDICT_TONES.pending;
 const NEUTRAL = VERDICT_TONES.neutral;
@@ -59,10 +62,17 @@ export function RecordViolationScreen() {
   const paramContractId = searchParams.get('contractId') ?? undefined;
   const paramSlotId = searchParams.get('slotId') ?? undefined;
   const paramVendorId = searchParams.get('vendorId') ?? undefined;
+  // WARD-19: raised from a citizen report. The server closes that report as VIOLATION_RECORDED in
+  // the same transaction as this record; the officer still decides every field below.
+  const sourceReportId = searchParams.get('sourceReportId') ?? undefined;
 
   const navigate = useNavigate();
   const vendors = useMockDb((s) => s.vendors);
   const recordViolationMock = useMockDb((s) => s.recordViolation);
+  const mockSourceReport = useMockDb((s) =>
+    sourceReportId ? s.reports.find((r) => r.id === sourceReportId) : undefined,
+  );
+  const resolveMockReport = useMockDb((s) => s.resolveReport);
   // Demo mode only: the slot plate for the case file, read from the mock store already in memory.
   const mockSlots = useMockDb((s) => s.slots);
 
@@ -76,15 +86,24 @@ export function RecordViolationScreen() {
     if (!isLiveApi || paramVendorId) return;
     complianceApi
       .listEnrollments('APPROVED')
-      .then((items) =>
-        setLiveVendors(
-          items.map((i) => ({
-            vendorId: i.vendorId,
-            displayName: i.displayName,
-            ownerName: i.ownerName,
-          })),
-        ),
-      )
+      .then((items) => {
+        // A violation is recorded against the household, and one household may hold several
+        // approved registrations: list each household once, with all its business names.
+        const byVendor = new Map<
+          number,
+          { vendorId: number; displayName: string; ownerName: string }
+        >();
+        for (const i of items) {
+          const seen = byVendor.get(i.vendorId);
+          byVendor.set(
+            i.vendorId,
+            seen
+              ? { ...seen, displayName: `${seen.displayName} · ${i.displayName}` }
+              : { vendorId: i.vendorId, displayName: i.displayName, ownerName: i.ownerName },
+          );
+        }
+        setLiveVendors([...byVendor.values()]);
+      })
       .catch(() => showToast('Không tải được danh sách hộ kinh doanh.'));
   }, [paramVendorId]);
 
@@ -95,12 +114,61 @@ export function RecordViolationScreen() {
   }, [liveVendors, vendorId]);
   const [slotId] = useState(paramSlotId ?? '');
   const [contractId] = useState(paramContractId ?? '');
-  const [typeCode, setTypeCode] = useState('UNAUTHORIZED_BUSINESS_USE');
+  // Live: nothing is chosen until the officer picks a behaviour. Pre-selecting the first schedule
+  // row (often one without a legal basis) showed a red "Thiếu căn cứ pháp lý" before any choice.
+  const [typeCode, setTypeCode] = useState(isLiveApi ? '' : 'UNAUTHORIZED_BUSINESS_USE');
   const [description, setDescription] = useState('');
   const [photoUri, setPhotoUri] = useState<string>();
   const [photoFileUrl, setPhotoFileUrl] = useState<string>();
   const [photoUploading, setPhotoUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+  // The violation type the report suggests (rule-based from its type, not AI); applied once.
+  const [preferredType, setPreferredType] = useState<string | null>(null);
+  const preferenceApplied = useRef(false);
+
+  // Fill the record from the report once: its words and price evidence as the description, its
+  // photo as the evidence (already a server file), its suggested violation type.
+  useEffect(() => {
+    if (!sourceReportId) return;
+    if (!isLiveApi) {
+      if (!mockSourceReport) return;
+      setDescription(
+        (current) =>
+          current ||
+          violationDescriptionFromReport({
+            reportId: mockSourceReport.id,
+            reason: mockSourceReport.reason,
+          }),
+      );
+      if (mockSourceReport.photoUri) setPhotoUri((current) => current ?? mockSourceReport.photoUri);
+      return;
+    }
+    const id = Number(sourceReportId);
+    if (!Number.isSafeInteger(id) || id <= 0) return;
+    let cancelled = false;
+    let preview: string | undefined;
+    wardVendorReportsApi
+      .get(id)
+      .then(async (report) => {
+        if (cancelled) return;
+        setDescription((current) => current || violationDescriptionFromReport(report));
+        if (report.suggestedViolationType) setPreferredType(report.suggestedViolationType);
+        if (report.evidenceUrl) {
+          setPhotoFileUrl((current) => current ?? report.evidenceUrl!);
+          const blob = await vendorRegistrationApi.downloadEvidenceFile(report.evidenceUrl);
+          if (cancelled) return;
+          preview = URL.createObjectURL(blob);
+          setPhotoUri((current) => current ?? preview);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) showToast('Không tải được phản ánh để điền sẵn biên bản.');
+      });
+    return () => {
+      cancelled = true;
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [sourceReportId, mockSourceReport]);
 
   // Mẫu số 01 (Nghị định 118/2021/NĐ-CP): witness / ward-representative block, required only
   // when the violator cannot or will not sign -- both fields stay empty in the normal case.
@@ -208,12 +276,16 @@ export function RecordViolationScreen() {
       .listPenaltySchedules()
       .then((data) => {
         setSchedules(data);
-        if (data.length > 0 && data[0]) {
-          setTypeCode(data[0].violationType);
-        }
       })
       .catch((err) => console.warn('Could not load penalty schedules:', err));
   }, []);
+
+  useEffect(() => {
+    if (!preferredType || preferenceApplied.current) return;
+    if (!schedules.some((s) => s.violationType === preferredType)) return;
+    preferenceApplied.current = true;
+    setTypeCode(preferredType);
+  }, [preferredType, schedules]);
 
   const selectedSchedule = schedules.find((s) => s.violationType === typeCode);
   const sanctionOptions = createdViolation
@@ -222,6 +294,10 @@ export function RecordViolationScreen() {
 
   // Step 1: Record Violation (PENDING_SANCTION)
   const submitRecord = async () => {
+    if (!typeCode) {
+      showToast('Vui lòng chọn hành vi vi phạm');
+      return;
+    }
     if (!description.trim()) {
       showToast('Vui lòng nhập mô tả hành vi vi phạm hiện trường');
       return;
@@ -250,6 +326,7 @@ export function RecordViolationScreen() {
           containmentMeasures: containmentMeasures.trim() || undefined,
           explanationRequired,
           explanationMethod: explanationRequired ? explanationMethod : undefined,
+          sourceReportId: sourceReportId ? Number(sourceReportId) : undefined,
         });
         setCreatedViolation(res);
         // The rate that applies is the one in force on the violation date, for this violation's own type.
@@ -339,6 +416,12 @@ export function RecordViolationScreen() {
 
     if (mockAiSuggestion.penaltyScheduleId) {
       setSanctionScheduleId(mockAiSuggestion.penaltyScheduleId);
+    }
+    if (mockSourceReport) {
+      resolveMockReport(mockSourceReport.id, {
+        resolution: 'VIOLATION_RECORDED',
+        note: `Đã lập biên bản số ${String(mockViolId).slice(-4)}/BB-VPHC-${new Date().getFullYear()}.`,
+      });
     }
     setDecisionNumber(`01/QĐ-XPHC-${new Date().getFullYear()}`);
     showToast('Đã lập biên bản vi phạm (Bước 1/2). Tiếp tục ra Quyết định xử phạt.');
@@ -595,12 +678,19 @@ export function RecordViolationScreen() {
           legalBasis: null,
           caption: 'Lập được biên bản nhưng chưa thể ra quyết định xử phạt tiền.',
         }
-    : {
-        state: 'unknown' as const,
-        amount: null,
-        legalBasis: schedules.length === 0 ? 'Căn cứ Nghị định 168/2024/NĐ-CP' : null,
-        caption: 'Biểu mức phạt của phường chưa tải được.',
-      };
+    : !typeCode && schedules.length > 0
+      ? {
+          state: 'unknown' as const,
+          amount: null,
+          legalBasis: null,
+          caption: 'Chọn hành vi vi phạm ở Mục 2 để xem mức phạt và căn cứ.',
+        }
+      : {
+          state: 'unknown' as const,
+          amount: null,
+          legalBasis: schedules.length === 0 ? 'Căn cứ Nghị định 168/2024/NĐ-CP' : null,
+          caption: 'Biểu mức phạt của phường chưa tải được.',
+        };
 
   const chosenSanction = sanctionOptions.find(
     (s) => s.scheduleId === sanctionScheduleId && s.legalBasis,
@@ -627,6 +717,11 @@ export function RecordViolationScreen() {
           caption: 'Chọn khung xử phạt trong phần Quyết định.',
         };
   const placard = createdViolation ? step2Placard : step1Placard;
+  // Said next to the disabled button, so it is clear why it cannot be pressed yet.
+  const missingForRecord = [
+    !typeCode ? 'hành vi vi phạm' : null,
+    !description.trim() ? 'mô tả hiện trường' : null,
+  ].filter((m): m is string => m !== null);
   const placardTitle = createdViolation ? 'Khung xử phạt đang chọn' : 'Mức phạt (trung bình khung)';
 
   const noAuthority = isLiveApi && sanctionAuthorityTitle === null;
@@ -705,18 +800,25 @@ export function RecordViolationScreen() {
       footer={
         <StickyActions>
           {!createdViolation ? (
-            <Button
-              label={
-                photoUploading
-                  ? 'Đang tải ảnh lên...'
-                  : loading
-                    ? 'Đang lập biên bản...'
-                    : 'Lập biên bản vi phạm (Bước 1)'
-              }
-              variant="danger"
-              disabled={loading || photoUploading || !description.trim()}
-              onPress={submitRecord}
-            />
+            <div className="flex w-full flex-col gap-1 lg:w-auto lg:items-end">
+              {missingForRecord.length > 0 && !loading && !photoUploading ? (
+                <p id="record-missing" className="text-body-sm text-muted">
+                  Còn thiếu: {missingForRecord.join(', ')}
+                </p>
+              ) : null}
+              <Button
+                label={
+                  photoUploading
+                    ? 'Đang tải ảnh lên...'
+                    : loading
+                      ? 'Đang lập biên bản...'
+                      : 'Lập biên bản vi phạm (Bước 1)'
+                }
+                variant="danger"
+                disabled={loading || photoUploading || missingForRecord.length > 0}
+                onPress={submitRecord}
+              />
+            </div>
           ) : (
             <div className="flex w-full gap-sm">
               <div className="flex-1">
@@ -746,6 +848,19 @@ export function RecordViolationScreen() {
         subtitle="Xử lý vi phạm trật tự hè phố (WARD-12)"
         back
       />
+      {sourceReportId ? (
+        <p
+          role="note"
+          className={`flex items-start gap-xs rounded-[14px] px-md py-sm text-body-md ${NEUTRAL.wash} ${NEUTRAL.ink}`}
+        >
+          <Icon name="flag-outline" size={18} color="currentColor" className="mt-0.5 shrink-0" />
+          <span>
+            Lập từ phản ánh #{sourceReportId} của người dân: đã điền sẵn người bán, ô, mô tả và ảnh.
+            Khi biên bản được lập, phản ánh đóng với kết quả &quot;Đã lập biên bản&quot; và người
+            phản ánh nhận thông báo.
+          </span>
+        </p>
+      ) : null}
 
       <div className="grid items-start gap-md xl:grid-cols-[minmax(0,1fr)_336px] xl:gap-xl">
         {/* <1280: the steps in one line and the case file folded into a strip over the sheet. */}
@@ -756,7 +871,14 @@ export function RecordViolationScreen() {
               {plate ? <SlotPlate slotCode={plate.slotCode} size="sm" /> : null}
               <span className="text-body-md text-muted">
                 Mức phạt{' '}
-                <span className="font-tabular font-sign text-[18px] font-extrabold text-[#8F1717] [font-stretch:86%] dark:text-[#FF9A90]">
+                <span
+                  className={`font-tabular font-sign text-[18px] font-extrabold [font-stretch:86%] ${
+                    // Red only for a fine or a missing legal basis, not while nothing is chosen yet.
+                    placard.state === 'unknown'
+                      ? 'text-muted'
+                      : 'text-[#8F1717] dark:text-[#FF9A90]'
+                  }`}
+                >
                   {amountSummary}
                 </span>
               </span>
@@ -856,7 +978,9 @@ export function RecordViolationScreen() {
                     <div className="min-w-0 flex-1">
                       <p className="text-[16px] font-semibold text-text">Mã hộ {paramVendorId}</p>
                       <p className="text-body-sm text-muted">
-                        Đã xác định từ kết quả kiểm tra giấy phép tại quầy.
+                        {sourceReportId
+                          ? `Đã xác định từ phản ánh #${sourceReportId}.`
+                          : 'Đã xác định từ kết quả kiểm tra giấy phép tại quầy.'}
                       </p>
                     </div>
                     {plate ? <SlotPlate slotCode={plate.slotCode} place={plate.place} /> : null}

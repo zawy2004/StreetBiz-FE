@@ -11,7 +11,11 @@ import {
   WizardProgress,
   WizardQuestion,
 } from '../components/wizard/WizardFrame';
+import { isLiveApi } from '@/core/config/env';
 import { useNewRegistrationStore } from '../new-registration-store';
+import { VoiceEntryCard } from '../voice/VoiceEntryCard';
+import { VoiceReturnBanner } from '../voice/VoiceReturnBanner';
+import { useVoiceSessionStore } from '../voice/voice-session-store';
 
 /** REG-01 step 1: choose the vendor type (BR-07 drives what step 2 asks for). */
 export function NewRegistrationTypeScreen() {
@@ -21,6 +25,8 @@ export function NewRegistrationTypeScreen() {
   const registrationId = useNewRegistrationStore((s) => s.registrationId);
   const displayName = useNewRegistrationStore((s) => s.displayName);
   const setField = useNewRegistrationStore((s) => s.setField);
+  // While the wizard is editing a voice draft, the banner (not the entry card) is the way back.
+  const voiceActive = useVoiceSessionStore((s) => s.active && s.handedOff);
 
   // Read from what VendorTopBar has already cached; this step sends no request.
   const cached = useCachedRegistrations();
@@ -41,6 +47,8 @@ export function NewRegistrationTypeScreen() {
       <AppHeader title={registrationId ? 'Cập nhật hồ sơ' : 'Đăng ký kinh doanh'} back />
       <WizardProgress step={1} />
       {registrationId ? <EditingBanner displayName={displayName} /> : null}
+      <VoiceReturnBanner />
+      {!registrationId && !voiceActive && isLiveApi ? <VoiceEntryCard /> : null}
 
       <div className="grid items-start gap-lg xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-xl">
         <div className="flex min-w-0 flex-col gap-md">

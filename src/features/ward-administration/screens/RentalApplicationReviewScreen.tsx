@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Icon } from '@/components/common';
@@ -25,6 +25,8 @@ import {
   PrerequisiteLock,
   SlotPlanDiagram,
 } from '../components/review/PermitDossierParts';
+import { LiveReviewFailure } from '../components/review/LiveReviewFailure';
+import { useLiveReviewDetail } from '../components/review/useLiveReviewDetail';
 
 export function RentalApplicationReviewScreen() {
   const { id } = useParams<{ id: string }>();
@@ -38,21 +40,14 @@ export function RentalApplicationReviewScreen() {
   const approveMock = useMockDb((s) => s.approveRentalApplication);
   const rejectMock = useMockDb((s) => s.rejectRentalApplication);
 
-  const [liveDetail, setLiveDetail] = useState<WardRentalApplicationDetail | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Live mode decides on the server's record only: a failed load shows the failure, never the
+  // mock seed or default figures under a real id.
+  const live = useLiveReviewDetail<WardRentalApplicationDetail>(
+    id,
+    complianceApi.getRentalApplication,
+  );
+  const liveDetail = live.data;
   const [note, setNote] = useState('');
-
-  useEffect(() => {
-    if (!isLiveApi || !id) return;
-    setLoading(true);
-    complianceApi
-      .getRentalApplication(id)
-      .then(setLiveDetail)
-      .catch((err) => {
-        console.warn('Could not load live rental application, falling back to mock:', err);
-      })
-      .finally(() => setLoading(false));
-  }, [id]);
 
   // Where the decision desk goes: the right column on wide screens, the bottom bar
   // otherwise. Exactly one set of decision buttons is rendered at any time.
@@ -60,7 +55,26 @@ export function RentalApplicationReviewScreen() {
   // Display only: hovering the size row strengthens the drawing's dimension lines.
   const [dimHover, setDimHover] = useState(false);
 
-  if (!mockApplication && !liveDetail && !loading) {
+  if (live.failure) {
+    return (
+      <LiveReviewFailure
+        failure={live.failure}
+        notFoundMessage="Không tìm thấy hồ sơ đề nghị cấp phép sử dụng hè phố tại địa bàn."
+        onRetry={live.retry}
+      />
+    );
+  }
+
+  if (isLiveApi && !liveDetail) {
+    return (
+      <Screen width="wide">
+        <AppHeader title="Thẩm định cấp phép" back />
+        <LoadingBar />
+      </Screen>
+    );
+  }
+
+  if (!isLiveApi && !mockApplication) {
     return (
       <Screen>
         <ErrorState message="Không tìm thấy hồ sơ đề nghị cấp phép sử dụng hè phố." />
@@ -97,15 +111,24 @@ export function RentalApplicationReviewScreen() {
   }
 
   const vendorName = liveDetail?.vendorName ?? mockVendor?.business_name ?? 'Hộ kinh doanh';
-  const ownerName = mockVendor?.owner_name ?? 'Đại diện hộ kinh doanh';
+  // The live record carries no owner name or trading hours: those rows are left out rather
+  // than filled with stand-ins an officer could take for the vendor's.
+  const ownerName = liveDetail ? null : (mockVendor?.owner_name ?? 'Đại diện hộ kinh doanh');
   const vendorPhone = liveDetail?.vendorPhone ?? mockVendor?.phone ?? '';
   const status = liveDetail?.status ?? mockApplication?.application_status ?? 'PENDING';
   const slotCode = liveDetail?.slotCode ?? mockSlot?.slot_code ?? '';
   const slotStreet = liveDetail?.slotStreet ?? mockSlot?.street ?? '';
-  const sizeM2 = mockSlot?.size_m2 ?? 3;
+  const mockSizeM2 = mockSlot?.size_m2 ?? 3;
   const width = liveDetail?.slotWidth ?? 2;
-  const length = liveDetail?.slotLength ?? (sizeM2 > 0 ? +(sizeM2 / 2).toFixed(1) : 1.5);
-  const timeWindow = mockSlot?.time_window ?? '06:00 - 10:30';
+  const length = liveDetail?.slotLength ?? (mockSizeM2 > 0 ? +(mockSizeM2 / 2).toFixed(1) : 1.5);
+  const sizeM2 = liveDetail ? +(width * length).toFixed(2) : mockSizeM2;
+  const timeWindow = liveDetail ? null : (mockSlot?.time_window ?? '06:00 - 10:30');
+  const isAdjacent = liveDetail
+    ? liveDetail.applicationMethod === 'AUTO_ADJACENT'
+    : mockApplication?.application_type === 'STOREFRONT_ADJACENT';
+  const linkedRegistrationId = liveDetail?.registrationId ?? mockRegistration?.id ?? null;
+  const linkedRegistrationStatus =
+    liveDetail?.registrationStatus ?? mockRegistration?.registration_status ?? 'NOT_FOUND';
   const monthlyFee = mockSlot?.price_monthly ?? 450000;
   const pricePerDay = liveDetail?.pricePerDay ?? Math.round(monthlyFee / 30);
   const requestedTermDays = liveDetail?.requestedTermDays ?? 30;
@@ -183,7 +206,10 @@ export function RentalApplicationReviewScreen() {
       title="Dự toán phí sử dụng tạm thời hè phố (Nộp NSNN)"
       rows={[
         { label: 'Thời hạn đề nghị:', value: termText },
-        { label: 'Tiền thuê ô (đã trừ khuyến mãi):', value: `${rentFee.toLocaleString('vi-VN')} đ` },
+        {
+          label: 'Tiền thuê ô (đã trừ khuyến mãi):',
+          value: `${rentFee.toLocaleString('vi-VN')} đ`,
+        },
         ...(otherFees > 0
           ? [{ label: 'Phụ phí:', value: `${otherFees.toLocaleString('vi-VN')} đ` }]
           : []),
@@ -248,7 +274,7 @@ export function RentalApplicationReviewScreen() {
       />
       <div className="flex flex-wrap items-center gap-xs">
         <StatusChip code={status} />
-        {mockApplication?.application_type === 'STOREFRONT_ADJACENT' ? (
+        {isAdjacent ? (
           <StatusChip label="Hè phố liền kề cửa hàng" tone="neutral" />
         ) : (
           <StatusChip label="Ô hè phố mở (Lưu động)" tone="neutral" />
@@ -260,8 +286,6 @@ export function RentalApplicationReviewScreen() {
           </span>
         ) : null}
       </div>
-
-      {loading ? <LoadingBar /> : null}
 
       <div className="grid items-start gap-lg xl:grid-cols-[minmax(0,1fr)_380px] xl:gap-xl">
         <div className="flex min-w-0 flex-col gap-lg">
@@ -323,7 +347,14 @@ export function RentalApplicationReviewScreen() {
                     label: 'Kích thước & Diện tích',
                     value: `${sizeM2} m² (${width}m rộng x ${length}m dài) · Bảo đảm lối đi bộ tối thiểu 1.5m`,
                   },
-                  { label: 'Khung giờ được phép kinh doanh', value: `${timeWindow} hàng ngày` },
+                  ...(timeWindow
+                    ? [
+                        {
+                          label: 'Khung giờ được phép kinh doanh',
+                          value: `${timeWindow} hàng ngày`,
+                        },
+                      ]
+                    : []),
                   {
                     label: 'Thời hạn đề nghị cấp phép',
                     value: `${requestedTermDays} ngày (Thời hạn xử lý hồ sơ ≤ 3 ngày làm việc)`,
@@ -338,21 +369,18 @@ export function RentalApplicationReviewScreen() {
             <FactGrid
               facts={[
                 { label: 'Tên hộ kinh doanh', value: vendorName, emphasis: true },
-                { label: 'Chủ hộ / Đại diện', value: ownerName },
+                ...(ownerName ? [{ label: 'Chủ hộ / Đại diện', value: ownerName }] : []),
                 { label: 'Số điện thoại liên hệ', value: vendorPhone || 'Đã liên kết tài khoản' },
                 {
                   label: 'Hồ sơ điểm kinh doanh liên kết (BR-16)',
                   value: (
                     <span className="flex flex-wrap items-center gap-xs">
                       <span>
-                        {mockRegistration ? `Mã hồ sơ: ${mockRegistration.id}` : 'Chưa có hồ sơ'}
+                        {linkedRegistrationId != null
+                          ? `Mã hồ sơ: ${linkedRegistrationId}`
+                          : 'Chưa có hồ sơ'}
                       </span>
-                      <StatusChip
-                        code={
-                          mockRegistration?.registration_status ||
-                          (liveDetail?.registrationStatus ?? 'NOT_FOUND')
-                        }
-                      />
+                      <StatusChip code={linkedRegistrationStatus} />
                     </span>
                   ),
                 },

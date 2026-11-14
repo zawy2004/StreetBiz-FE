@@ -80,6 +80,9 @@ function LiveOrderReviewScreen() {
 
   const data = order.data;
   const completed = data.orderStatus === 'COMPLETED';
+  // REV-02: the editing period runs from the first submission; once it is over the review is read-only.
+  const editableUntil = review.data?.editableUntil ?? null;
+  const locked = editableUntil !== null && Date.now() > Date.parse(editableUntil);
   const firstDish = data.items[0]?.itemName;
   const photos = [
     ...(firstDish ? menuItemPhotos({ itemName: firstDish }) : []),
@@ -106,7 +109,9 @@ function LiveOrderReviewScreen() {
   return (
     <Screen
       width="narrow"
-      footer={completed && !isDesktop ? <StickyActions>{saveButton}</StickyActions> : undefined}
+      footer={
+        completed && !locked && !isDesktop ? <StickyActions>{saveButton}</StickyActions> : undefined
+      }
     >
       <AppHeader title="Đánh giá đơn hàng" back subtitle={`#${data.orderCode}`} />
       <div className="mx-auto flex w-full max-w-[560px] flex-col gap-md">
@@ -126,25 +131,50 @@ function LiveOrderReviewScreen() {
           </div>
         ) : (
           <>
-            <div className="flex flex-col gap-2xs pt-xs">
-              <StarRating value={currentRating} onChange={setRating} />
-              <RatingWord value={currentRating} />
-            </div>
-            <div className="flex flex-col gap-xs">
-              <TextField
-                label="Nhận xét"
-                value={currentText}
-                onChangeText={setText}
-                multiline
-                maxLength={MAX_TEXT}
-              />
-              <div className="flex items-start justify-between gap-sm">
-                <p className="text-body-sm text-muted">
-                  {review.data ? 'Đang sửa đánh giá cũ. ' : ''}Bạn có thể sửa đánh giá này sau.
+            {locked ? (
+              <div className="flex flex-col gap-sm rounded-[20px] bg-sunken/70 p-md">
+                <p className="flex items-center gap-1.5 text-body-md font-semibold text-text">
+                  <Icon name="lock-outline" size={18} color="currentColor" />
+                  Đã quá thời hạn chỉnh sửa đánh giá
                 </p>
-                <CharCounter length={currentText.length} max={MAX_TEXT} />
+                <p className="text-body-sm text-muted">
+                  Bạn chỉ sửa được đánh giá trong thời gian ngắn sau khi gửi (hết hạn{' '}
+                  {formatOrderDate(editableUntil!)}).
+                </p>
+                <p className="text-body-lg text-text" aria-label={`Bạn đã chấm ${currentRating} sao`}>
+                  {'★'.repeat(currentRating)}
+                  <span className="text-muted">{'★'.repeat(5 - currentRating)}</span>
+                </p>
+                {review.data?.text ? (
+                  <p className="whitespace-pre-line text-body-md text-text">{review.data.text}</p>
+                ) : null}
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-2xs pt-xs">
+                  <StarRating value={currentRating} onChange={setRating} />
+                  <RatingWord value={currentRating} />
+                </div>
+                <div className="flex flex-col gap-xs">
+                  <TextField
+                    label="Nhận xét"
+                    value={currentText}
+                    onChangeText={setText}
+                    multiline
+                    maxLength={MAX_TEXT}
+                  />
+                  <div className="flex items-start justify-between gap-sm">
+                    <p className="text-body-sm text-muted">
+                      {review.data ? 'Đang sửa đánh giá cũ. ' : ''}
+                      {editableUntil
+                        ? `Bạn có thể sửa đến ${formatOrderDate(editableUntil)}.`
+                        : 'Bạn có thể sửa đánh giá này sau.'}
+                    </p>
+                    <CharCounter length={currentText.length} max={MAX_TEXT} />
+                  </div>
+                </div>
+              </>
+            )}
             {save.isError ? (
               <p
                 role="alert"
@@ -159,7 +189,7 @@ function LiveOrderReviewScreen() {
                 <span className="text-error">{errorMessage(save.error)}</span>
               </p>
             ) : null}
-            {isDesktop ? saveButton : null}
+            {isDesktop && !locked ? saveButton : null}
           </>
         )}
       </div>
