@@ -1,270 +1,242 @@
-# StreetBiz Frontend
+<div align="center">
 
-WARD-16–18 and SYS-01–02 connect to StreetBiz-BE at `/ward/inbox/reviews`.
-BUY-01–05 use live Backend APIs for the customer vendor map, permit check,
-public profile, rating and report screens. ADM-01 and ADM-03–05 now provide live
-food-category, content-moderation and order-complaint pages. CART-01, ORD-01–04
-and SORD-01–04 use live marketplace, cart, customer-order and seller-order APIs.
-See
-[Community vendor workflows](docs/community-vendor-workflows.md) and
-[Platform administration workflows](docs/platform-administration-workflows.md)
-and [Commerce order workflows](docs/commerce-order-workflows.md) for setup and
-route details.
+# StreetBiz Web
 
-StreetBiz-FE is the React web client for the StreetBiz sidewalk
-vendor-management platform — a Vite single-page app targeting desktop and
-mobile browsers (no native app).
+**React web client for StreetBiz, the sidewalk-vendor management and marketplace platform for the wards of Đà Nẵng.**
 
-The application keeps an in-memory demo layer (`src/mocks/`) while implemented
-modules can call StreetBiz-BE. Live modules currently include Authentication,
-Vendor Onboarding, Ward slot review/geolocation, Community vendor discovery,
-Platform Administration and the cart/order workflows. Setting
-`VITE_USE_MOCK_API=true` keeps the navigable demo available without a Backend;
-remaining workflows outside that list are still mock-backed.
+[![CI](https://github.com/zawy2004/StreetBiz-FE/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/zawy2004/StreetBiz-FE/actions/workflows/ci.yml)
+![React 19](https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
+![Vercel](https://img.shields.io/badge/Hosted_on-Vercel-000000?logo=vercel&logoColor=white)
 
-## Technology baseline
+[Live site](https://www.streetbiz.id.vn) · [Backend repo](https://github.com/zawy2004/StreetBiz-BE) · [Mobile app repo](https://github.com/zawy2004/StreetBiz-App)
 
-- Vite, React 19.2
-- TypeScript with strict checks (`noUncheckedIndexedAccess` on)
-- react-router-dom for client-side routing (role-scoped route trees)
-- Tailwind CSS for styling, tokens sourced from `src/theme/`
-- react-icons (Material Icons) for iconography
-- Zustand for client state (auth session, cart, mock domain data)
-- Vitest and React Testing Library
-- ESLint and Prettier
+</div>
 
-## Prerequisites
+---
 
-- Node.js 20 or newer
-- npm
-- A modern desktop or mobile browser
+## Contents
 
-## Install
+- [Overview](#overview)
+- [Features by role](#features-by-role)
+- [Tech stack](#tech-stack)
+- [Getting started](#getting-started)
+- [Environment variables](#environment-variables)
+- [Scripts and quality checks](#scripts-and-quality-checks)
+- [Project structure](#project-structure)
+- [Routing and access control](#routing-and-access-control)
+- [Design system](#design-system)
+- [Deployment](#deployment)
+- [Documentation](#documentation)
 
-Run all commands from StreetBiz-FE:
+## Overview
+
+StreetBiz Web is a single-page app for desktop and mobile browsers. It covers every role
+in StreetBiz, each with its own route tree and navigation: a bottom tab bar on phones and a
+sidebar from 1024 px up. It talks to [StreetBiz-BE](https://github.com/zawy2004/StreetBiz-BE)
+over REST and SignalR. A built-in mock layer also lets the whole app run without a backend
+for demos.
+
+## Features by role
+
+| Role | Screens |
+| --- | --- |
+| **Guest and customer** | Vendor map, permit check by QR, public vendor profiles, storefronts and menus, cart and checkout, order tracking, ratings and reports, AI assistant, chat with vendors |
+| **Vendor** | Business registration with eKYC, slot proposals, rentals and renewals, fees and invoices, digital permit and price board, storefront and menu, incoming orders, payout accounts, household tax |
+| **Ward authority** | Registration review queue, slots and pricing zones, slot transfers, fee schedules and collection reports, violations and penalties, food safety |
+| **Platform administrator** | Food categories, content moderation, order complaints, accounts, platform dashboard and report export |
+
+All users also get sign-in with a password or an SMS OTP, password reset, session
+management and notifications.
+
+## Tech stack
+
+| Concern | Choice |
+| --- | --- |
+| Framework | React 19.2, Vite 6, TypeScript strict (`noUncheckedIndexedAccess`) |
+| Routing | React Router 7, role-scoped route trees |
+| Server state | TanStack Query 5, Axios |
+| Client state | Zustand (session, cart, mock data) |
+| Forms | React Hook Form and Zod |
+| Real time | `@microsoft/signalr` with polling fallback |
+| UI | Tailwind CSS 3, design tokens in `src/theme/`, React Icons, Motion |
+| Maps and QR | Goong Maps, `qrcode.react`, `jsqr` |
+| Content | React Markdown with GFM for assistant replies |
+| Quality | Vitest, React Testing Library, axe-core, ESLint, Prettier |
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 20 or newer and npm
+- For live mode: StreetBiz-BE running locally (see its README)
+
+### Install and run
 
 ```powershell
 npm install
+Copy-Item .env.example .env
+npm run dev
 ```
 
-No force or legacy-peer-deps option is used.
+Open `http://localhost:5173`.
 
-## Environment
+### Live mode (default)
 
-Copy .env.example to .env and adjust public values for the current environment.
-Do not commit .env.
-
-```dotenv
-VITE_APP_ENV=development
-VITE_API_BASE_URL=https://localhost:7147/api
-VITE_USE_MOCK_API=false
-VITE_ENABLE_AI_COMPLIANCE=true
-VITE_ENABLE_PHASE_2=true
-VITE_ENABLE_PUSH_NOTIFICATIONS=false
-```
-
-`VITE_*` values are included in the client bundle. Never store passwords,
-JWTs, OTP secrets, payment secrets, provider keys, or database connection
-strings in them.
-
-`VITE_ENABLE_AI_COMPLIANCE` and `VITE_ENABLE_PHASE_2` are `true` by default in
-`.env.example` so the demo shows the AI-assist cards and the marketplace
-(storefront/menu/cart/checkout) screens; set either to `false` to preview the
-Core-only experience.
-
-`VITE_USE_MOCK_API` selects where implemented live modules read and write:
-
-- `false` (default) — they call StreetBiz-BE at `VITE_API_BASE_URL`.
-- `true` — they use `src/mocks`, so the app runs with no backend at all. The
-  dev-only role switcher and the fixed `123456` OTP only appear in this mode.
-
-See each workflow document for its live routes and role requirements.
-
-## Run
-
-### With StreetBiz-BE (default)
-
-Start the API first — it must be listening on the origin in
-`VITE_API_BASE_URL`, and that SPA origin must be listed in the backend's
-`Cors:AllowedOrigins`:
+With `VITE_USE_MOCK_API=false` the app calls the API at `VITE_API_BASE_URL`. Start the backend
+first:
 
 ```powershell
 cd ..\StreetBiz-BE
 dotnet run --project src/StreetBiz.API --launch-profile https
 ```
 
-Then, in StreetBiz-FE:
+Sign in with a demo account from the backend seed (password `Password123!`):
+
+| Role | Phone |
+| --- | --- |
+| Platform administrator | `0900000001` |
+| Ward authority | `0983000001` |
+| Vendor | `0905000101` |
+| Customer | `0905000201` |
+
+> [!NOTE]
+> The site's origin must be listed in the backend's `Cors:AllowedOrigins`. Passwords need at
+> least 8 characters with upper case, lower case, a digit and a symbol (BR-59).
+
+### Mock mode (no backend)
+
+Set `VITE_USE_MOCK_API=true`. Screens then read and write the in-memory store in `src/mocks/`.
+Demo accounts in this mode are `0905000001` to `0905000005` with password `123456`, and the OTP
+is always `123456`. In development a role switcher on the sign-in screen jumps straight into
+any role.
+
+## Environment variables
+
+Copy `.env.example` to `.env`. Never commit `.env`.
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_API_BASE_URL` | API base URL, for example `https://localhost:7147/api` |
+| `VITE_USE_MOCK_API` | `true` runs on the mock layer with no backend |
+| `VITE_APP_ENV` | `development` shows demo shortcuts. Use `production` for real builds |
+| `VITE_ENABLE_AI_COMPLIANCE` | AI suggestion cards |
+| `VITE_ENABLE_PHASE_2` | Marketplace screens (storefront, menu, cart, checkout) |
+| `VITE_ENABLE_PUSH_NOTIFICATIONS` | Browser push notifications |
+| `VITE_GOONG_MAPTILES_KEY`, `VITE_CARTO_API_KEY` | Optional map tiles. Without them the maps fall back to Esri tiles |
+| `VITE_CITY_FEEDBACK_PHONE`, `VITE_CITY_FEEDBACK_URL` | Đà Nẵng's 1022 citizen feedback channel, linked from the public QR page |
+
+> [!CAUTION]
+> Every `VITE_*` value ends up in the browser bundle. Never put passwords, tokens, OTP secrets,
+> payment or provider keys in them.
+
+## Scripts and quality checks
+
+| Script | Purpose |
+| --- | --- |
+| `npm run dev` | Vite dev server |
+| `npm run build` | Type-check and build to `dist/` |
+| `npm run preview` | Serve the production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript, no output |
+| `npm test` | Vitest, run once |
+| `npm run test:watch` | Vitest in watch mode |
+
+Before opening a pull request, run:
 
 ```powershell
-npm install
-npm run dev
+npm run lint; npm run typecheck; npm test; npm run build
 ```
 
-Register a new account from the sign-in screen. The dev SMS sender writes the
-OTP to the **API console** as a `[DEV-SMS]` line — copy it into the verify
-screen. Note BR-59: the password needs 8+ characters with upper, lower, digit
-and a special character.
+CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs the same four steps on every
+pull request.
 
-### Without a backend
-
-Set `VITE_USE_MOCK_API=true` and run `npm run dev`. Open the printed local URL
-(default `http://localhost:5173`), sign in with a demo account (see Mock data
-layer), or use the dev-only role switcher to jump straight into any role.
-
-## Quality checks
-
-```powershell
-npm run lint
-npm run typecheck
-npm test
-npm run build
-```
-
-`npm run build` type-checks then produces a static bundle in `dist/` (ignored
-by Git); `npm run preview` serves that build locally.
-
-To test Authentication and Vendor Onboarding end to end against StreetBiz-BE
-(database setup, automated checks, a manual UI checklist, and simulating the ward
-review), follow `../StreetBiz-BE/docs/testing-auth-vendor-onboarding.md`.
-
-## npm scripts
-
-| Script     | Purpose                                               |
-| ---------- | ----------------------------------------------------- |
-| dev        | Start the Vite dev server                             |
-| build      | Type-check and build the production bundle to `dist/` |
-| preview    | Serve the production build locally                    |
-| lint       | Run ESLint                                            |
-| typecheck  | Run TypeScript without emitting files                 |
-| test       | Run the Vitest suite once                             |
-| test:watch | Run Vitest in watch mode                              |
-
-## Mock data layer and demo accounts
-
-`src/mocks/` is the temporary backend: `types.ts` mirrors StreetBiz-BE's
-scaffolded column names (`registration_status`, `permit_status`,
-`contract_status`, …), `seed.ts` holds a small realistic dataset for one ward
-(Phường Hải Châu 1), and `db.ts` is a Zustand store exposing both the data and
-the actions screens call (`approveRentalApplication`, `payFee`,
-`recordViolation`, …) — approving a rental application, for example, really
-does create a `RentalContract`, a `DigitalPermit`, and the first `FeeItem`
-(SYS-03), the way the real backend is expected to. `src/store/auth-store.ts`
-holds the signed-in session and persists it via the browser's `localStorage`.
-
-Demo accounts (phone / password `123456` for all):
-
-| Role                      | Phone      | Notes                                                   |
-| ------------------------- | ---------- | ------------------------------------------------------- |
-| Customer                  | 0905000001 | Trần Hồng Anh                                           |
-| Vendor (itinerant)        | 0905000002 | Nguyễn Thị Hoa — has an active rental contract + permit |
-| Vendor (fixed storefront) | 0905000003 | Lê Văn Minh — registration pending review               |
-| Ward Authority            | 0905000004 | Phạm Văn Sơn, Phường Hải Châu 1                         |
-| Platform Administrator    | 0905000005 | Đỗ Quốc Anh                                             |
-
-The "switch role" shortcut on the sign-in screen and the Account tab only
-renders when `VITE_APP_ENV=development` — it is not part of AUTH-03 and must
-not ship to a real build.
-
-## Source layout
+## Project structure
 
 ```text
 src/
-|-- App.tsx        Top-level BrowserRouter + AppProviders + AppRouter
-|-- main.tsx        Vite entry point (mounts <App/> into #root)
-|-- router.tsx       Full react-router-dom route tree (replaces the old
-|                    Expo Router `src/app/` file tree — see Navigation shape)
-|-- layouts/         RoleShell (role guard + responsive tab bar wrapper) and
-|                    the per-role tab item lists
-|-- components/      Shared UI: common, status, forms, layout, feedback
-|-- core/            auth (RoleGuard, role-routes), config/env, constants
-|                    (status-labels), types (RoleCode), utils (phone)
-|-- features/        One folder per capability; each has screens/ and, where
-|                    needed, small feature-local state (cart-store,
-|                    new-registration-store)
-|-- hooks/           useBreakpoint (desktop-sidebar vs mobile-tabs)
-|-- mocks/           The in-memory backend — see above
-|-- providers/       AppProviders (React Query)
-|-- store/           auth-store (session, dev role switch)
-+-- theme/           Heritage Tech palette, typography, spacing, shadows —
-                     also the source tailwind.config.ts reads its tokens from
+├── main.tsx · App.tsx · router.tsx   Entry point and the full route tree
+├── layouts/        RoleShell: role guard and responsive navigation
+├── features/       One folder per capability (screens, API calls, local state)
+├── components/     Shared UI: common, forms, layout, status, feedback
+├── core/           API client, auth guards, permissions, env config, routing, errors
+├── services/       Adapters: camera, map, notification, payment, QR, realtime, upload
+├── mocks/          In-memory backend for mock mode
+├── store/          Global Zustand stores (auth session, theme)
+├── providers/      App providers (React Query)
+├── hooks/          Shared hooks (breakpoint, countdown, polling, ...)
+├── theme/          Colour, type and spacing tokens
+└── utils/          Pure helpers
 
 tests/
-|-- components/    Button, StatusChip
-|-- features/      mock-db action behaviour
-+-- navigation/    role -> route mapping
+├── components/  ├── features/  ├── navigation/
+├── a11y/        ├── utils/     └── e2e/
 ```
 
-## Navigation shape
+## Routing and access control
 
-Four role-scoped route subtrees (`/customer`, `/vendor`, `/ward`,
-`/platform`), each wrapped by `RoleShell` (`src/layouts/RoleShell.tsx`) which
-combines `RoleGuard` (`src/core/auth/RoleGuard.tsx` — a signed-in account can
-only reach its own role's routes; `/customer` additionally allows a
-signed-out guest) with `RoleTabBar` (`src/components/layout/RoleTabBar.tsx`
-— a bottom bar on phones, a 280px indigo sidebar at ≥1024px, driven by
-ordinary `react-router-dom` `NavLink`s). Shared `/auth/*` and `/account/*`
-routes sit outside every role group. Route paths depart from the flatter
-paths sketched in docs/route-plan.md (e.g. vendor detail routes live under
-`/vendor/slots/...` rather than a bare `/vendor/...`) — see
-docs/route-plan.md for the historical use-case → screen mapping and
-`src/router.tsx` for the actual path tree.
+| Prefix | Who can enter |
+| --- | --- |
+| `/customer` | Customers, and guests for public pages |
+| `/vendor` | Vendors |
+| `/ward` | Ward authorities |
+| `/platform` | Platform administrators |
+| `/auth`, `/account` | Shared sign-in and account pages |
+
+`RoleShell` wraps each tree with `RoleGuard`, so a signed-in account can only reach its own
+role's routes. The real path tree is [src/router.tsx](src/router.tsx). The role matrix is in
+[docs/role-permission-matrix.md](docs/role-permission-matrix.md).
 
 ## Design system
 
-The palette, typography, and spacing in `src/theme/` are kept from the
-Stitch-generated "Heritage Tech" design system, unchanged: primary
-`#C84B31`, secondary `#E09F3E`, tertiary (approved/verified) `#2D7D46`,
-indigo `#1A2238` for navigation chrome, Be Vietnam Pro for text and Plus
-Jakarta Sans (tabular) for money/codes — loaded via Google Fonts in
-`index.html`, and re-exposed as Tailwind tokens in `tailwind.config.ts`
-(reads `src/theme/*.ts` directly, so the two never drift). Screens were
-deliberately simplified from that source design — one primary action per
-screen, three status tones only, no decorative legal citations or raw
-coordinates — see the `streetbiz-fe-ui-decisions` note for the full
-rationale.
+"Heritage Tech" tokens live in `src/theme/` and feed `tailwind.config.ts` directly, so the CSS
+and the TypeScript tokens never drift:
 
-## Deploy (Vercel)
+| Token | Value | Use |
+| --- | --- | --- |
+| Primary | `#C84B31` | Main actions |
+| Secondary | `#E09F3E` | Highlights |
+| Tertiary | `#2D7D46` | Approved and verified states |
+| Indigo | `#1A2238` | Navigation chrome |
+| Fonts | Be Vietnam Pro, Plus Jakarta Sans (tabular) | Text, and money or codes |
 
-The web app is deployed on Vercel from this repository (`vercel.json`: Vite build to `dist/`,
-SPA rewrite, cache headers for hashed `/assets`). The API and its database run on a VPS
-(see StreetBiz-BE `docs/deploy-vps.md`).
+Screens follow a few rules: one primary action per screen, three status tones, and no raw
+coordinates or legal citations shown to the user.
 
-In _Vercel → Project → Settings → Environment Variables_ set, then redeploy (`VITE_*` values are
-baked in at build time):
+## Deployment
 
-| Variable                                        | Value                                                                                                                 |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `VITE_API_BASE_URL`                             | `https://<api-domain>/api`, the VPS behind Caddy; must be https (the build refuses localhost or plain http on Vercel) |
-| `VITE_APP_ENV`                                  | `production` or empty (`development` lists the demo accounts on the sign-in page)                                     |
-| `VITE_GOONG_MAPTILES_KEY`, `VITE_CARTO_API_KEY` | Optional map tile keys                                                                                                |
+The site is deployed on **Vercel** from this repository. [vercel.json](vercel.json) sets the
+Vite build, the SPA rewrite and long-lived caching for hashed `/assets`. The API and database
+run on a VPS (see the backend's [docs/deploy-vps.md](https://github.com/zawy2004/StreetBiz-BE/blob/develop/docs/deploy-vps.md)).
 
-The API must allow this site's origin: `Cors__AllowedOrigins__0=https://<vercel-domain>` in the
-VPS `api.env`, and `Permit__PublicScanBaseUrl` set to the same domain for printed QR codes.
+Set these in *Vercel → Settings → Environment Variables*, then redeploy, because `VITE_*` values
+are baked in at build time:
 
-Pull requests run `.github/workflows/ci.yml` (lint, typecheck, tests, production build); Vercel
-builds and deploys on its own.
+| Variable | Value |
+| --- | --- |
+| `VITE_API_BASE_URL` | `https://<api-domain>/api`. Must be HTTPS: the build refuses localhost or plain HTTP on Vercel |
+| `VITE_APP_ENV` | `production` |
+| `VITE_GOONG_MAPTILES_KEY`, `VITE_CARTO_API_KEY` | Optional |
 
-## Prepared but not yet wired
-
-- Workflows outside Authentication, Vendor Onboarding, Ward slot review,
-  BUY-01–05, ADM-01/03/04/05 and CART/ORD/SORD still call `src/mocks/db.ts`.
-- Push notifications, camera access beyond a plain `<input type="file">`.
-- Real-time modules ngoài Orders; Order detail đã dùng SignalR và tự chuyển sang polling khi mất kết nối.
-
-Storefront/menu management and order review/complaint screens now use live APIs
-when live mode is enabled. Checkout redirects only to the `paymentUrl` returned
-by StreetBiz-BE, and the UI trusts only backend order state after the payment
-callback. Real MoMo/ZaloPay gateway integration remains pending; see
-[commerce workflow notes](docs/commerce-order-workflows.md).
+The API must allow the site's origin (`Cors__AllowedOrigins__N` in the VPS `api.env`).
+`Permit__PublicScanBaseUrl` must point at the same domain so printed QR codes open this site.
 
 ## Documentation
 
-- docs/architecture.md
-- docs/project-structure.md
-- docs/role-permission-matrix.md
-- docs/route-plan.md
-- docs/phase-boundary.md
-- docs/api-integration-plan.md
-- docs/community-vendor-workflows.md
-- docs/platform-administration-workflows.md
-- docs/commerce-order-workflows.md
+| Document | Contents |
+| --- | --- |
+| [architecture.md](docs/architecture.md) | Client architecture |
+| [project-structure.md](docs/project-structure.md) | Folder conventions |
+| [role-permission-matrix.md](docs/role-permission-matrix.md) | Who can see what |
+| [route-plan.md](docs/route-plan.md) | Use case to screen mapping |
+| [api-integration-plan.md](docs/api-integration-plan.md) | Backend integration |
+| [phase-boundary.md](docs/phase-boundary.md) | Core and Phase 2 scope |
+| [ward-slot-workflows.md](docs/ward-slot-workflows.md) · [community-vendor-workflows.md](docs/community-vendor-workflows.md) · [commerce-order-workflows.md](docs/commerce-order-workflows.md) · [fee-payment-workflows.md](docs/fee-payment-workflows.md) · [platform-administration-workflows.md](docs/platform-administration-workflows.md) | Feature workflows |
+
+---
+
+<div align="center">
+<sub>StreetBiz is a capstone project. The API and mobile app live in their own repositories.</sub>
+</div>
