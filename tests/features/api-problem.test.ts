@@ -1,4 +1,11 @@
-import { ApiError, errorMessage, isTokenFailure, toApiError } from '@/core/api/problem';
+import {
+  ApiError,
+  errorMessage,
+  errorMessageWithWait,
+  formatWait,
+  isTokenFailure,
+  toApiError,
+} from '@/core/api/problem';
 
 describe('ProblemDetails mapping', () => {
   it('surfaces the backend detail message for an AppException', () => {
@@ -107,5 +114,32 @@ describe('isTokenFailure', () => {
   it('does not refresh for a handler 401 with a ProblemDetails body', () => {
     expect(isTokenFailure(401, { type: 'unauthorized', detail: 'The verification code is incorrect.' })).toBe(false);
     expect(isTokenFailure(403, '')).toBe(false);
+  });
+});
+
+describe('errorMessageWithWait', () => {
+  const locked = 'Tài khoản tạm thời bị khoá do nhập sai mật khẩu nhiều lần. Vui lòng thử lại sau.';
+
+  it('says how long an account stays locked', () => {
+    const error = toApiError(429, { type: 'otp_cooldown', detail: locked, retryAfterSeconds: 900 });
+
+    expect(errorMessageWithWait(error)).toBe(
+      'Tài khoản tạm thời bị khoá do nhập sai mật khẩu nhiều lần. Vui lòng thử lại sau 15 phút.',
+    );
+  });
+
+  it('leaves messages without a wait time, and other statuses, as they were', () => {
+    expect(errorMessageWithWait(toApiError(429, { type: 'otp_cooldown', detail: locked }))).toBe(locked);
+    expect(errorMessageWithWait(toApiError(401, { detail: 'Sai mật khẩu.', retryAfterSeconds: 30 }))).toBe(
+      'Sai mật khẩu.',
+    );
+    expect(errorMessageWithWait(new Error('Mất mạng'))).toBe('Mất mạng');
+  });
+
+  it('formats short and long waits', () => {
+    expect(formatWait(0)).toBe('1 giây');
+    expect(formatWait(40)).toBe('40 giây');
+    expect(formatWait(125)).toBe('2 phút 5 giây');
+    expect(formatWait(899.2)).toBe('15 phút');
   });
 });

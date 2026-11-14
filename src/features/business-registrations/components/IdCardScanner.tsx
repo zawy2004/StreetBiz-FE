@@ -22,6 +22,7 @@ import {
 } from '../new-registration-store';
 import { DocPicker, UploadBadge, type UploadState } from './wizard/DocPicker';
 import { ConsentRow, IdCardFace, PortraitFace } from './wizard/OwnerParts';
+import { kycSource } from '../kyc-source';
 import { playOnce } from './ui-motion';
 
 /** Draft fields `applyExtraction` may fill, reported up so the form can tag them [AI]. */
@@ -353,8 +354,10 @@ export function IdCardScanner({ id, onExtracted, onExtraction }: Props) {
       )}
 
       {extraction ? (
-        <AiHint title="Kết quả đọc CCCD [AI - FPT.AI]">
-          <p>{extraction.summary}</p>
+        <AiHint
+          title={`Kết quả đọc CCCD [${kycSource(extraction.summary, extraction.isAiGenerated).label}]`}
+        >
+          <p>{kycSource(extraction.summary, extraction.isAiGenerated).text}</p>
           <p className="mt-1 flex flex-wrap items-center gap-x-sm gap-y-1 text-body-sm font-semibold text-text">
             <span>Độ tin cậy {extraction.confidencePercent}%</span>
             {extraction.needsManualVerification ? (
@@ -374,8 +377,10 @@ export function IdCardScanner({ id, onExtracted, onExtraction }: Props) {
       ) : null}
 
       {faceMatch ? (
-        <AiHint title="Đối chiếu khuôn mặt [AI - FPT.AI]">
-          <p>{faceMatch.summary}</p>
+        <AiHint
+          title={`Đối chiếu khuôn mặt [${kycSource(faceMatch.summary, faceMatch.isAiGenerated).label}]`}
+        >
+          <p>{kycSource(faceMatch.summary, faceMatch.isAiGenerated).text}</p>
           {faceMatch.warnings.length > 0 ? (
             <ul className="mt-1 list-disc pl-4 text-body-sm text-danger">
               {faceMatch.warnings.map((w, i) => (

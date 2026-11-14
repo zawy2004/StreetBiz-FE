@@ -5,6 +5,7 @@ import { AppHeader, Screen } from '@/components/layout';
 import { EmptyState, ErrorState } from '@/components/feedback';
 import { authApi, errorMessage, type SecurityEvent } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
+import { describeSecurityDetails } from '@/core/utils/user-agent';
 import { relativeTime, shortDate } from '../components/account-format';
 import '../account.css';
 
@@ -88,7 +89,7 @@ function HistoryRow({ event }: { event: SecurityEvent }) {
           {style.label}
         </p>
         {event.details ? (
-          <p className="truncate text-body-sm text-muted">{event.details}</p>
+          <p className="truncate text-body-sm text-muted">{describeSecurityDetails(event.details)}</p>
         ) : null}
       </div>
       <time

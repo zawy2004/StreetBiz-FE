@@ -7,7 +7,7 @@ import { RoleUsage } from '../components/RolePlates';
 import { ROLE_ICON, ROLE_TINT } from '../components/role-plates';
 import { Button, Icon } from '@/components/common';
 import { PasswordField, PhoneField } from '@/components/forms';
-import { ApiError, errorMessage } from '@/core/api';
+import { ApiError, errorMessageWithWait } from '@/core/api';
 import { isDev, isLiveApi } from '@/core/config/env';
 import { ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
 import { phoneError, toLocalPhone } from '@/core/utils/phone';
@@ -95,7 +95,7 @@ export function SignInScreen() {
         setPhoneMessage(err.fieldError('PhoneNumber'));
         setError(err.fieldError('Password') ?? err.message);
       } else {
-        setError(errorMessage(err));
+        setError(errorMessageWithWait(err));
       }
     } finally {
       setSubmitting(false);
