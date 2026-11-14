@@ -22,12 +22,12 @@
   "dependencies": {
     "@goongmaps/goong-map-react": "^1.1.2",
     "@hookform/resolvers": "^7.0.5",
-    "@microsoft/signalr": "^10.0.11",
+    "@microsoft/signalr": "^11.0.0",
     "@tanstack/react-query": "^5.107.1",
     "axios": "^1.21.1",
     "dayjs": "^1.11.23",
     "jsqr": "^1.4.0",
-    "motion": "^12.43.0",
+    "motion": "^14.12.0",
     "qrcode.react": "^4.2.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
@@ -41,10 +41,10 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
-    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.6.9",
-    "@types/node": "^22.20.3",
+    "@types/node": "^22.20.5",
     "@types/react": "~19.3.0",
     "@types/react-dom": "~19.3.0",
     "@vitejs/plugin-react": "^4.3.4",
@@ -54,14 +54,14 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.5.7",
-    "globals": "^15.14.0",
+    "globals": "^17.14.0",
     "jsdom": "^25.0.1",
     "postcss": "^8.5.32",
     "prettier": "^3.9.10",
     "tailwindcss": "^3.4.17",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.2",
-    "vite": "^6.4.3",
-    "vitest": "^4.1.11"
+    "vite": "^6.4.6",
+    "vitest": "^4.1.12"
   }
 }
