@@ -209,8 +209,8 @@ export function RegisterScreen() {
           <Button label="Tiếp tục & Nhận OTP" type="submit" loading={submitting} onPress={submit} />
           <NextStepNote>
             {role === 'VENDOR'
-              ? 'Sau bước này: nhập mã OTP, rồi đăng nhập bằng mật khẩu vừa đặt. Sau đó bạn nộp hồ sơ kinh doanh và chọn ô vỉa hè.'
-              : 'Sau bước này: nhập mã OTP, rồi đăng nhập bằng mật khẩu vừa đặt.'}
+              ? 'Sau bước này: nhập mã OTP gửi về điện thoại, bạn được đăng nhập ngay. Sau đó bạn nộp hồ sơ kinh doanh và chọn ô vỉa hè.'
+              : 'Sau bước này: nhập mã OTP gửi về điện thoại, bạn được đăng nhập ngay.'}
           </NextStepNote>
         </div>
       </form>

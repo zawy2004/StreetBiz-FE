@@ -297,6 +297,21 @@ describe('voice interview screen', () => {
     expect(voiceApi.turn.mock.calls[1]![0].draft.wardUnitId).toBe(120);
   });
 
+  it('starts with both consents unticked and carries only what the vendor ticked', async () => {
+    mount();
+
+    const voiceBox = await screen.findByRole('checkbox', { name: /Ghi âm giọng nói/ });
+    const biometricBox = screen.getByRole('checkbox', { name: /Đọc ảnh CCCD và so khuôn mặt/ });
+    expect(voiceBox).not.toBeChecked();
+    expect(biometricBox).not.toBeChecked();
+
+    fireEvent.click(biometricBox);
+    fireEvent.click(await screen.findByRole('button', { name: /Bắt đầu/ }));
+
+    expect(useVoiceSessionStore.getState().voiceConsent).toBe(false);
+    expect(useNewRegistrationStore.getState().biometricConsent).toBe(true);
+  });
+
   it('answers by typing, reads a number back and only moves on after the tap (T3)', async () => {
     useVoiceSessionStore.getState().start(true);
     useVoiceSessionStore.getState().setPhase('interview');

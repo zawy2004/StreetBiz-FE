@@ -1,4 +1,4 @@
-import { describeDevice } from '@/core/utils/user-agent';
+import { describeDevice, describeSecurityDetails } from '@/core/utils/user-agent';
 
 describe('describeDevice', () => {
   it('names a desktop Chrome session', () => {
@@ -37,5 +37,27 @@ describe('describeDevice', () => {
 
   it('falls back for a string that carries neither a known browser nor platform', () => {
     expect(describeDevice('curl/8.2.1')).toBe('Thiết bị không xác định');
+  });
+});
+
+describe('describeSecurityDetails', () => {
+  const chrome =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+  it('shows the device label and the address instead of the raw User-Agent', () => {
+    expect(describeSecurityDetails(`IP 203.0.113.9 · ${chrome}`)).toBe('Chrome trên Windows · IP 203.0.113.9');
+  });
+
+  it('copes with an unknown address or device', () => {
+    expect(describeSecurityDetails(`IP ? · ${chrome}`)).toBe('Chrome trên Windows');
+    expect(describeSecurityDetails('IP 203.0.113.9 · thiết bị không rõ')).toBe(
+      'Thiết bị không xác định · IP 203.0.113.9',
+    );
+  });
+
+  it('leaves other text alone and returns null for nothing', () => {
+    expect(describeSecurityDetails('Đổi mật khẩu')).toBe('Đổi mật khẩu');
+    expect(describeSecurityDetails(null)).toBeNull();
+    expect(describeSecurityDetails('  ')).toBeNull();
   });
 });

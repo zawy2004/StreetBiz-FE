@@ -151,8 +151,12 @@ export function usePreference(key: string, fallback: boolean) {
 }
 
 export function greeting(now = new Date()) {
-  const hour = Number(
-    new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(now),
-  );
+  // Some engines print midnight as 24 with hour12:false, hence the modulo.
+  const hour =
+    Number(
+      new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(now),
+    ) % 24;
+  // Between midnight and 5 a.m. "good morning" reads wrong and so does "good evening".
+  if (hour < 5) return 'Khuya rồi';
   return hour < 11 ? 'Chào buổi sáng' : hour < 14 ? 'Chào buổi trưa' : hour < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
 }

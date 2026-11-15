@@ -182,6 +182,11 @@ export function DishDescriptionAssist({
               fullWidth={false}
               onPress={() => {
                 onUse(result.description!);
+                // Only a record of the choice: the text is already in the form, so a failure here is
+                // never shown to the vendor and never blocks them.
+                if (result.aiLogId !== null) {
+                  void aiApi.acceptDishDescription(result.aiLogId).catch(() => undefined);
+                }
                 setResult(null);
               }}
             />
