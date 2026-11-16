@@ -126,6 +126,7 @@ export type TaxOverviewDto = {
   groupDescription: string;
   level: ThresholdLevel;
   thresholdRatio: number;
+  /** What is left before the threshold; never negative (0 once over it). */
   remainingToThreshold: number;
   projection: TaxProjectionDto;
   obligations: TaxObligationDto[];

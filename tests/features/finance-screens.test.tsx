@@ -591,6 +591,7 @@ describe('V31 Lịch sử vi phạm', () => {
 
   it('adds up what is still unpaid, says where each notice came from, and shows no money without a fine', async () => {
     answer({
+      '/vendor/finance/penalty-schedules': [],
       '/vendor/finance/violations': [
         violation,
         {
@@ -617,12 +618,51 @@ describe('V31 Lịch sử vi phạm', () => {
   });
 
   it('keeps the empty state', async () => {
-    answer({ '/vendor/finance/violations': [] });
+    answer({ '/vendor/finance/violations': [], '/vendor/finance/penalty-schedules': [] });
     renderAt(
       '/vendor/finance/violations',
       <Route path="/vendor/finance/violations" element={<screens.VendorViolationsScreen />} />,
     );
     expect(await screen.findByText('Không có vi phạm nào')).toBeInTheDocument();
+    expect(await screen.findByText('Phường của bạn chưa công bố mức phạt nào.')).toBeInTheDocument();
+  });
+
+  it("shows the ward's penalty rates even before any notice", async () => {
+    answer({
+      '/vendor/finance/violations': [],
+      '/vendor/finance/penalty-schedules': [
+        {
+          wardUnitId: 7,
+          wardName: 'Phường Hải Châu',
+          rates: [
+            {
+              violationType: 'OUTSIDE_SLOT',
+              violationTypeName: 'Bán ngoài ô được thuê',
+              penaltyAmount: 500_000,
+              legalBasis: 'Nghị định 123/2021/NĐ-CP',
+            },
+            {
+              violationType: 'NO_PERMIT',
+              violationTypeName: 'Không treo giấy phép',
+              penaltyAmount: 1_500_000,
+              legalBasis: null,
+            },
+          ],
+        },
+      ],
+    });
+    renderAt(
+      '/vendor/finance/violations',
+      <Route path="/vendor/finance/violations" element={<screens.VendorViolationsScreen />} />,
+    );
+
+    const book = await screen.findByRole('list', { name: 'Mức phạt tại Phường Hải Châu' });
+    const rows = within(book).getAllByRole('listitem');
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent('Bán ngoài ô được thuê');
+    expect(rows[0]).toHaveTextContent('Nghị định 123/2021/NĐ-CP');
+    expect(rows[0]).toHaveTextContent('500.000 đ');
+    expect(rows[1]).toHaveTextContent('1.500.000 đ');
   });
 });
 
