@@ -21,7 +21,12 @@ const TICKET_MASK =
  * in this tab only (`streetbiz-community-api` in sessionStorage), apart from the
  * app's own sign-in. Shared by the review (C06) and report (C07) forms.
  */
-export function CommunityConnection() {
+export function CommunityConnection({
+  prompt = 'Đăng nhập tài khoản người mua để gửi đánh giá hoặc phản ánh.',
+}: {
+  /** What signing in is for on this form (a report can also be sent without it). */
+  prompt?: string;
+} = {}) {
   const customer = useCommunityCustomer();
   // Only this tab's own session can be switched; the app's sign-in is changed from its account page.
   const ownSession = Boolean(useCommunitySession((state) => state.token));
@@ -73,7 +78,7 @@ export function CommunityConnection() {
               color="currentColor"
               className="mt-0.5 shrink-0 text-primary"
             />
-            Đăng nhập tài khoản người mua để gửi đánh giá hoặc phản ánh.
+            {prompt}
           </p>
           <div className="grid gap-sm md:grid-cols-2">
             <div className="cq min-w-0">
