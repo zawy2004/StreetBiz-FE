@@ -290,13 +290,33 @@ describe('complaint form, "Bị tính cao hơn giá niêm yết"', () => {
     expect(screen.getByText('Kính gửi: Phường sở tại')).toBeInTheDocument();
   });
 
-  it('needs a buyer account: signed out, the form cannot be sent and offers sign-in on the page', async () => {
+  it('lets a guest send without signing in, without a photo, and returns to the stall (BUY-05)', async () => {
     useCommunitySession.setState({ token: '', customer: null, generation: 0 });
+    community.report.mockResolvedValue({
+      reportId: 61,
+      status: 'PENDING',
+      reportType: 'PRICE_NOT_POSTED',
+      dueAt: '2026-11-03T16:59:59.999Z',
+      postedAmount: null,
+      chargedAmount: null,
+    });
     renderForm(`type=PRICE_NOT_POSTED&qr=${TOKEN}`);
 
-    expect(await screen.findByText('Đăng nhập ở trên để gửi.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Gửi phản ánh' })).toBeDisabled();
+    expect(
+      await screen.findByText('Gửi không cần đăng nhập. Bạn sẽ không theo dõi được kết quả.'),
+    ).toBeInTheDocument();
+    // Signing in stays on offer (for a photo and to follow the report), but the photo picker is not.
     expect(screen.getByRole('button', { name: 'Đăng nhập Backend' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Ảnh minh chứng')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi phản ánh' }));
+
+    await waitFor(() => expect(community.report).toHaveBeenCalledTimes(1));
+    expect(community.uploadEvidence).not.toHaveBeenCalled();
+    expect(community.report.mock.calls[0]![1]).toMatchObject({ reportType: 'PRICE_NOT_POSTED' });
+    await waitFor(() =>
+      expect(screen.getByTestId('where')).toHaveTextContent('/customer/explore/vendors/8'),
+    );
   });
 
   it('signs the buyer in with the number as the +84 field shows it, like the app sign-in', async () => {
