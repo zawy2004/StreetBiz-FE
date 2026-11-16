@@ -48,7 +48,7 @@ function Standing({ overview }: { overview: TaxOverviewDto }) {
 
       <p className="text-body-md text-text">
         {over
-          ? `Đã vượt ngưỡng ${formatVnd(policy.revenueThreshold)} khoảng ${formatVnd(-overview.remainingToThreshold)}.`
+          ? `Đã vượt ngưỡng ${formatVnd(policy.revenueThreshold)} khoảng ${formatVnd(revenue.total - policy.revenueThreshold)}.`
           : `Còn ${formatVnd(overview.remainingToThreshold)} nữa là chạm ngưỡng ${formatVnd(policy.revenueThreshold)}/năm.`}
       </p>
 

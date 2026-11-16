@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 
 import { formatVnd, Icon, KerbTag, type IconName } from '@/components/common';
 import { StatusChip } from '@/components/status';
-import type { VendorViolationDto } from '@/core/api';
+import type { VendorViolationDto, VendorWardPenaltyScheduleDto } from '@/core/api';
 import { SOURCE_LABEL, weekRangeLabel, type WeekBucket } from '../finance-view';
 import { EASE_OUT, INK, RULE } from './finance-styles';
 
@@ -268,5 +268,64 @@ export function CleanSlot({ className }: { className?: string }) {
         className="stroke-[#0B7F43]"
       />
     </svg>
+  );
+}
+
+/**
+ * "Mức phạt của phường": what each violation costs where the stall is registered,
+ * read before a notice ever arrives. The amounts are the ward's own schedule
+ * (BR-33), the same one an officer's notice is calculated from.
+ */
+export function PenaltyRateBook({ wards }: { wards: VendorWardPenaltyScheduleDto[] }) {
+  const titleId = useId();
+  return (
+    <section
+      aria-labelledby={titleId}
+      className="rounded-[20px] bg-card p-md shadow-card ring-1 ring-border/80"
+    >
+      <h2 id={titleId} className="text-title-sm font-semibold text-text">
+        Mức phạt của phường
+      </h2>
+      <p className="mt-2xs text-body-sm text-muted">
+        Mức đang áp dụng hôm nay. Biên bản được tính đúng theo bảng này.
+      </p>
+      {wards.length === 0 ? (
+        <p className="mt-sm text-body-md text-muted">
+          Phường của bạn chưa công bố mức phạt nào.
+        </p>
+      ) : (
+        wards.map((ward) => (
+          <div key={ward.wardUnitId} className="mt-md">
+            {wards.length > 1 ? (
+              <h3 className="text-body-md font-semibold text-text">{ward.wardName}</h3>
+            ) : (
+              <p className="text-body-sm text-muted">{ward.wardName}</p>
+            )}
+            {ward.rates.length === 0 ? (
+              <p className="mt-2xs text-body-md text-muted">Chưa có mức phạt nào.</p>
+            ) : (
+              <ul className="mt-2xs divide-y divide-border/80" aria-label={`Mức phạt tại ${ward.wardName}`}>
+                {ward.rates.map((rate) => (
+                  <li
+                    key={rate.violationType}
+                    className="flex items-start justify-between gap-md py-sm"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-body-md text-text">{rate.violationTypeName}</p>
+                      {rate.legalBasis ? (
+                        <p className="text-body-xs text-muted">{rate.legalBasis}</p>
+                      ) : null}
+                    </div>
+                    <p className="shrink-0 font-tabular text-body-md font-semibold text-text">
+                      {formatVnd(rate.penaltyAmount)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))
+      )}
+    </section>
   );
 }

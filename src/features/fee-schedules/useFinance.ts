@@ -10,6 +10,7 @@ import {
   type PenaltyListDto,
   type SubmitPenaltyReceiptBody,
   type VendorViolationDto,
+  type VendorWardPenaltyScheduleDto,
 } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { PAYMENT_OPTIONS_KEY } from '@/features/payout-accounts/usePayoutAccount';
@@ -24,6 +25,7 @@ export const FINANCE_KEYS = {
   penalties: (status?: string) => ['finance', 'penalties', status ?? 'ALL'] as const,
   payments: ['finance', 'payments'] as const,
   violations: ['finance', 'violations'] as const,
+  penaltySchedules: ['finance', 'penalty-schedules'] as const,
   invoices: ['finance', 'invoices'] as const,
   invoice: (invoiceId: number) => ['finance', 'invoices', invoiceId] as const,
   treasury: (penaltyId: number) => ['finance', 'treasury', penaltyId] as const,
@@ -284,6 +286,39 @@ export function useVendorViolations() {
 
   return {
     violations: isLiveApi ? (query.data ?? []) : mockItems,
+    isLoading: isLiveApi && query.isLoading,
+    isError: isLiveApi && query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+}
+
+/** Demo mode: the seeded violation types at their default amounts, as one ward. */
+const MOCK_PENALTY_SCHEDULES: VendorWardPenaltyScheduleDto[] = [
+  {
+    wardUnitId: 1,
+    wardName: 'Phường Hải Châu',
+    rates: VIOLATION_TYPES.map((type) => ({
+      violationType: type.code,
+      violationTypeName: type.label,
+      penaltyAmount: type.default_amount,
+      legalBasis: null,
+    })),
+  },
+];
+
+/** WARD-03: what each violation costs in the wards the vendor is registered in, in force today. */
+export function usePenaltySchedules() {
+  const query = useQuery({
+    queryKey: FINANCE_KEYS.penaltySchedules,
+    queryFn: financeApi.penaltySchedules,
+    enabled: isLiveApi,
+    // Rates change rarely (a ward decision); no need to refetch on every visit.
+    staleTime: 10 * 60 * 1000,
+  });
+
+  return {
+    wards: isLiveApi ? (query.data ?? []) : MOCK_PENALTY_SCHEDULES,
     isLoading: isLiveApi && query.isLoading,
     isError: isLiveApi && query.isError,
     error: query.error,
