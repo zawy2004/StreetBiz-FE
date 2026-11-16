@@ -277,7 +277,9 @@ describe('TaxHomeScreen', () => {
         level: 'OVER',
         group: 'G2',
         revenue: { online: 1_050_000_000, recorded: 0, total: 1_050_000_000 },
-        remainingToThreshold: -50_000_000,
+        // The API never sends a negative remainder: past the threshold it is 0, and the screen
+        // must not turn that into "-0 đ".
+        remainingToThreshold: 0,
       }),
     });
     mount('/vendor/tax', '/vendor/tax', <TaxHomeScreen />);

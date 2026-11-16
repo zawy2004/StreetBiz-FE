@@ -180,6 +180,10 @@ export const aiApi = {
       imageUrl: imageUrl ?? null,
     }),
 
+  /** AIP-01: tells the server the vendor used the suggested text, so its log row is marked accepted (BR-41). */
+  acceptDishDescription: (aiLogId: number) =>
+    apiPost<void>(`/ai/dish-description/${aiLogId}/accept`),
+
   /** AIP-02: dish name, platform category and a reference price from the vendor's own dish photo. */
   dishRecognition: (imageUrl: string) =>
     apiPost<DishRecognition>('/ai/dish-recognition', { imageUrl }),

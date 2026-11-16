@@ -2,20 +2,27 @@ import { Icon } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { EmptyState, ErrorState, Skeleton } from '@/components/feedback';
 import { errorMessage } from '@/core/api';
-import { useVendorViolations } from '../useFinance';
+import { usePenaltySchedules, useVendorViolations } from '../useFinance';
 import { daysSinceLatest, hcmDay, penaltyTotals, weekBuckets } from '../finance-view';
 import { LoadingBlock, RowSkeletons } from '../components/FinanceParts';
 import { useEntered } from '../components/finance-styles';
-import { CleanDaysBoard, PenaltyTotals, ViolationSheet } from '../components/ViolationParts';
+import {
+  CleanDaysBoard,
+  PenaltyRateBook,
+  PenaltyTotals,
+  ViolationSheet,
+} from '../components/ViolationParts';
 
 /**
  * V31 Lịch sử vi phạm: how long the stall has gone without a new notice (and
  * the last twelve weeks), the penalty money by where it stands, then every
  * notice as a sheet with a status margin. One GET as before. Notices are
- * written by ward officers; nothing here is an AI suggestion.
+ * written by ward officers; nothing here is an AI suggestion. Below them, the
+ * ward's penalty rates, so the vendor knows the cost before a notice arrives.
  */
 export function VendorViolationsScreen() {
   const { violations, isLoading, isError, error, refetch } = useVendorViolations();
+  const rates = usePenaltySchedules();
   const entered = useEntered(!isLoading && !isError && violations.length > 0);
 
   const now = new Date();
@@ -67,6 +74,13 @@ export function VendorViolationsScreen() {
             Biên bản do Cán bộ Phường lập. Tiền phạt nộp ở mục Tài chính, tab Biên bản phạt.
           </p>
         </>
+      )}
+      {rates.isLoading ? (
+        <Skeleton className="h-[160px] w-full !rounded-[20px]" />
+      ) : rates.isError ? (
+        <ErrorState message={errorMessage(rates.error)} onRetry={() => rates.refetch()} />
+      ) : (
+        <PenaltyRateBook wards={rates.wards} />
       )}
     </Screen>
   );

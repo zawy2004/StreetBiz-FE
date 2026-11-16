@@ -41,3 +41,18 @@ export function describeDevice(userAgent: string | null | undefined): string {
   if (platform) return platform;
   return 'Thiết bị không xác định';
 }
+
+/**
+ * Login-history rows carry the sign-in's details as "IP 1.2.3.4 · <raw User-Agent>" (StreetBiz-BE
+ * LoginCommand). Shows the device as a short label and the address after it; any other text is left as is.
+ */
+export function describeSecurityDetails(details: string | null | undefined): string | null {
+  if (!details?.trim()) return null;
+
+  const match = /^IP\s+(\S+)\s+·\s+(.+)$/s.exec(details);
+  if (!match) return details;
+
+  const [, ip, userAgent] = match;
+  const device = userAgent === 'thiết bị không rõ' ? describeDevice(null) : describeDevice(userAgent);
+  return ip === '?' ? device : `${device} · IP ${ip}`;
+}

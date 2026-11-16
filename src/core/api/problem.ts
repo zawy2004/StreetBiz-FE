@@ -158,3 +158,23 @@ export function errorMessage(error: unknown): string {
   if (error instanceof Error && error.message) return error.message;
   return FALLBACK_MESSAGES.server_error;
 }
+
+/** "15 phút", "2 phút 5 giây", "40 giây": how long until a 429 may be retried. */
+export function formatWait(seconds: number): string {
+  const total = Math.max(1, Math.ceil(seconds));
+  if (total < 60) return `${total} giây`;
+  const minutes = Math.floor(total / 60);
+  const rest = total % 60;
+  return rest === 0 ? `${minutes} phút` : `${minutes} phút ${rest} giây`;
+}
+
+/**
+ * errorMessage for a 429 that says how long to wait (the account lock after repeated wrong passwords):
+ * the server's sentence ends with a bare "Vui lòng thử lại sau.", which becomes "...sau 15 phút."
+ */
+export function errorMessageWithWait(error: unknown): string {
+  const message = errorMessage(error);
+  if (!(error instanceof ApiError) || error.status !== 429 || !error.retryAfterSeconds) return message;
+  const base = message.replace(/\s*(Vui lòng )?thử lại sau\.?\s*$/i, '').trimEnd();
+  return `${base}${base && !/[.!?]$/.test(base) ? '.' : ''} Vui lòng thử lại sau ${formatWait(error.retryAfterSeconds)}.`.trim();
+}

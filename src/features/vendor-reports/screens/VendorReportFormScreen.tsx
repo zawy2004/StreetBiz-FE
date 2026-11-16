@@ -115,7 +115,8 @@ export function VendorReportFormScreen() {
 
   const submit = useMutation({
     mutationFn: async () => {
-      const evidence = photo ? await communityApi.uploadEvidence(photo) : undefined;
+      // Only a signed-in customer can upload; a guest's report goes without a photo (BUY-05).
+      const evidence = photo && customer ? await communityApi.uploadEvidence(photo) : undefined;
       const note = reason.trim();
       const base = {
         evidenceUrl: evidence?.fileUrl,
@@ -141,7 +142,13 @@ export function VendorReportFormScreen() {
       showToast(
         `Đã gửi phản ánh #${receipt.reportId} tới Phường${due ? `. Hạn xử lý: hết ngày ${due}` : ''}`,
       );
-      navigate(`/customer/reports?report=${receipt.reportId}`, { replace: true });
+      // A guest has no "Phản ánh của tôi" to land on: back to the stall they reported.
+      navigate(
+        customer
+          ? `/customer/reports?report=${receipt.reportId}`
+          : `/customer/explore/vendors/${vendorId}`,
+        { replace: true },
+      );
     },
   });
 
@@ -202,7 +209,9 @@ export function VendorReportFormScreen() {
         <StickyActions>
           <div className="flex w-full flex-col gap-xs sm:flex-row sm:items-center sm:justify-end sm:gap-md">
             {!customer ? (
-              <p className="text-body-sm text-muted sm:text-right">Đăng nhập ở trên để gửi.</p>
+              <p className="text-body-sm text-muted sm:text-right">
+                Gửi không cần đăng nhập. Bạn sẽ không theo dõi được kết quả.
+              </p>
             ) : null}
             <div className="sm:w-auto sm:min-w-[200px]">
               <Button
@@ -210,7 +219,7 @@ export function VendorReportFormScreen() {
                 variant="danger"
                 onPress={() => submit.mutate()}
                 loading={submit.isPending}
-                disabled={!customer || !ready}
+                disabled={!ready}
               />
             </div>
           </div>
@@ -355,7 +364,7 @@ export function VendorReportFormScreen() {
                   ) : null}
                 </div>
               ) : null}
-              {error?.status === 409 ? (
+              {error?.status === 409 && customer ? (
                 <Button
                   label="Xem phản ánh của tôi"
                   variant="ghost"
@@ -364,26 +373,32 @@ export function VendorReportFormScreen() {
                 />
               ) : null}
 
-              <EvidenceFrame
-                uri={photoUri}
-                uploading={submit.isPending && Boolean(photo)}
-                hint={
-                  type === 'OVERCHARGE'
-                    ? 'Ảnh hóa đơn hoặc màn hình chuyển khoản, nếu có; ảnh JPG hoặc PNG.'
-                    : undefined
-                }
-                onChange={(uri, file) => {
-                  setPhotoUri(uri);
-                  setPhoto(file);
-                }}
-                onRemove={() => {
-                  setPhotoUri(undefined);
-                  setPhoto(undefined);
-                }}
-              />
+              {customer ? (
+                <EvidenceFrame
+                  uri={photoUri}
+                  uploading={submit.isPending && Boolean(photo)}
+                  hint={
+                    type === 'OVERCHARGE'
+                      ? 'Ảnh hóa đơn hoặc màn hình chuyển khoản, nếu có; ảnh JPG hoặc PNG.'
+                      : undefined
+                  }
+                  onChange={(uri, file) => {
+                    setPhotoUri(uri);
+                    setPhoto(file);
+                  }}
+                  onRemove={() => {
+                    setPhotoUri(undefined);
+                    setPhoto(undefined);
+                  }}
+                />
+              ) : (
+                <p className="rounded-[16px] bg-tint-muted px-md py-sm text-body-md text-muted">
+                  Đăng nhập để đính kèm ảnh minh chứng và theo dõi kết quả xử lý.
+                </p>
+              )}
             </div>
           </section>
-          <CommunityConnection />
+          <CommunityConnection prompt="Đăng nhập để đính kèm ảnh và theo dõi kết quả xử lý (không bắt buộc)." />
           <div className="xl:hidden">
             <AfterSubmitSteps across />
           </div>
