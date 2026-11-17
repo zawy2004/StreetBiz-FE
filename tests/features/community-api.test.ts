@@ -88,4 +88,67 @@ describe('community vendor API', () => {
     );
     expect(useCommunitySession.getState().token).toBe('');
   });
+
+  it('sends a guest report with no Authorization header (BUY-05)', async () => {
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ reportId: 61, status: 'PENDING', reportType: 'GENERAL' }),
+    });
+    vi.stubGlobal('fetch', fetcher);
+
+    const receipt = await communityApi.report(8, { reportType: 'GENERAL', reason: 'Lấn vỉa hè' });
+
+    expect(receipt.reportId).toBe(61);
+    const [url, options] = fetcher.mock.calls[0]!;
+    expect(url).toBe('https://api.example.test/api/community/vendors/8/reports');
+    expect(options.method).toBe('POST');
+    expect(options.headers.Authorization).toBeUndefined();
+    expect(options.headers['Content-Type']).toBe('application/json');
+  });
+
+  it('says "too fast" on 429 whatever the server wrote', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 429, json: async () => ({}) }),
+    );
+
+    await expect(communityApi.report(8, { reportType: 'GENERAL', reason: 'x' })).rejects.toMatchObject({
+      status: 429,
+      message: 'Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.',
+    });
+  });
+
+  it('shows the first field error of a 400', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ title: 'validation', errors: { EvidenceUrl: ['Ảnh không hợp lệ.'] } }),
+      }),
+    );
+
+    await expect(communityApi.report(8, { reportType: 'GENERAL', reason: 'x' })).rejects.toMatchObject({
+      status: 400,
+      message: 'Ảnh không hợp lệ.',
+    });
+  });
+
+  it('drops an expired community session on 401', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({}) }));
+    useCommunitySession
+      .getState()
+      .connect('old-token', { id: 17, fullName: 'Nguyễn An', roleCode: 'CUSTOMER' });
+
+    await expect(communityApi.myReports()).rejects.toMatchObject({ status: 401 });
+
+    expect(useCommunitySession.getState().token).toBe('');
+    expect(useCommunitySession.getState().customer).toBeNull();
+  });
+
+  it('turns a network failure into a readable error instead of a crash', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+
+    await expect(communityApi.profile(8)).rejects.toMatchObject({ status: 0 });
+  });
 });
