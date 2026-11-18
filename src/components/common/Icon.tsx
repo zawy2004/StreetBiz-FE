@@ -30,6 +30,7 @@ const ICON_MAP: Record<string, Glyph> = {
   'content-copy': g(Pi.PiCopy, Pi.PiCopyFill, Pi.PiCopyDuotone),
   bank: g(Pi.PiBank, Pi.PiBankFill, Pi.PiBankDuotone),
   'cloud-check-outline': g(Pi.PiCloudCheck, Pi.PiCloudCheckFill, Pi.PiCloudCheckDuotone),
+  'cloud-off-outline': g(Pi.PiCloudSlash, Pi.PiCloudSlashFill, Pi.PiCloudSlashDuotone),
   'clipboard-text-outline': g(
     Pi.PiClipboardText,
     Pi.PiClipboardTextFill,

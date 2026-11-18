@@ -5,6 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import { Screen } from '@/components/layout';
 import { sideApi } from '@/core/api/side-api';
 import { isLiveApi } from '@/core/config/env';
+import { isNoSignal } from '@/core/pwa/no-signal';
+import {
+  loadOfflinePermits,
+  offlineStatus,
+  saveOfflinePermit,
+} from '@/core/pwa/permit-offline-store';
 import type { ApiRegistration } from '@/core/api';
 import { useRegistrations } from '@/features/business-registrations/useRegistrations';
 import { VoiceEntryCard } from '@/features/business-registrations/voice/VoiceEntryCard';
@@ -19,6 +25,7 @@ import {
   ShortcutTiles,
   TodayBoard,
 } from '../components/HomeParts';
+import { InstallAppCard } from '../components/InstallAppCard';
 import { PermitPass, PermitPassSkeleton, type PermitCard } from '../components/PermitPass';
 import { buildTodos, upcomingFees, vietnamToday, type SlotsNearApproval } from '../todos';
 
@@ -108,6 +115,7 @@ export function VendorHomeScreen() {
           ) : null}
 
           <ShortcutTiles onOpen={(path) => navigate(path)} />
+          <InstallAppCard />
         </div>
       </div>
 
@@ -152,6 +160,27 @@ function useCurrentPermit(): { card: PermitCard | null; loading: boolean } {
     }))
     .find((row) => row.permit);
 
+  // Keep the latest read of the permit on this phone, so it can still be shown with no signal.
+  useEffect(() => {
+    if (!user?.id || !withPermit?.permit) return;
+    const { contract, permit, fetchedAt } = withPermit;
+    saveOfflinePermit(user.id, {
+      permitId: permit.permitId,
+      contractId: contract.contractId,
+      qrPayload: permit.qrPayload,
+      qrUrl: permit.qrUrl ?? null,
+      slotCode: contract.slotCode,
+      zoneName: contract.zoneName,
+      startDate: permit.startDate,
+      endDate: permit.endDate,
+      effectiveStatus: permit.effectiveStatus,
+      contractStatus: permit.contractStatus,
+      savedAt: fetchedAt || Date.now(),
+    });
+    // `withPermit` is rebuilt every render; a new read (its time) is what should rewrite the copy.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, withPermit?.contract.contractId, withPermit?.fetchedAt]);
+
   const mockContracts = useMockDb((s) => s.contracts).filter(
     (c) => c.vendorId === user?.vendorId && c.contract_status === 'ACTIVE',
   );
@@ -180,6 +209,24 @@ function useCurrentPermit(): { card: PermitCard | null; loading: boolean } {
   }
 
   const loading = contracts.isLoading || permits.some((q) => q.isLoading);
+  // No signal and nothing fresh: show the copy saved on this phone, marked with when it was read.
+  // Only then: with a connection, "no permit" is the server's answer and must be shown as it is.
+  const saved = !withPermit && isNoSignal(contracts) ? (loadOfflinePermits(user?.id)[0] ?? null) : null;
+  if (saved) {
+    return {
+      card: {
+        contractId: saved.contractId,
+        label: saved.slotCode ? `Ô ${saved.slotCode}` : 'Giấy phép số',
+        status: offlineStatus(saved),
+        slotCode: saved.slotCode,
+        zoneName: saved.zoneName,
+        startDate: saved.startDate,
+        endDate: saved.endDate,
+        fetchedAt: saved.savedAt,
+      },
+      loading: false,
+    };
+  }
   return {
     card: withPermit?.permit
       ? {

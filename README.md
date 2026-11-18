@@ -223,6 +223,27 @@ are baked in at build time:
 The API must allow the site's origin (`Cors__AllowedOrigins__N` in the VPS `api.env`).
 `Permit__PublicScanBaseUrl` must point at the same domain so printed QR codes open this site.
 
+## Install and offline permit (PWA)
+
+StreetBiz can be added to the home screen ([manifest.webmanifest](public/manifest.webmanifest),
+icons in `public/icons`). A small service worker ([public/sw.js](public/sw.js), registered in
+production builds only by `src/core/pwa/register-sw.ts`) lets the app open with no signal:
+
+- the page shell is **network-first**, so a connection always gets the newest deploy;
+- the hashed files under `/assets/` are **cache-first**;
+- nothing else is touched: no API response is ever cached by the worker.
+
+The vendor's digital permit is kept by the app itself (`src/core/pwa/permit-offline-store.ts`,
+`localStorage`, per user) after each successful read, and shown with its read time when the API
+cannot be reached. It holds only what is printed on the permit (signed code, slot, dates, status),
+and it is removed with the tokens on sign-out. A saved "valid" permit past its last day shows as
+expired. Offline the permit can be *shown*, not *checked*: the phone that scans it needs a
+connection, because validity is decided by the server.
+
+If a bad worker ever ships and visitors are stuck on an old version, copy
+[scripts/sw-kill.js](scripts/sw-kill.js) over `public/sw.js` and deploy: it deletes the caches and
+unregisters itself on the next visit.
+
 ## Documentation
 
 | Document | Contents |

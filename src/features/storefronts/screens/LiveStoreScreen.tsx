@@ -204,6 +204,7 @@ export function LiveStoreScreen() {
       newOrders={newOrders.data?.totalItems}
       onOrders={() => navigate('/vendor/store/orders')}
       onSales={() => navigate('/vendor/store/sales')}
+      onCounter={() => navigate('/vendor/store/counter')}
       onPayout={() => navigate('/vendor/finance/payout-account')}
     />
   );
