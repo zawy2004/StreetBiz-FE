@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '@/components/common';
 import { AppHeader, Screen } from '@/components/layout';
 import { ConfirmDialog } from '@/components/feedback';
+import { InstallAppTile } from '@/components/pwa';
 import { isDev, isLiveApi } from '@/core/config/env';
 import { ROLE_HOME_ROUTE } from '@/core/auth/role-routes';
 import { useScreenFooter } from '@/components/layout/screen-footer';
@@ -107,6 +108,8 @@ export function AccountScreen() {
               />
             </div>
           </section>
+
+          <InstallAppTile />
 
           {user.role_code === 'CUSTOMER' ? (
             <section aria-labelledby="account-reports" className="flex flex-col gap-sm">
