@@ -7,6 +7,8 @@
  * any script on the origin, which the team should revisit if the backend ever
  * moves the refresh token to an httpOnly cookie.
  */
+import { clearOfflinePermits } from '@/core/pwa/permit-offline-store';
+
 const STORAGE_KEY = 'streetbiz-tokens';
 
 export type AuthTokens = {
@@ -40,6 +42,9 @@ export function setTokens(tokens: AuthTokens): void {
 
 export function clearTokens(): void {
   cached = null;
+  // The permit kept for offline use belongs to the signed-in user: a shared phone must not show it
+  // to the next person.
+  clearOfflinePermits();
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch {

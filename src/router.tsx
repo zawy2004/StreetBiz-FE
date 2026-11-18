@@ -212,6 +212,10 @@ const ContractScheduleScreen = lazyScreen(
   'ContractScheduleScreen',
 );
 const MenuScreen = lazyScreen(() => import('@/features/storefronts/screens'), 'MenuScreen');
+const CounterSaleScreen = lazyScreen(
+  () => import('@/features/storefronts/screens'),
+  'CounterSaleScreen',
+);
 const SalesSummaryScreen = lazyScreen(
   () => import('@/features/storefronts/screens'),
   'SalesSummaryScreen',
@@ -644,6 +648,7 @@ export function AppRouter() {
           <Route path="store/food-safety/:id/edit" element={<FoodSafetyApplyScreen />} />
           <Route path="store/orders" element={<VendorOrdersScreen />} />
           <Route path="store/sales" element={<SalesSummaryScreen />} />
+          <Route path="store/counter" element={<CounterSaleScreen />} />
           <Route path="orders" element={<VendorOrdersScreen />} />
           <Route path="orders/sales-summary" element={<SalesSummaryScreen />} />
           <Route path="orders/scan" element={<VendorPickupScanScreen />} />

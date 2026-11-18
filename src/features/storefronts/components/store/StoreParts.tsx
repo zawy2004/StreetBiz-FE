@@ -191,11 +191,14 @@ export function StoreShortcuts({
   newOrders,
   onOrders,
   onSales,
+  onCounter,
   onPayout,
 }: {
   newOrders: number | undefined;
   onOrders: () => void;
   onSales: () => void;
+  /** "Bán tại quầy": record a cash sale with one tap per dish. */
+  onCounter?: () => void;
   /** Where the money for orders lands: without a receiving account the stall takes no online order. */
   onPayout?: () => void;
 }) {
@@ -203,6 +206,25 @@ export function StoreShortcuts({
     'group flex min-h-16 min-w-0 items-center gap-sm rounded-[18px] bg-card px-sm py-xs text-left shadow-card ring-1 ring-border transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-hover md:px-md';
   return (
     <div className="grid grid-cols-2 gap-sm xl:w-[440px]">
+      {onCounter ? (
+        <button type="button" onClick={onCounter} className={`${tile} col-span-2`}>
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+            <Icon name="cash-multiple" size={20} color="currentColor" weight="duotone" />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="text-body-md font-semibold text-text">Bán tại quầy</span>
+            <span className="truncate text-body-sm text-muted">
+              Chạm món, ghi tiền mặt vào sổ trong một giây
+            </span>
+          </span>
+          <Icon
+            name="chevron-right"
+            size={18}
+            color="currentColor"
+            className="shrink-0 text-muted transition-transform group-hover:translate-x-0.5"
+          />
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={onOrders}

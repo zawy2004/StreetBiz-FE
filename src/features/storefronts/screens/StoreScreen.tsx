@@ -63,6 +63,7 @@ function MockStoreScreen() {
       newOrders={undefined}
       onOrders={() => navigate('/vendor/store/orders')}
       onSales={() => navigate('/vendor/store/sales')}
+      onCounter={() => navigate('/vendor/store/counter')}
     />
   );
 

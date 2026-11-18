@@ -31,5 +31,14 @@ export default tseslint.config(
       globals: { ...globals.browser, ...globals.node },
     },
   },
+  {
+    // The service worker (and its emergency replacement) run in a worker, not a page.
+    files: ['public/sw.js', 'scripts/sw-kill.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: globals.serviceworker,
+    },
+  },
   prettierConfig,
 );
