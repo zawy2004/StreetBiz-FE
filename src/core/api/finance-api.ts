@@ -255,7 +255,8 @@ export type FeeItemDetailDto = {
 /**
  * A bank transfer by VietQR through payOS: the QR and what to type if the payer cannot scan
  * it. `transferContent` carries the payment code and must be sent unchanged. `qrContent` is the
- * QR's content (drawn here) and `checkoutUrl` payOS's hosted payment page.
+ * QR's content (drawn here) and `checkoutUrl` payOS's hosted payment page. `expiresAt` is when the
+ * QR stops being payable; the panel counts down to it.
  */
 export type BankTransferDto = {
   bankName: string;
@@ -265,6 +266,7 @@ export type BankTransferDto = {
   transferContent: string;
   qrContent?: string | null;
   checkoutUrl?: string | null;
+  expiresAt?: string | null;
 };
 
 /** One receipt a household uploaded for a fine it paid to the State Treasury. */

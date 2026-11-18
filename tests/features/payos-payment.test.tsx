@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -217,6 +217,70 @@ describe('fee payment into the ward\'s own payOS account', () => {
     expect(await screen.findByRole('heading', { name: 'Thanh toán thành công' })).toBeInTheDocument();
     expect(screen.getByText('HD-2026-000041')).toBeInTheDocument();
     expect(screen.queryByRole('img', { name: /Mã VietQR/ })).not.toBeInTheDocument();
+  });
+
+  it('counts down to when the QR stops being payable and takes the QR away once it has', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      client.apiGet.mockImplementation(feeReads(wardOptions));
+      client.apiPost.mockResolvedValue({
+        ...checkout,
+        bankTransfer: { ...transfer, expiresAt: new Date(Date.now() + 90_000).toISOString() },
+      });
+      renderFeePayment();
+      await userEvent.click(await screen.findByRole('button', { name: 'Tạo mã chuyển khoản VietQR' }));
+
+      expect(await screen.findByRole('timer')).toHaveTextContent('Mã còn hiệu lực 01:');
+      expect(await qr()).toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(91_000);
+      });
+
+      expect(screen.getByRole('timer')).toHaveTextContent('Mã QR đã hết hạn');
+      expect(screen.queryByRole('img', { name: /Mã VietQR/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /Mở trang thanh toán/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent('đừng chuyển khoản bằng mã này');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows no countdown for a QR that has no deadline', async () => {
+    client.apiGet.mockImplementation(feeReads(wardOptions));
+    client.apiPost.mockResolvedValue(checkout);
+    renderFeePayment();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Tạo mã chuyển khoản VietQR' }));
+
+    await qr();
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument();
+  });
+
+  it('pays again after a closed transfer with a new Idempotency-Key, never the finished attempt\'s', async () => {
+    client.apiGet.mockImplementation(feeReads(wardOptions));
+    let closed = false;
+    client.apiPost.mockImplementation(async (url: string) =>
+      url.endsWith('/checkout') ? checkout : { transactionId: 11, status: closed ? 'FAILED' : 'PENDING' },
+    );
+    renderFeePayment();
+    await userEvent.click(await screen.findByRole('button', { name: 'Tạo mã chuyển khoản VietQR' }));
+    await qr();
+
+    closed = true; // the QR ran out: the next check reports the attempt closed
+    await userEvent.click(screen.getByRole('button', { name: 'Tôi đã chuyển khoản, kiểm tra ngay' }));
+    expect(await screen.findByText(/đã bị đóng vì quá lâu chưa nhận được tiền/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Tạo mã chuyển khoản VietQR' }));
+
+    await waitFor(() =>
+      expect(client.apiPost.mock.calls.filter(([url]) => String(url).endsWith('/checkout'))).toHaveLength(2),
+    );
+    const keys = client.apiPost.mock.calls
+      .filter(([url]) => String(url).endsWith('/checkout'))
+      .map(([, , options]) => (options as { headers: Record<string, string> }).headers['Idempotency-Key']);
+    expect(keys[0]).toBeTruthy();
+    expect(keys[1]).toBeTruthy();
+    expect(keys[1]).not.toBe(keys[0]);
   });
 
   it('never opens a payment link that is not an http(s) page', async () => {

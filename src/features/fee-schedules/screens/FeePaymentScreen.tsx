@@ -94,6 +94,12 @@ function LiveFeePaymentScreen() {
     submitting.current = false;
   }, [feeItemId]);
 
+  // The transfer was closed (its QR ran out, or the server gave up waiting): the key belongs to that
+  // finished attempt, and the server refuses to replay it. Paying again is a new attempt, a new key.
+  useEffect(() => {
+    if (bank.closedMessage) idempotencyKey.current = null;
+  }, [bank.closedMessage]);
+
   const changeMethod = () => {
     bank.cancel();
     // A new method is a new checkout: the old key belongs to the transfer just left.
@@ -140,8 +146,10 @@ function LiveFeePaymentScreen() {
             showToast(errorMessage(err));
           }
         },
-        onError: () => {
+        onError: (err) => {
           submitting.current = false;
+          // 409: the key's attempt already ended. Keeping it would fail every retry the same way.
+          if (err instanceof ApiError && err.status === 409) idempotencyKey.current = null;
         },
       },
     );

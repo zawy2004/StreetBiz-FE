@@ -199,7 +199,8 @@ export function OrderPaymentScreen() {
                 </p>
                 <p className="flex items-center justify-center gap-1.5 text-body-sm text-muted">
                   <Icon name="lock-outline" size={15} color="currentColor" />
-                  Giỏ hàng bị khoá cho tới khi đơn được thanh toán hoặc huỷ.
+                  Giỏ hàng bị khoá cho tới khi đơn được thanh toán hoặc huỷ. Đơn chưa thanh toán khi hết
+                  thời gian cho phép sẽ tự huỷ.
                 </p>
               </>
             ) : placed ? (

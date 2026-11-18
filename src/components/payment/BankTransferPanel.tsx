@@ -4,6 +4,7 @@ import { Button, formatVnd, Icon, QrCode } from '@/components/common';
 import { showToast } from '@/components/feedback';
 import type { BankTransferDto } from '@/core/api/finance-api';
 import { safeWebUrl } from '@/core/security/safe-url';
+import { formatCountdown, useCountdown } from './useCountdown';
 
 async function copy(value: string, what: string) {
   try {
@@ -34,7 +35,11 @@ type Props = {
 export function BankTransferPanel({ transfer, checking = false, onCheck, children }: Props) {
   const titleId = useId();
   const qrLabel = `Mã VietQR chuyển ${formatVnd(transfer.amount)} tới ${transfer.bankName} ${transfer.accountNumber}, nội dung ${transfer.transferContent}`;
-  const checkoutUrl = safeWebUrl(transfer.checkoutUrl);
+  // A QR is only payable for a while. Counting down shows the payer how long they have, and once it
+  // is over the QR is taken away: scanning a dead code is how a payment ends up matched to nothing.
+  const remaining = useCountdown(transfer.expiresAt);
+  const expired = remaining === 0;
+  const checkoutUrl = expired ? null : safeWebUrl(transfer.checkoutUrl);
   return (
     <section
       aria-labelledby={titleId}
@@ -57,7 +62,27 @@ export function BankTransferPanel({ transfer, checking = false, onCheck, childre
         </div>
       </header>
 
-      {transfer.qrContent ? (
+      {remaining !== null ? (
+        <p
+          role="timer"
+          className={`flex items-center justify-center gap-xs text-body-md font-semibold tabular-nums ${
+            expired || remaining <= 60 ? 'text-error' : 'text-text'
+          }`}
+        >
+          <Icon name="clock-outline" size={18} color="currentColor" />
+          {expired ? 'Mã QR đã hết hạn' : `Mã còn hiệu lực ${formatCountdown(remaining)}`}
+        </p>
+      ) : null}
+
+      {expired ? (
+        <p
+          role="alert"
+          className="rounded-[16px] bg-sunken/60 p-sm text-body-md text-text"
+        >
+          Mã này không dùng được nữa, đừng chuyển khoản bằng mã này. Nếu bạn đã chuyển trước khi hết
+          hạn, hệ thống vẫn ghi nhận khi tiền về; nếu chưa, hãy tạo mã mới.
+        </p>
+      ) : transfer.qrContent ? (
         <div role="img" aria-label={qrLabel} className="mx-auto max-w-full">
           <QrCode value={transfer.qrContent} size={224} />
         </div>
