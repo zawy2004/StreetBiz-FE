@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/common';
 import { EmptyState } from '@/components/feedback';
 import { AppHeader, Screen } from '@/components/layout';
+import { zoneStreetBearings } from '@/features/sidewalk-slots/slot-3d';
 import { useAuthStore } from '@/store/auth-store';
 import { WardGate } from '../components/WardGate';
 import { GridError, GridLoading } from '../components/ops/grid/GridStates';
@@ -79,6 +80,7 @@ function SlotEditContent() {
         zones={zones.data}
         newPosition={null}
         standalone
+        streetBearing={zoneStreetBearings(slots).get(slot.zoneId) ?? null}
         onClose={backToBoard}
         onChanged={() => void client.invalidateQueries({ queryKey: ['ward', userId] })}
       />

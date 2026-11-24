@@ -20,7 +20,10 @@ function defaultsOf(component: unknown): Record<string, unknown> {
   // `Marker`/`Popup`/`NavigationControl` are `React.memo(...)`-wrapped, and memo never
   // copies the inner component's `.defaultProps` onto the wrapper; they only exist on
   // `.type.defaultProps` (the component memo() was called with).
-  const c = component as { defaultProps?: Record<string, unknown>; type?: { defaultProps?: Record<string, unknown> } };
+  const c = component as {
+    defaultProps?: Record<string, unknown>;
+    type?: { defaultProps?: Record<string, unknown> };
+  };
   return c.defaultProps ?? c.type?.defaultProps ?? {};
 }
 export const GOONG_MAP_DEFAULT_PROPS = defaultsOf(GoongMapGL);
@@ -41,6 +44,20 @@ const GOONG_STREET_STYLE = 'https://tiles.goong.io/assets/goong_map_web.json';
 const GOONG_STREET_STYLE_DARK = 'https://tiles.goong.io/assets/goong_map_dark.json';
 
 /**
+ * Esri has real tiles up to z19 over Đà Nẵng; from z20 it serves a grey "Map data not yet
+ * available" placeholder. Capping the sources here makes the map scale the z19 tiles up when the
+ * user zooms in further, instead of tiling the screen with placeholders.
+ */
+const ESRI_MAX_ZOOM = 19;
+
+/**
+ * Fonts for map-drawn labels (slot codes, street names in 3D). The raster styles have no text of
+ * their own, but declaring the same glyphs as the 3D style lets the map switch between them
+ * without rebuilding everything, and keeps a label layer valid in either.
+ */
+const GLYPHS = 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf';
+
+/**
  * Esri's World Imagery is unlabelled raw imagery -- stack its own boundaries/places/
  * roads reference layer on top so street names still show up over the satellite photo.
  * Built as a literal style (not a URL) since goong-js/Mapbox GL renders any style
@@ -48,11 +65,15 @@ const GOONG_STREET_STYLE_DARK = 'https://tiles.goong.io/assets/goong_map_dark.js
  */
 const ESRI_SATELLITE_STYLE = {
   version: 8,
+  glyphs: GLYPHS,
   sources: {
     'esri-imagery': {
       type: 'raster',
-      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      ],
       tileSize: 256,
+      maxzoom: ESRI_MAX_ZOOM,
       attribution: 'Tiles &copy; Esri',
     },
     'esri-labels': {
@@ -61,6 +82,7 @@ const ESRI_SATELLITE_STYLE = {
         'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
       ],
       tileSize: 256,
+      maxzoom: ESRI_MAX_ZOOM,
       attribution: 'Labels &copy; Esri',
     },
   },
@@ -73,11 +95,15 @@ const ESRI_SATELLITE_STYLE = {
 /** Esri's World Street Map -- the keyless fallback for when there is no Goong maptiles key. */
 const ESRI_STREET_STYLE = {
   version: 8,
+  glyphs: GLYPHS,
   sources: {
     'esri-street': {
       type: 'raster',
-      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'],
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+      ],
       tileSize: 256,
+      maxzoom: ESRI_MAX_ZOOM,
       attribution: 'Tiles &copy; Esri',
     },
   },
@@ -99,7 +125,13 @@ function styleFor(mode: MapLayerMode, isDark: boolean) {
  * small switcher control to drop inside the map as an absolutely-positioned child
  * (goong-js has no Leaflet-style LayersControl of its own).
  */
-export function useMapBaseLayer(): [mapStyle: object | string, layerSwitcher: React.ReactNode] {
+export function useMapBaseLayer(): [
+  mapStyle: object | string,
+  layerSwitcher: React.ReactNode,
+  mode: MapLayerMode,
+  isDark: boolean,
+  setMode: (mode: MapLayerMode) => void,
+] {
   const [mode, setMode] = useState<MapLayerMode>('street');
   const isDark = useIsDark();
 
@@ -126,5 +158,5 @@ export function useMapBaseLayer(): [mapStyle: object | string, layerSwitcher: Re
     </div>
   );
 
-  return [styleFor(mode, isDark), layerSwitcher];
+  return [styleFor(mode, isDark), layerSwitcher, mode, isDark, setMode];
 }

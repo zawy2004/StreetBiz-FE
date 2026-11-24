@@ -36,6 +36,11 @@ export type WardSlot = {
   versionToken: string;
   /** Photos in order; the first is the cover. */
   imageUrls: string[];
+  /**
+   * Compass bearing (0 = north, clockwise, 0 to under 180) of the slot's length side, the side
+   * along the street. null/absent: not set, the map lays it along its zone's street.
+   */
+  bearingDegrees?: number | null;
 };
 
 export type StreetFeatureType =
@@ -330,7 +335,11 @@ export const wardConfigApi = {
     input: SlotPlacementInput &
       SlotFacilities &
       SlotPhotos &
-      WarningAcknowledgement & { slotCode: string },
+      WarningAcknowledgement & {
+        slotCode: string;
+        /** Omit (or null) to keep the slot's bearing. */
+        bearingDegrees?: number | null;
+      },
   ) =>
     apiPut<SlotMutationResult>(`/ward/slot-grid/${slot.slotId}`, {
       ...input,

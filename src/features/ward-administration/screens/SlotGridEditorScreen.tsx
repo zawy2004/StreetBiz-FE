@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState } from 'react';
+import { lazy, Suspense, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button, Icon } from '@/components/common';
@@ -6,8 +6,9 @@ import { LoadingState } from '@/components/feedback';
 import { TextField } from '@/components/forms';
 import { AppHeader, Screen } from '@/components/layout';
 import { AddressSearch } from '@/features/sidewalk-slots/components/AddressSearch';
+import { zoneStreetBearings } from '@/features/sidewalk-slots/slot-3d';
 import { useAuthStore } from '@/store/auth-store';
-import type { MapFocus, MapPoint } from '../components/SlotGridMap';
+import type { MapFocus, MapPoint, SlotDraft } from '../components/SlotGridMap';
 import { WardGate } from '../components/WardGate';
 import { BatchPanel } from '../components/ops/grid/BatchPanel';
 import { BulkStatusPanel } from '../components/ops/grid/BulkStatusPanel';
@@ -88,6 +89,11 @@ function SlotGridContent() {
   // below would otherwise be immediately followed by a same-point duplicate -- in batch
   // mode that silently collapses the two picked pins into one point twice in a row.
   const lastClickRef = useRef<{ point: MapPoint; at: number } | null>(null);
+  // The turn being tried on one slot (map handle and the panel's field share it); dropped on save.
+  const [turn, setTurn] = useState<{ slotId: number; bearing: number } | null>(null);
+  // Each zone's street, read from where its slots stand: what an unturned slot lies along.
+  const gridSlots = grid.data?.slots;
+  const streetBearings = useMemo(() => zoneStreetBearings(gridSlots ?? []), [gridSlots]);
   const refresh = () => client.invalidateQueries({ queryKey: ['ward', userId] });
 
   if (zones.isPending || grid.isPending) return <GridLoading />;
@@ -170,6 +176,11 @@ function SlotGridContent() {
   const emptyGrid =
     data.slots.length === 0 && data.features.length === 0 && pins.length === 0 && !bulkMode;
   const showNewSlot = !bulkMode && mode === 'slot' && !selected && !!pins[0];
+  const editingSlot = !bulkMode && mode === 'slot' && selected?.canEditGeometry ? selected : null;
+  const draftBearing = turn && turn.slotId === selected?.slotId ? turn.bearing : null;
+  const draft: SlotDraft | null = editingSlot
+    ? { slotId: editingSlot.slotId, position: pins[0] ?? null, bearing: draftBearing }
+    : null;
 
   return (
     <Screen width="wide">
@@ -203,7 +214,8 @@ function SlotGridContent() {
           <>
             <MapFrame>
               {/* Overlays come first in the DOM so Tab reaches search and GPS before the map's dots. */}
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col items-start gap-xs p-sm md:pr-[184px]">
+              {/* Search across the top; the right edge is the map's tool rail (MapRail). */}
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col items-start gap-xs p-sm md:pr-[68px]">
                 <div
                   role="search"
                   aria-label="Tìm địa chỉ"
@@ -211,7 +223,6 @@ function SlotGridContent() {
                 >
                   <AddressSearch onPick={(match) => focusOn(match)} />
                 </div>
-                <MapLegend slots={data.slots} features={data.features} />
               </div>
               <GpsControl
                 disabled={bulkMode}
@@ -234,6 +245,14 @@ function SlotGridContent() {
                   focus={focus}
                   myLocation={myLocation}
                   ruler={!bulkMode && mode === 'batch' ? ruler : null}
+                  streetBearings={streetBearings}
+                  draft={draft}
+                  onMoveSlot={editingSlot ? (_slot, point) => setPins([point]) : undefined}
+                  onTurnSlot={
+                    editingSlot
+                      ? (slot, bearing) => setTurn({ slotId: slot.slotId, bearing })
+                      : undefined
+                  }
                   onMapClick={onMapClick}
                   onSelectSlot={(slot) => {
                     if (bulkMode) {
@@ -248,6 +267,8 @@ function SlotGridContent() {
                 />
               </Suspense>
             </MapFrame>
+            {/* The key sits under the map, not on it, so it never covers a slot or a control. */}
+            <MapLegend slots={data.slots} features={data.features} />
             {showNewSlot && (
               <NewSlotJump latitude={pins[0]!.latitude} longitude={pins[0]!.longitude} />
             )}
@@ -273,10 +294,16 @@ function SlotGridContent() {
                 slot={selected}
                 zones={zones.data}
                 newPosition={selected.canEditGeometry ? (pins[0] ?? null) : null}
+                streetBearing={streetBearings.get(selected.zoneId) ?? null}
+                draftBearing={draftBearing}
+                onDraftBearing={(bearing) =>
+                  setTurn(bearing == null ? null : { slotId: selected.slotId, bearing })
+                }
                 onClose={() => setSelected(null)}
                 onChanged={(slot) => {
                   setSelected(slot);
                   setPins([]);
+                  setTurn(null);
                   void refresh();
                 }}
               />
