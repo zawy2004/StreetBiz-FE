@@ -306,7 +306,7 @@ describe('complaint form, "Bị tính cao hơn giá niêm yết"', () => {
       await screen.findByText('Gửi không cần đăng nhập. Bạn sẽ không theo dõi được kết quả.'),
     ).toBeInTheDocument();
     // Signing in stays on offer (for a photo and to follow the report), but the photo picker is not.
-    expect(screen.getByRole('button', { name: 'Đăng nhập Backend' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Đăng nhập' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Ảnh minh chứng')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Gửi phản ánh' }));
@@ -326,7 +326,7 @@ describe('complaint form, "Bị tính cao hơn giá niêm yết"', () => {
 
     fireEvent.change(await screen.findByLabelText('Số điện thoại'), { target: { value: '905 000 201' } });
     fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'test-only' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập Backend' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
 
     await waitFor(() => expect(community.login).toHaveBeenCalledWith('0905000201', 'test-only'));
   });

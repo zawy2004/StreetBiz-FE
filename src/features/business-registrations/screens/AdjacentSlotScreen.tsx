@@ -110,7 +110,7 @@ export function AdjacentSlotScreen() {
             <div className="rounded-[24px] bg-card shadow-card ring-1 ring-border">
               <EmptyState
                 icon="map-marker-off-outline"
-                title="Đang kết nối với Backend"
+                title="Đang kết nối máy chủ"
                 description="Chức năng thuê ô liền kề sẽ dùng dữ liệu ô thật của phường. Hiện tại vui lòng chọn ô từ bản đồ ô vỉa hè."
                 action={
                   <Button

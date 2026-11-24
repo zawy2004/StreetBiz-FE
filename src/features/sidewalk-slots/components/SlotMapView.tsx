@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import MapGL, { Marker, NavigationControl, Popup, type MapRef } from '@goongmaps/goong-map-react';
+import MapGL, { Marker, Popup, type MapRef } from '@goongmaps/goong-map-react';
 import '@goongmaps/goong-js/dist/goong-js.css';
 
 import { Button, Icon } from '@/components/common';
@@ -7,13 +7,14 @@ import { env } from '@/core/config/env';
 import { palette } from '@/theme';
 import { SideApiError, type SidewalkSlot } from '@/core/api/side-api';
 import { DEFAULT_CENTER } from '../map-constants';
+import { baseMapRail, clampZoom } from '../map-rail';
 import {
   GOONG_MAP_DEFAULT_PROPS,
   GOONG_MARKER_DEFAULT_PROPS,
-  GOONG_NAV_CONTROL_DEFAULT_PROPS,
   GOONG_POPUP_DEFAULT_PROPS,
   useMapBaseLayer,
 } from './GoongMapBaseLayers';
+import { MapRail } from './MapRail';
 
 export type Bounds = { minLat: number; maxLat: number; minLng: number; maxLng: number };
 
@@ -46,6 +47,11 @@ type Props = {
   onViewZoneDiagram: (zoneId: number) => void;
   /** No route around the viewport yet: show a hint to pan the map. */
   empty?: boolean;
+  /**
+   * Where the chosen route's slots are. The map opens there (not on the default point, where a
+   * vendor would see an empty map), and moves there again when `key` changes (another route).
+   */
+  focus?: { latitude: number; longitude: number; key: string | number } | null;
 };
 
 export function SlotMapView({
@@ -55,13 +61,26 @@ export function SlotMapView({
   onRetry,
   onViewZoneDiagram,
   empty = false,
+  focus = null,
 }: Props) {
   const mapRef = useRef<MapRef>(null);
-  const [mapStyle, layerSwitcher] = useMapBaseLayer();
+  const [mapStyle, , layerMode, , setLayerMode] = useMapBaseLayer();
   const [viewport, setViewport] = useState<Viewport>({
-    latitude: DEFAULT_CENTER[0],
-    longitude: DEFAULT_CENTER[1],
+    latitude: focus?.latitude ?? DEFAULT_CENTER[0],
+    longitude: focus?.longitude ?? DEFAULT_CENTER[1],
     zoom: 17,
+  });
+  const focusKey = focus?.key;
+  useEffect(() => {
+    if (!focus) return;
+    setViewport((v) => ({ ...v, latitude: focus.latitude, longitude: focus.longitude }));
+    // Only a new route moves the map; the focus object itself is rebuilt on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusKey]);
+  const rail = baseMapRail({
+    mode: layerMode,
+    onMode: setLayerMode,
+    onZoom: (d) => setViewport((v) => ({ ...v, zoom: clampZoom(v.zoom + d) })),
   });
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
 
@@ -126,12 +145,6 @@ export function SlotMapView({
           setViewport({ latitude: v.latitude, longitude: v.longitude, zoom: v.zoom })
         }
       >
-        <NavigationControl
-          {...GOONG_NAV_CONTROL_DEFAULT_PROPS}
-          style={{ position: 'absolute', bottom: 46, right: 10 }}
-          showCompass={false}
-        />
-        {layerSwitcher}
         {zoneGroups.map((zone) => {
           const open = zone.availableCount > 0;
           const selected = zone.zoneId === selectedZoneId;
@@ -200,8 +213,13 @@ export function SlotMapView({
         )}
       </MapGL>
 
+      {/* Controls on the right edge, top: clear of the hint, the error bar and the assistant. */}
+      <div className="pointer-events-none absolute right-sm top-sm z-[2]">
+        <MapRail groups={rail} />
+      </div>
+
       {empty && error === null ? (
-        <div className="pointer-events-none absolute inset-x-0 top-3 z-[1000] flex justify-center px-md">
+        <div className="pointer-events-none absolute left-0 right-[60px] top-3 z-[2] flex justify-center px-sm">
           <p className="flex items-center gap-1.5 rounded-full bg-card/95 px-md py-xs text-body-sm font-semibold text-text shadow-card ring-1 ring-border backdrop-blur">
             <Icon
               name="map-marker-radius-outline"
@@ -215,7 +233,7 @@ export function SlotMapView({
       ) : null}
 
       {error !== null && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-3 z-[1000] flex justify-center px-md">
+        <div className="pointer-events-none absolute left-0 right-[60px] bottom-3 z-[2] flex justify-center px-sm">
           <div className="pointer-events-auto flex items-center gap-sm rounded-[14px] bg-card px-md py-xs shadow-sheet ring-1 ring-border">
             <Icon
               name="alert-circle-outline"

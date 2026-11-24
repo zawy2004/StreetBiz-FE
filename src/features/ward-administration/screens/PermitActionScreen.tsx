@@ -60,7 +60,7 @@ export function PermitActionScreen() {
   const submit = async () => {
     const trimmed = reason.trim();
     if (!trimmed || trimmed.length < 5 || trimmed.length > 500) {
-      showToast('Vui lòng nhập lý do xử lý cụ thể (từ 5 đến 500 ký tự — BR-35)');
+      showToast('Vui lòng nhập lý do xử lý cụ thể (từ 5 đến 500 ký tự)');
       return;
     }
 
@@ -124,7 +124,7 @@ export function PermitActionScreen() {
     >
       <AppHeader
         title="Đình chỉ / Thu hồi giấy phép"
-        subtitle={vendor?.business_name ?? `Giấy phép #${permitId} (WARD-13)`}
+        subtitle={vendor?.business_name ?? `Giấy phép #${permitId}`}
         back
       />
 
@@ -157,7 +157,7 @@ export function PermitActionScreen() {
           <div className="flex flex-col gap-sm [&_textarea]:text-[16px]">
             <TextField
               ref={reasonRef}
-              label="Lý do xử lý bắt buộc (BR-35: 5 - 500 ký tự)"
+              label="Lý do xử lý (bắt buộc, 5–500 ký tự)"
               value={reason}
               onChangeText={setReason}
               multiline

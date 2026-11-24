@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Icon } from '@/components/common';
 import { ConfirmDialog, showToast } from '@/components/feedback';
 import { TextField } from '@/components/forms';
+import { effectiveBearing } from '@/features/sidewalk-slots/slot-3d';
 import { useAuthStore } from '@/store/auth-store';
 import type { MapPoint } from '../../SlotGridMap';
 import {
@@ -22,6 +23,7 @@ import {
   WarningAck,
   ZoneSelect,
 } from './fields';
+import { BearingField } from './BearingField';
 import { CheckingLine, PlacementVerdict, VerdictSlip } from './PlacementVerdict';
 import { hasBlock, sizeValue, usePlacementCheck } from './placement';
 import { SlotHistory } from './SlotHistory';
@@ -48,6 +50,9 @@ export function SlotPanel({
   zones,
   newPosition,
   standalone = false,
+  streetBearing = null,
+  draftBearing,
+  onDraftBearing,
   onClose,
   onChanged,
 }: {
@@ -56,6 +61,14 @@ export function SlotPanel({
   newPosition: MapPoint | null;
   /** Opened on its own page, without the map: the position can only change on the map editor. */
   standalone?: boolean;
+  /** The bearing of the street the slot's zone runs along, when the slots there line up. */
+  streetBearing?: number | null;
+  /**
+   * The turn being tried, owned by the map screen so the map's turn handle and this field move
+   * together. Left out (the standalone page), the panel keeps it itself.
+   */
+  draftBearing?: number | null;
+  onDraftBearing?: (bearing: number | null) => void;
   onClose: () => void;
   onChanged: (slot: WardSlot) => void;
 }) {
@@ -73,6 +86,10 @@ export function SlotPanel({
     businessCategory: slot.businessCategory,
   });
   const [imageUrls, setImageUrls] = useState<string[]>(slot.imageUrls);
+  const [ownDraft, setOwnDraft] = useState<number | null>(null);
+  const turning = draftBearing !== undefined ? draftBearing : ownDraft;
+  const setTurning = onDraftBearing ?? setOwnDraft;
+  const bearingChanged = turning != null && turning !== (slot.bearingDegrees ?? null);
   const [ack, setAck] = useState(false);
   const [reason, setReason] = useState('');
   const [statusReason, setStatusReason] = useState('');
@@ -88,6 +105,7 @@ export function SlotPanel({
     zoneId !== slot.zoneId ||
     w !== slot.widthMeters ||
     l !== slot.lengthMeters ||
+    bearingChanged ||
     code.trim() !== slot.slotCode;
   const check = usePlacementCheck(zoneId, geometryChanged ? position : null, w, l, slot.slotId);
   const issues = geometryChanged ? (check.data?.issues ?? []) : [];
@@ -108,6 +126,7 @@ export function SlotPanel({
         widthMeters: w!,
         lengthMeters: l!,
         slotCode: code.trim(),
+        bearingDegrees: bearingChanged ? turning : undefined,
         ...facilities,
         imageUrls,
         acknowledgeWarnings: issues.length > 0,
@@ -194,7 +213,9 @@ export function SlotPanel({
               }`}
             >
               <Icon name="map-marker-outline" size={18} color="currentColor" className="shrink-0" />
-              <span>Chạm bản đồ để dời ô. {newPosition ? 'Đã chọn vị trí mới.' : ''}</span>
+              <span>
+                Chạm bản đồ hoặc kéo chấm của ô để dời ô. {newPosition ? 'Đã chọn vị trí mới.' : ''}
+              </span>
             </p>
           )}
           <TextField label="Mã ô" value={code} onChangeText={setCode} maxLength={30} />
@@ -213,6 +234,12 @@ export function SlotPanel({
               keyboardType="numeric"
             />
           </SizeGrid>
+          <BearingField
+            value={turning ?? effectiveBearing(slot, streetBearing)}
+            streetBearing={streetBearing}
+            own={turning != null || slot.bearingDegrees != null}
+            onChange={setTurning}
+          />
         </>
       )}
       {!readOnly && (

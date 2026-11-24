@@ -618,17 +618,10 @@ div:has(> .mapboxgl-canvas-container):focus-visible,
   }
 }
 
-/* Keep the floating assistant launcher clear of a page's bottom action bar
-   (StickyActions marks itself with data-sticky-actions). */
-body:has([data-sticky-actions]) .sb-launcher {
-  bottom: 168px;
-}
-
-@media (min-width: 1024px) {
-  body:has([data-sticky-actions]) .sb-launcher {
-    bottom: 104px;
-  }
-}
+/* The floating assistant launcher clears a page's bottom action bar by itself: Screen publishes
+   the bar's measured height as --sb-screen-footer and assistant.css adds it to the launcher's
+   offset. (A fixed offset here used to override that and left tall bars, like the counter sale
+   total, under the launcher.) */
 
 /* The launcher floats over the bottom-right of the scroll area, so the last row of a page
    (e.g. a "Gọi hỗ trợ" button) would sit under it at the end of the scroll. A scroll body

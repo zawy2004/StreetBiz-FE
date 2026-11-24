@@ -276,7 +276,7 @@ export function RenewalReviewScreen() {
     >
       <AppHeader
         title={`Gia hạn · Ô ${slotCode}`}
-        subtitle={`Hợp đồng #${contractId} · WARD-09`}
+        subtitle={`Gia hạn hợp đồng #${contractId}`}
         back
       />
 
@@ -431,7 +431,7 @@ export function RenewalReviewScreen() {
                 { label: 'Số điện thoại', value: vendorPhone || 'Đã liên kết tài khoản' },
                 { label: 'Loại hình kinh doanh', value: vendorTypeLabel(vendorType) },
                 {
-                  label: 'Hồ sơ điểm kinh doanh (BR-16)',
+                  label: 'Hồ sơ điểm kinh doanh',
                   value: (
                     <span className="flex flex-wrap items-center gap-xs">
                       <span>Mã hồ sơ: {detail?.registrationId ?? '-'}</span>

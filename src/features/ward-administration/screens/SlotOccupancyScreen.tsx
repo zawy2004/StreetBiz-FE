@@ -138,7 +138,8 @@ export function SlotOccupancyScreen() {
 
         <div className="flex flex-col gap-sm lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
           <BucketChips counts={counts} value={bucket} onChange={setBucket} />
-          <div className="flex items-center gap-sm">
+          {/* On a phone the search takes a row of its own; the view switch wraps under it. */}
+          <div className="flex flex-wrap items-center gap-sm">
             <CodeSearch value={query} onChange={setQuery} />
             <div className="shrink-0 [&_[role=tab]]:h-10">
               <SegmentedControl<View>

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { Icon, Money } from '@/components/common';
@@ -12,6 +12,38 @@ import { useNow } from '../useNow';
 import { SlotApplyForm } from './SlotApplyForm';
 import { SlotBayDrawing } from './SlotBayDrawing';
 import { SlotCover } from './SlotCover';
+
+// The map bundle loads only when the vendor asks for the 3D look, not with every slot panel.
+const Slot3DPreview = lazy(() =>
+  import('./Slot3DPreview').then((m) => ({ default: m.Slot3DPreview })),
+);
+
+/** "Xem 3D": the slot among its neighbours in 3D, opened on request under the photo/drawing. */
+function Preview3D({ slot }: { slot: SidewalkSlot }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex flex-col gap-xs">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex min-h-11 items-center gap-1.5 self-start rounded-[12px] px-sm text-label font-semibold text-primary transition-colors hover:bg-tint-primary focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-primary"
+      >
+        <Icon name="cube-outline" size={18} color="currentColor" />
+        {open ? 'Ẩn mô hình 3D' : 'Xem ô và dãy phố dạng 3D'}
+      </button>
+      {open && (
+        <Suspense
+          fallback={
+            <div className="sb-shimmer h-[300px] rounded-[16px] ring-1 ring-border md:h-[340px]" />
+          }
+        >
+          <Slot3DPreview slot={slot} />
+        </Suspense>
+      )}
+    </div>
+  );
+}
 
 type Props = {
   slot: SidewalkSlot;
@@ -94,15 +126,22 @@ export function SlotDetailPanel({ slot, zone, variant = 'docked', onBackToPlan }
     </div>
   );
 
-  const media = slot.imageUrls.length > 0 ? (
-    <SlotCover urls={slot.imageUrls} slotCode={slot.slotCode} caption={page} />
-  ) : (
-    <div className="flex flex-col gap-1">
-      <SlotBayDrawing slot={slot} state={state} variant={page ? 'page' : 'docked'} />
-      <span className="flex items-center gap-1 text-body-sm text-muted">
-        <Icon name="camera-plus-outline" size={15} color="currentColor" />
-        Chưa có ảnh
-      </span>
+  const picture =
+    slot.imageUrls.length > 0 ? (
+      <SlotCover urls={slot.imageUrls} slotCode={slot.slotCode} caption={page} />
+    ) : (
+      <div className="flex flex-col gap-1">
+        <SlotBayDrawing slot={slot} state={state} variant={page ? 'page' : 'docked'} />
+        <span className="flex items-center gap-1 text-body-sm text-muted">
+          <Icon name="camera-plus-outline" size={15} color="currentColor" />
+          Chưa có ảnh
+        </span>
+      </div>
+    );
+  const media = (
+    <div className="flex flex-col gap-xs">
+      {picture}
+      <Preview3D slot={slot} />
     </div>
   );
 

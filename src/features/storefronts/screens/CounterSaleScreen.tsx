@@ -149,8 +149,10 @@ export function CounterSaleScreen() {
 
   const footer = (
     <StickyActions>
-      <div className="flex w-full flex-col gap-xs">
-        <div className="flex items-baseline justify-between gap-sm">
+      {/* One full-width bar (StickyActions would otherwise shrink its child to a button's width on
+          desktop): the total on the left, the two actions on the right. */}
+      <div className="flex w-full flex-col gap-xs lg:!w-full lg:flex-row lg:items-center lg:justify-between lg:gap-lg">
+        <div className="flex items-baseline justify-between gap-sm lg:justify-start">
           <span className="text-body-md text-muted">
             {count > 0 ? `${count} món` : 'Chạm món để thêm'}
           </span>
@@ -166,7 +168,7 @@ export function CounterSaleScreen() {
             {errorMessage(addEntry.error)} Khoản này chưa được ghi, bạn bấm lại nhé.
           </p>
         ) : null}
-        <div className="flex gap-sm">
+        <div className="flex gap-sm lg:w-[420px] lg:shrink-0">
           <Button
             label="Xoá hết"
             variant="outline"

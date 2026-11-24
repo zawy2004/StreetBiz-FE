@@ -536,7 +536,7 @@ function MockInboxScreen() {
             key: `APP-${a.id}`,
             category: 'RENTAL',
             title: codes.join(', ') || 'Đề nghị cấp phép',
-            subtitle: 'Giấy phép sử dụng tạm thời hè phố (WARD-07/08)',
+            subtitle: 'Giấy phép sử dụng tạm thời hè phố',
             status: a.application_status,
             riskScore: 0,
             riskBreakdown: [],
@@ -594,7 +594,7 @@ function MockInboxScreen() {
 
   return (
     <Screen width="wide">
-      <AppHeader title="Hộp duyệt" subtitle="Dữ liệu giả lập (không có Backend)" />
+      <AppHeader title="Hộp duyệt" subtitle="Dữ liệu mẫu để xem thử" />
       <InboxCounters counters={counters} />
       <div className="flex flex-col gap-sm">
         <div className="flex flex-col gap-xs md:flex-row md:items-center md:justify-between">

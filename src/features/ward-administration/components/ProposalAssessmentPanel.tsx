@@ -40,7 +40,7 @@ export function ProposalAssessmentPanel({ record }: { record: WardCase }) {
   return (
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-sm">
-        <h2 className="text-headline-sm">Đánh giá khả thi vị trí (AIC-04)</h2>
+        <h2 className="text-headline-sm">Đánh giá khả thi vị trí</h2>
         {canRun && (
           <Button
             label={run.isPending ? 'Đang đánh giá...' : latest ? 'Đánh giá lại' : 'Chạy đánh giá AI'}

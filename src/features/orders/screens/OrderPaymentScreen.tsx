@@ -195,7 +195,7 @@ export function OrderPaymentScreen() {
                     ? 'Nếu bạn đã thanh toán trên MoMo, bấm "Kiểm tra lại" để hệ thống hỏi MoMo kết quả.'
                     : showSandbox
                       ? 'Môi trường thử nghiệm chưa nối cổng thanh toán thật. Chọn kết quả thanh toán bên dưới.'
-                      : 'Trang này tự kiểm tra trạng thái từ backend. Tham số trên URL quay lại không được dùng làm bằng chứng thanh toán thành công.'}
+                      : 'Trang này tự kiểm tra trạng thái thanh toán với hệ thống, không dựa vào đường dẫn quay lại từ cổng thanh toán.'}
                 </p>
                 <p className="flex items-center justify-center gap-1.5 text-body-sm text-muted">
                   <Icon name="lock-outline" size={15} color="currentColor" />

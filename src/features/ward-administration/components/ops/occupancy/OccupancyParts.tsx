@@ -175,7 +175,7 @@ export function BucketChips({
 /** Code search: a plain field with a magnifier, filtering on the client only. */
 export function CodeSearch({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <label className="relative flex h-12 min-w-0 flex-1 items-center rounded-[12px] bg-card ring-1 ring-inset ring-border focus-within:ring-2 focus-within:ring-primary md:max-w-[320px]">
+    <label className="relative flex h-12 min-w-[14rem] flex-1 basis-[14rem] items-center rounded-[12px] bg-card ring-1 ring-inset ring-border focus-within:ring-2 focus-within:ring-primary md:max-w-[320px]">
       <Icon
         name="magnify"
         size={20}

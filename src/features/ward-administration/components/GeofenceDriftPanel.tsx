@@ -26,7 +26,7 @@ export function GeofenceDriftPanel() {
 
   return (
     <Card>
-      <h2 className="text-headline-sm">Lệch vị trí quét giấy phép (AIC-06)</h2>
+      <h2 className="text-headline-sm">Lệch vị trí quét giấy phép</h2>
       <p className="mt-xs text-body-sm text-muted">
         {report.data.items.length} ô có lượt quét lệch quá {report.data.toleranceMeters}m trong{' '}
         {report.data.windowDays} ngày qua.

@@ -46,6 +46,11 @@ export type SidewalkSlot = {
   monthlyPrice: number;
   /** STANDARD only: % off the rent of a 3/6/12-month term; null = no discount. */
   quarterDiscountPercent: number | null;
+  /**
+   * Compass bearing (0 = north, clockwise, 0 to under 180) of the slot's length side, the side
+   * along the street; null/absent when the ward has not set one (3D views follow the street).
+   */
+  bearingDegrees?: number | null;
 };
 
 export type BusinessCategory = 'FOOD_BEVERAGE' | 'RETAIL' | 'SERVICES' | 'CRAFTS' | 'GENERAL';

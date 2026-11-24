@@ -45,7 +45,7 @@ function CasesContent() {
     <Screen>
       <AppHeader
         title="Duyệt hồ sơ vị trí"
-        subtitle="Dữ liệu Backend theo phường được phân công"
+        subtitle="Đề xuất vị trí, xung đột địa chỉ và chuyển nhượng ô của phường bạn"
         back
       />
       <div className="flex flex-col gap-sm">

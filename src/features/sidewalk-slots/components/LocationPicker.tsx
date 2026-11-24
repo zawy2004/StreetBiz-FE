@@ -1,14 +1,17 @@
+import { useEffect, useState } from 'react';
 import MapGL, { Marker, type MapEvent } from '@goongmaps/goong-map-react';
 import '@goongmaps/goong-js/dist/goong-js.css';
 
 import { env } from '@/core/config/env';
 import { palette } from '@/theme';
 import { DEFAULT_CENTER } from '../map-constants';
+import { baseMapRail, clampZoom } from '../map-rail';
 import {
   GOONG_MAP_DEFAULT_PROPS,
   GOONG_MARKER_DEFAULT_PROPS,
   useMapBaseLayer,
 } from './GoongMapBaseLayers';
+import { MapRail } from './MapRail';
 
 export type PickedPosition = { latitude: number; longitude: number };
 
@@ -23,26 +26,44 @@ type Props = {
 const round = (value: number) => Math.round(value * 1e6) / 1e6;
 
 /** A map where a tap places the pin; it starts on the pilot area until there is a position. */
+type Viewport = { latitude: number; longitude: number; zoom: number };
+
+const viewOf = (position: PickedPosition | null): Viewport => ({
+  latitude: position ? position.latitude : DEFAULT_CENTER[0],
+  longitude: position ? position.longitude : DEFAULT_CENTER[1],
+  zoom: position ? 18 : 16,
+});
+
 export function LocationPicker({ position, viewKey, onPick }: Props) {
-  const [mapStyle, layerSwitcher] = useMapBaseLayer();
+  const [mapStyle, , layerMode, , setLayerMode] = useMapBaseLayer();
+  const [viewport, setViewport] = useState<Viewport>(() => viewOf(position));
+  // A new key (GPS fix, address search) re-centres on the position; a tap never does.
+  useEffect(() => {
+    setViewport(viewOf(position));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewKey]);
+  const rail = baseMapRail({
+    mode: layerMode,
+    onMode: setLayerMode,
+    onZoom: (d) => setViewport((v) => ({ ...v, zoom: clampZoom(v.zoom + d) })),
+  });
 
   return (
-    <div className="location-picker-map h-[300px] overflow-hidden rounded-[16px] md:h-[380px] xl:h-[420px]">
+    <div className="location-picker-map relative h-[300px] overflow-hidden rounded-[16px] md:h-[380px] xl:h-[420px]">
       <MapGL
         {...GOONG_MAP_DEFAULT_PROPS}
-        key={viewKey}
-        latitude={position ? position.latitude : DEFAULT_CENTER[0]}
-        longitude={position ? position.longitude : DEFAULT_CENTER[1]}
-        zoom={position ? 18 : 15}
+        {...viewport}
         width="100%"
         height="100%"
+        onViewportChange={(v: Viewport) =>
+          setViewport({ latitude: v.latitude, longitude: v.longitude, zoom: v.zoom })
+        }
         mapStyle={mapStyle}
         goongApiAccessToken={env.goongMaptilesKey}
         onClick={(event: MapEvent) =>
           onPick({ latitude: round(event.lngLat[1]), longitude: round(event.lngLat[0]) })
         }
       >
-        {layerSwitcher}
         {position && (
           <Marker
             {...GOONG_MARKER_DEFAULT_PROPS}
@@ -94,6 +115,9 @@ export function LocationPicker({ position, viewKey, onPick }: Props) {
           </Marker>
         )}
       </MapGL>
+      <div className="pointer-events-none absolute right-sm top-sm z-[2]">
+        <MapRail groups={rail} />
+      </div>
     </div>
   );
 }

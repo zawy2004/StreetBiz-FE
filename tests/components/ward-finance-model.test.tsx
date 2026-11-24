@@ -163,11 +163,11 @@ describe('ward finance list', () => {
     expect(rows[0]).toHaveTextContent('Lê Văn Đức');
 
     await userEvent.click(screen.getByRole('tab', { name: 'Tất cả (4)' }));
-    await userEvent.type(screen.getByPlaceholderText(/Tìm theo mã ô/), 'bun cha');
+    await userEvent.type(screen.getByPlaceholderText(/Tìm mã ô/), 'bun cha');
     expect(screen.getAllByRole('button', { name: /NVL-/ })).toHaveLength(1);
 
-    await userEvent.clear(screen.getByPlaceholderText(/Tìm theo mã ô/));
-    await userEvent.type(screen.getByPlaceholderText(/Tìm theo mã ô/), 'zzz');
+    await userEvent.clear(screen.getByPlaceholderText(/Tìm mã ô/));
+    await userEvent.type(screen.getByPlaceholderText(/Tìm mã ô/), 'zzz');
     expect(await screen.findByText('Không có hợp đồng phù hợp')).toBeInTheDocument();
   });
 });

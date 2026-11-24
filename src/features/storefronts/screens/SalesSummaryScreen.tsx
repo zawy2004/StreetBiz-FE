@@ -89,7 +89,7 @@ export function SalesSummaryScreen() {
       <AppHeader
         title="Doanh thu"
         back
-        subtitle="Chỉ sử dụng số liệu đơn COMPLETED do backend trả về"
+        subtitle="Chỉ tính các đơn đã hoàn tất"
         right={
           <Button
             label="Làm mới"

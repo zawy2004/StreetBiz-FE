@@ -168,7 +168,7 @@ function PricingContent() {
 
   return (
     <Screen width="wide">
-      <AppHeader title="Giá & khung giờ" subtitle="WARD-02 · Theo từng khu vực" />
+      <AppHeader title="Giá & khung giờ" subtitle="Giá thuê và giờ bán theo từng khu vực" />
       <PricingSummaryLine
         zoneCount={count}
         slotCount={slotCount}

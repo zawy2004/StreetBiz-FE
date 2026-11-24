@@ -22,9 +22,9 @@ function Swatch({
 const ORDER: WardSlot['status'][] = ['AVAILABLE', 'PENDING_APPLICATION', 'ACTIVE', 'SUSPENDED'];
 
 /**
- * The map's key with live counts, floating on the map: one chip per slot
- * status present, and street features. Only what is on the map is listed, so
- * a small grid does not show a row of zeros.
+ * The map's key with live counts, under the map: one chip per slot status
+ * present, and street features, plus how to read the 3D view. Only what is on
+ * the map is listed, so a small grid does not show a row of zeros.
  */
 export function MapLegend({
   slots,
@@ -41,31 +41,32 @@ export function MapLegend({
   if (counts.length === 0 && features.length === 0) return null;
 
   return (
-    <ul
-      aria-label="Chú giải bản đồ"
-      tabIndex={0}
-      className="no-scrollbar pointer-events-auto flex max-w-full gap-1 overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded-full bg-card/95 p-1 shadow-card ring-1 ring-border backdrop-blur-md"
-    >
-      {counts.map(({ status, count }) => (
-        <li
-          key={status}
-          className="flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-body-sm font-medium text-text"
-        >
-          <Swatch color={SLOT_DOT_COLORS[status]} shape="dot" barred={status === 'SUSPENDED'} />
-          {slotStatusLabels[status]}
-          <span className="font-sign text-[15px] font-bold font-tabular">{count}</span>
-        </li>
-      ))}
-      {features.length > 0 && (
-        <li className="flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-body-sm font-medium text-text">
-          <Swatch
-            color={blocking > 0 ? FEATURE_BLOCK_COLOR : FEATURE_OTHER_COLOR}
-            shape="diamond"
-          />
-          Chướng ngại vật
-          <span className="font-sign text-[15px] font-bold font-tabular">{features.length}</span>
-        </li>
-      )}
-    </ul>
+    <div className="mt-xs flex flex-wrap items-center gap-x-md gap-y-1 px-1">
+      <ul aria-label="Chú giải bản đồ" className="flex flex-wrap items-center gap-x-1 gap-y-1">
+        {counts.map(({ status, count }) => (
+          <li
+            key={status}
+            className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-card px-2.5 text-body-sm font-medium text-text ring-1 ring-border"
+          >
+            <Swatch color={SLOT_DOT_COLORS[status]} shape="dot" barred={status === 'SUSPENDED'} />
+            {slotStatusLabels[status]}
+            <span className="font-sign text-[15px] font-bold font-tabular">{count}</span>
+          </li>
+        ))}
+        {features.length > 0 && (
+          <li className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-card px-2.5 text-body-sm font-medium text-text ring-1 ring-border">
+            <Swatch
+              color={blocking > 0 ? FEATURE_BLOCK_COLOR : FEATURE_OTHER_COLOR}
+              shape="diamond"
+            />
+            Chướng ngại vật
+            <span className="font-sign text-[15px] font-bold font-tabular">{features.length}</span>
+          </li>
+        )}
+      </ul>
+      <p className="text-body-sm text-muted">
+        3D: khối càng cao càng đã có người thuê · nhà và số nhà theo OpenStreetMap
+      </p>
+    </div>
   );
 }

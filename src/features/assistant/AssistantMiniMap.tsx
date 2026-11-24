@@ -7,6 +7,8 @@ import {
   GOONG_MARKER_DEFAULT_PROPS,
   useMapBaseLayer,
 } from '@/features/sidewalk-slots/components/GoongMapBaseLayers';
+import { MapRail } from '@/features/sidewalk-slots/components/MapRail';
+import { baseMapRail, clampZoom } from '@/features/sidewalk-slots/map-rail';
 import type { VendorResult } from './AssistantVendorResults';
 import type { AssistantLocation } from './types';
 
@@ -24,11 +26,17 @@ export default function AssistantMiniMap({
 }) {
   const [mapStyle] = useMapBaseLayer();
   const initial = useMemo<Viewport>(() => {
-    const points: AssistantLocation[] = results.map((r) => ({ latitude: r.card.place!.latitude, longitude: r.card.place!.longitude }));
+    const points: AssistantLocation[] = results.map((r) => ({
+      latitude: r.card.place!.latitude,
+      longitude: r.card.place!.longitude,
+    }));
     if (here) points.push(here);
     const lats = points.map((p) => p.latitude);
     const lngs = points.map((p) => p.longitude);
-    const spread = Math.max(Math.max(...lats) - Math.min(...lats), Math.max(...lngs) - Math.min(...lngs));
+    const spread = Math.max(
+      Math.max(...lats) - Math.min(...lats),
+      Math.max(...lngs) - Math.min(...lngs),
+    );
     return {
       latitude: (Math.max(...lats) + Math.min(...lats)) / 2,
       longitude: (Math.max(...lngs) + Math.min(...lngs)) / 2,
@@ -36,8 +44,11 @@ export default function AssistantMiniMap({
     };
   }, [results, here]);
   const [viewport, setViewport] = useState(initial);
+  const rail = baseMapRail({
+    onZoom: (d) => setViewport((v) => ({ ...v, zoom: clampZoom(v.zoom + d) })),
+  });
   return (
-    <div className="sb-mini-map" aria-label="Bản đồ các quầy gợi ý">
+    <div className="sb-mini-map relative" aria-label="Bản đồ các quầy gợi ý">
       <MapGL
         {...GOONG_MAP_DEFAULT_PROPS}
         {...viewport}
@@ -45,10 +56,18 @@ export default function AssistantMiniMap({
         height="100%"
         mapStyle={mapStyle}
         goongApiAccessToken={env.goongMaptilesKey}
-        onViewportChange={(v: Viewport) => setViewport({ latitude: v.latitude, longitude: v.longitude, zoom: v.zoom })}
+        onViewportChange={(v: Viewport) =>
+          setViewport({ latitude: v.latitude, longitude: v.longitude, zoom: v.zoom })
+        }
       >
         {here && (
-          <Marker {...GOONG_MARKER_DEFAULT_PROPS} latitude={here.latitude} longitude={here.longitude} offsetLeft={-8} offsetTop={-8}>
+          <Marker
+            {...GOONG_MARKER_DEFAULT_PROPS}
+            latitude={here.latitude}
+            longitude={here.longitude}
+            offsetLeft={-8}
+            offsetTop={-8}
+          >
             <span className="sb-pin-me" aria-label="Vị trí của bạn" />
           </Marker>
         )}
@@ -72,6 +91,9 @@ export default function AssistantMiniMap({
           </Marker>
         ))}
       </MapGL>
+      <div className="pointer-events-none absolute right-2 top-2 z-[2]">
+        <MapRail groups={rail} />
+      </div>
     </div>
   );
 }

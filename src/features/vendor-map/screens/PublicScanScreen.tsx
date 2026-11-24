@@ -126,7 +126,7 @@ export function PublicScanScreen() {
     <Screen>
       <BuyerPageHeader
         title="Quét mã QR"
-        subtitle="Xác thực giấy phép trực tiếp với Backend"
+        subtitle="Xác thực giấy phép trực tiếp với hệ thống của phường"
         back={false}
         right={<LiveLookupChip />}
       />

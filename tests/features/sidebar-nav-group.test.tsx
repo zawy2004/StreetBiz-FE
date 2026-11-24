@@ -42,7 +42,10 @@ describe('Hộp duyệt group in the ward sidebar', () => {
     // The sub-list is the element the group button controls.
     const list = within(document.getElementById(group.getAttribute('aria-controls')!)!);
     expect(list.getByRole('link', { name: 'Tổng quan' })).toHaveAttribute('href', '/ward/inbox');
-    expect(list.getByRole('link', { name: 'Hồ sơ vị trí' })).toHaveAttribute('href', '/ward/inbox/reviews');
+    expect(list.getByRole('link', { name: 'Hồ sơ vị trí' })).toHaveAttribute(
+      'href',
+      '/ward/inbox/reviews',
+    );
     expect(list.getByRole('link', { name: 'Hồ sơ an toàn thực phẩm' })).toHaveAttribute(
       'href',
       '/ward/inbox/food-safety',
@@ -58,7 +61,10 @@ describe('Hộp duyệt group in the ward sidebar', () => {
     ['/ward/inbox/food-safety/3', 'Hồ sơ an toàn thực phẩm'],
   ])('opens on %s and lights "%s"', (path, label) => {
     mount(path);
-    expect(screen.getByRole('button', { name: 'Hộp duyệt' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Hộp duyệt' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
     expect(current()).toHaveTextContent(label);
   });
 
@@ -66,5 +72,31 @@ describe('Hộp duyệt group in the ward sidebar', () => {
     mount('/ward/inbox/reviews');
     fireEvent.click(screen.getByRole('button', { name: 'Hộp duyệt' }));
     expect(screen.queryByText('Hồ sơ vị trí')).not.toBeInTheDocument();
+  });
+});
+
+describe('ward sidebar by job', () => {
+  it('heads each job with a section title, in order', () => {
+    mount('/ward/dashboard');
+    const nav = screen.getByRole('navigation', { name: 'Điều hướng chính' });
+    const titles = [...nav.querySelectorAll('p')]
+      .map((p) => p.textContent)
+      .filter((t) => ['Hồ sơ', 'Hiện trường', 'Tài chính', 'Thiết lập'].includes(t ?? ''));
+    expect(titles).toEqual(['Hồ sơ', 'Hiện trường', 'Tài chính', 'Thiết lập']);
+  });
+
+  it.each([
+    ['/ward/finance/receipts', 'Thu phí', 'Lịch sử thu'],
+    ['/ward/finance/12', 'Thu phí', 'Theo dõi thu phí'],
+    ['/ward/slots/editor', 'Lưới ô', 'Vẽ & sửa lưới ô'],
+    ['/ward/slots/7', 'Lưới ô', 'Bảng ô & lấp đầy'],
+    ['/ward/patrol/violations/new', 'Tuần tra', 'Ghi nhận vi phạm'],
+    ['/ward/settings/penalties', 'Quy định & mức thu', 'Mức phạt vi phạm'],
+    ['/ward/reports/debtors', 'Báo cáo', 'Hộ còn nợ'],
+    ['/ward/inbox/vendor-reports/4', 'Hộp duyệt', 'Phản ánh về hộ kinh doanh'],
+  ])('on %s opens "%s" and lights its most specific page "%s"', (path, group, page) => {
+    mount(path);
+    expect(screen.getByRole('button', { name: group })).toHaveAttribute('aria-expanded', 'true');
+    expect(current()).toHaveTextContent(page);
   });
 });

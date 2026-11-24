@@ -106,7 +106,7 @@ export function RentalApplicationReviewScreen() {
   const mockBlockers: string[] = [];
   if (mockApplication && !mockIsRegApproved) {
     mockBlockers.push(
-      `Hồ sơ điểm kinh doanh của hộ "${mockVendor?.business_name || 'Hộ kinh doanh'}" đang ở trạng thái "${mockRegistration?.registration_status || 'CHƯA ĐĂNG KÝ'}". Theo quy định BR-16, hồ sơ điểm bán phải được xác nhận ĐỦ ĐIỀU KIỆN (APPROVED) trước khi cấp phép sử dụng hè phố.`,
+      `Hồ sơ điểm kinh doanh của hộ "${mockVendor?.business_name || 'Hộ kinh doanh'}" đang ở trạng thái "${mockRegistration?.registration_status || 'CHƯA ĐĂNG KÝ'}". Hồ sơ điểm bán phải được xác nhận đủ điều kiện trước khi cấp phép sử dụng hè phố.`,
     );
   }
 
@@ -153,7 +153,7 @@ export function RentalApplicationReviewScreen() {
     }
 
     if (decision === 'APPROVE' && !canApprove) {
-      showToast(blockers[0] || 'Chưa đủ điều kiện cấp phép (Vi phạm quy định BR-16)');
+      showToast(blockers[0] || 'Chưa đủ điều kiện cấp phép: hồ sơ điểm bán chưa được duyệt');
       return;
     }
 
@@ -269,7 +269,7 @@ export function RentalApplicationReviewScreen() {
     >
       <AppHeader
         title={vendorName || 'Thẩm định cấp phép'}
-        subtitle="Giấy phép sử dụng tạm thời lòng đường, vỉa hè (WARD-07/08)"
+        subtitle="Giấy phép sử dụng tạm thời lòng đường, vỉa hè"
         back
       />
       <div className="flex flex-wrap items-center gap-xs">
@@ -300,7 +300,7 @@ export function RentalApplicationReviewScreen() {
           {/* Business Rule Blocker Alert (BR-16) */}
           {blockers.length > 0 ? (
             <PrerequisiteLock
-              title="Chưa đủ điều kiện cấp phép (Ràng buộc BR-16)"
+              title="Chưa đủ điều kiện cấp phép"
               blockers={blockers}
             >
               <p className="mt-xs flex flex-wrap items-center gap-x-1 border-t border-[#8F1717]/20 pt-xs dark:border-[#FF9A90]/25 text-[14px] leading-[22px] text-text/80">
@@ -372,7 +372,7 @@ export function RentalApplicationReviewScreen() {
                 ...(ownerName ? [{ label: 'Chủ hộ / Đại diện', value: ownerName }] : []),
                 { label: 'Số điện thoại liên hệ', value: vendorPhone || 'Đã liên kết tài khoản' },
                 {
-                  label: 'Hồ sơ điểm kinh doanh liên kết (BR-16)',
+                  label: 'Hồ sơ điểm kinh doanh liên kết',
                   value: (
                     <span className="flex flex-wrap items-center gap-xs">
                       <span>

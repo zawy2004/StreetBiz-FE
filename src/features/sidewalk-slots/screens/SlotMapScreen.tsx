@@ -106,6 +106,15 @@ export function SlotMapScreen() {
   });
 
   const slots = useMemo(() => zoneSlots.data ?? [], [zoneSlots.data]);
+  // The middle of the chosen route's slots, where the map view opens.
+  const routeFocus = useMemo(() => {
+    if (slots.length === 0 || activeZoneId == null) return null;
+    return {
+      latitude: slots.reduce((sum, s) => sum + s.latitude, 0) / slots.length,
+      longitude: slots.reduce((sum, s) => sum + s.longitude, 0) / slots.length,
+      key: activeZoneId,
+    };
+  }, [slots, activeZoneId]);
   const selectedSlot = slots.find((s) => s.slotId === selectedSlotId) ?? null;
   const zoneName =
     zone.data?.zoneName ??
@@ -269,6 +278,7 @@ export function SlotMapScreen() {
                     setView('PLAN');
                   }}
                   empty={nearbyZones.length === 0}
+                  focus={routeFocus}
                 />
               </Suspense>
             </div>

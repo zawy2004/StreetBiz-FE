@@ -22,7 +22,7 @@ import {
 } from '../components/lifecycle/AdjacentSlotRelease';
 import { useRegistrationDetail } from '../useRegistrations';
 
-const NETWORK_ERROR = 'Không kết nối được Backend. Kiểm tra URL API, HTTPS và CORS rồi thử lại.';
+const NETWORK_ERROR = 'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.';
 
 /**
  * SIDE-09/10: tell the ward the storefront has moved. "From here to there" as

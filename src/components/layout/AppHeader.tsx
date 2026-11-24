@@ -12,7 +12,8 @@ type Props = {
 
 /**
  * Page title row in the role's heading face (Archivo signage, or Newsreader on
- * buyer screens). Actions on the right wrap under the title on phones.
+ * buyer screens). The title keeps room for itself (a 16rem basis): when the actions
+ * on the right would squeeze it ("Tài c…"), they wrap under the title instead.
  */
 export function AppHeader({ title, subtitle, back, right }: Props) {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ export function AppHeader({ title, subtitle, back, right }: Props) {
       {back ? (
         <IconButton icon="arrow-left" accessibilityLabel="Quay lại" onPress={() => navigate(-1)} />
       ) : null}
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 basis-[16rem]">
         <h1 className="line-clamp-2 break-words font-heading text-[26px] font-bold leading-[1.12] tracking-[-0.02em] text-text lg:text-[34px]">
           {title}
         </h1>

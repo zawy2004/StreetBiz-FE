@@ -132,7 +132,7 @@ describe('platform admin uses the app sign-in (one login)', () => {
 
     expect(await screen.findByText('Nội dung quản trị')).toBeInTheDocument();
     expect(me).toHaveBeenCalled();
-    expect(screen.queryByRole('button', { name: 'Kết nối Backend' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Đăng nhập' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ngắt kết nối' })).not.toBeInTheDocument();
     expect(screen.getByText(/Đỗ Quốc Anh · Platform Admin/)).toBeInTheDocument();
   });
@@ -150,7 +150,7 @@ describe('platform admin uses the app sign-in (one login)', () => {
       </QueryClientProvider>,
     );
 
-    expect(await screen.findByRole('button', { name: 'Kết nối Backend' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Đăng nhập' })).toBeInTheDocument();
     expect(screen.queryByText('Nội dung quản trị')).not.toBeInTheDocument();
     await waitFor(() => expect(refresh).not.toHaveBeenCalled());
   });

@@ -80,7 +80,7 @@ function AccountsContent() {
     <Screen width="wide">
       <AppHeader
         title="Quản lý tài khoản"
-        subtitle="ADM-02 · Khoá hoặc mở lại tài khoản người mua và hộ kinh doanh."
+        subtitle="Khoá hoặc mở lại tài khoản người mua và hộ kinh doanh."
       />
 
       <AccountsTable
