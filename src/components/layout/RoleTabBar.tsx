@@ -7,6 +7,7 @@ import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { useIsDesktop } from '@/hooks/useBreakpoint';
 import { useAuthStore } from '@/store/auth-store';
 import { BottomSheet } from './BottomSheet';
+import { activeChild, isInside } from './role-nav';
 import { ThemeToggle } from './ThemeToggle';
 
 export const SIDEBAR_WIDTH = 248;
@@ -28,16 +29,25 @@ export type RoleTabItem = {
   icon: IconName;
   /** Unread count shown on the tab; omitted or 0 renders nothing. */
   badge?: number;
-  /** Desktop sidebar only: a group that folds out under the entry. Phones keep the single tab. */
+  /**
+   * The group's pages: a fold-out list in the desktop sidebar, an indented list under the entry
+   * in the phone's "Thêm" sheet. Phones keep the entry as one tab.
+   */
   children?: RoleTabChild[];
+  /** Other path prefixes that belong to this entry (pages outside `to`'s own path). */
+  match?: string[];
+  /** Sidebar heading this entry starts (the job it belongs to); later entries share it. */
+  section?: string;
+  /** Rank on the phone's bottom bar (lower first); unranked entries follow in list order. */
+  phoneOrder?: number;
 };
 
-const under = (path: string, prefix: string) => path === prefix || path.startsWith(`${prefix}/`);
-
-/** Which child of a group the current path belongs to, if any. */
-function activeChild(path: string, children: RoleTabChild[]): string | undefined {
-  const claimed = children.find((c) => c.match && [c.to, ...c.match].some((m) => under(path, m)));
-  return (claimed ?? children.find((c) => !c.match))?.to;
+/** Bottom-bar order: ranked entries first by rank, then the rest in list order. */
+function phoneOrdered(items: RoleTabItem[]): RoleTabItem[] {
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => (a.item.phoneOrder ?? 100) - (b.item.phoneOrder ?? 100) || a.index - b.index)
+    .map(({ item }) => item);
 }
 
 /** Shared with the cart badge in ConsumerTopNav so every count looks the same. */
@@ -98,7 +108,15 @@ function Sidebar({ roleLabel, items, bell }: Props) {
       <div aria-hidden="true" className="sb-kerb sb-kerb-thin mx-md mb-sm rounded-[2px]" />
 
       <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-sm py-xs">
-        {navItems.map((item) =>
+        {navItems.map((item) => [
+          item.section ? (
+            <p
+              key={`section-${item.section}`}
+              className="px-sm pb-1 pt-md text-body-xs font-semibold uppercase tracking-[0.06em] text-muted first:pt-xs"
+            >
+              {item.section}
+            </p>
+          ) : null,
           item.children?.length ? (
             <NavGroup key={item.to} item={item} entries={item.children} />
           ) : (
@@ -134,7 +152,7 @@ function Sidebar({ roleLabel, items, bell }: Props) {
               )}
             </NavLink>
           ),
-        )}
+        ])}
       </div>
 
       <div className="flex flex-col gap-sm border-t border-border p-sm">
@@ -160,7 +178,7 @@ function Sidebar({ roleLabel, items, bell }: Props) {
 /** A sidebar entry that folds out its sub-pages; open while the person is inside it. */
 function NavGroup({ item, entries }: { item: RoleTabItem; entries: RoleTabChild[] }) {
   const { pathname } = useLocation();
-  const inside = under(pathname, item.to);
+  const inside = isInside(pathname, item);
   // null = follow the route; a click pins it open or shut until the route moves.
   const [pinned, setPinned] = useState<{ open: boolean; path: string } | null>(null);
   const open = pinned && pinned.path === pathname ? pinned.open : inside;
@@ -269,13 +287,14 @@ function TabFace({
 const TAB_CLASS =
   'flex min-h-[60px] min-w-0 flex-1 flex-col items-center justify-center gap-1 py-xs';
 
-function BottomTabBar({ items }: { items: RoleTabItem[] }) {
+function BottomTabBar({ items: listed }: { items: RoleTabItem[] }) {
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
+  const items = phoneOrdered(listed);
   const overflow = items.length > MAX_BOTTOM_TABS;
   const shown = overflow ? items.slice(0, MAX_BOTTOM_TABS - 1) : items;
   const hidden = overflow ? items.slice(MAX_BOTTOM_TABS - 1) : [];
-  const moreActive = hidden.some((item) => under(pathname, item.to));
+  const moreActive = hidden.some((item) => isInside(pathname, item));
   const moreBadge = hidden.reduce((sum, item) => sum + (item.badge ?? 0), 0);
 
   return (
@@ -283,13 +302,19 @@ function BottomTabBar({ items }: { items: RoleTabItem[] }) {
       aria-label="Điều hướng chính"
       className="flex shrink-0 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
-      {shown.map((item) => (
-        <NavLink key={item.to} to={item.to} className={TAB_CLASS}>
-          {({ isActive }) => (
-            <TabFace icon={item.icon} label={item.label} badge={item.badge} active={isActive} />
-          )}
-        </NavLink>
-      ))}
+      {shown.map((item) => {
+        const active = isInside(pathname, item);
+        return (
+          <Link
+            key={item.to}
+            to={item.to}
+            aria-current={active ? 'page' : undefined}
+            className={TAB_CLASS}
+          >
+            <TabFace icon={item.icon} label={item.label} badge={item.badge} active={active} />
+          </Link>
+        );
+      })}
       {overflow ? (
         <button
           type="button"
@@ -306,19 +331,46 @@ function BottomTabBar({ items }: { items: RoleTabItem[] }) {
           <h2 className="px-xs pb-xs text-headline-sm text-text">Mục khác</h2>
           <ul className="flex flex-col gap-0.5">
             {hidden.map((item) => {
-              const active = under(pathname, item.to);
+              const inside = isInside(pathname, item);
+              const current = item.children?.length
+                ? inside
+                  ? activeChild(pathname, item.children)
+                  : undefined
+                : undefined;
               return (
                 <li key={item.to}>
                   <Link
                     to={item.to}
                     onClick={() => setMoreOpen(false)}
-                    aria-current={active ? 'page' : undefined}
-                    className={`flex min-h-12 items-center gap-sm rounded-[14px] px-sm text-body-lg ${active ? 'bg-tint-primary font-semibold text-text' : 'text-text hover:bg-tint-muted'}`}
+                    aria-current={inside && !item.children?.length ? 'page' : undefined}
+                    className={`flex min-h-12 items-center gap-sm rounded-[14px] px-sm text-body-lg ${inside ? 'bg-tint-primary font-semibold text-text' : 'text-text hover:bg-tint-muted'}`}
                   >
                     <Icon name={item.icon} size={22} color="currentColor" />
                     <span className="min-w-0 flex-1">{item.label}</span>
                     <NavBadge count={item.badge} />
                   </Link>
+                  {item.children?.length ? (
+                    // The group's own pages, one tap away instead of hidden behind its overview.
+                    <ul
+                      aria-label={item.label}
+                      className="mb-xs ml-[30px] flex flex-col border-l border-border pl-sm"
+                    >
+                      {item.children
+                        .filter((child) => child.to !== item.to)
+                        .map((child) => (
+                          <li key={child.to}>
+                            <Link
+                              to={child.to}
+                              onClick={() => setMoreOpen(false)}
+                              aria-current={current === child.to ? 'page' : undefined}
+                              className={`flex min-h-11 items-center rounded-[10px] px-sm text-body-md ${current === child.to ? 'font-semibold text-primary-pressed' : 'text-text/80 hover:bg-tint-muted'}`}
+                            >
+                              {child.label}
+                            </Link>
+                          </li>
+                        ))}
+                    </ul>
+                  ) : null}
                 </li>
               );
             })}

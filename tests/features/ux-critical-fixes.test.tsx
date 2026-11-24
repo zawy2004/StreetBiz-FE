@@ -49,12 +49,16 @@ describe('phone tab bar', () => {
     expect(bar.queryByRole('button', { name: /Thêm/ })).not.toBeInTheDocument();
   });
 
-  it('shows four ward tabs and moves the other three behind "Thêm"', () => {
+  it('shows four ward tabs and moves the rest, with their pages, behind "Thêm"', () => {
     const bar = mountBar(WARD_TABS, '/ward/dashboard');
 
-    expect(bar.getAllByRole('link').map((l) => l.textContent)).toEqual(
-      WARD_TABS.slice(0, MAX_BOTTOM_TABS - 1).map((t) => t.label),
-    );
+    expect(bar.getAllByRole('link').map((l) => l.textContent)).toEqual([
+      'Tổng quan',
+      'Hộp duyệt',
+      'Lưới ô',
+      'Tuần tra',
+    ]);
+    expect(MAX_BOTTOM_TABS).toBe(5);
     fireEvent.click(bar.getByRole('button', { name: /Thêm/ }));
 
     const sheet = screen.getByRole('heading', { name: 'Mục khác' }).parentElement!;
@@ -62,7 +66,36 @@ describe('phone tab bar', () => {
       within(sheet)
         .getAllByRole('link')
         .map((l) => l.getAttribute('href')),
-    ).toEqual(WARD_TABS.slice(MAX_BOTTOM_TABS - 1).map((t) => t.to));
+    ).toEqual([
+      '/ward/finance',
+      '/ward/finance/receipts',
+      '/ward/finance/payout-account',
+      '/ward/tax',
+      '/ward/reports',
+      '/ward/reports/debtors',
+      '/ward/settings/pricing',
+      '/ward/settings/penalties',
+    ]);
+    // A group's pages are listed under it, named.
+    expect(within(sheet).getByRole('list', { name: 'Báo cáo' })).toHaveTextContent('Hộ còn nợ');
+  });
+
+  it("puts the vendor's daily tabs first on the phone, whatever the sidebar order", () => {
+    const bar = mountBar(VENDOR_TABS, '/vendor/home');
+
+    expect(bar.getAllByRole('link').map((l) => l.textContent)).toEqual([
+      'Trang chủ',
+      'Ô thuê',
+      'Tài chính',
+      'Đơn hàng',
+    ]);
+  });
+
+  it("lights a group's tab on its pages outside its own path", () => {
+    const bar = mountBar(VENDOR_TABS, '/vendor/finance/invoices/3');
+
+    expect(bar.getByRole('link', { name: 'Tài chính' })).toHaveAttribute('aria-current', 'page');
+    expect(bar.getByRole('link', { name: 'Ô thuê' })).not.toHaveAttribute('aria-current');
   });
 
   it('lights "Thêm" when the officer is on a page that lives behind it', () => {
