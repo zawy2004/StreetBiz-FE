@@ -845,7 +845,7 @@ export function RecordViolationScreen() {
     >
       <AppHeader
         title={createdViolation ? 'Ra Quyết định xử phạt' : 'Lập biên bản vi phạm'}
-        subtitle="Xử lý vi phạm trật tự hè phố (WARD-12)"
+        subtitle="Xử lý vi phạm trật tự hè phố"
         back
       />
       {sourceReportId ? (

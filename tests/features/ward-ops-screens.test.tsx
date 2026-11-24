@@ -174,9 +174,9 @@ describe('W16 PermitActionScreen (live)', () => {
     renderScreen();
     const confirm = screen.getByRole('button', { name: 'Xác nhận xử lý' });
     expect(confirm).toBeDisabled();
-    await user.type(screen.getByLabelText(/Lý do xử lý bắt buộc/), '   abcd  ');
+    await user.type(screen.getByLabelText(/Lý do xử lý/), '   abcd  ');
     expect(confirm).toBeDisabled();
-    await user.type(screen.getByLabelText(/Lý do xử lý bắt buộc/), 'e');
+    await user.type(screen.getByLabelText(/Lý do xử lý/), 'e');
     expect(confirm).toBeEnabled();
   });
 
@@ -184,13 +184,13 @@ describe('W16 PermitActionScreen (live)', () => {
     const action = vi.spyOn(complianceApi, 'permitAction');
     const user = userEvent.setup();
     renderScreen();
-    const field = screen.getByLabelText(/Lý do xử lý bắt buộc/);
+    const field = screen.getByLabelText(/Lý do xử lý/);
     await user.click(field);
     await user.paste('x'.repeat(501));
     await user.click(screen.getByRole('button', { name: 'Xác nhận xử lý' }));
     expect(action).not.toHaveBeenCalled();
     expect(useToastStore.getState().message).toBe(
-      'Vui lòng nhập lý do xử lý cụ thể (từ 5 đến 500 ký tự — BR-35)',
+      'Vui lòng nhập lý do xử lý cụ thể (từ 5 đến 500 ký tự)',
     );
   });
 
@@ -204,7 +204,7 @@ describe('W16 PermitActionScreen (live)', () => {
     await user.click(screen.getByRole('radio', { name: /Thu hồi vĩnh viễn giấy phép/ }));
     expect(screen.getByText('THU HỒI VĨNH VIỄN')).toBeInTheDocument();
     await user.click(screen.getByRole('checkbox'));
-    await user.type(screen.getByLabelText(/Lý do xử lý bắt buộc/), '  Tái phạm lần 3  ');
+    await user.type(screen.getByLabelText(/Lý do xử lý/), '  Tái phạm lần 3  ');
     await user.click(screen.getByRole('button', { name: 'Xác nhận xử lý' }));
 
     expect(action).toHaveBeenCalledWith(128, 'REVOKE', 'Tái phạm lần 3', true);
@@ -215,7 +215,7 @@ describe('W16 PermitActionScreen (live)', () => {
   it('drops a sentence starter at the end of the reason', async () => {
     const user = userEvent.setup();
     renderScreen();
-    const field = screen.getByLabelText(/Lý do xử lý bắt buộc/);
+    const field = screen.getByLabelText(/Lý do xử lý/);
     await user.type(field, 'Bày quá vạch.');
     await user.click(screen.getByRole('button', { name: /Chậm nộp phí quá hạn/ }));
     expect(field).toHaveValue('Bày quá vạch. Chậm nộp phí quá hạn');

@@ -221,7 +221,10 @@ function ModerationContent() {
 
   return (
     <Screen width="wide">
-      <AppHeader title="Kiểm duyệt" subtitle="ADM-03 · ADM-04 · ADM-05" />
+      <AppHeader
+        title="Kiểm duyệt"
+        subtitle="Xử lý nội dung bị báo cáo và khiếu nại đơn hàng của người mua"
+      />
       <QueueTabs
         value={tab}
         onChange={setTab}

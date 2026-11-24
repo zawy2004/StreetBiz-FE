@@ -74,7 +74,7 @@ describe('ward review screens (mock mode)', () => {
 
   it('inbox (mock): demo subtitle, report chip, no live signposts, rows open the case', () => {
     mount('/ward/inbox', '/ward/inbox', <InboxScreen />);
-    expect(screen.getByText('Dữ liệu giả lập (không có Backend)')).toBeInTheDocument();
+    expect(screen.getByText('Dữ liệu mẫu để xem thử')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Phản ánh/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Hồ sơ vị trí/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Mở hồ sơ Bánh mì Hội An' }));
@@ -101,7 +101,7 @@ describe('ward review screens (mock mode)', () => {
       <RentalApplicationReviewScreen />,
     );
     expect(screen.getByRole('button', { name: 'Duyệt & Cấp phép số' })).toBeDisabled();
-    expect(screen.getByText('Chưa đủ điều kiện cấp phép (Ràng buộc BR-16)')).toBeInTheDocument();
+    expect(screen.getByText('Chưa đủ điều kiện cấp phép')).toBeInTheDocument();
     const plan = screen.getByRole('img', { name: /^Sơ đồ ô / });
     expect(plan.getAttribute('aria-label')).toMatch(/rộng 2 mét/);
     expect(plan.getAttribute('aria-label')).not.toMatch(/m²/);

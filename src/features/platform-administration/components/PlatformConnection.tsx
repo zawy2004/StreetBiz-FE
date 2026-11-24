@@ -51,7 +51,7 @@ export function PlatformConnection({ children }: { children: ReactNode }) {
     // No <form>: Enter does not send, exactly as before. The phone is sent as typed.
     return (
       <Screen>
-        <AppHeader title="Kết nối quản trị nền tảng" subtitle="ADM-01 · ADM-03 · ADM-04 · ADM-05" />
+        <AppHeader title="Kết nối quản trị nền tảng" subtitle="Đăng nhập tài khoản quản trị để quản lý nền tảng" />
         <section
           aria-label="Mở phiên quản trị"
           className="sb-pop w-full max-w-[560px] overflow-hidden rounded-[20px] bg-card shadow-sheet ring-1 ring-border"
@@ -77,7 +77,7 @@ export function PlatformConnection({ children }: { children: ReactNode }) {
               </div>
               <PasswordField value={password} onChangeText={setPassword} error={error} />
               <Button
-                label={busy ? 'Đang đăng nhập…' : 'Kết nối Backend'}
+                label={busy ? 'Đang đăng nhập…' : 'Đăng nhập'}
                 onPress={connect}
                 loading={busy}
                 disabled={!phone.trim() || !password}

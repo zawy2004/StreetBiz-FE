@@ -315,7 +315,7 @@ function LiveOrderDetailScreen() {
       <ConfirmDialog
         visible={confirmCancel}
         title="Huỷ đơn hàng?"
-        description="Chỉ đơn chưa được người bán nhận mới có thể huỷ. Nếu đã thanh toán, Backend sẽ tạo yêu cầu hoàn tiền."
+        description="Chỉ đơn chưa được người bán nhận mới có thể huỷ. Nếu đã thanh toán, hệ thống sẽ tự tạo yêu cầu hoàn tiền."
         confirmLabel="Huỷ đơn"
         confirmVariant="danger"
         onConfirm={() => transition.mutate()}

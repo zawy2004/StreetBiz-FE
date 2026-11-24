@@ -329,7 +329,7 @@ export function RegistrationReviewScreen() {
     >
       <AppHeader
         title={displayName}
-        subtitle="Thẩm định điểm kinh doanh vỉa hè (WARD-04/05/06)"
+        subtitle="Thẩm định điểm kinh doanh vỉa hè"
         back
       />
       <div className="flex flex-col gap-sm lg:flex-row lg:items-center lg:justify-between">
@@ -489,7 +489,7 @@ export function RegistrationReviewScreen() {
 
           <DossierBlock
             id="reg-identity"
-            title="Xác minh danh tính (bắt buộc trước khi duyệt — BR-41)"
+            title="Xác minh danh tính (bắt buộc trước khi duyệt)"
             icon="account-circle-outline"
           >
             <div className="rounded-[20px] bg-card p-md shadow-card ring-1 ring-border md:p-lg">
@@ -679,7 +679,7 @@ export function RegistrationReviewScreen() {
                   size={16}
                   color="currentColor"
                 />
-                {identityVerified ? 'Cổng BR-41: đã mở' : 'Cổng BR-41: chờ bước 2'}
+                {identityVerified ? 'Đã xác minh danh tính, có thể duyệt' : 'Chờ đối chiếu CCCD gốc (bước 2)'}
               </p>
               {noteField}
               <div className="flex flex-col gap-sm">

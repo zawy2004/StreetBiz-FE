@@ -646,7 +646,7 @@ function ContractList() {
           <TextField
             value={query}
             onChangeText={setQuery}
-            placeholder="Tìm theo mã ô, tên hộ hoặc số điện thoại"
+            placeholder="Tìm mã ô, tên hộ, số điện thoại"
           />
         </div>
       </div>

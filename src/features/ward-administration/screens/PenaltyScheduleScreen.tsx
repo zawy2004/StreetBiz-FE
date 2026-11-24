@@ -118,7 +118,7 @@ function CompliancePolicySection() {
   return (
     <Section
       title="Chính sách thu hồi giấy phép do vi phạm nhiều lần"
-      description="Chỉ mang tính gợi ý cho cán bộ -- không tự động thu hồi (BR-41). Để trống = tắt tính năng."
+      description="Chỉ mang tính gợi ý cho cán bộ -- không tự động thu hồi giấy phép. Để trống để tắt."
     >
       <div className="flex flex-col gap-md rounded-[20px] bg-card p-md shadow-card ring-1 ring-border md:p-lg">
         <p className="max-w-[62ch] text-[18px] leading-[2.6] text-text md:text-[19px]">
@@ -260,7 +260,7 @@ function PenaltyScheduleContent() {
 
   return (
     <Screen width="wide">
-      <AppHeader title="Biểu mức phạt" back subtitle="WARD-03 · Áp dụng cho toàn phường" />
+      <AppHeader title="Biểu mức phạt" back subtitle="Mức phạt áp dụng cho toàn phường" />
 
       <div className="overflow-hidden rounded-[24px] bg-card shadow-card ring-1 ring-border">
         <div aria-hidden="true" className="sb-kerb sb-kerb-thin" />
@@ -371,7 +371,6 @@ function PenaltyScheduleContent() {
             {retired.map((type) => (
               <li key={type.violationType} className="px-md py-sm">
                 <p className="text-body-md text-muted">{type.description}</p>
-                <p className="font-sign text-body-sm text-muted">{type.violationType}</p>
               </li>
             ))}
           </ul>
@@ -459,9 +458,6 @@ function PenaltyTypeCard({
                 đã dùng cho quyết định xử phạt
               </span>
             )}
-            <span className="font-sign text-body-xs font-semibold tracking-[0.02em] text-muted">
-              {type.violationType}
-            </span>
           </div>
           {current && <LegalBasis text={current.legalBasis} />}
         </div>

@@ -593,7 +593,7 @@ describe('PlatformConnection gate', () => {
     const user = userEvent.setup();
     mount('/platform/categories', '/platform/categories', <CategoriesScreen />);
 
-    const connect = screen.getByRole('button', { name: 'Kết nối Backend' });
+    const connect = screen.getByRole('button', { name: 'Đăng nhập' });
     expect(connect).toBeDisabled();
     await user.type(screen.getByLabelText('Số điện thoại'), '0905000005');
     expect(connect).toBeDisabled();

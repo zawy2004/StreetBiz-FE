@@ -91,7 +91,7 @@ export function CommunityConnection({
           <div className="flex flex-col gap-sm sm:flex-row sm:items-center">
             <div className="w-full sm:w-auto sm:shrink-0">
               <Button
-                label={busy ? 'Đang đăng nhập…' : 'Đăng nhập Backend'}
+                label={busy ? 'Đang đăng nhập…' : 'Đăng nhập'}
                 onPress={connect}
                 disabled={busy || !phone.trim() || !password}
               />

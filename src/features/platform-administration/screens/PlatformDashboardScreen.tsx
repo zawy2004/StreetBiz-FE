@@ -72,7 +72,7 @@ function DashboardContent() {
     <Screen width="wide">
       <AppHeader
         title="Tổng quan nền tảng"
-        subtitle="Chợ vỉa hè StreetBiz · ADM-06"
+        subtitle="Hoạt động của chợ vỉa hè StreetBiz và việc cần xử lý"
         right={
           <>
             <Button
