@@ -24,9 +24,31 @@ const api = vi.hoisted(() => ({
   marketplaceCategories: vi.fn(),
   menuItems: vi.fn(),
   menuItem: vi.fn(),
-  cart: vi.fn(),
+  carts: vi.fn(),
   addCartItem: vi.fn(),
 }));
+
+/** A cart held at another stall (id 9) with two dishes in it. */
+const otherStallCart = {
+  cartId: 1,
+  storefrontId: 9,
+  storefrontName: 'Quán Cô Lan',
+  storefrontAddress: null,
+  storefrontStatus: 'OPEN',
+  items: [
+    {
+      cartItemId: 1,
+      menuItemId: 3,
+      itemName: 'Xôi',
+      imageUrl: null,
+      unitPrice: 1,
+      availabilityStatus: 'AVAILABLE',
+      quantity: 2,
+      note: null,
+    },
+  ],
+  subtotal: 2,
+};
 
 const community = vi.hoisted(() => ({
   profile: vi.fn(),
@@ -284,15 +306,7 @@ describe('Item detail (C04 rebuild)', () => {
         account_status: 'ACTIVE',
       },
     });
-    api.cart.mockResolvedValue({
-      cartId: 1,
-      storefrontId: 1,
-      storefrontName: 'Bún chả Hải Châu',
-      storefrontAddress: null,
-      storefrontStatus: 'OPEN',
-      items: [],
-      subtotal: 0,
-    });
+    api.carts.mockResolvedValue([]);
     api.addCartItem.mockResolvedValue({});
     renderAt('/customer/explore/items/20', '/customer/explore/items/:itemId', <ItemDetailScreen />);
 
@@ -305,7 +319,7 @@ describe('Item detail (C04 rebuild)', () => {
     await waitFor(() => expect(api.addCartItem).toHaveBeenCalledWith(20, 2, 'Ít cay'));
   });
 
-  it('warns before a cart from another stall is replaced, and still asks', async () => {
+  it('keeps the cart of another stall and adds to its own one, without asking', async () => {
     const user = userEvent.setup();
     useAuthStore.setState({
       user: {
@@ -317,34 +331,35 @@ describe('Item detail (C04 rebuild)', () => {
         account_status: 'ACTIVE',
       },
     });
-    api.cart.mockResolvedValue({
-      cartId: 1,
-      storefrontId: 9,
-      storefrontName: 'Quán Cô Lan',
-      storefrontAddress: null,
-      storefrontStatus: 'OPEN',
-      items: [
-        {
-          cartItemId: 1,
-          menuItemId: 3,
-          itemName: 'Xôi',
-          imageUrl: null,
-          unitPrice: 1,
-          availabilityStatus: 'AVAILABLE',
-          quantity: 2,
-          note: null,
-        },
-      ],
-      subtotal: 2,
-    });
+    api.menuItem.mockResolvedValue(makeMenuItem({ storefrontId: 1 }));
+    api.carts.mockResolvedValue([otherStallCart]);
+    api.addCartItem.mockResolvedValue({});
     renderAt('/customer/explore/items/20', '/customer/explore/items/:itemId', <ItemDetailScreen />);
 
-    expect(await screen.findByText(/Thêm món này sẽ thay giỏ ở Quán Cô Lan/)).toBeInTheDocument();
-    const order = screen.getByRole('button', { name: /Thêm vào giỏ ·/ });
+    const order = await screen.findByRole('button', { name: /Thêm vào giỏ ·/ });
     await waitFor(() => expect(order).toBeEnabled());
+    expect(screen.queryByText(/sẽ thay giỏ/)).not.toBeInTheDocument();
     await user.click(order);
-    expect(await screen.findByText('Thay giỏ hàng hiện tại?')).toBeInTheDocument();
-    expect(api.addCartItem).not.toHaveBeenCalled();
+    await waitFor(() => expect(api.addCartItem).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('Thay giỏ hàng hiện tại?')).not.toBeInTheDocument();
+  });
+
+  it('says how many dishes the cart of this stall already holds', async () => {
+    useAuthStore.setState({
+      user: {
+        id: '1',
+        fullName: 'A',
+        phone: '1',
+        password: '',
+        role_code: 'CUSTOMER',
+        account_status: 'ACTIVE',
+      },
+    });
+    api.menuItem.mockResolvedValue(makeMenuItem({ storefrontId: 9 }));
+    api.carts.mockResolvedValue([otherStallCart]);
+    renderAt('/customer/explore/items/20', '/customer/explore/items/:itemId', <ItemDetailScreen />);
+
+    expect(await screen.findByText('Giỏ của quán này đang có 2 món.')).toBeInTheDocument();
   });
 
   it('hides the stepper and keeps the button disabled when sold out', async () => {

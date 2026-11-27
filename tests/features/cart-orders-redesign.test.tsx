@@ -14,7 +14,7 @@ import type { Order } from '@/features/orders/types/order.types';
  */
 
 const legacyApi = vi.hoisted(() => ({
-  cart: vi.fn(),
+  carts: vi.fn(),
   paymentOptions: vi.fn(),
   storefrontPaymentOptions: vi.fn(),
   customerOrder: vi.fn(),
@@ -163,6 +163,27 @@ const cart: CommerceCart = {
   ],
 };
 
+/** Another stall's draft: every stall the buyer added dishes at keeps its own cart. */
+const second: CommerceCart = {
+  ...cart,
+  cartId: 8,
+  storefrontId: 9,
+  storefrontName: 'Bún bò Huế',
+  subtotal: 40_000,
+  items: [
+    {
+      cartItemId: 6,
+      menuItemId: 12,
+      itemName: 'Bún bò',
+      imageUrl: null,
+      unitPrice: 40_000,
+      availabilityStatus: 'AVAILABLE',
+      quantity: 1,
+      note: null,
+    },
+  ],
+};
+
 function renderAt(path: string, route: string, element: React.ReactNode) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -235,30 +256,59 @@ beforeEach(() => {
 
 describe('C10 cart', () => {
   it('says why checkout is off while the stall is closed', async () => {
-    legacyApi.cart.mockResolvedValue({ ...cart, storefrontStatus: 'CLOSED' });
+    legacyApi.carts.mockResolvedValue([{ ...cart, storefrontStatus: 'CLOSED' }]);
     renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
     expect(await screen.findByText(/Quán đang đóng cửa nên chưa đặt được/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Thanh toán · 50.000 đ/ })).toBeDisabled();
   });
 
   it('labels a stock photo as illustrative', async () => {
-    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.carts.mockResolvedValue([cart]);
     renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
     expect(await screen.findByText('Ảnh minh hoạ')).toBeInTheDocument();
   });
 
   it('renders the checkout button once on a desktop', async () => {
     asDesktop();
-    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.carts.mockResolvedValue([cart]);
     renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
     await screen.findByText('Bánh mì');
     expect(screen.getAllByRole('button', { name: /Thanh toán ·/ })).toHaveLength(1);
+  });
+
+  it('lists a draft cart per stall when several are held and none is named', async () => {
+    legacyApi.carts.mockResolvedValue([cart, second]);
+    renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
+    expect(await screen.findByRole('button', { name: /Bếp Việt/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Bún bò Huế/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Thanh toán ·/ })).not.toBeInTheDocument();
+  });
+
+  it('opens the cart of the stall named in the address, and links to the others', async () => {
+    legacyApi.carts.mockResolvedValue([cart, second]);
+    renderAt('/customer/explore/cart?store=9', '/customer/explore/cart', <CartScreen />);
+    expect(await screen.findByText('Bún bò')).toBeInTheDocument();
+    expect(screen.queryByText('Bánh mì')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Thanh toán · 40.000 đ/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Giỏ của 1 quán khác' })).toBeInTheDocument();
+  });
+
+  it('shows the list again when the named stall has no cart any more', async () => {
+    legacyApi.carts.mockResolvedValue([cart]);
+    renderAt('/customer/explore/cart?store=9', '/customer/explore/cart', <CartScreen />);
+    expect(await screen.findByRole('button', { name: /Bếp Việt/ })).toBeInTheDocument();
+  });
+
+  it('marks the stall whose order is waiting for payment', async () => {
+    legacyApi.carts.mockResolvedValue([{ ...cart, pendingOrderId: 19 }, second]);
+    renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
+    expect(await screen.findByText('Đang chờ thanh toán')).toBeInTheDocument();
   });
 });
 
 describe('C11 checkout', () => {
   it('says what it is waiting for while the order is being created', async () => {
-    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.carts.mockResolvedValue([cart]);
     ordersApi.checkout.mockImplementation(() => new Promise(() => undefined));
     vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'uuid-1') });
     const user = userEvent.setup();
@@ -268,8 +318,28 @@ describe('C11 checkout', () => {
     expect(screen.queryByText(/thành công/i)).not.toBeInTheDocument();
   });
 
+  it('pays the cart of the stall named in the address, not another one', async () => {
+    legacyApi.carts.mockResolvedValue([cart, second]);
+    ordersApi.checkout.mockImplementation(() => new Promise(() => undefined));
+    vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'uuid-second') });
+    const user = userEvent.setup();
+    renderAt('/customer/checkout?store=9', '/customer/checkout', <CheckoutScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Thanh toán và đặt món' }));
+    expect(ordersApi.checkout).toHaveBeenCalledWith(
+      expect.objectContaining({ cartId: second.cartId }),
+      'uuid-second',
+    );
+  });
+
+  it('goes back to the cart list when several carts are held and none is named', async () => {
+    legacyApi.carts.mockResolvedValue([cart, second]);
+    renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
+    expect(await screen.findByText('cart destination')).toBeInTheDocument();
+    expect(ordersApi.checkout).not.toHaveBeenCalled();
+  });
+
   it('retries a failed checkout with the same idempotency key', async () => {
-    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.carts.mockResolvedValue([cart]);
     ordersApi.checkout.mockRejectedValueOnce(new ApiError('server_error', 503, 'Mạng chập chờn.'));
     ordersApi.checkout.mockImplementation(() => new Promise(() => undefined));
     const uuid = vi.fn().mockReturnValueOnce('uuid-a').mockReturnValueOnce('uuid-b');
@@ -286,7 +356,7 @@ describe('C11 checkout', () => {
   it('starts payment again with a NEW key after a payment failed (PAY-02)', async () => {
     // First visit: the key is generated and the order is created; the payment then fails at the
     // provider. Coming back to checkout is a new visit, so it must not replay the dead order's key.
-    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.carts.mockResolvedValue([cart]);
     ordersApi.checkout.mockImplementation(() => new Promise(() => undefined));
     const uuid = vi.fn().mockReturnValueOnce('uuid-first').mockReturnValueOnce('uuid-second');
     vi.stubGlobal('crypto', { randomUUID: uuid });
@@ -303,7 +373,7 @@ describe('C11 checkout', () => {
   });
 
   it('keeps the wallet choice a real, named radio', async () => {
-    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.carts.mockResolvedValue([cart]);
     renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
     const zalo = await screen.findByRole('radio', { name: /ZaloPay/ });
     expect(zalo.tagName).toBe('INPUT');
@@ -311,7 +381,7 @@ describe('C11 checkout', () => {
   });
 
   it("offers the household's own payOS account first, naming who is paid, and sends PAYOS", async () => {
-    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.carts.mockResolvedValue([cart]);
     legacyApi.storefrontPaymentOptions.mockResolvedValue({
       mode: 'LIVE',
       providers: ['PAYOS'],
@@ -345,7 +415,7 @@ describe('C11 checkout', () => {
   });
 
   it('takes no order, and says so, when the stall has not connected a receiving account', async () => {
-    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.carts.mockResolvedValue([cart]);
     legacyApi.storefrontPaymentOptions.mockResolvedValue({
       mode: 'UNAVAILABLE',
       providers: [],
@@ -364,7 +434,7 @@ describe('C11 checkout', () => {
   });
 
   it('lets the customer retry when the stall\'s payment methods could not be read', async () => {
-    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.carts.mockResolvedValue([cart]);
     legacyApi.storefrontPaymentOptions
       .mockRejectedValueOnce(new ApiError('server_error', 503, 'Mạng chập chờn.'))
       .mockResolvedValue({
