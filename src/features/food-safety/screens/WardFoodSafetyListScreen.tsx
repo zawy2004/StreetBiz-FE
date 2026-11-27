@@ -91,7 +91,7 @@ export function WardFoodSafetyListScreen() {
       <AppHeader
         title="Hồ sơ ATTP"
         back
-        subtitle="Xét hồ sơ, chuyển Chi cục ATTP và cập nhật kết quả"
+        subtitle="Xét hồ sơ, chuyển Ban Quản lý ATTP và cập nhật kết quả"
       />
       <div className="flex flex-col gap-xs sm:flex-row sm:items-center sm:justify-between sm:gap-md">
         <div className="relative w-full sm:max-w-[360px]">

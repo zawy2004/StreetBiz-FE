@@ -34,7 +34,7 @@ export function applyIntent(intent: SearchIntent, hasPosition: boolean): IntentA
   if (intent.maxPrice !== null) filters.maxPrice = intent.maxPrice;
   if (intent.minRating !== null) filters.minRating = intent.minRating;
   if (intent.minPrice !== null) {
-    notes.push('Chưa lọc được theo giá tối thiểu; bộ lọc giá chỉ áp mức tối đa.');
+    notes.push('Chưa lọc được theo giá tối thiểu; bộ lọc giá chỉ áp dụng mức tối đa.');
   }
 
   if (intent.nearMe) {

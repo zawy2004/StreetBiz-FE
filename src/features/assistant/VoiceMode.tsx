@@ -83,7 +83,7 @@ export function VoiceMode({
           <ul>
             <li>Bạn có thể nói chen ngang để ngắt lời trợ lý bất cứ lúc nào.</li>
             <li>Số tiền và hiệu lực giấy phép luôn hiện kèm thẻ dữ liệu để đối chiếu.</li>
-            <li>Không đọc mật khẩu, OTP hoặc số giấy tờ tùy thân.</li>
+            <li>Không đọc mật khẩu, OTP hoặc số giấy tờ tuỳ thân.</li>
           </ul>
           <div className="sb-voice-consent-actions">
             <button type="button" className="sb-btn is-ghost" onClick={onClose}>
@@ -170,7 +170,7 @@ export function VoiceMode({
               >
                 <p className="sb-voice-dock-head">
                   <span className="sb-live-dot" aria-hidden="true" />
-                  <span>{stalls.length ? 'Quầy phù hợp' : 'Dữ liệu trực tiếp'}</span>
+                  <span>{stalls.length ? 'Quán phù hợp' : 'Dữ liệu trực tiếp'}</span>
                   <small>để đối chiếu · chạm để xem</small>
                 </p>
                 {stalls.length > 0 && (

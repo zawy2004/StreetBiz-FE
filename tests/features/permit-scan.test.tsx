@@ -75,7 +75,7 @@ describe('PermitScanScreen (live, BR-39)', () => {
     const user = userEvent.setup();
     renderScreen();
 
-    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), '  SB-HC1-2026-0815  ');
+    await user.type(screen.getByLabelText('Mã giấy phép hoặc nội dung mã QR'), '  SB-HC1-2026-0815  ');
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
 
     expect(inspect).toHaveBeenCalledWith('SB-HC1-2026-0815', undefined, undefined, undefined);
@@ -96,7 +96,7 @@ describe('PermitScanScreen (live, BR-39)', () => {
     const user = userEvent.setup();
     renderScreen();
 
-    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), 'SB-HC1-2026-0815');
+    await user.type(screen.getByLabelText('Mã giấy phép hoặc nội dung mã QR'), 'SB-HC1-2026-0815');
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
     await screen.findByText('Bánh mì Cô Lan');
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
@@ -111,7 +111,7 @@ describe('PermitScanScreen (live, BR-39)', () => {
     const user = userEvent.setup();
     renderScreen();
 
-    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), 'KHONG-CO');
+    await user.type(screen.getByLabelText('Mã giấy phép hoặc nội dung mã QR'), 'KHONG-CO');
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
 
     expect(await screen.findByText('Không tìm thấy giấy phép')).toBeInTheDocument();
@@ -122,14 +122,14 @@ describe('PermitScanScreen (live, BR-39)', () => {
     const user = userEvent.setup();
     const view = renderScreen();
 
-    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), 'SB-HC1-2026-0815');
+    await user.type(screen.getByLabelText('Mã giấy phép hoặc nội dung mã QR'), 'SB-HC1-2026-0815');
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
     await user.click(await screen.findByRole('button', { name: 'Lập biên bản vi phạm' }));
     expect(await screen.findByText('violation form')).toBeInTheDocument();
 
     view.unmount();
     renderScreen();
-    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), 'SB-HC1-2026-0815');
+    await user.type(screen.getByLabelText('Mã giấy phép hoặc nội dung mã QR'), 'SB-HC1-2026-0815');
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
     await user.click(await screen.findByRole('button', { name: 'Đình chỉ / thu hồi' }));
     expect(await screen.findByText('permit action')).toBeInTheDocument();

@@ -14,7 +14,7 @@ export function BoundaryStrip() {
         className="mt-px shrink-0"
       />
       <p className="text-body-md font-medium">
-        Chưa cấu hình ranh giới phường chính thức, tọa độ ô sạp chỉ được ghi nhận theo vị trí cắm
+        Chưa cấu hình ranh giới phường chính thức, toạ độ ô sạp chỉ được ghi nhận theo vị trí cắm
         pin.
       </p>
     </div>
@@ -88,7 +88,7 @@ export function SurveyTips() {
       <p className="px-md pb-md text-body-md text-text">
         Bản đồ và ảnh vệ tinh chỉ để định vị gần đúng (sai số vài mét). Hãy khảo sát thực địa, đo bề
         rộng vỉa hè và chiều dài ô bằng thước, rồi đứng tại vị trí ô bấm{' '}
-        <strong>Vị trí của tôi</strong> để ghi tọa độ GPS thay vì chấm tay trên ảnh.
+        <strong>Vị trí của tôi</strong> để ghi toạ độ GPS thay vì chấm tay trên ảnh.
       </p>
     </details>
   );

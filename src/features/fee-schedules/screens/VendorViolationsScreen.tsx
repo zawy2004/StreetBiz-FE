@@ -71,7 +71,7 @@ export function VendorViolationsScreen() {
             <span className="mt-0.5 shrink-0 text-tertiary">
               <Icon name="information-outline" size={18} color="currentColor" />
             </span>
-            Biên bản do Cán bộ Phường lập. Tiền phạt nộp ở mục Tài chính, tab Biên bản phạt.
+            Biên bản do Cán bộ phường lập. Tiền phạt nộp ở mục Tài chính, tab Biên bản phạt.
           </p>
         </>
       )}

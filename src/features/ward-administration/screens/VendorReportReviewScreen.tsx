@@ -108,7 +108,7 @@ function MockVendorReportReviewScreen() {
               error={null}
               onResolve={(outcome, note, refundAmount) => {
                 resolveReport(report.id, { resolution: outcome, note, refundAmount });
-                showToast(outcome === 'DISMISSED' ? 'Đã bác phản ánh' : 'Đã ghi nhận hòa giải');
+                showToast(outcome === 'DISMISSED' ? 'Đã bác phản ánh' : 'Đã ghi nhận hoà giải');
               }}
               onRecordViolation={() =>
                 navigate(

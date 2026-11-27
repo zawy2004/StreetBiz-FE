@@ -464,7 +464,7 @@ function ZoneEditor({
   const remove = useMutation({
     mutationFn: () => wardConfigApi.deleteZone(zone!),
     onSuccess: () => {
-      showToast('Đã xóa khu vực');
+      showToast('Đã xoá khu vực');
       void client.invalidateQueries({ queryKey: ['ward', userId, 'zones'] });
       onClose();
     },
@@ -619,7 +619,7 @@ function ZoneEditor({
                 label="Giảm giá khi thuê theo quý (không bắt buộc)"
                 value={draft.quarterDiscountPercent}
                 onChange={(v) => set('quarterDiscountPercent', v)}
-                helperText="Trừ vào tiền thuê ô (không trừ phụ phí) khi thuê 3, 6 hoặc 12 tháng. Để trống nếu không khuyến mãi."
+                helperText="Trừ vào tiền thuê ô (không trừ phụ phí) khi thuê 3, 6 hoặc 12 tháng. Để trống nếu không giảm."
               />
             )}
           </EditorGroup>
@@ -778,7 +778,7 @@ function ZoneEditor({
             />
             {zone.slotCount === 0 && zone.featureCount === 0 && (
               <Button
-                label="Xóa khu vực"
+                label="Xoá khu vực"
                 variant="danger"
                 fullWidth={false}
                 icon={<Icon name="trash-can-outline" size={18} color="currentColor" />}
@@ -791,9 +791,9 @@ function ZoneEditor({
       </div>
       <ConfirmDialog
         visible={confirmDelete}
-        title="Xóa khu vực?"
-        description="Chỉ xóa được khu vực chưa có ô sạp và chướng ngại vật."
-        confirmLabel="Xóa"
+        title="Xoá khu vực?"
+        description="Chỉ xoá được khu vực chưa có ô sạp và chướng ngại vật."
+        confirmLabel="Xoá"
         confirmVariant="danger"
         onConfirm={() => {
           setConfirmDelete(false);
@@ -834,9 +834,7 @@ function PriceSuggestionBox({
   return (
     <AiSuggestionCard
       title={
-        data.isAiGenerated
-          ? 'Gợi ý giá thuê [AI]'
-          : 'Gợi ý giá thuê [Hệ thống — chưa xác minh bằng AI]'
+        data.isAiGenerated ? 'Gợi ý giá thuê [AI]' : 'Gợi ý giá thuê [Hệ thống, không dùng AI]'
       }
       aiLogId={data.aiLogId}
     >
@@ -906,7 +904,7 @@ function FeeComponentsEditor({
             onChange={(v) => update(i, { calcBasis: v })}
             options={[
               { value: 'PER_DAY', label: 'Theo ngày' },
-              { value: 'PER_TERM', label: 'Một lần mỗi kỳ (cả khi gia hạn)' },
+              { value: 'PER_TERM', label: 'Mỗi kỳ hợp đồng (thu lại khi gia hạn)' },
               { value: 'ONE_TIME', label: 'Một lần (chỉ hợp đồng đầu)' },
               { value: 'DEPOSIT', label: 'Tiền cọc (hoàn lại)' },
             ]}

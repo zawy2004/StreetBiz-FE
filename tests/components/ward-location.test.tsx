@@ -34,18 +34,18 @@ describe('ward proposal location', () => {
         />
       </QueryClientProvider>,
     );
-    expect(screen.getByRole('button', { name: 'Lưu tọa độ đề xuất' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Lưu toạ độ đề xuất' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Kiểm tra ranh giới' }));
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Lưu tọa độ đề xuất' })).toBeEnabled(),
+      expect(screen.getByRole('button', { name: 'Lưu toạ độ đề xuất' })).toBeEnabled(),
     );
     fireEvent.change(screen.getByLabelText('Vĩ độ'), { target: { value: '11' } });
-    expect(screen.getByRole('button', { name: 'Lưu tọa độ đề xuất' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Lưu toạ độ đề xuất' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Kiểm tra ranh giới' }));
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Lưu tọa độ đề xuất' })).toBeEnabled(),
+      expect(screen.getByRole('button', { name: 'Lưu toạ độ đề xuất' })).toBeEnabled(),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Lưu tọa độ đề xuất' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu toạ độ đề xuất' }));
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
     expect(pin).toHaveBeenCalledWith('1', { latitude: 11, longitude: 106 });
   });

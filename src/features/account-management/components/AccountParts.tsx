@@ -11,7 +11,7 @@ const ROLE_SCOPE: Record<RoleCode, string> = {
   CUSTOMER: 'Tìm quán, đặt món và nhắn tin với người bán.',
   VENDOR: 'Hồ sơ, ô thuê, phí và đơn hàng của hộ kinh doanh.',
   WARD_AUTHORITY: 'Bạn quản lý vỉa hè của phường. Mọi quyết định duyệt, xử phạt do bạn thực hiện.',
-  PLATFORM_ADMIN: 'Vận hành nền tảng. Không có quyền nghiệp vụ của Phường.',
+  PLATFORM_ADMIN: 'Vận hành nền tảng. Không có quyền nghiệp vụ của phường.',
 };
 
 type PlateProps = {

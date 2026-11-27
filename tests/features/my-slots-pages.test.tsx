@@ -119,7 +119,7 @@ describe('Đơn thuê ô', () => {
     renderAt('/vendor/slots/rental-applications', <RentalApplicationsScreen />);
 
     expect(await screen.findByText('S-104')).toBeInTheDocument();
-    const tabs = screen.getByRole('navigation', { name: 'Thuê ô của tôi' });
+    const tabs = screen.getByRole('navigation', { name: 'Ô thuê của tôi' });
     expect(within(tabs).getAllByRole('link').map((l) => l.textContent)).toEqual([
       'Đơn thuê ô',
       'Hợp đồng thuê ô',

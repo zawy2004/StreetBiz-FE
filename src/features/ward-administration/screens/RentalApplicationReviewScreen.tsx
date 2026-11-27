@@ -207,7 +207,7 @@ export function RentalApplicationReviewScreen() {
       rows={[
         { label: 'Thời hạn đề nghị:', value: termText },
         {
-          label: 'Tiền thuê ô (đã trừ khuyến mãi):',
+          label: 'Tiền thuê ô (đã trừ giảm theo quý):',
           value: `${rentFee.toLocaleString('vi-VN')} đ`,
         },
         ...(otherFees > 0
@@ -222,7 +222,7 @@ export function RentalApplicationReviewScreen() {
       totalAria={`Tổng phí dự kiến thu ${totalFee.toLocaleString('vi-VN')} đồng`}
       footnotes={
         <p>
-          Tính theo biểu giá khu vực Phường đã cấu hình (PricingZones), đúng bằng lịch thu phí sẽ
+          Tính theo biểu giá khu vực phường đã cấu hình, đúng bằng lịch thu phí sẽ
           tạo khi duyệt.
         </p>
       }
@@ -345,7 +345,7 @@ export function RentalApplicationReviewScreen() {
                   },
                   {
                     label: 'Kích thước & Diện tích',
-                    value: `${sizeM2} m² (${width}m rộng x ${length}m dài) · Bảo đảm lối đi bộ tối thiểu 1.5m`,
+                    value: `${sizeM2.toLocaleString('vi-VN')} m² (${width.toLocaleString('vi-VN')} m rộng × ${length.toLocaleString('vi-VN')} m dài) · Bảo đảm lối đi bộ tối thiểu 1,5 m`,
                   },
                   ...(timeWindow
                     ? [
@@ -357,7 +357,7 @@ export function RentalApplicationReviewScreen() {
                     : []),
                   {
                     label: 'Thời hạn đề nghị cấp phép',
-                    value: `${requestedTermDays} ngày (Thời hạn xử lý hồ sơ ≤ 3 ngày làm việc)`,
+                    value: `${requestedTermDays} ngày`,
                   },
                 ]}
               />
@@ -418,7 +418,7 @@ export function RentalApplicationReviewScreen() {
                       color="currentColor"
                       className="mt-0.5 shrink-0"
                     />
-                    Chưa đủ điều kiện cấp phép (BR-16)
+                    Chưa đủ điều kiện cấp phép
                   </p>
                 ) : null}
                 <div className="pt-xs">

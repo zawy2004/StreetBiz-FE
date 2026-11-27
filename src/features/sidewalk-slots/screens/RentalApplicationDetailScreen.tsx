@@ -19,7 +19,7 @@ import { useWorkspaceStore } from '../workspace-store';
 
 const APPLICATION_METHOD_LABEL: Record<string, string> = {
   AUTO_ADJACENT: 'Ô liền kề mặt tiền',
-  MANUAL_SELECTED: 'Ô mở',
+  MANUAL_SELECTED: 'Tự chọn ô trên bản đồ',
 };
 
 // SIDE-04: mirrors ApplicationStatuses.Open on the backend -- the only
@@ -31,10 +31,10 @@ const formatDate = (iso: string) => new Date(iso).toLocaleDateString('vi-VN');
 /** The decision stamp per status: words, ink, whether it is still an empty dashed frame. */
 const STAMPS: Record<string, { text: string; ink: string; open: boolean; explain: string }> = {
   PENDING: {
-    text: 'Chờ Phường xem xét',
+    text: 'Chờ phường xem xét',
     ink: 'text-muted',
     open: true,
-    explain: 'Đơn đã gửi tới Phường, đang chờ xem xét.',
+    explain: 'Đơn đã gửi tới phường, đang chờ xem xét.',
   },
   UNDER_REVIEW: {
     text: 'Đang xem xét',
@@ -46,7 +46,7 @@ const STAMPS: Record<string, { text: string; ink: string; open: boolean; explain
     text: 'Cần bổ sung',
     ink: 'text-[#6B4100] dark:text-[#FFD27A]',
     open: true,
-    explain: 'Phường cần thêm thông tin, xem ý kiến của Phường.',
+    explain: 'Phường cần thêm thông tin, xem ý kiến của phường.',
   },
   APPROVED: {
     text: 'ĐÃ DUYỆT',
@@ -219,7 +219,7 @@ export function RentalApplicationDetailScreen() {
               <LeaderRow label="Ngày nộp" value={formatDate(app.createdAt)} />
               <LeaderRow label="Thời hạn thuê" value={`${app.requestedTermDays} ngày`} />
               {app.reviewedAt ? (
-                <LeaderRow label="Ngày Phường xem xét" value={formatDate(app.reviewedAt)} />
+                <LeaderRow label="Ngày phường xem xét" value={formatDate(app.reviewedAt)} />
               ) : null}
               <LeaderRow label="Mã đơn" value={`#${app.applicationId}`} />
             </dl>

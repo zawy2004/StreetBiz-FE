@@ -65,7 +65,7 @@ export function DishPhotoStack({
           </li>
         ) : null}
       </ul>
-      {illustrative ? <span className="text-body-xs text-muted">Ảnh minh họa</span> : null}
+      {illustrative ? <span className="text-body-xs text-muted">Ảnh minh hoạ</span> : null}
     </div>
   );
 }

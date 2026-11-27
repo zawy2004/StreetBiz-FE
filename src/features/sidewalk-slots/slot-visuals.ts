@@ -101,12 +101,12 @@ export const FEATURE_ICONS: Record<StreetFeatureType, IconName> = {
 };
 
 export const FEATURE_LABELS: Record<StreetFeatureType, string> = {
-  TRANSFORMER: 'Trạm biến áp',
-  HYDRANT: 'Họng cứu hỏa',
+  TRANSFORMER: 'Trạm biến áp / tủ điện',
+  HYDRANT: 'Trụ nước chữa cháy',
   TREE: 'Cây xanh',
-  LIGHT_POLE: 'Cột đèn',
-  BUS_STOP: 'Trạm xe buýt',
-  PARKING: 'Bãi giữ xe',
+  LIGHT_POLE: 'Trụ đèn',
+  BUS_STOP: 'Trạm dừng xe buýt',
+  PARKING: 'Khu để xe',
 };
 
 /** Pavement tiles: a faint 8px paving grid drawn in CSS, for the plan's sidewalks. */

@@ -82,7 +82,7 @@ export function TransfersListScreen() {
           <EmptyState
             icon="swap-horizontal"
             title="Không có yêu cầu nào"
-            description="Khi một hộ khác gửi ô cho bạn, yêu cầu sẽ hiện ở đây để bạn đồng ý hoặc từ chối."
+            description="Khi một hộ khác muốn chuyển nhượng ô cho bạn, yêu cầu sẽ hiện ở đây để bạn đồng ý hoặc từ chối."
             compact
           />
         )}
@@ -268,7 +268,7 @@ function OutgoingStats({ transfers }: { transfers: SlotTransferRequest[] }) {
   const c = countOutgoingByStage(transfers);
   const items = [
     { label: 'Chờ bên nhận', value: c.waitingReceiver, dot: 'bg-accent' },
-    { label: 'Chờ Phường', value: c.waitingWard, dot: 'bg-secondary' },
+    { label: 'Chờ phường', value: c.waitingWard, dot: 'bg-secondary' },
     { label: 'Đã duyệt', value: c.approved, dot: 'bg-tertiary' },
     { label: 'Bị từ chối', value: c.rejected, dot: 'bg-error' },
   ];

@@ -230,7 +230,7 @@ export function FoodSafetyApplyScreen() {
                 2. Giấy tờ đính kèm
               </h2>
               <p className="mt-0.5 text-body-md text-muted">
-                Ảnh hoặc PDF: giấy cam kết/chứng nhận ATTP, giấy khám sức khỏe, xác nhận tập huấn,
+                Ảnh hoặc PDF: giấy cam kết/chứng nhận ATTP, giấy khám sức khoẻ, xác nhận tập huấn,
                 ảnh khu chế biến.
               </p>
             </div>

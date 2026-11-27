@@ -430,11 +430,11 @@ export const slotStatusLabels: Record<WardSlot['status'], string> = {
 };
 
 export const businessCategoryLabels: Record<string, string> = {
-  FOOD_BEVERAGE: 'Ăn uống',
+  FOOD_BEVERAGE: 'Ẩm thực & Đồ uống',
   RETAIL: 'Bán lẻ',
   SERVICES: 'Dịch vụ',
-  CRAFTS: 'Thủ công',
-  GENERAL: 'Tổng hợp',
+  CRAFTS: 'Thủ công & Lưu niệm',
+  GENERAL: 'Đa ngành',
 };
 
 /** Haversine distance in metres; same formula as the backend's GeoMath.DistanceMeters. */

@@ -458,7 +458,7 @@ function NotFoundScreen() {
         Không tìm thấy trang.
       </p>
       <p className="max-w-[40ch] text-body-md text-muted">
-        Đường dẫn này không có ô nào. Có thể trang đã đổi chỗ hoặc gõ nhầm địa chỉ.
+        Không có trang nào ở địa chỉ này. Có thể trang đã được chuyển đi hoặc địa chỉ bị gõ nhầm.
       </p>
       <Link
         to={home}
@@ -657,7 +657,7 @@ export function AppRouter() {
 
         <Route
           path="/ward"
-          element={<RoleShell role="WARD_AUTHORITY" roleLabel="Cán bộ Phường" items={WARD_TABS} />}
+          element={<RoleShell role="WARD_AUTHORITY" roleLabel="Cán bộ phường" items={WARD_TABS} />}
         >
           <Route path="dashboard" element={<WardDashboardScreen />} />
           <Route path="reports" element={<CollectionReportScreen />} />

@@ -154,7 +154,7 @@ describe('SlotApplyForm', () => {
     api.submitOpenSlotApplication.mockResolvedValue({ message: 'ok', data: { applicationId: 1 } });
     renderWithProviders(<SlotApplyForm slot={slot} />);
 
-    const submit = await screen.findByRole('button', { name: /Đăng ký & nộp hồ sơ/ });
+    const submit = await screen.findByRole('button', { name: /Nộp đơn thuê ô/ });
     expect(submit).toBeDisabled();
 
     const agreement = screen.getByRole('checkbox');
@@ -237,7 +237,7 @@ describe('SlotApplyForm', () => {
     api.releaseHold.mockResolvedValue({ message: 'released' });
     renderWithProviders(<SlotApplyForm slot={{ ...slot, holdExpiresAt: mine.expiresAt }} />);
 
-    await userEvent.click(await screen.findByRole('button', { name: /Nhả chỗ/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /Bỏ giữ chỗ/ }));
 
     await waitFor(() => expect(api.releaseHold).toHaveBeenCalledWith(10, 7));
   });
@@ -248,7 +248,7 @@ describe('SlotApplyForm', () => {
     expect(await screen.findByRole('button', { name: /Giữ chỗ 15 phút/ })).toBeDisabled();
     expect(screen.getByText(/đang được hộ khác giữ chỗ/)).toBeInTheDocument();
     for (const box of screen.getAllByRole('checkbox')) await userEvent.click(box);
-    expect(screen.getByRole('button', { name: /Đăng ký & nộp hồ sơ/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Nộp đơn thuê ô/ })).toBeDisabled();
   });
 
   it('asks for an approved registration instead of showing a form that cannot work', async () => {
@@ -256,7 +256,7 @@ describe('SlotApplyForm', () => {
     renderWithProviders(<SlotApplyForm slot={slot} />);
 
     expect(await screen.findByText(/hồ sơ kinh doanh đã được duyệt/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Đăng ký & nộp hồ sơ/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Nộp đơn thuê ô/ })).not.toBeInTheDocument();
   });
 
   it('refuses an event term outside 1-365 days', async () => {
@@ -268,6 +268,6 @@ describe('SlotApplyForm', () => {
 
     expect(input).toHaveAttribute('aria-invalid', 'true');
     for (const box of screen.getAllByRole('checkbox')) await userEvent.click(box);
-    expect(screen.getByRole('button', { name: /Đăng ký & nộp hồ sơ/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Nộp đơn thuê ô/ })).toBeDisabled();
   });
 });

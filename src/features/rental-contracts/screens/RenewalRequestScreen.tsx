@@ -114,7 +114,7 @@ export function RenewalRequestScreen() {
               {live && progress.expiringSoon ? (
                 <p className="flex items-center gap-1.5 rounded-[12px] bg-[#FFF3D1] px-sm py-xs text-body-sm font-semibold text-[#6B4100] dark:bg-[#3A2A08] dark:text-[#FFD27A]">
                   <Icon name="timer-outline" size={16} color="currentColor" />
-                  Hợp đồng còn {progress.daysLeft} ngày. Gửi sớm để Phường kịp xét.
+                  Hợp đồng còn {progress.daysLeft} ngày. Gửi sớm để phường kịp xét.
                 </p>
               ) : null}
 

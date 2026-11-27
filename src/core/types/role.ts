@@ -4,6 +4,6 @@ export type RoleCode = 'CUSTOMER' | 'VENDOR' | 'WARD_AUTHORITY' | 'PLATFORM_ADMI
 export const ROLE_LABELS: Record<RoleCode, string> = {
   CUSTOMER: 'Người mua',
   VENDOR: 'Hộ kinh doanh',
-  WARD_AUTHORITY: 'Cán bộ Phường',
+  WARD_AUTHORITY: 'Cán bộ phường',
   PLATFORM_ADMIN: 'Quản trị viên',
 };

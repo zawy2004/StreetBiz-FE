@@ -676,7 +676,7 @@ function DoneStep() {
       ) : null}
       {!result.labelled ? (
         <p className="text-body-sm text-muted">
-          Chưa ghi được dấu “soạn bằng trợ lý” cho hồ sơ này; hồ sơ vẫn đã nộp bình thường.
+          Hồ sơ đã được nộp bình thường. Chỉ có ghi chú “soạn bằng trợ lý” là chưa lưu được.
         </p>
       ) : null}
       <div className="grid gap-sm sm:grid-cols-2">

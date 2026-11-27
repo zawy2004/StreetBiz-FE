@@ -44,7 +44,7 @@ export const RESOLUTION_LABELS: Record<
   { label: string; tone: StatusTone }
 > = {
   DISMISSED: { label: 'Không chấp nhận', tone: 'neutral' },
-  MEDIATED: { label: 'Đã hòa giải', tone: 'ok' },
+  MEDIATED: { label: 'Đã hoà giải', tone: 'ok' },
   VIOLATION_RECORDED: { label: 'Đã lập biên bản', tone: 'ok' },
 };
 

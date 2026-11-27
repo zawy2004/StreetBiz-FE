@@ -106,7 +106,7 @@ function ReleaseLine({ change }: { change: AddressChangeRequest }) {
           Ô {change.releasedSlotCode} chờ trả, ân hạn đến {formatDay(change.releaseGraceEndsOn)}.
           {change.releaseBlockedByDebt
             ? ' Bạn còn phí quá hạn hoặc tiền phạt chưa nộp nên ô chưa thể được trả. Hãy thanh toán trước.'
-            : ' Cần đổi ý? Phường có thể gia hạn hoặc cho bạn giữ ô.'}
+            : ' Nếu muốn giữ ô lâu hơn, phường có thể gia hạn thời gian trả hoặc cho bạn giữ nguyên ô.'}
         </span>
       </p>
     );

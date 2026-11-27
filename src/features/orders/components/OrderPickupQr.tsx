@@ -31,7 +31,7 @@ export function OrderPickupQr({ order }: { order: Order }) {
   return (
     <section
       key={ready ? 'ready' : 'waiting'}
-      aria-label="Cuống nhận hàng"
+      aria-label="Phiếu nhận hàng"
       className={`relative rounded-t-[28px] bg-card shadow-card ring-1 ring-border lg:shadow-none ${
         ready ? 'sb-pop' : ''
       }`}

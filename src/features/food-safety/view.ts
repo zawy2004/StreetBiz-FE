@@ -122,7 +122,7 @@ export function waitingText(application: FoodSafetyApplication, now: number = Da
     case 'VENDOR':
       return `Chờ người bán bổ sung${daysText(waiting.days)}`;
     case 'DEPARTMENT':
-      return `Đang ở ${application.departmentName || 'Chi cục ATTP'}${daysText(waiting.days)}`;
+      return `Đang ở ${application.departmentName || 'Ban Quản lý ATTP'}${daysText(waiting.days)}`;
     default:
       return null;
   }
@@ -188,7 +188,7 @@ export function journeyMilestones(application: FoodSafetyApplication): Milestone
   const { status, forwardedAt } = application;
   const department = application.departmentName
     ? `Chuyển ${application.departmentName}`
-    : 'Chuyển cục';
+    : 'Chuyển kiểm tra ATTP';
   const marks: Milestone[] = [
     { key: 'submitted', label: 'Nộp hồ sơ', date: application.submittedAt, state: 'done' },
     { key: 'reviewed', label: 'Phường xét', date: application.reviewedAt, state: 'todo' },

@@ -270,8 +270,8 @@ export function FrontageDiagram({
 }: FrontageProps) {
   const label =
     mode === 'suggested'
-      ? `Sơ đồ minh họa: cửa hàng ${shopName}, ô ${slotCode} ngay trước cửa.`
-      : `Sơ đồ minh họa: cửa hàng ${shopName}, chưa chọn ô.`;
+      ? `Sơ đồ minh hoạ: cửa hàng ${shopName}, ô ${slotCode} ngay trước cửa.`
+      : `Sơ đồ minh hoạ: cửa hàng ${shopName}, chưa chọn ô.`;
   const slots = [0, 1, 2, 3, 4];
   const nameSize = shopName.length > 26 ? 14 : shopName.length > 18 ? 17 : 20;
 
@@ -341,7 +341,7 @@ export function FrontageDiagram({
           fontWeight="600"
           className="fill-[#0B5D33] dark:fill-[#8BE3B0]"
         >
-          Phạm vi liền kề (minh họa)
+          Phạm vi liền kề (minh hoạ)
         </text>
         {slots.map((i) => {
           const x = 40 + i * 100;
@@ -414,7 +414,7 @@ export function FrontageDiagram({
             fontWeight="600"
             className="fill-muted"
           >
-            Chọn ô trên bản đồ của Phường
+            Chọn ô trên bản đồ của phường
           </text>
         ) : null}
       </svg>
@@ -489,7 +489,7 @@ export function RentalProcessStrip() {
           Đơn thuê ô xét riêng
         </h2>
         <p className="mt-0.5 text-body-md text-muted">
-          Hồ sơ kinh doanh đã duyệt chưa phải là đã có ô. Đơn thuê ô được Phường xét riêng.
+          Hồ sơ kinh doanh đã duyệt chưa phải là đã có ô. Đơn thuê ô được phường xét riêng.
         </p>
       </div>
       <ol className="relative grid grid-cols-3 gap-xs pt-xs">

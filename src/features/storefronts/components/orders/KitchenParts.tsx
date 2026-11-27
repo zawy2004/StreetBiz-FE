@@ -381,7 +381,7 @@ export function LateOrdersBanner({ count }: { count: number }) {
 const HANDOVER: { icon: IconName; text: string }[] = [
   { icon: 'qrcode', text: 'Khách mở mã nhận hàng trên điện thoại' },
   { icon: 'qrcode-scan', text: 'Bạn bấm quét mã của khách' },
-  { icon: 'check-circle-outline', text: 'Đơn chuyển sang "Hoàn thành"' },
+  { icon: 'check-circle-outline', text: 'Đơn chuyển sang "Hoàn tất"' },
 ];
 
 /** How a ready order is handed over: only by scanning the buyer's code. Static. */

@@ -60,7 +60,7 @@ export type PenaltyFilter = 'all' | 'missing' | 'scheduled' | 'none';
 const FILTERS: { value: PenaltyFilter; label: string }[] = [
   { value: 'all', label: 'Tất cả' },
   { value: 'missing', label: 'Thiếu căn cứ' },
-  { value: 'scheduled', label: 'Có mức hẹn' },
+  { value: 'scheduled', label: 'Có mức sắp áp dụng' },
   { value: 'none', label: 'Chưa có mức' },
 ];
 

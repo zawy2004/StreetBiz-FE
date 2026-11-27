@@ -10,7 +10,7 @@ function mount(path: string) {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter initialEntries={[path]}>
-        <RoleTabBar roleLabel="Cán bộ Phường" items={WARD_TABS} />
+        <RoleTabBar roleLabel="Cán bộ phường" items={WARD_TABS} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -87,12 +87,12 @@ describe('ward sidebar by job', () => {
 
   it.each([
     ['/ward/finance/receipts', 'Thu phí', 'Lịch sử thu'],
-    ['/ward/finance/12', 'Thu phí', 'Theo dõi thu phí'],
+    ['/ward/finance/12', 'Thu phí', 'Thu phí & điều chỉnh'],
     ['/ward/slots/editor', 'Lưới ô', 'Vẽ & sửa lưới ô'],
     ['/ward/slots/7', 'Lưới ô', 'Bảng ô & lấp đầy'],
     ['/ward/patrol/violations/new', 'Tuần tra', 'Ghi nhận vi phạm'],
     ['/ward/settings/penalties', 'Quy định & mức thu', 'Mức phạt vi phạm'],
-    ['/ward/reports/debtors', 'Báo cáo', 'Hộ còn nợ'],
+    ['/ward/reports/debtors', 'Báo cáo', 'Hộ nợ phí quá hạn'],
     ['/ward/inbox/vendor-reports/4', 'Hộp duyệt', 'Phản ánh về hộ kinh doanh'],
   ])('on %s opens "%s" and lights its most specific page "%s"', (path, group, page) => {
     mount(path);

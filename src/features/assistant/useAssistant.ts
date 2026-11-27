@@ -261,7 +261,7 @@ export function useAssistant(role: AssistantRole, accountKey: string) {
           sender: 'ASSISTANT',
           ordinal: ordinal + 1,
           content:
-            '[Mô phỏng] Trợ lý hỗ trợ theo vai trò của bạn. Bật kết nối backend để tra cứu hồ sơ, nguồn dữ liệu và lưu hội thoại. Trong chế độ này không có yêu cầu nào được gửi đến dịch vụ AI.',
+            '[Mô phỏng] Trợ lý hỗ trợ theo vai trò của bạn. Kết nối máy chủ StreetBiz để tra cứu hồ sơ, nguồn dữ liệu và lưu hội thoại. Trong chế độ này không có yêu cầu nào được gửi đến dịch vụ AI.',
           isAiGenerated: true,
           version: 1,
         };

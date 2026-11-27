@@ -101,7 +101,7 @@ describe('ward review decisions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Phê duyệt' }));
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận' }));
     await screen.findByText('Hồ sơ đã thay đổi');
-    expect(screen.queryByText('Quyết định đã được lưu vào Backend.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Đã lưu quyết định.')).not.toBeInTheDocument();
     expect(get.mock.calls.length).toBeGreaterThan(1);
   });
 });

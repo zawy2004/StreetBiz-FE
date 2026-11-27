@@ -149,7 +149,7 @@ export const EVIDENCE_LABELS: Record<ApiEvidenceType, string> = {
   IDENTITY_DOCUMENT: 'CCCD mặt trước',
   IDENTITY_DOCUMENT_BACK: 'CCCD mặt sau',
   PORTRAIT_SELFIE: 'Ảnh chân dung',
-  BUSINESS_LICENSE: 'Giấy phép kinh doanh',
+  BUSINESS_LICENSE: 'Giấy chứng nhận đăng ký hộ kinh doanh',
   ADDRESS_PROOF: 'Giấy tờ địa chỉ',
   OTHER: 'Giấy tờ khác',
 };

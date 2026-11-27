@@ -140,7 +140,7 @@ export function VendorReportFormScreen() {
     onSuccess: (receipt) => {
       const due = formatDueDay(receipt.dueAt);
       showToast(
-        `Đã gửi phản ánh #${receipt.reportId} tới Phường${due ? `. Hạn xử lý: hết ngày ${due}` : ''}`,
+        `Đã gửi phản ánh #${receipt.reportId} tới phường${due ? `. Hạn xử lý: hết ngày ${due}` : ''}`,
       );
       // A guest has no "Phản ánh của tôi" to land on: back to the stall they reported.
       navigate(
@@ -339,7 +339,7 @@ export function VendorReportFormScreen() {
                   placeholder={
                     type === 'OVERCHARGE'
                       ? 'VD: Quầy tính 35.000đ một ổ, bảng giá ghi 25.000đ.'
-                      : 'VD: Hỏi giá thì người bán nói tùy món, không có bảng giá.'
+                      : 'VD: Hỏi giá thì người bán nói tuỳ món, không có bảng giá.'
                   }
                   counter={`${reason.length}/${NOTE_MAX} ký tự`}
                   ring={{ ratio: reason.length / NOTE_MAX, warn: reason.length > 450 }}
@@ -379,7 +379,7 @@ export function VendorReportFormScreen() {
                   uploading={submit.isPending && Boolean(photo)}
                   hint={
                     type === 'OVERCHARGE'
-                      ? 'Ảnh hóa đơn hoặc màn hình chuyển khoản, nếu có; ảnh JPG hoặc PNG.'
+                      ? 'Ảnh hoá đơn hoặc màn hình chuyển khoản, nếu có; ảnh JPG hoặc PNG.'
                       : undefined
                   }
                   onChange={(uri, file) => {

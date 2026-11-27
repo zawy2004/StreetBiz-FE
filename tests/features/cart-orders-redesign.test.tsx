@@ -244,7 +244,7 @@ describe('C10 cart', () => {
   it('labels a stock photo as illustrative', async () => {
     legacyApi.cart.mockResolvedValue(cart);
     renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
-    expect(await screen.findByText('Ảnh minh họa')).toBeInTheDocument();
+    expect(await screen.findByText('Ảnh minh hoạ')).toBeInTheDocument();
   });
 
   it('renders the checkout button once on a desktop', async () => {

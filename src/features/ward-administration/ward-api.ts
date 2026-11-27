@@ -708,7 +708,7 @@ export const caseLabels: Record<CaseKind, string> = {
 export const actionLabels: Record<string, string> = {
   APPROVE: 'Phê duyệt',
   REJECT: 'Từ chối',
-  QUEUE: 'Đưa vào hàng chờ',
+  QUEUE: 'Xếp vào danh sách chờ',
   REVIEW: 'Nhận xét duyệt',
   REQUEST_INFO: 'Yêu cầu bổ sung',
   // SIDE-10: the old slot of an address change waiting out its grace period.
@@ -731,7 +731,7 @@ export const statusLabels: Record<string, string> = {
  * for an address conflict, so the label depends on the case kind.
  */
 export function statusLabel(kind: CaseKind, status: string): string {
-  if (kind === 'conflicts' && status === 'UNDER_REVIEW') return 'Đang xếp hàng';
+  if (kind === 'conflicts' && status === 'UNDER_REVIEW') return 'Trong danh sách chờ';
   return statusLabels[status] ?? status;
 }
 

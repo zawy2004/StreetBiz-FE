@@ -221,8 +221,8 @@ export function AcceptTransferScreen() {
             hasApprovedRegistration={hasApprovedRegistration}
           />
           <Callout tone="neutral">
-            Nếu bạn chấp nhận, yêu cầu chuyển sang Phường duyệt. Việc chuyển nhượng chỉ có hiệu lực
-            khi Phường duyệt.
+            Nếu bạn chấp nhận, yêu cầu chuyển sang phường duyệt. Việc chuyển nhượng chỉ có hiệu lực
+            khi phường duyệt.
           </Callout>
           {pending && !hasApprovedRegistration && (
             <Callout tone="pending">
@@ -302,7 +302,7 @@ function StampSlot({ status }: { status: string }) {
       aria-hidden="true"
       className="flex h-[88px] w-[88px] shrink-0 -rotate-6 items-center justify-center self-end rounded-full border-2 border-dashed border-[#B86E00] bg-[#FFF3D1]/60 px-2 text-center text-[12px] font-bold leading-tight text-[#6B4100] dark:bg-[#3A2A08]/60 dark:text-[#FFD27A] md:h-[104px] md:w-[104px]"
     >
-      Chờ Phường duyệt
+      Chờ phường duyệt
     </span>
   );
 }

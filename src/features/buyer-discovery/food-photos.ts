@@ -4,7 +4,7 @@ import { apiAssetUrl, staticPhotoUrl } from '@/core/api/asset-url';
  * Stock photos (served by the API from /static/food; credits in StreetBiz-BE wwwroot/static/food/CREDITS.md) shown when a
  * stall or dish has no photo of its own, so the discovery screens are not a
  * wall of grey tiles. A vendor's own `imageUrl` always wins; a stock photo is
- * flagged `illustrative` so the UI can label it "Ảnh minh họa".
+ * flagged `illustrative` so the UI can label it "Ảnh minh hoạ".
  */
 export type FoodPhoto = { src: string; illustrative: boolean };
 

@@ -275,7 +275,7 @@ export async function sideRequest<T>(
   token = getAccessToken() ?? '',
 ): Promise<T> {
   const base = env.apiBaseUrl.replace(/\/$/, '');
-  if (!base) throw new SideApiError(0, 'Chưa cấu hình VITE_API_BASE_URL cho Backend.');
+  if (!base) throw new SideApiError(0, 'Ứng dụng chưa được cấu hình địa chỉ máy chủ.');
   let response: Response;
   try {
     response = await fetch(base + path, {
@@ -290,7 +290,7 @@ export async function sideRequest<T>(
   } catch {
     throw new SideApiError(
       0,
-      'Không kết nối được Backend. Kiểm tra URL API, HTTPS và CORS rồi thử lại.',
+      'Không kết nối được máy chủ. Kiểm tra kết nối mạng rồi thử lại.',
     );
   }
   if (!response.ok) {
@@ -313,13 +313,13 @@ export async function sideRequest<T>(
         problem.detail ??
         problem.title ??
         (response.status === 401
-          ? 'Phiên đã hết hạn hoặc token không hợp lệ. Vui lòng kết nối lại.'
+          ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
           : response.status === 403
             ? 'Bạn không có quyền thực hiện thao tác này.'
             : response.status === 409
               ? 'Yêu cầu xung đột với trạng thái hiện tại.'
               : response.status === 422
-                ? 'Không thoả điều kiện nghiệp vụ.'
+                ? 'Thao tác chưa đáp ứng điều kiện. Vui lòng kiểm tra lại.'
                 : 'Không thể xử lý yêu cầu.'),
     );
   }

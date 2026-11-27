@@ -142,7 +142,7 @@ export const CHANNEL_OPTIONS = (Object.keys(CHANNEL_LABEL) as RevenueChannel[]).
 
 export const HOUSEHOLD_STATUS_LABEL: Record<HouseholdStatus, string> = {
   ACTIVE: 'Đang hoạt động',
-  SUSPENDED: 'Tạm đình chỉ',
+  SUSPENDED: 'Tạm ngưng',
   ENDED: 'Đã ngừng',
   NOT_STARTED: 'Chưa thuê ô',
 };

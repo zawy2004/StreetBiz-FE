@@ -40,7 +40,7 @@ function quoteLineLabel(line: FeeQuoteLine, termDays: number): string {
         ? `Tiền thuê ô (${formatShortVnd(line.unitAmount)}/tháng × ${line.quantity} tháng)`
         : `Tiền thuê ô (${formatShortVnd(line.unitAmount)}/ngày × ${line.quantity} ngày)`;
     case 'DISCOUNT':
-      return line.label ?? 'Khuyến mãi';
+      return line.label ?? 'Giảm theo quý';
     case 'DEPOSIT':
       return `${line.label} (hoàn lại khi kết thúc)`;
     default:
@@ -271,7 +271,7 @@ export function SlotApplyForm({ slot }: Props) {
           </div>
           <p className="flex items-center gap-1 text-body-sm text-muted">
             <Icon name="information-outline" size={15} color="currentColor" />
-            Ước tính, chốt khi Phường duyệt ·
+            Ước tính, chốt khi phường duyệt ·
             <Link
               to={`${LEGAL_ROUTES.slotRules}#bao-gia`}
               target="_blank"
@@ -304,7 +304,7 @@ export function SlotApplyForm({ slot }: Props) {
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-xs">
             <Button
-              label="Đăng ký & nộp hồ sơ"
+              label="Nộp đơn thuê ô"
               icon={<Icon name="check-circle-outline" size={20} color="currentColor" />}
               loading={apply.isPending}
               disabled={!canSubmit}
@@ -313,7 +313,7 @@ export function SlotApplyForm({ slot }: Props) {
             {myHold ? (
               <Button
                 variant="outline"
-                label={`Nhả chỗ · ${formatCountdown(myHoldSeconds)}`}
+                label={`Bỏ giữ chỗ · ${formatCountdown(myHoldSeconds)}`}
                 icon={<Icon name="bookmark" size={18} color="currentColor" />}
                 loading={release.isPending}
                 onPress={() => release.mutate(slot.slotId)}

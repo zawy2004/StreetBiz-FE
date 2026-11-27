@@ -143,7 +143,7 @@ describe('household receiving account', () => {
     expect(screen.getByLabelText('API Key')).toHaveValue('');
     expect(document.body).not.toHaveTextContent(key.apiKey);
     expect(document.body).not.toHaveTextContent(key.checksumKey);
-    expect(screen.getByText(/payOS báo ngay khi có tiền về/)).toBeInTheDocument();
+    expect(screen.getByText(/payOS báo ngay cho StreetBiz khi có tiền về/)).toBeInTheDocument();
   });
 
   it('shows why payOS refused the keys and keeps what was typed so they can be fixed', async () => {

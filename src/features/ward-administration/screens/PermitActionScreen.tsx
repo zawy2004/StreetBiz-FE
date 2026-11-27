@@ -185,9 +185,9 @@ export function PermitActionScreen() {
           <AfterConfirmList
             footnote={
               <>
-                * Căn cứ BR-19 &amp; BR-35: Ngay sau khi quyết định có hiệu lực, Giấy phép số QR sẽ
-                lập tức chuyển sang trạng thái tương ứng trên máy chủ, người dân và lực lượng tuần
-                tra quét mã sẽ thấy cảnh báo không hợp lệ.
+                * Ngay sau khi quyết định có hiệu lực, Giấy phép số QR sẽ lập tức chuyển sang trạng
+                thái tương ứng trên máy chủ, người dân và lực lượng tuần tra quét mã sẽ thấy cảnh
+                báo không hợp lệ.
               </>
             }
           />

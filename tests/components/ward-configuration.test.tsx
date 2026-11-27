@@ -50,7 +50,7 @@ const insufficientDataSuggestion: ZonePriceSuggestion = {
   suggestedPricePerDay: 30000,
   minAllowedPricePerDay: 30000,
   maxAllowedPricePerDay: 30000,
-  explanation: '[Hệ thống — chưa xác minh bằng AI] Tuyến chưa có ô nào để tính tỉ lệ lấp đầy.',
+  explanation: '[Hệ thống, không dùng AI] Tuyến chưa có ô nào để tính tỉ lệ lấp đầy.',
   isAiGenerated: false,
   aiLogId: null,
 };
@@ -364,7 +364,7 @@ describe('WARD-02 pricing & hours', () => {
       direction: 'RAISE',
       baselinePricePerDay: 33000,
       suggestedPricePerDay: 33000,
-      explanation: '[Hệ thống — chưa xác minh bằng AI] Tỉ lệ lấp đầy 90%, đề nghị tăng giá.',
+      explanation: '[Hệ thống, không dùng AI] Tỉ lệ lấp đầy 90%, đề nghị tăng giá.',
     });
     const save = vi.spyOn(wardConfigApi, 'updateZone').mockResolvedValue(zone);
     mount(<PricingScheduleScreen />);

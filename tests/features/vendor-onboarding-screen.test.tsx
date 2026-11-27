@@ -50,7 +50,7 @@ describe('VendorOnboardingScreen', () => {
 
     const file = await screen.findByRole('heading', { name: 'Hoàn tất hồ sơ đăng ký hộ kinh doanh' });
     expect(screen.getByText('1/6')).toBeInTheDocument();
-    expect(within(step('Thuê chỗ trên vỉa hè')).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(step('Thuê ô vỉa hè')).queryByRole('button')).not.toBeInTheDocument();
     await user.click(within(file.closest('li')!).getByRole('button', { name: 'Bắt đầu hồ sơ' }));
     expect(screen.getByTestId('where')).toHaveTextContent('/vendor/registrations/new/type');
   });
@@ -95,8 +95,8 @@ describe('VendorOnboardingScreen', () => {
     expect(await screen.findByText('Hồ sơ đã được duyệt.')).toBeInTheDocument();
     expect(screen.getByText('3/6')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mở gian hàng' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Khai giấy ATTP' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Tìm chỗ' }));
+    expect(screen.getByRole('button', { name: 'Nộp hồ sơ ATTP' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Chọn ô' }));
     expect(screen.getByTestId('where')).toHaveTextContent('/vendor/slots');
   });
 

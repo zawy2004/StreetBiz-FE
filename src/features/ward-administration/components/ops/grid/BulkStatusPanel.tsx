@@ -66,7 +66,7 @@ export function BulkStatusPanel({
     <InspectorCard
       eyebrow="Chọn nhiều"
       title={`Đã chọn ${slots.length} ô`}
-      action={<Button label="Hủy" variant="ghost" fullWidth={false} onPress={onCancel} />}
+      action={<Button label="Huỷ" variant="ghost" fullWidth={false} onPress={onCancel} />}
     >
       <div aria-hidden="true" className="grid grid-cols-3 gap-xs">
         <Tally

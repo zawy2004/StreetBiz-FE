@@ -32,7 +32,7 @@ export function MySlotsTabs() {
   return (
     <nav
       ref={nav}
-      aria-label="Thuê ô của tôi"
+      aria-label="Ô thuê của tôi"
       style={fade}
       className="no-scrollbar -mx-md overflow-x-auto px-md py-1 md:mx-0 md:px-0"
     >

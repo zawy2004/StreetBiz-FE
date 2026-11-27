@@ -70,7 +70,7 @@ describe('PermitScanScreen display-only bands (W14 tier B)', () => {
     const user = userEvent.setup();
     renderScreen();
 
-    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), 'SB-HC1-2026-0815');
+    await user.type(screen.getByLabelText('Mã giấy phép hoặc nội dung mã QR'), 'SB-HC1-2026-0815');
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
 
     const board = await screen.findByRole('region', { name: 'Kết quả tra cứu giấy phép' });
@@ -85,7 +85,7 @@ describe('PermitScanScreen display-only bands (W14 tier B)', () => {
     const user = userEvent.setup();
     renderScreen();
 
-    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), 'SB-HC1-2026-0815');
+    await user.type(screen.getByLabelText('Mã giấy phép hoặc nội dung mã QR'), 'SB-HC1-2026-0815');
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
 
     await screen.findByRole('region', { name: 'Kết quả tra cứu giấy phép' });
@@ -104,12 +104,12 @@ describe('PermitScanScreen display-only bands (W14 tier B)', () => {
     const user = userEvent.setup();
     renderScreen();
 
-    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), 'SB-HC1-2026-0815');
+    await user.type(screen.getByLabelText('Mã giấy phép hoặc nội dung mã QR'), 'SB-HC1-2026-0815');
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
 
     expect(await screen.findByText(/vượt dung sai 25m/)).toBeInTheDocument();
     expect(
-      screen.getByText('Cảnh báo toạ độ thực tế [Hệ thống — chưa xác minh bằng AI]'),
+      screen.getByText('Cảnh báo toạ độ thực tế [Hệ thống, không dùng AI]'),
     ).toBeInTheDocument();
     expect(screen.queryByText('Cảnh báo toạ độ thực tế [AI]')).not.toBeInTheDocument();
   });
@@ -121,7 +121,7 @@ describe('PermitScanScreen display-only bands (W14 tier B)', () => {
     const user = userEvent.setup();
     renderScreen();
 
-    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), 'SB-HC1-2026-0815');
+    await user.type(screen.getByLabelText('Mã giấy phép hoặc nội dung mã QR'), 'SB-HC1-2026-0815');
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
     await screen.findByText('Bánh mì Cô Lan');
     expect(screen.queryByText(/không thành công/)).not.toBeInTheDocument();
@@ -140,7 +140,7 @@ describe('PermitScanScreen display-only bands (W14 tier B)', () => {
     const user = userEvent.setup();
     renderScreen();
 
-    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), 'SB-HC1-2026-0815');
+    await user.type(screen.getByLabelText('Mã giấy phép hoặc nội dung mã QR'), 'SB-HC1-2026-0815');
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
 
     expect(await screen.findByText('Không tìm thấy giấy phép')).toBeInTheDocument();
@@ -159,7 +159,7 @@ describe('PermitScanScreen display-only bands (W14 tier B)', () => {
     const user = userEvent.setup();
     renderScreen();
 
-    const field = screen.getByLabelText('Mã giấy phép số / Token QR');
+    const field = screen.getByLabelText('Mã giấy phép hoặc nội dung mã QR');
     await user.type(field, 'SB-HC1-2026-0815');
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
     await screen.findByText('Bánh mì Cô Lan');
@@ -183,7 +183,7 @@ describe('PermitScanScreen display-only bands (W14 tier B)', () => {
     const user = userEvent.setup();
     renderScreen();
 
-    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), 'SB-HC1-2026-0815');
+    await user.type(screen.getByLabelText('Mã giấy phép hoặc nội dung mã QR'), 'SB-HC1-2026-0815');
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
 
     const board = await screen.findByRole('region', { name: 'Kết quả tra cứu giấy phép' });

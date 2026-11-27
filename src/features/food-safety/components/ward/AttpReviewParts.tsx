@@ -338,7 +338,11 @@ export function WaitBadge({
   const waiting = waitingOn(application, now);
   if (!waiting.who || waiting.days === null) return null;
   const who =
-    waiting.who === 'WARD' ? 'phường' : waiting.who === 'VENDOR' ? 'người bán bổ sung' : 'Chi cục';
+    waiting.who === 'WARD'
+      ? 'phường'
+      : waiting.who === 'VENDOR'
+        ? 'người bán bổ sung'
+        : 'Ban Quản lý ATTP';
   const days = waiting.days === 0 ? 'từ hôm nay' : `${waiting.days} ngày`;
   const tone = waiting.who === 'WARD' ? PENDING : VERDICT_TONES.neutral;
   return (

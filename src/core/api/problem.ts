@@ -32,7 +32,7 @@ const FALLBACK_MESSAGES: Record<ApiErrorCode, string> = {
   unauthorized: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
   forbidden: 'Bạn không có quyền thực hiện thao tác này.',
   not_found: 'Không tìm thấy dữ liệu.',
-  domain_rule: 'Thao tác không hợp lệ theo quy định.',
+  domain_rule: 'Thao tác chưa đáp ứng điều kiện. Vui lòng kiểm tra lại.',
   // Named for the OTP cooldown, but 429 also covers the ward geocode limiter,
   // which answers with an empty body and so always lands on this fallback.
   // Call sites that need OTP-specific wording branch on `code` and

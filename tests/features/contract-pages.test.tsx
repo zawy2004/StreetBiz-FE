@@ -153,7 +153,7 @@ describe('Chuyển nhượng ô: tạo yêu cầu', () => {
     expect(await screen.findByText('NVL-14')).toBeInTheDocument();
     expect(screen.getByText('Đường Nguyễn Văn Linh')).toBeInTheDocument();
     expect(screen.getByText('Còn 60 ngày')).toBeInTheDocument();
-    expect(screen.getByText(/Phường duyệt thì việc chuyển nhượng mới có hiệu lực/)).toBeInTheDocument();
+    expect(screen.getByText(/phường duyệt thì việc chuyển nhượng mới có hiệu lực/)).toBeInTheDocument();
   });
 
   it('refuses a phone number that is too short without calling the API', async () => {

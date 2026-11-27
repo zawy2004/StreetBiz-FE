@@ -137,7 +137,7 @@ export function ReviewedVendorCard({ vendor }: { vendor: PublicVendorProfile }) 
         <img
           src={photo.src}
           alt=""
-          title="Ảnh minh họa"
+          title="Ảnh minh hoạ"
           decoding="async"
           onError={() => setFailed(true)}
           className="h-14 w-14 shrink-0 rounded-[14px] object-cover"

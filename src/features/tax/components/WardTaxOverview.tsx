@@ -55,7 +55,7 @@ function Body({ data, onOpen }: { data: WardTaxDashboardDto; onOpen: (tab: WardT
         <StatCard
           label="Hộ kinh doanh"
           value={String(data.householdCount)}
-          hint={`${data.activeCount} đang hoạt động · ${data.suspendedCount} tạm đình chỉ · ${data.endedCount} đã ngừng`}
+          hint={`${data.activeCount} đang hoạt động · ${data.suspendedCount} tạm ngưng · ${data.endedCount} đã ngừng`}
           icon="storefront-outline"
           tone="indigo"
           onPress={() => onOpen('households')}

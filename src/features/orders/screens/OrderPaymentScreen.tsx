@@ -210,7 +210,7 @@ export function OrderPaymentScreen() {
                   Đặt món thành công
                 </p>
                 <p className="text-body-lg text-text/80">
-                  Backend đã xác nhận thanh toán và chuyển đơn cho người bán.
+                  Hệ thống đã xác nhận thanh toán và chuyển đơn cho người bán.
                 </p>
               </>
             ) : cancelled ? (
@@ -226,7 +226,7 @@ export function OrderPaymentScreen() {
               </>
             ) : (
               <p className={`text-[17px] font-semibold leading-7 ${tone.ink}`}>
-                Thanh toán đã được backend xác nhận.
+                Thanh toán đã được hệ thống xác nhận.
               </p>
             )}
           </div>

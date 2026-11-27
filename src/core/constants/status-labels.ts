@@ -58,7 +58,7 @@ export const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> 
   MISSING: { label: 'Không còn tồn tại', tone: 'danger' },
   ARCHIVED: { label: 'Đã lưu trữ', tone: 'neutral' },
   // ATTP file sent on by the ward to the food-safety department.
-  FORWARDED: { label: 'Đã chuyển cục', tone: 'pending' },
+  FORWARDED: { label: 'Đã chuyển kiểm tra ATTP', tone: 'pending' },
 };
 
 export function statusLabel(code: string) {

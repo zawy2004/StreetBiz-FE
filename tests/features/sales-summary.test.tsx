@@ -71,7 +71,9 @@ describe('sales summary', () => {
     await screen.findByText('Chưa có đơn hoàn tất trong khoảng này');
 
     fireEvent.change(screen.getByLabelText('Từ ngày'), { target: { value: '2099-01-01' } });
-    expect(await screen.findByRole('alert')).toHaveTextContent('Từ ngày không được sau đến ngày.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Ngày bắt đầu không được sau ngày kết thúc.',
+    );
     expect(summary).toHaveBeenCalledTimes(1);
   });
 });

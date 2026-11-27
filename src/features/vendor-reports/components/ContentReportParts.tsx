@@ -87,7 +87,7 @@ export function ChannelNote() {
       </div>
       <p className="text-body-md text-text/85">
         Nội dung sai trên StreetBiz thì báo ở đây. Quán bán sai chỗ, lấn vỉa hè thì dùng &ldquo;Báo
-        cáo vi phạm&rdquo; trong hồ sơ hộ kinh doanh để gửi Phường.
+        cáo vi phạm&rdquo; trong hồ sơ hộ kinh doanh để gửi phường.
       </p>
     </section>
   );

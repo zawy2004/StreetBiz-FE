@@ -161,8 +161,8 @@ export function RegistrationReviewScreen() {
         setCustomAiCheck(res);
         showToast(
           res.isAiGenerated
-            ? 'Đã đối soát CCCD thành công [AI]'
-            : (res.summary ?? 'Không thể đối soát CCCD'),
+            ? 'Đã đối chiếu CCCD thành công [AI]'
+            : (res.summary ?? 'Không thể đối chiếu CCCD'),
         );
       } else {
         // Mock demo delay -- clearly NOT a real AI call, must not claim "Gemini Vision".
@@ -175,7 +175,7 @@ export function RegistrationReviewScreen() {
           discrepancies: [],
           isAiGenerated: false,
         });
-        showToast('Đã quét và đối soát CCCD (chế độ mô phỏng, không gọi AI thật)');
+        showToast('Đã quét và đối chiếu CCCD (chế độ mô phỏng, không gọi AI thật)');
       }
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Lỗi bóc tách ảnh CCCD');
@@ -214,7 +214,7 @@ export function RegistrationReviewScreen() {
         setLiveDetail(updated);
         showToast('Đã ghi nhận xác nhận đối chiếu CCCD thủ công.');
       } else {
-        showToast('Đã ghi nhận xác nhận (chế độ demo, không có gate phía máy chủ).');
+        showToast('Đã ghi nhận xác nhận (chế độ demo, máy chủ không kiểm tra).');
       }
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Lỗi xác nhận đối chiếu CCCD');
@@ -239,7 +239,7 @@ export function RegistrationReviewScreen() {
         await complianceApi.decideEnrollment(
           id,
           action,
-          note.trim() || 'Hồ sơ đủ điều kiện thực địa trật tự đô thị',
+          note.trim() || 'Hồ sơ đủ điều kiện về trật tự đô thị',
           status,
         );
         showToast(
@@ -457,9 +457,8 @@ export function RegistrationReviewScreen() {
               </AiSuggestionCard>
             </div>
           ) : env.enableAiCompliance ? (
-            <AiHint title="Đối chiếu dữ liệu [Hệ thống — chưa xác minh bằng AI]">
-              Thông tin số CCCD và địa chỉ khai báo khớp với tiêu chuẩn điểm kinh doanh vỉa hè theo
-              quy định địa phương.
+            <AiHint title="Đối chiếu dữ liệu [Hệ thống, không dùng AI]">
+              Số CCCD và địa chỉ khai báo đã đủ để thẩm định.
             </AiHint>
           ) : null}
 
@@ -547,7 +546,7 @@ export function RegistrationReviewScreen() {
               facts={[
                 { label: 'Chủ hộ kinh doanh', value: ownerName || <Missing />, emphasis: true },
                 {
-                  label: 'Số CCCD / Định danh thật',
+                  label: 'Số CCCD / số định danh',
                   value: idNumber ? (
                     <span>
                       <span className="font-sign text-[18px] font-bold tracking-[0.02em] font-tabular">

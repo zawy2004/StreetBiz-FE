@@ -110,7 +110,7 @@ export function ReportedVendorCard({ vendor }: { vendor?: Vendor }) {
         <div className="min-w-0">
           <p className="truncate text-[17px] font-semibold text-text">{vendor.business_name}</p>
           <p className="text-body-sm text-muted">
-            {vendor.vendor_type === 'FIXED_STOREFRONT' ? 'Cửa hàng cố định' : 'Hàng rong lưu động'}
+            {vendor.vendor_type === 'FIXED_STOREFRONT' ? 'Cửa hàng cố định' : 'Bán hàng lưu động'}
           </p>
         </div>
       </div>

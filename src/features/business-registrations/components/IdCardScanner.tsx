@@ -144,7 +144,7 @@ export function IdCardScanner({ id, onExtracted, onExtraction }: Props) {
 
   const scan = async () => {
     if (!draft.biometricConsent) {
-      setError('Vui lòng đồng ý cho phép đối soát dữ liệu sinh trắc học trước khi quét CCCD.');
+      setError('Vui lòng đồng ý cho phép đối chiếu dữ liệu sinh trắc học trước khi quét CCCD.');
       return;
     }
     if (!front?.uploadedUrl) {
@@ -178,7 +178,7 @@ export function IdCardScanner({ id, onExtracted, onExtraction }: Props) {
   const runFaceMatch = async () => {
     if (!draft.biometricConsent) {
       setError(
-        'Vui lòng đồng ý cho phép đối soát dữ liệu sinh trắc học trước khi đối chiếu khuôn mặt.',
+        'Vui lòng đồng ý cho phép đối chiếu dữ liệu sinh trắc học trước khi đối chiếu khuôn mặt.',
       );
       return;
     }
@@ -255,7 +255,7 @@ export function IdCardScanner({ id, onExtracted, onExtraction }: Props) {
           onChange={(checked) => draft.setField('biometricConsent', checked)}
           invalid={consentMissing}
         >
-          Tôi đồng ý <strong>riêng biệt</strong> cho phép hệ thống xử lý ảnh CCCD và ảnh chân dung
+          Tôi đồng ý (đồng ý <strong>riêng</strong> cho mục này) để hệ thống xử lý ảnh CCCD và ảnh chân dung
           của tôi bằng công nghệ nhận dạng (OCR, đối chiếu khuôn mặt). Không đồng ý vẫn nộp hồ sơ được — bạn tự nhập thông tin và cán
           bộ phường đối chiếu giấy tờ trực tiếp. <LegalBasisLink anchor="du-lieu" />
         </ConsentRow>

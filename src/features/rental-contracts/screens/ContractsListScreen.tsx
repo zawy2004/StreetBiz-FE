@@ -174,7 +174,7 @@ function RenewHintCard({ onRent }: { onRent: () => void }) {
           <Icon name="timer-outline" size={20} color="currentColor" weight="fill" />
         </span>
         <p className="text-body-md text-text">
-          Gia hạn trước 14 ngày để không gián đoạn giấy phép.
+          Nên gửi yêu cầu gia hạn ít nhất 14 ngày trước khi hết hạn để giấy phép không bị gián đoạn.
         </p>
       </div>
       <Button

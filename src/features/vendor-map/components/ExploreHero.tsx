@@ -120,7 +120,7 @@ function HeroPhotos() {
         />
         <Steam className="absolute left-[30%] top-[10%] h-[150px] w-[120px]" />
         <figcaption className="absolute left-sm top-sm rounded-full bg-black/45 px-2.5 py-1 text-body-xs text-white backdrop-blur-md">
-          Bún chả, ảnh minh họa
+          Bún chả, ảnh minh hoạ
         </figcaption>
       </figure>
       <figure
@@ -134,7 +134,7 @@ function HeroPhotos() {
           className="h-full w-full object-cover"
         />
         <figcaption className="absolute bottom-xs left-xs rounded-full bg-black/45 px-2 py-0.5 text-[11px] text-white backdrop-blur-md">
-          Bánh mì, ảnh minh họa
+          Bánh mì, ảnh minh hoạ
         </figcaption>
       </figure>
       <figure
@@ -143,7 +143,7 @@ function HeroPhotos() {
       >
         <img src={photo('pho')} alt="" decoding="async" className="h-full w-full object-cover" />
         <figcaption className="absolute bottom-xs left-xs rounded-full bg-black/45 px-2 py-0.5 text-[11px] text-white backdrop-blur-md">
-          Phở, ảnh minh họa
+          Phở, ảnh minh hoạ
         </figcaption>
       </figure>
 

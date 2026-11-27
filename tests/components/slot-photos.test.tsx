@@ -101,7 +101,7 @@ describe('SlotPhotosField (ward)', () => {
     const user = userEvent.setup();
     render(<SlotPhotosField value={[A, B, C]} onChange={onChange} />);
 
-    await user.click(screen.getByRole('button', { name: 'Xóa ảnh 2' }));
+    await user.click(screen.getByRole('button', { name: 'Xoá ảnh 2' }));
     expect(onChange).toHaveBeenCalledWith([A, C]);
   });
 

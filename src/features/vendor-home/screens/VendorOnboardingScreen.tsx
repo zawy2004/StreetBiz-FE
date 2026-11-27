@@ -75,11 +75,11 @@ function buildSteps(registrations: ApiRegistration[]): StepModel[] {
   };
 
   const slotStep: StepModel = {
-    title: 'Thuê chỗ trên vỉa hè',
+    title: 'Thuê ô vỉa hè',
     icon: 'map-marker-radius-outline',
     description: 'Chọn vị trí được phường mở và gửi yêu cầu thuê.',
     state: approved ? 'current' : 'todo',
-    cta: approved ? { label: 'Tìm chỗ', to: '/vendor/slots' } : undefined,
+    cta: approved ? { label: 'Chọn ô', to: '/vendor/slots' } : undefined,
   };
 
   const storeStep: StepModel = {
@@ -96,7 +96,7 @@ function buildSteps(registrations: ApiRegistration[]): StepModel[] {
     description:
       'Món thuộc ngành ăn uống cần cam kết/giấy ATTP mới được bán. Nộp trong mục Cửa hàng.',
     state: 'todo',
-    cta: approved ? { label: 'Khai giấy ATTP', to: '/vendor/store/food-safety' } : undefined,
+    cta: approved ? { label: 'Nộp hồ sơ ATTP', to: '/vendor/store/food-safety' } : undefined,
   };
 
   return [

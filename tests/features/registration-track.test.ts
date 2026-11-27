@@ -6,7 +6,7 @@ const CREATED = '2026-09-26T03:00:00Z';
 const REVIEWED = '2026-09-30T03:00:00Z';
 
 describe('registrationTrack', () => {
-  it('always draws three stops: Đã nộp, Phường xét, Kết quả', () => {
+  it('always draws three stops: Đã nộp, phường xét, Kết quả', () => {
     for (const status of [
       'DRAFT',
       'SUBMITTED',

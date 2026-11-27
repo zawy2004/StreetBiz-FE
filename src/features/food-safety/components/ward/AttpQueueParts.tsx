@@ -45,7 +45,7 @@ const STATIONS: Station[] = [
   },
   {
     value: 'FORWARDED',
-    label: 'Chờ kết quả cục',
+    label: 'Chờ kết quả ATTP',
     ring: 'ring-[#2B3640] dark:ring-[#C5D0DA]',
     node: 'border-[#2B3640] dark:border-[#C5D0DA]',
     wash: VERDICT_TONES.neutral.wash,
@@ -391,12 +391,12 @@ const PROCESS: { icon: IconName; title: string; text: string }[] = [
   {
     icon: 'clipboard-text-outline',
     title: 'Phường kiểm giấy tờ',
-    text: 'Đủ thì chuyển Chi cục, thiếu thì yêu cầu người bán bổ sung.',
+    text: 'Đủ thì chuyển Ban Quản lý ATTP, thiếu thì yêu cầu người bán bổ sung.',
   },
   {
     icon: 'magnify',
-    title: 'Chi cục kiểm tra thực tế',
-    text: 'Chi cục ATTP đến quầy kiểm tra và gửi kết quả về phường.',
+    title: 'Ban Quản lý ATTP kiểm tra thực tế',
+    text: 'Ban Quản lý ATTP đến quầy kiểm tra và gửi kết quả về phường.',
   },
   {
     icon: 'shield-check-outline',

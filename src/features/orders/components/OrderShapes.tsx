@@ -47,13 +47,13 @@ export function Perforation({
   );
 }
 
-/** "Ảnh minh họa" on a stock photo that is not the stall's own. */
+/** "Ảnh minh hoạ" on a stock photo that is not the stall's own. */
 export function IllustrativeTag({ className = '' }: { className?: string }) {
   return (
     <span
       className={`pointer-events-none inline-flex items-center rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium leading-4 text-white backdrop-blur-sm ${className}`}
     >
-      Ảnh minh họa
+      Ảnh minh hoạ
     </span>
   );
 }

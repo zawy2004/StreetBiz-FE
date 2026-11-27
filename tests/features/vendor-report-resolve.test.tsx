@@ -151,23 +151,23 @@ describe('resolve panel (WARD-19)', () => {
     const user = userEvent.setup();
     const { onResolve } = panel();
 
-    await user.click(screen.getByRole('button', { name: 'Xác nhận đã hòa giải' }));
-    expect(screen.getByText('Nhập ghi chú hòa giải.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Xác nhận đã hoà giải' }));
+    expect(screen.getByText('Nhập ghi chú hoà giải.')).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText('Ghi chú hòa giải'), 'Đã hoàn tiền tại quầy');
+    await user.type(screen.getByLabelText('Ghi chú hoà giải'), 'Đã hoàn tiền tại quầy');
     fireEvent.change(screen.getByLabelText('Số tiền người bán hoàn (không bắt buộc)'), {
       target: { value: '80000' },
     });
     expect(
       screen.getByText('Số tiền hoàn không được vượt số tiền khách bị tính (70.000 đ).'),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Xác nhận đã hòa giải' }));
+    await user.click(screen.getByRole('button', { name: 'Xác nhận đã hoà giải' }));
     expect(onResolve).not.toHaveBeenCalled();
 
     fireEvent.change(screen.getByLabelText('Số tiền người bán hoàn (không bắt buộc)'), {
       target: { value: '20000' },
     });
-    await user.click(screen.getByRole('button', { name: 'Xác nhận đã hòa giải' }));
+    await user.click(screen.getByRole('button', { name: 'Xác nhận đã hoà giải' }));
     expect(onResolve).toHaveBeenCalledWith('MEDIATED', 'Đã hoàn tiền tại quầy', 20000);
   });
 
@@ -244,11 +244,11 @@ describe('ward report detail (live)', () => {
     const user = userEvent.setup();
     mountDetail();
 
-    await user.type(await screen.findByLabelText('Ghi chú hòa giải'), 'Đã hoàn tiền');
+    await user.type(await screen.findByLabelText('Ghi chú hoà giải'), 'Đã hoàn tiền');
     fireEvent.change(screen.getByLabelText('Số tiền người bán hoàn (không bắt buộc)'), {
       target: { value: '20000' },
     });
-    await user.click(screen.getByRole('button', { name: 'Xác nhận đã hòa giải' }));
+    await user.click(screen.getByRole('button', { name: 'Xác nhận đã hoà giải' }));
 
     await waitFor(() =>
       expect(resolve).toHaveBeenCalledWith(10, {

@@ -89,7 +89,7 @@ export function WardCaseScreen({ kind: givenKind }: { kind?: CaseKind }) {
               role="alert"
               className={`text-[17px] font-semibold leading-6 ${VERDICT_TONES.danger.ink}`}
             >
-              Mã hồ sơ không hợp lệ. Mở hồ sơ từ danh sách dữ liệu thật.
+              Mã hồ sơ không hợp lệ. Hãy mở hồ sơ từ danh sách.
             </p>
             <BackToList />
           </div>
@@ -239,7 +239,7 @@ function CaseContent({ kind, id }: { kind: CaseKind; id: string }) {
         <span
           className={`font-sign font-bold font-tabular ${data.outstanding > 0 ? 'text-[#8F1717] dark:text-[#FF9A90]' : ''}`}
         >
-          {data.outstanding.toLocaleString('vi-VN')} ₫
+          {data.outstanding.toLocaleString('vi-VN')} đ
         </span>
       ),
     });
@@ -498,7 +498,7 @@ function CaseContent({ kind, id }: { kind: CaseKind; id: string }) {
                     {actionLabels[lastAction] ?? lastAction}
                   </span>
                   <p role="status" className="text-[15px] font-semibold leading-snug">
-                    Quyết định đã được lưu vào Backend.
+                    Đã lưu quyết định.
                   </p>
                   <span className="text-body-sm">Trạng thái mới: {statusText}</span>
                 </div>

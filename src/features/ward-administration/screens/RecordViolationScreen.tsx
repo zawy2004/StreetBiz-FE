@@ -823,7 +823,7 @@ export function RecordViolationScreen() {
             <div className="flex w-full gap-sm">
               <div className="flex-1">
                 <Button
-                  label="Hoàn tất (Chờ xử phạt sau)"
+                  label="Xong bước 1, ra quyết định sau"
                   variant="outline"
                   onPress={() => navigate(-1)}
                 />
@@ -924,7 +924,7 @@ export function RecordViolationScreen() {
                     <strong
                       className={`rounded-[6px] px-xs py-0.5 font-semibold ${PENDING.wash} ${PENDING.ink}`}
                     >
-                      Chờ ra quyết định xử phạt (PENDING_SANCTION)
+                      Chờ ra quyết định xử phạt
                     </strong>
                   </p>
                   {createdViolation.bienBanSo ? (
@@ -992,7 +992,7 @@ export function RecordViolationScreen() {
                 index={2}
                 id={ids.type}
                 title="Hành vi vi phạm"
-                description="Căn cứ pháp lý luật hiện hành 2026"
+                description="Căn cứ pháp lý đang có hiệu lực"
               >
                 <ViolationTypePicker
                   value={typeCode}
@@ -1040,11 +1040,11 @@ export function RecordViolationScreen() {
                     onClick={() => {
                       setTypeCode('UNAUTHORIZED_BUSINESS_USE');
                       setDescription(
-                        'Hộ kinh doanh kê 3 bộ bàn ghế nhựa và 1 biển hiệu đứng lấn ra ngoài vạch sơn 45cm trên vỉa hè đường Nguyễn Văn Linh, cản trở lối đi của người đi bộ.',
+                        'Hộ kinh doanh kê 3 bộ bàn ghế nhựa và 1 biển hiệu đứng lấn ra ngoài vạch sơn 45 cm trên vỉa hè đường Nguyễn Văn Linh, cản trở lối đi của người đi bộ.',
                       );
                     }}
                   >
-                    + Điền mô tả mẫu để thử nghiệm AI Co-pilot
+                    + Điền mô tả mẫu để thử trợ lý AI
                   </button>
                 }
               >
@@ -1053,7 +1053,7 @@ export function RecordViolationScreen() {
                   value={description}
                   onChangeText={setDescription}
                   multiline
-                  placeholder="Ví dụ: Bày bán hàng hóa, kê bàn ghế lấn chiếm 0.5m vỉa hè ngoài vạch kẻ cho phép, cản trở lối đi bộ..."
+                  placeholder="Ví dụ: Bày bán hàng hoá, kê bàn ghế lấn chiếm 0,5 m vỉa hè ngoài vạch kẻ cho phép, cản trở lối đi bộ..."
                 />
 
                 <EvidenceFrame
@@ -1216,7 +1216,7 @@ export function RecordViolationScreen() {
                 icon="gavel"
                 id={ids.decision}
                 title="Thông tin Quyết định xử phạt hành chính"
-                description="Do người có thẩm quyền ký; mức phạt chọn từ biểu khung của Phường, không nhập tay."
+                description="Do người có thẩm quyền ký; mức phạt chọn từ biểu khung của phường, không nhập tay."
               >
                 <TextField
                   label="Số Quyết định xử phạt hành chính *"
@@ -1294,7 +1294,7 @@ export function RecordViolationScreen() {
                     title={
                       createdViolation.aiSuggestion.isAiGenerated
                         ? 'Trợ lý Pháp lý [AI]'
-                        : 'Trợ lý Pháp lý [Hệ thống — chưa xác minh bằng AI]'
+                        : 'Trợ lý Pháp lý [Hệ thống, không dùng AI]'
                     }
                     aiLogId={createdViolation.aiSuggestion.aiLogId}
                   >
@@ -1305,7 +1305,7 @@ export function RecordViolationScreen() {
                       Biện pháp khắc phục: {createdViolation.aiSuggestion.bienPhapKhacPhuc}
                     </p>
                     <p className="mt-1 text-body-sm font-semibold text-text">
-                      Căn cứ pháp lý (từ biểu khung Phường):{' '}
+                      Căn cứ pháp lý (từ biểu khung phường):{' '}
                       {createdViolation.aiSuggestion.legalBasis}
                     </p>
                     {createdViolation.aiSuggestion.suggestedPenaltyAmount ? (

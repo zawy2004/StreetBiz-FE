@@ -29,7 +29,7 @@ type PanelProps = {
 
 /**
  * WARD-19: the officer closes a pending report in one of three ways, and nothing closes it
- * without them (BR-41/43). "Bác" needs the reason the reporter will read; "Đã hòa giải" a note
+ * without them (BR-41/43). "Bác" needs the reason the reporter will read; "Đã hoà giải" a note
  * and, for an overcharge, any refund up to what was charged; "Lập biên bản" opens the record
  * form filled from the report, which closes the report in the same transaction.
  */
@@ -53,7 +53,7 @@ export function VendorReportResolvePanel({
     tried && !trimmed
       ? choice === 'DISMISSED'
         ? 'Nhập lý do bác: người phản ánh sẽ đọc lý do này.'
-        : 'Nhập ghi chú hòa giải.'
+        : 'Nhập ghi chú hoà giải.'
       : trimmed.length > NOTE_MAX
         ? `Tối đa ${NOTE_MAX} ký tự.`
         : undefined;
@@ -99,8 +99,8 @@ export function VendorReportResolvePanel({
           },
           {
             value: 'MEDIATED',
-            label: 'Đã hòa giải',
-            description: 'Hai bên đã thỏa thuận; ghi số tiền người bán hoàn nếu có.',
+            label: 'Đã hoà giải',
+            description: 'Hai bên đã thoả thuận; ghi số tiền người bán hoàn nếu có.',
           },
           {
             value: 'VIOLATION',
@@ -134,7 +134,7 @@ export function VendorReportResolvePanel({
         <div className="flex flex-col gap-sm">
           <div className="field">
             <label htmlFor={noteId} className="field-label text-label text-text">
-              {choice === 'DISMISSED' ? 'Lý do bác (người phản ánh sẽ đọc)' : 'Ghi chú hòa giải'}
+              {choice === 'DISMISSED' ? 'Lý do bác (người phản ánh sẽ đọc)' : 'Ghi chú hoà giải'}
             </label>
             <div className="field-control">
               <textarea
@@ -180,7 +180,7 @@ export function VendorReportResolvePanel({
             </div>
           ) : null}
           <Button
-            label={choice === 'DISMISSED' ? 'Bác phản ánh' : 'Xác nhận đã hòa giải'}
+            label={choice === 'DISMISSED' ? 'Bác phản ánh' : 'Xác nhận đã hoà giải'}
             variant={choice === 'DISMISSED' ? 'civic' : 'approve'}
             loading={submitting}
             icon={

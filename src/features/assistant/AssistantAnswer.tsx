@@ -328,7 +328,7 @@ export function MessageBubble({
           <summary>
             Các bước tiếp theo <span>{message.checklist?.length} bước</span>
           </summary>
-          <p>Hướng dẫn đối chiếu; chưa xác nhận các bước đã hoàn tất.</p>
+          <p>Các bước gợi ý để bạn tự kiểm tra; trợ lý chưa xác nhận bước nào đã xong.</p>
           <ol>
             {message.checklist?.map((step, i) => {
               const action = actions.find((a) => a.id === step.actionId);
@@ -393,7 +393,7 @@ export function MessageBubble({
                 <strong>{source.title}</strong>
                 <span>
                   {source.observedAt
-                    ? `${source.kind === 'IMAGE_ANALYSIS' ? 'Phân tích' : 'Tra cứu'} lúc ${stamp(source.observedAt)}${source.kind === 'LIVE_DATA' ? ' · cần tra cứu lại khi xác minh hiện tại' : ''}`
+                    ? `${source.kind === 'IMAGE_ANALYSIS' ? 'Phân tích' : 'Tra cứu'} lúc ${stamp(source.observedAt)}${source.kind === 'LIVE_DATA' ? ' · số liệu có thể đã thay đổi, hãy tra lại khi cần' : ''}`
                     : source.documentVersion}
                 </span>
                 {actions

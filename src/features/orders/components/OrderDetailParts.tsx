@@ -122,7 +122,7 @@ export function OrderReceipt({
         }`}
       >
         <header className="flex items-center gap-sm">
-          <span title={photos[0]?.illustrative ? 'Ảnh minh họa' : undefined}>
+          <span title={photos[0]?.illustrative ? 'Ảnh minh hoạ' : undefined}>
             <FoodImage
               photos={photos}
               icon="storefront-outline"

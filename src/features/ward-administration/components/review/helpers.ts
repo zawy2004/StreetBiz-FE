@@ -12,7 +12,7 @@ export function caseTone(status: string): StatusTone {
 
 /** One line about each kind, in the officer's words. */
 export const CASE_KIND_NOTES: Record<CaseKind, string> = {
-  proposals: 'Hộ đề xuất vị trí ô mới; kiểm tra ranh giới trước khi lưu tọa độ',
+  proposals: 'Hộ đề xuất vị trí ô mới; kiểm tra ranh giới trước khi lưu toạ độ',
   conflicts: 'Nhiều hộ xin cùng một địa chỉ; xếp hàng theo thứ tự chờ',
   transfers: 'Chuyển hợp đồng ô sang hộ khác; bên chuyển phải sạch nợ',
 };

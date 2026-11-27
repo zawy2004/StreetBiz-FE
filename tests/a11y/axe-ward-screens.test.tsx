@@ -87,7 +87,7 @@ describe('axe-core: ward screens', () => {
     expect(await violations(container)).toEqual([]);
 
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText('Mã giấy phép số / Token QR'), 'SB-HC1-2026-0815');
+    await user.type(screen.getByLabelText('Mã giấy phép hoặc nội dung mã QR'), 'SB-HC1-2026-0815');
     await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
     await screen.findByRole('region', { name: 'Kết quả tra cứu giấy phép' });
     expect(await violations(container)).toEqual([]);

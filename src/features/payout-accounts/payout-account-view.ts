@@ -60,12 +60,12 @@ export function summarizeAccount(account: PayoutAccountDto, owner: PayoutOwner):
 /** How payments are noticed: payOS pushes them (webhook), or StreetBiz asks payOS regularly. */
 export function webhookNote(account: PayoutAccountDto): string {
   if (account.webhookConfirmed) {
-    return 'payOS báo ngay khi có tiền về (webhook đã đăng ký). Hệ thống còn tự đối soát định kỳ để không sót khoản nào.';
+    return 'payOS báo ngay cho StreetBiz khi có tiền về. Hệ thống còn tự kiểm tra định kỳ để không sót khoản nào.';
   }
   if (!account.webhookConfigured) {
-    return 'Máy chủ chưa có địa chỉ công khai cho webhook, nên hệ thống tự hỏi payOS định kỳ để biết tiền đã về.';
+    return 'payOS chưa báo trực tiếp được cho StreetBiz, nên hệ thống tự hỏi payOS định kỳ để biết tiền đã về.';
   }
-  return 'Chưa đăng ký được webhook với payOS. Hệ thống vẫn tự hỏi payOS định kỳ; bấm "Kiểm tra kết nối" để thử đăng ký lại.';
+  return 'Chưa đăng ký được việc nhận báo tiền về với payOS. Hệ thống vẫn tự hỏi payOS định kỳ; bấm "Kiểm tra kết nối" để thử đăng ký lại.';
 }
 
 /** The three keys must all be present (payOS shows them once per channel, so they are pasted). */
@@ -81,5 +81,5 @@ export function keyErrors(values: { clientId: string; apiKey: string; checksumKe
 export const GUIDE_STEPS = [
   'Đăng nhập my.payos.vn bằng tài khoản của chủ tài khoản ngân hàng nhận tiền và tạo một kênh thanh toán.',
   'Mở kênh vừa tạo và sao chép Client ID, API Key, Checksum Key.',
-  'Dán ba khoá vào form bên dưới. StreetBiz kiểm tra với payOS rồi tự đăng ký webhook.',
+  'Dán ba khoá vào các ô bên dưới. StreetBiz kiểm tra với payOS rồi tự đăng ký nhận báo tiền về.',
 ] as const;

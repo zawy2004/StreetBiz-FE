@@ -76,7 +76,7 @@ describe('sideRequest', () => {
   it.each([
     [403, 'Bạn không có quyền thực hiện thao tác này.'],
     [409, 'Yêu cầu xung đột với trạng thái hiện tại.'],
-    [422, 'Không thoả điều kiện nghiệp vụ.'],
+    [422, 'Thao tác chưa đáp ứng điều kiện. Vui lòng kiểm tra lại.'],
     [500, 'Không thể xử lý yêu cầu.'],
   ])('falls back to a Vietnamese message for a bare %i', async (status, message) => {
     fetchMock.mockReturnValueOnce(Promise.resolve(new Response('not json', { status })));
@@ -90,7 +90,7 @@ describe('sideRequest', () => {
   it('turns a network failure into status 0 with a connection hint', async () => {
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
 
-    await expect(sideRequest('/x')).rejects.toMatchObject({ status: 0, message: expect.stringContaining('Không kết nối được Backend') });
+    await expect(sideRequest('/x')).rejects.toMatchObject({ status: 0, message: expect.stringContaining('Không kết nối được máy chủ') });
   });
 
   it('a 401 for the current token ends the session so RoleGuard sends the user to sign-in', async () => {

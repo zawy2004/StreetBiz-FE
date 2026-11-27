@@ -177,7 +177,7 @@ export function SalesSummaryScreen() {
           className="flex items-center gap-xs rounded-[12px] bg-[#FDEBEA] px-sm py-xs text-body-lg text-[#8F1717] dark:bg-[#3A1414] dark:text-[#FF9A90]"
         >
           <Icon name="alert-circle-outline" size={20} color="currentColor" className="shrink-0" />
-          Từ ngày không được sau đến ngày.
+          Ngày bắt đầu không được sau ngày kết thúc.
         </p>
       ) : summary.isPending ? (
         <SalesSkeleton />

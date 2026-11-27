@@ -77,7 +77,9 @@ describe('phone tab bar', () => {
       '/ward/settings/penalties',
     ]);
     // A group's pages are listed under it, named.
-    expect(within(sheet).getByRole('list', { name: 'Báo cáo' })).toHaveTextContent('Hộ còn nợ');
+    expect(within(sheet).getByRole('list', { name: 'Báo cáo' })).toHaveTextContent(
+      'Hộ nợ phí quá hạn',
+    );
   });
 
   it("puts the vendor's daily tabs first on the phone, whatever the sidebar order", () => {

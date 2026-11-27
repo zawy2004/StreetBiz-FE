@@ -30,8 +30,8 @@ const CUSTOMER_FILTERS: { value: CustomerTab; label: string }[] = [
   { value: 'PLACED', label: 'Đã đặt' },
   { value: 'PROCESSING', label: 'Đang xử lý' },
   { value: 'READY_FOR_PICKUP', label: 'Sẵn sàng nhận' },
-  { value: 'COMPLETED', label: 'Hoàn thành' },
-  { value: 'CLOSED', label: 'Đã hủy / từ chối' },
+  { value: 'COMPLETED', label: 'Hoàn tất' },
+  { value: 'CLOSED', label: 'Đã huỷ / từ chối' },
 ];
 
 // What each tab asks the API for. Grouped tabs are filtered on the server, so

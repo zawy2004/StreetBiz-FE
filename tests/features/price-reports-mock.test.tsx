@@ -66,11 +66,11 @@ describe('demo mode: ward reports (WARD-19)', () => {
     );
 
     expect(screen.getByRole('region', { name: 'Bằng chứng giá' })).toBeInTheDocument();
-    await user.type(screen.getByLabelText('Ghi chú hòa giải'), 'Đã hoàn tiền tại quầy');
+    await user.type(screen.getByLabelText('Ghi chú hoà giải'), 'Đã hoàn tiền tại quầy');
     fireEvent.change(screen.getByLabelText('Số tiền người bán hoàn (không bắt buộc)'), {
       target: { value: '90000' },
     });
-    await user.click(screen.getByRole('button', { name: 'Xác nhận đã hòa giải' }));
+    await user.click(screen.getByRole('button', { name: 'Xác nhận đã hoà giải' }));
     expect(useMockDb.getState().reports.find((r) => r.id === 'RPT-001')?.report_status).toBe(
       'PENDING',
     );
@@ -78,7 +78,7 @@ describe('demo mode: ward reports (WARD-19)', () => {
     fireEvent.change(screen.getByLabelText('Số tiền người bán hoàn (không bắt buộc)'), {
       target: { value: '20000' },
     });
-    await user.click(screen.getByRole('button', { name: 'Xác nhận đã hòa giải' }));
+    await user.click(screen.getByRole('button', { name: 'Xác nhận đã hoà giải' }));
 
     expect(useMockDb.getState().reports.find((r) => r.id === 'RPT-001')).toMatchObject({
       report_status: 'REVIEWED',
@@ -86,7 +86,7 @@ describe('demo mode: ward reports (WARD-19)', () => {
       resolution_note: 'Đã hoàn tiền tại quầy',
       refund_amount: 20000,
     });
-    expect(screen.getByText('Đã hòa giải')).toBeInTheDocument();
+    expect(screen.getByText('Đã hoà giải')).toBeInTheDocument();
   });
 
   it('sends "Lập biên bản" to the record form with the report it closes', async () => {

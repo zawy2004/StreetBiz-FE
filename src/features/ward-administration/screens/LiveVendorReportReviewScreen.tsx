@@ -82,7 +82,7 @@ export function LiveVendorReportReviewScreen() {
       await cache.invalidateQueries({ queryKey: ['ward', 'vendor-reports'] });
       void cache.invalidateQueries({ queryKey: ['ward', 'dashboard'] });
       showToast(
-        fresh.outcome?.resolution === 'DISMISSED' ? 'Đã bác phản ánh' : 'Đã ghi nhận hòa giải',
+        fresh.outcome?.resolution === 'DISMISSED' ? 'Đã bác phản ánh' : 'Đã ghi nhận hoà giải',
       );
     },
   });

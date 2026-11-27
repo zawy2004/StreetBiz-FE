@@ -186,7 +186,7 @@ export function EmptyKerb({ text }: { text: string }) {
 
 const STEPS: { icon: IconName; text: string }[] = [
   { icon: 'walk', text: 'Ra đứng đúng chỗ đặt ô trên vỉa hè, đo bề rộng và chiều dài bằng thước.' },
-  { icon: 'crosshairs-gps', text: 'Bấm Vị trí của tôi (GPS) để ghi tọa độ ngay tại chỗ đứng.' },
+  { icon: 'crosshairs-gps', text: 'Bấm Vị trí của tôi (GPS) để ghi toạ độ ngay tại chỗ đứng.' },
   { icon: 'ruler-square', text: 'Điền kích thước, xem phiếu kiểm tra vị trí rồi bấm Thêm ô.' },
 ];
 

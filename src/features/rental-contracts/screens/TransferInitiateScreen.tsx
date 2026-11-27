@@ -174,7 +174,7 @@ export function TransferInitiateScreen() {
         <TransferStepsPreview />
         <div className="flex flex-col gap-md">
           <Callout tone="neutral">
-            Người nhận phải đồng ý, sau đó Phường duyệt thì việc chuyển nhượng mới có hiệu lực.
+            Người nhận phải đồng ý, sau đó phường duyệt thì việc chuyển nhượng mới có hiệu lực.
             Trong lúc chờ, ô vẫn thuộc về bạn.
           </Callout>
           {error && <Callout tone="danger">{error}</Callout>}

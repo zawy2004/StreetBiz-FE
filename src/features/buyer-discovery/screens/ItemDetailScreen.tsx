@@ -148,7 +148,7 @@ function LiveItemDetailScreen() {
           <div className="flex flex-col items-start gap-1">
             <FoodSafetyBadge />
             <p className="text-body-sm text-muted">
-              Món thuộc giấy chứng nhận an toàn thực phẩm còn hạn.
+              Món có giấy chứng nhận an toàn thực phẩm còn hạn.
             </p>
           </div>
         ) : null}

@@ -61,7 +61,7 @@ export function CategoryPreviewRail({
       <p className="flex flex-wrap items-center gap-x-sm gap-y-1 text-label text-text">
         Người mua thấy như thế này
         <span className="rounded-full bg-sunken px-2 py-0.5 text-body-xs font-medium text-muted">
-          Ảnh minh họa
+          Ảnh minh hoạ
         </span>
       </p>
       <div

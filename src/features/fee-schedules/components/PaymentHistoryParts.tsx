@@ -184,12 +184,13 @@ export function PaymentRow({
               <span className="text-tertiary">
                 <Icon name="cloud-check-outline" size={15} color="currentColor" />
               </span>
-              {`Ví xác nhận lúc ${new Date(row.callbackReceivedAt).toLocaleString('vi-VN', DATE_TIME)}`}
+              {`Cổng thanh toán xác nhận lúc ${new Date(row.callbackReceivedAt).toLocaleString('vi-VN', DATE_TIME)}`}
             </p>
           ) : null}
           {row.transactionStatus === 'PENDING' ? (
             <p className={`mt-xs text-body-sm ${INK.pending}`}>
-              Đang chờ ví xác nhận. Nếu bạn đã trả, mở lại khoản đó ở mục Tài chính để kiểm tra.
+              Đang chờ cổng thanh toán xác nhận. Nếu bạn đã trả, mở lại khoản đó ở mục Tài chính để
+              kiểm tra.
             </p>
           ) : null}
         </div>

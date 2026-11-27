@@ -101,14 +101,14 @@ describe('ward review screens (live)', () => {
         'Xếp hàng chỉ ghi nhận thứ tự chờ. Hợp đồng người đang thuê và ô cũ được giữ nguyên.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getAllByText('ĐANG XẾP HÀNG').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('TRONG DANH SÁCH CHỜ').length).toBeGreaterThan(0);
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Ghi nhận thứ tự' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Đưa vào hàng chờ' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Xếp vào danh sách chờ' }));
     expect(decide).not.toHaveBeenCalled();
-    expect(screen.queryByText('Quyết định đã được lưu vào Backend.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Đã lưu quyết định.')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận' }));
     await waitFor(() => expect(decide).toHaveBeenCalledWith(base, 'QUEUE', 'Ghi nhận thứ tự'));
-    expect(await screen.findByText('Quyết định đã được lưu vào Backend.')).toBeInTheDocument();
+    expect(await screen.findByText('Đã lưu quyết định.')).toBeInTheDocument();
   });
 
   it('transfer without debt: says nothing is owed; no actions means no textbox', async () => {
@@ -182,7 +182,7 @@ describe('ward review screens (live)', () => {
     expect(await screen.findByText('Cần xem kỹ (+140đ)')).toBeInTheDocument();
     expect(
       screen.getByText(
-        /2 vi phạm trong hợp đồng \(\+40đ\), Quá hạn xử lý theo NĐ 241\/2026 \(≤3 ngày làm việc\) \(\+100đ\)/,
+        /2 vi phạm trong hợp đồng \(\+40 điểm\), Quá hạn xử lý theo NĐ 241\/2026 \(≤3 ngày làm việc\) \(\+100 điểm\)/,
       ),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /\[AI\] Xét nhanh/ }));

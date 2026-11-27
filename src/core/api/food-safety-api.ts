@@ -65,7 +65,7 @@ export type FoodSafetyDecisionInput = {
 
 export const FOOD_SAFETY_EVIDENCE_LABELS: Record<FoodSafetyEvidenceType, string> = {
   CERTIFICATE: 'Giấy chứng nhận / cam kết ATTP',
-  HEALTH_CHECK: 'Giấy khám sức khỏe',
+  HEALTH_CHECK: 'Giấy khám sức khoẻ',
   TRAINING: 'Xác nhận tập huấn ATTP',
   PREMISES_PHOTO: 'Ảnh khu chế biến',
   OTHER: 'Giấy tờ khác',

@@ -142,7 +142,7 @@ function LiveOrderDetailScreen() {
                 Đang chờ xác nhận thanh toán
               </p>
               <p className="mt-2xs text-body-md">
-                Trạng thái chỉ thay đổi sau khi backend nhận callback hợp lệ từ cổng thanh toán.
+                Trạng thái chỉ thay đổi khi cổng thanh toán xác nhận với StreetBiz.
               </p>
             </div>
             <div className="md:w-[220px]">

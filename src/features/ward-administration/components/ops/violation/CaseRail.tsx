@@ -23,8 +23,8 @@ const STEPS = [
   },
   {
     title: 'Ra quyết định xử phạt',
-    who: 'Chủ tịch / Phó Chủ tịch UBND Phường',
-    text: 'Hoặc người được uỷ quyền bằng văn bản ký; cán bộ lập biên bản không có thẩm quyền này. Số tiền lấy từ khung do Phường cấu hình.',
+    who: 'Chủ tịch / Phó Chủ tịch UBND phường',
+    text: 'Hoặc người được uỷ quyền bằng văn bản ký; cán bộ lập biên bản không có thẩm quyền này. Số tiền lấy từ khung do phường cấu hình.',
   },
 ];
 

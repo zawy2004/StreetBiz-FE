@@ -290,7 +290,7 @@ function SettledFee({ fee, retryReceipt }: { fee: FeeItemDto; retryReceipt?: () 
             />
             {retryReceipt ? (
               <Button
-                label="Tải lại biên nhận"
+                label="Tải lại hoá đơn"
                 size="sm"
                 variant="outline"
                 fullWidth={false}

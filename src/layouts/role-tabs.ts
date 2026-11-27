@@ -101,7 +101,7 @@ export const VENDOR_TABS: RoleTabItem[] = [
       { to: '/vendor/tax', label: 'Tổng quan thuế' },
       { to: '/vendor/tax/ledger', label: 'Sổ doanh thu' },
       { to: '/vendor/tax/estimate', label: 'Ước tính thuế' },
-      { to: '/vendor/tax/filings', label: 'Tờ khai' },
+      { to: '/vendor/tax/filings', label: 'Thông báo & kê khai' },
       { to: '/vendor/tax/settings', label: 'Cài đặt thuế' },
     ],
   },
@@ -160,7 +160,7 @@ export const WARD_TABS: RoleTabItem[] = [
     label: 'Thu phí',
     icon: 'cash-multiple',
     children: [
-      { to: '/ward/finance', label: 'Theo dõi thu phí' },
+      { to: '/ward/finance', label: 'Thu phí & điều chỉnh' },
       { to: '/ward/finance/receipts', label: 'Lịch sử thu', match: [] },
       { to: '/ward/finance/payout-account', label: 'Tài khoản nhận tiền', match: [] },
     ],
@@ -172,7 +172,7 @@ export const WARD_TABS: RoleTabItem[] = [
     icon: 'chart-bar',
     children: [
       { to: '/ward/reports', label: 'Báo cáo thu' },
-      { to: '/ward/reports/debtors', label: 'Hộ còn nợ', match: [] },
+      { to: '/ward/reports/debtors', label: 'Hộ nợ phí quá hạn', match: [] },
     ],
   },
   {

@@ -117,7 +117,7 @@ function OrderComplaintReviewContent() {
   // What the bar will send, said before it is pressed (the same amount the request would carry).
   const summary = refundInvalid
     ? 'Số tiền chưa hợp lệ.'
-    : `${refundNumber ? `Giải quyết: duyệt hoàn ${formatVnd(refundNumber)}.` : 'Giải quyết: không kèm hoàn tiền.'} Từ chối: không hoàn tiền.`;
+    : `${refundNumber ? `Giải quyết: duyệt hoàn ${formatVnd(refundNumber)}.` : 'Giải quyết: không hoàn tiền.'} Nếu từ chối khiếu nại: không hoàn tiền.`;
   const longDescription = data.description.length > 500;
   const wait = waitText(data.createdAt);
 
@@ -292,7 +292,7 @@ function OrderComplaintReviewContent() {
                   value={refund}
                   onChangeText={(value) => setRefund(value.replace(/\D/g, '').slice(0, 18))}
                   keyboardType="number-pad"
-                  helperText={`Tối đa ${maximumRefund.toLocaleString('vi-VN')}₫; để trống nếu không hoàn tiền`}
+                  helperText={`Tối đa ${maximumRefund.toLocaleString('vi-VN')} đ; để trống nếu không hoàn tiền`}
                   error={
                     refundInvalid ? 'Số tiền hoàn không hợp lệ hoặc vượt mức còn lại.' : undefined
                   }

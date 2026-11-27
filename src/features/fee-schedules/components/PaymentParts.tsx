@@ -309,7 +309,7 @@ export function PenaltyNotice({ violationLabel, amount, slotCode, issuedAt, stat
 
 const SAFE_STEPS: { icon: IconName; text: string }[] = [
   { icon: 'wallet-outline', text: 'Chọn phương thức và bấm thanh toán.' },
-  { icon: 'send-outline', text: 'Xác nhận trong ứng dụng ví hoặc quét VietQR bằng app ngân hàng.' },
+  { icon: 'send-outline', text: 'Xác nhận trong ứng dụng ví hoặc quét VietQR bằng ứng dụng ngân hàng.' },
   {
     icon: 'cloud-check-outline',
     text: 'Quay lại StreetBiz: hệ thống hỏi lại cổng thanh toán rồi mới ghi nhận và xuất hoá đơn.',
@@ -342,7 +342,7 @@ export function PenaltyNote() {
   return (
     <SideNote title="Về biên bản này" icon="information-outline">
       <p className="text-body-md text-text">
-        Mức phạt do Cán bộ Phường quyết định theo biểu mức phạt của phường. Tiền phạt là khoản thu
+        Mức phạt do Cán bộ phường quyết định theo biểu mức phạt của phường. Tiền phạt là khoản thu
         của Nhà nước nên nộp vào Kho bạc, StreetBiz không thu hộ. Biên bản chuyển sang Đã thanh toán
         sau khi phường đối chiếu biên lai của bạn với Kho bạc.
       </p>

@@ -194,7 +194,7 @@ async function placeOrder(buyer) {
     const doneTotal = await total('COMPLETED');
     if (doneTotal > 10) {
       const loaded = page.waitForResponse((r) => r.url().includes('status=COMPLETED'));
-      await page.getByRole('tab', { name: 'Hoàn thành' }).click();
+      await page.getByRole('tab', { name: 'Hoàn tất' }).click();
       await loaded;
       await page.waitForTimeout(500);
       const pager = page.getByRole('navigation', { name: 'Phân trang' });

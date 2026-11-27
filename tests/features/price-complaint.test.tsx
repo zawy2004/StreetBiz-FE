@@ -389,7 +389,7 @@ describe('"Phản ánh của tôi"', () => {
     );
 
     const closed = await screen.findByRole('article', { name: 'Phản ánh #44' });
-    expect(within(closed).getByText(/Kết quả: Đã hòa giải/)).toBeInTheDocument();
+    expect(within(closed).getByText(/Kết quả: Đã hoà giải/)).toBeInTheDocument();
     expect(within(closed).getByText(/Người bán đã xin lỗi/)).toBeInTheDocument();
     expect(within(closed).getByText('Người bán hoàn lại: 20.000 đ')).toBeInTheDocument();
     expect(within(closed).getByText('+20.000 đ')).toBeInTheDocument();

@@ -93,7 +93,7 @@ function SamplePermit() {
               A-04
             </span>
             <span className="rounded-full bg-sunken px-sm py-1 text-[12px] font-semibold text-[#2B3640] dark:text-[#C5D0DA]">
-              Mẫu minh họa
+              Mẫu minh hoạ
             </span>
           </div>
           <p className="mt-md font-editorial text-[26px] font-semibold leading-[32px] text-text">
@@ -123,7 +123,7 @@ function SamplePermit() {
         icon={ok.icon}
         inkClass={ok.ink}
         strokeClass={ok.stroke}
-        ringText="MẪU MINH HỌA ★ STREETBIZ ★"
+        ringText="MẪU MINH HOẠ ★ STREETBIZ ★"
         className="absolute -right-3 -top-6 h-[104px] w-[104px] md:-right-6 md:h-[124px] md:w-[124px]"
       />
     </div>

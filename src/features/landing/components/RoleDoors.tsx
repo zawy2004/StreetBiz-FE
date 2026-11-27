@@ -41,8 +41,8 @@ export function RoleDoors() {
             title="Hộ kinh doanh"
             body="Thuê ô vỉa hè hợp lệ, mở gian hàng online và nhận đơn ngay tại quầy."
             points={[
-              'Chọn ô trống trên bản đồ',
               'Nộp hồ sơ không cần lên phường',
+              'Chọn ô trống trên bản đồ',
               'Nhận đơn theo thời gian thực',
             ]}
             link={
@@ -107,7 +107,7 @@ function BuyerDoor() {
           >
             <FoodPhoto
               dish={dish.key}
-              alt={`${dish.name}, ảnh minh họa`}
+              alt={`${dish.name}, ảnh minh hoạ`}
               glyphSize={32}
               className="h-full w-full"
             />
@@ -115,7 +115,7 @@ function BuyerDoor() {
               aria-hidden="true"
               className="absolute bottom-xs left-xs rounded-full bg-black/50 px-2.5 py-1 text-[12px] font-medium text-white backdrop-blur-md"
             >
-              {dish.name}, ảnh minh họa
+              {dish.name}, ảnh minh hoạ
             </figcaption>
           </figure>
         ))}
@@ -133,7 +133,7 @@ function BuyerDoor() {
         <div className="mt-auto pt-md">
           <Link to={GUEST_HOME_ROUTE} className={textLinkClass}>
             <Icon name="compass-outline" size={18} color="currentColor" />
-            Xem quán có phép
+            Xem quán có giấy phép
           </Link>
         </div>
       </div>

@@ -20,7 +20,7 @@ const DANGER = VERDICT_TONES.danger;
 
 const ROUTE: { icon: IconName; label: string }[] = [
   { icon: 'storefront-outline', label: 'Phường' },
-  { icon: 'magnify', label: 'Chi cục' },
+  { icon: 'magnify', label: 'Kiểm tra ATTP' },
   { icon: 'shield-check-outline', label: 'Kết quả' },
 ];
 
@@ -41,7 +41,7 @@ export function FoodSafetyGuideBand({ onApply }: { onApply: () => void }) {
             bán khi có giấy ATTP.
           </p>
           <p className="text-body-md text-text/70">
-            Hồ sơ gửi phường → phường chuyển Chi cục ATTP kiểm tra → phường cập nhật kết quả cho
+            Hồ sơ gửi phường → phường chuyển Ban Quản lý ATTP kiểm tra → phường cập nhật kết quả cho
             bạn.
           </p>
         </div>

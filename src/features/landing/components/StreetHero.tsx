@@ -17,7 +17,7 @@ const street = (w: number) => staticPhotoUrl(`hero/hanoi-street-${w}.webp`);
 const TRUST: { icon: IconName; label: string }[] = [
   { icon: 'qrcode', label: 'Giấy phép QR' },
   { icon: 'shield-check-outline', label: 'Xác minh CCCD' },
-  { icon: 'wallet-outline', label: 'Thanh toán MoMo, ZaloPay' },
+  { icon: 'wallet-outline', label: 'Thanh toán VietQR, MoMo, ZaloPay' },
 ];
 
 /**
@@ -136,7 +136,7 @@ function StreetFrame() {
           <PaintedSlots painted={painted} reduced={reduced} />
           <LicenseCard shown={painted} reduced={reduced} />
           <figcaption className="absolute left-sm top-sm rounded-full bg-white/85 px-2.5 py-1 text-[12px] font-medium text-[#2B3640] backdrop-blur">
-            Ảnh minh họa
+            Ảnh minh hoạ
           </figcaption>
         </>
       )}

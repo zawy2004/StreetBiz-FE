@@ -249,7 +249,7 @@ describe('Chi tiết đơn thuê', () => {
     api.getApplication.mockResolvedValue(application('PENDING'));
     open();
 
-    expect(await screen.findByText('Ô mở')).toBeInTheDocument();
+    expect(await screen.findByText('Tự chọn ô trên bản đồ')).toBeInTheDocument();
     expect(screen.getByText('#3')).toBeInTheDocument();
     expect(screen.getByText('90 ngày')).toBeInTheDocument();
     expect(await screen.findByText('30.000 đ')).toBeInTheDocument();

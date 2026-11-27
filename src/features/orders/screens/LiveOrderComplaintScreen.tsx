@@ -103,7 +103,7 @@ export function LiveOrderComplaintScreen() {
         aria-label="Đơn đang phản ánh"
         className="flex flex-wrap items-center gap-sm rounded-[18px] bg-card px-md py-sm shadow-card ring-1 ring-border/80"
       >
-        <span title={photos[0]?.illustrative ? 'Ảnh minh họa' : undefined}>
+        <span title={photos[0]?.illustrative ? 'Ảnh minh hoạ' : undefined}>
           <FoodImage
             photos={photos}
             icon="storefront-outline"

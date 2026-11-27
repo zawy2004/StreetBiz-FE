@@ -88,7 +88,7 @@ export function RegistrationIntegrityPanel({ registrationId }: { registrationId:
       </ToneBox>
     ) : (
       <ToneBox tone="neutral" title="Chưa đối chiếu được hồ sơ trùng lặp">
-        Hồ sơ chưa có số CCCD nên chưa thể so với hồ sơ khác. Chạy bóc tách CCCD hoặc yêu cầu hộ kinh
+        Hồ sơ chưa có số CCCD nên chưa thể so với hồ sơ khác. Chạy đọc CCCD tự động hoặc yêu cầu hộ kinh
         doanh bổ sung số CCCD.
       </ToneBox>
     );

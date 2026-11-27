@@ -24,7 +24,7 @@ export function LocationReview({ record, onSaved }: { record: WardCase; onSaved:
   });
   const pin = useMutation({
     mutationFn: () => {
-      if (!point) throw new Error('Tọa độ không hợp lệ.');
+      if (!point) throw new Error('Toạ độ không hợp lệ.');
       return wardApi.pin(record.id, point);
     },
     onSuccess: onSaved,
@@ -84,7 +84,7 @@ export function LocationReview({ record, onSaved }: { record: WardCase; onSaved:
             />
             <div className="sm:w-auto sm:shrink-0">
               <Button
-                label="Tìm tọa độ từ địa chỉ"
+                label="Tìm toạ độ từ địa chỉ"
                 variant="outline"
                 loading={search.isPending}
                 disabled={busy || !address.trim()}
@@ -95,7 +95,7 @@ export function LocationReview({ record, onSaved }: { record: WardCase; onSaved:
           {noHits && (
             <p className="flex items-center gap-xs text-body-md text-muted">
               <Icon name="map-marker-off-outline" size={18} color="currentColor" />
-              Không tìm thấy địa chỉ. Bạn có thể nhập tọa độ.
+              Không tìm thấy địa chỉ. Bạn có thể nhập toạ độ.
             </p>
           )}
           {search.data && search.data.length > 0 ? (
@@ -128,7 +128,7 @@ export function LocationReview({ record, onSaved }: { record: WardCase; onSaved:
 
         <div className="grid gap-lg lg:grid-cols-2 lg:gap-md">
           {/* 2 — the coordinates */}
-          <Step n={2} title="Tọa độ">
+          <Step n={2} title="Toạ độ">
             <div className="grid grid-cols-2 gap-sm">
               <div className="flex min-w-0 flex-col gap-1">
                 <label htmlFor={latId} className="flex items-center gap-1 text-label text-text">
@@ -174,7 +174,7 @@ export function LocationReview({ record, onSaved }: { record: WardCase; onSaved:
             </div>
             {record.location ? (
               <p className="text-body-sm text-muted">
-                Tọa độ hộ đề xuất ban đầu:{' '}
+                Toạ độ hộ đề xuất ban đầu:{' '}
                 <span className="font-tabular">
                   {record.location.latitude}, {record.location.longitude}
                 </span>
@@ -205,7 +205,7 @@ export function LocationReview({ record, onSaved }: { record: WardCase; onSaved:
           </Step>
 
           {/* 3 — the boundary verdict */}
-          <Step n={3} title="Phán quyết ranh giới">
+          <Step n={3} title="Kết luận ranh giới">
             <BoundaryVerdict
               chain={chain}
               version={verified?.boundaryVersion}
@@ -216,12 +216,12 @@ export function LocationReview({ record, onSaved }: { record: WardCase; onSaved:
         </div>
 
         {/* 4 — save, chained to the check above */}
-        <Step n={4} title="Lưu tọa độ">
+        <Step n={4} title="Lưu toạ độ">
           {canSave ? (
             <div className="flex flex-col gap-sm sm:flex-row sm:items-center">
               <div className="sm:w-auto">
                 <Button
-                  label="Lưu tọa độ đề xuất"
+                  label="Lưu toạ độ đề xuất"
                   disabled={!verified?.inside || busy}
                   loading={pin.isPending}
                   onPress={() => pin.mutate()}
@@ -231,7 +231,7 @@ export function LocationReview({ record, onSaved }: { record: WardCase; onSaved:
             </div>
           ) : (
             <p className="text-body-md text-muted">
-              Chỉ lưu được tọa độ khi hồ sơ đang ở trạng thái Chờ xử lý.
+              Chỉ lưu được toạ độ khi hồ sơ đang ở trạng thái Chờ xử lý.
             </p>
           )}
           {pin.isSuccess && (
@@ -240,7 +240,7 @@ export function LocationReview({ record, onSaved }: { record: WardCase; onSaved:
               className={`sb-pop flex items-center gap-xs rounded-[12px] px-sm py-xs text-[15px] font-semibold ${VERDICT_TONES.ok.wash} ${VERDICT_TONES.ok.ink}`}
             >
               <Icon name="check-circle" size={18} color="currentColor" />
-              Đã lưu tọa độ và tải lại hồ sơ.
+              Đã lưu toạ độ và tải lại hồ sơ.
             </p>
           )}
         </Step>
@@ -340,7 +340,7 @@ function BoundaryVerdict({
         <rect x="0" y="40" width="40" height="5" rx="1" className="fill-brand" />
       </svg>
       <span className="text-[16px] font-semibold leading-6">
-        {chain === 'stale' ? 'Tọa độ đã đổi, cần kiểm tra lại' : 'Chưa kiểm tra ranh giới'}
+        {chain === 'stale' ? 'Toạ độ đã đổi, cần kiểm tra lại' : 'Chưa kiểm tra ranh giới'}
       </span>
     </div>
   );
@@ -350,9 +350,9 @@ function BoundaryVerdict({
 function ChainNote({ chain }: { chain: 'none' | 'stale' | 'inside' | 'outside' }) {
   const text =
     chain === 'inside'
-      ? 'Đã kiểm tra đúng tọa độ này'
+      ? 'Đã kiểm tra đúng toạ độ này'
       : chain === 'outside'
-        ? 'Tọa độ nằm ngoài ranh giới, không lưu được'
+        ? 'Toạ độ nằm ngoài ranh giới, không lưu được'
         : chain === 'stale'
           ? 'Kiểm tra lại trước khi lưu'
           : 'Kiểm tra ranh giới trước khi lưu';

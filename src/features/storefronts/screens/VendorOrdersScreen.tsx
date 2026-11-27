@@ -46,8 +46,8 @@ const STAGES: { value: Stage; label: string; tone: StageTone }[] = [
 const STAGE_STATUSES = STAGES.map((stage) => stage.value);
 
 const HISTORY: { value: VendorTab; label: string }[] = [
-  { value: 'COMPLETED', label: 'Hoàn thành' },
-  { value: 'CLOSED', label: 'Từ chối / hủy' },
+  { value: 'COMPLETED', label: 'Hoàn tất' },
+  { value: 'CLOSED', label: 'Từ chối / huỷ' },
 ];
 
 const PAGE_SIZE = 10;
@@ -71,7 +71,7 @@ const TAB_GUIDE: Record<VendorTab, string> = {
   PREPARING: 'Làm xong thì bấm "Sẵn sàng lấy món" để báo khách tới lấy.',
   READY_FOR_PICKUP: 'Khách tới thì quét mã nhận hàng trên máy khách để giao đơn.',
   COMPLETED: 'Đơn đã giao tận tay khách.',
-  CLOSED: 'Đơn bạn đã từ chối hoặc khách đã hủy.',
+  CLOSED: 'Đơn bạn đã từ chối hoặc khách đã huỷ.',
 };
 
 const EMPTY: Record<VendorTab, { icon: IconName; title: string; description: string }> = {
@@ -102,8 +102,8 @@ const EMPTY: Record<VendorTab, { icon: IconName; title: string; description: str
   },
   CLOSED: {
     icon: 'receipt-text-outline',
-    title: 'Không có đơn bị từ chối hay hủy',
-    description: 'Đơn bạn từ chối hoặc khách hủy sẽ được lưu ở đây.',
+    title: 'Không có đơn bị từ chối hay huỷ',
+    description: 'Đơn bạn từ chối hoặc khách huỷ sẽ được lưu ở đây.',
   },
 };
 

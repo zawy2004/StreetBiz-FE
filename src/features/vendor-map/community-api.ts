@@ -247,7 +247,7 @@ async function communityRequest<T>(
   if (explicitToken === undefined && !token && appCustomer()) return viaAppSession<T>(path, init);
 
   const base = env.apiBaseUrl.replace(/\/$/, '');
-  if (!base) throw new CommunityApiError(0, 'Chưa cấu hình VITE_API_BASE_URL cho Backend.');
+  if (!base) throw new CommunityApiError(0, 'Ứng dụng chưa được cấu hình địa chỉ máy chủ.');
 
   let response: Response;
   try {
@@ -264,7 +264,7 @@ async function communityRequest<T>(
   } catch {
     throw new CommunityApiError(
       0,
-      'Không kết nối được Backend. Kiểm tra URL API, HTTPS và CORS rồi thử lại.',
+      'Không kết nối được máy chủ. Kiểm tra kết nối mạng rồi thử lại.',
     );
   }
 
