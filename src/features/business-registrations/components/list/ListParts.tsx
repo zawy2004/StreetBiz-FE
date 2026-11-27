@@ -189,7 +189,7 @@ export function RegisterThenRentStrip({
           Hồ sơ trước, ô vỉa hè sau
         </h2>
         <p className="text-body-md text-text/75">
-          Hồ sơ kinh doanh được Phường duyệt thì bạn mới nộp đơn thuê ô. Hai việc này xét riêng.
+          Hồ sơ kinh doanh được phường duyệt thì bạn mới nộp đơn thuê ô. Hai việc này xét riêng.
         </p>
       </div>
       {canRent ? (

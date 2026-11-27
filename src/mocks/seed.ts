@@ -369,7 +369,7 @@ export const VENDOR_REPORTS: VendorReport[] = [
     vendorId: 'VEN-001',
     slotId: 'SLOT-022',
     reporterId: 'USR-CUS',
-    reason: 'Quầy không treo bảng giá, hỏi thì người bán nói tùy món.',
+    reason: 'Quầy không treo bảng giá, hỏi thì người bán nói tuỳ món.',
     report_status: 'PENDING',
     report_type: 'PRICE_NOT_POSTED',
     created_at: '2026-10-08T02:30:00.000Z',

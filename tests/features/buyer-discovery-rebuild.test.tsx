@@ -375,7 +375,7 @@ describe('Vendor profile (C05 rebuild)', () => {
     expect(screen.queryByText('Đánh giá từ giao dịch xác thực')).not.toBeInTheDocument();
     expect(screen.getByText('ngày còn hiệu lực')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Báo cáo vi phạm' }));
+    await user.click(screen.getByRole('button', { name: 'Phản ánh vi phạm' }));
     expect(screen.getByTestId('where')).toHaveTextContent(
       '/customer/explore/vendors/8/reports/new',
     );

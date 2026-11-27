@@ -99,7 +99,7 @@ describe('SIDE-10 earlier requests', () => {
     render(<AddressChangeHistory changes={[change()]} />);
 
     expect(screen.getByText(/Ô NVL-014 chờ trả, ân hạn đến 08\/10\/2026/)).toBeInTheDocument();
-    expect(screen.getByText(/Phường có thể gia hạn hoặc cho bạn giữ ô/)).toBeInTheDocument();
+    expect(screen.getByText(/phường có thể gia hạn thời gian trả hoặc cho bạn giữ nguyên ô/)).toBeInTheDocument();
   });
 
   it('warns that a debt is holding the slot back', () => {

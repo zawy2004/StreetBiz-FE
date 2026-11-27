@@ -351,7 +351,7 @@ describe('Storefront detail (DISC-06)', () => {
   it('lists the whole week, resting on days with no window', async () => {
     renderAt('/customer/explore/stores/1', '/customer/explore/stores/:storefrontId', <StorefrontDetailScreen />);
 
-    const monday = (await screen.findByText('Thứ 2')).closest('li')!;
+    const monday = (await screen.findByText('Thứ Hai')).closest('li')!;
     expect(within(monday).getByText('10:00–21:00')).toBeInTheDocument();
     expect(within(screen.getByText('Chủ nhật').closest('li')!).getByText('Nghỉ')).toBeInTheDocument();
   });

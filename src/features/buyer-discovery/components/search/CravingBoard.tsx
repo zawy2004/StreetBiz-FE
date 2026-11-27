@@ -20,7 +20,7 @@ const photo = (key: string) => staticPhotoUrl(`food/${key}.jpg`);
 
 const TIPS: { icon: IconName; text: string }[] = [
   { icon: 'magnify', text: 'Gõ tên món hoặc tên quán' },
-  { icon: 'tag-outline', text: 'Mức giá ≤ 30k chỉ lọc món' },
+  { icon: 'tag-outline', text: 'Lọc giá (VD: dưới 30.000 đ) chỉ áp dụng cho món' },
   { icon: 'crosshairs-gps', text: 'Tìm quanh tôi để xếp quán gần nhất' },
 ];
 
@@ -110,7 +110,7 @@ function CravingTile({
       </span>
       {!failed ? (
         <span className="absolute right-xs top-xs rounded-full bg-black/45 px-2 py-0.5 text-[10px] leading-none text-white/90 backdrop-blur-sm">
-          Ảnh minh họa
+          Ảnh minh hoạ
         </span>
       ) : null}
     </button>

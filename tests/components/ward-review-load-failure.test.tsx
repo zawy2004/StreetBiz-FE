@@ -160,7 +160,7 @@ describe('rental application review (live record)', () => {
     expect(screen.queryByText('Chủ hộ / Đại diện')).not.toBeInTheDocument();
     expect(screen.queryByText('Đại diện hộ kinh doanh')).not.toBeInTheDocument();
     // 1,5 m × 3 m = 4,5 m², from the server's measurements, not the mock's 3 m².
-    expect(screen.getByText(/4\.5 m² \(1\.5m rộng x 3m dài\)/)).toBeInTheDocument();
+    expect(screen.getByText(/4,5 m² \(1,5 m rộng × 3 m dài\)/)).toBeInTheDocument();
     expect(screen.getByText('Mã hồ sơ: 44')).toBeInTheDocument();
     expect(screen.getByText('HÈ PHỐ LIỀN KỀ CỬA HÀNG')).toBeInTheDocument();
   });

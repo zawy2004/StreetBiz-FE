@@ -67,8 +67,8 @@ export function ThreadHeader({ conversation, storeLink }: Props) {
               className="inline-flex h-11 shrink-0 items-center gap-1 rounded-full bg-tint-primary px-sm text-label font-semibold text-primary-pressed transition-colors hover:bg-primary/15 md:px-md"
             >
               <Icon name="storefront-outline" size={17} color="currentColor" />
-              <span className="hidden sm:inline">Xem quầy</span>
-              <span className="sr-only sm:hidden">Xem quầy</span>
+              <span className="hidden sm:inline">Xem quán</span>
+              <span className="sr-only sm:hidden">Xem quán</span>
             </Link>
           ) : null}
         </div>

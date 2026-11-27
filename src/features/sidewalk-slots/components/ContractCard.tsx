@@ -53,7 +53,7 @@ export function ContractCard({ contract, live, today, onOpen, onRenew, onPermit 
       {live && suspended && (
         <p className="flex items-start gap-1.5 bg-[#FDEBEA] px-md py-sm text-body-sm font-semibold text-[#8F1717] dark:bg-[#3A1414] dark:text-[#FF9A90]">
           <Icon name="block-helper" size={16} color="currentColor" className="mt-0.5 shrink-0" />
-          Đang tạm ngưng: giấy phép không có hiệu lực cho tới khi Phường mở lại
+          Đang tạm ngưng: giấy phép không có hiệu lực cho tới khi phường mở lại
         </p>
       )}
 

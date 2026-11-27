@@ -84,7 +84,7 @@ export function followUps(message: AssistantMessage, role: AssistantRole): strin
   const image = message.sources.some((s) => s.kind === 'IMAGE_ANALYSIS');
   const out: string[] = [];
   if (role === 'CUSTOMER' && (tools.has('public.food') || image))
-    out.push('Quầy nào đang mở cửa?', 'Làm sao kiểm tra giấy phép của quầy?');
+    out.push('Quán nào đang mở cửa?', 'Làm sao kiểm tra giấy phép của quán?');
   if (tools.has('vendor.finance') || tools.has('vendor.fees') || tools.has('vendor.penalties'))
     out.push('Khoản nào sắp đến hạn?', 'Xem lịch sử thanh toán của tôi');
   if (tools.has('vendor.contracts') || tools.has('vendor.contract'))

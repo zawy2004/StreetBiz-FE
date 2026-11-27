@@ -137,8 +137,8 @@ describe('answer presentation', () => {
       sources: [{ id: 'live:public.food:1', title: 'Tìm món', kind: 'LIVE_DATA', observedAt: '2026-10-09T10:30:00+07:00', documentVersion: null, actionId: null }],
     });
     bubble(message, { onAsk });
-    await userEvent.click(screen.getByRole('button', { name: 'Quầy nào đang mở cửa?' }));
-    expect(onAsk).toHaveBeenCalledWith('Quầy nào đang mở cửa?');
+    await userEvent.click(screen.getByRole('button', { name: 'Quán nào đang mở cửa?' }));
+    expect(onAsk).toHaveBeenCalledWith('Quán nào đang mở cửa?');
     expect(screen.getByText('Dữ liệu trực tiếp')).toBeVisible();
     expect(followUps({ ...message, status: 'FAILED' }, 'CUSTOMER')).toEqual([]);
   });
@@ -274,8 +274,8 @@ describe('voice mode results', () => {
     const stalls = screen.getAllByRole('button', { name: /^Xem nhanh Quầy/ });
     expect(stalls.map((b) => b.getAttribute('aria-label'))).toEqual(['Xem nhanh Quầy 1', 'Xem nhanh Quầy 2']);
     expect(within(stalls[0]!).getByText('Bánh mì chả cá · Bánh mì thịt nướng')).toBeVisible();
-    expect(within(stalls[0]!).getByRole('img')).toHaveAttribute('alt', expect.stringContaining('Ảnh minh họa'));
-    expect(within(stalls[1]!).getByText('25.000 ₫')).toBeVisible();
+    expect(within(stalls[0]!).getByRole('img')).toHaveAttribute('alt', expect.stringContaining('Ảnh minh hoạ'));
+    expect(within(stalls[1]!).getByText('25.000 đ')).toBeVisible();
     expect(screen.queryByText('Quầy 9')).not.toBeInTheDocument();
     expect(screen.queryByText('Món niêm yết')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Kết thúc trò chuyện' })).toBeVisible();
@@ -365,7 +365,7 @@ describe('panel v2', () => {
     const user = userEvent.setup();
     window.localStorage.setItem('sb-assistant-photo-consent:CUSTOMER', '1');
     panel('CUSTOMER');
-    await user.click(screen.getByRole('button', { name: 'Tùy chọn khác' }));
+    await user.click(screen.getByRole('button', { name: 'Tuỳ chọn khác' }));
     await user.click(screen.getByRole('menuitem', { name: /Thu hồi đồng ý gửi ảnh/ }));
     await waitFor(() => expect(window.localStorage.getItem('sb-assistant-photo-consent:CUSTOMER')).toBe('0'));
   });

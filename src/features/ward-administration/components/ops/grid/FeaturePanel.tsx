@@ -108,7 +108,7 @@ export function FeaturePanel({
   const remove = useMutation({
     mutationFn: (feature: WardStreetFeature) => wardConfigApi.deleteFeature(feature),
     onSuccess: (_, feature) => {
-      showToast('Đã xóa chướng ngại vật');
+      showToast('Đã xoá chướng ngại vật');
       if (editing?.featureId === feature.featureId) resetForm();
       onChanged();
     },
@@ -121,7 +121,7 @@ export function FeaturePanel({
         title={editing ? `Sửa chướng ngại vật: ${editing.label}` : 'Thêm chướng ngại vật'}
         action={
           editing ? (
-            <Button label="Hủy sửa" variant="ghost" fullWidth={false} onPress={resetForm} />
+            <Button label="Huỷ sửa" variant="ghost" fullWidth={false} onPress={resetForm} />
           ) : undefined
         }
       >
@@ -233,7 +233,7 @@ export function FeaturePanel({
                       onPress={() => startEdit(f)}
                     />
                     <Button
-                      label="Xóa"
+                      label="Xoá"
                       variant="ghost"
                       fullWidth={false}
                       onPress={() => setToDelete(f)}
@@ -247,9 +247,9 @@ export function FeaturePanel({
       )}
       <ConfirmDialog
         visible={!!toDelete}
-        title={`Xóa chướng ngại vật${toDelete ? ` "${toDelete.label}"` : ''}?`}
+        title={`Xoá chướng ngại vật${toDelete ? ` "${toDelete.label}"` : ''}?`}
         description="Các ô gần vị trí này sẽ không còn bị cảnh báo va chạm với nó nữa."
-        confirmLabel="Xóa"
+        confirmLabel="Xoá"
         confirmVariant="danger"
         onConfirm={() => {
           if (toDelete) remove.mutate(toDelete);

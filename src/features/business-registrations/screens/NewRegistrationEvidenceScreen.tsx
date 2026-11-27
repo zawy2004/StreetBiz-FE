@@ -227,7 +227,7 @@ export function NewRegistrationEvidenceScreen() {
           <WizardQuestion
             hint={
               isEditing
-                ? 'Giấy tờ đã nộp trước đó vẫn được giữ. Chỉ tải thêm giấy tờ nếu Phường yêu cầu. Cập nhật sẽ gửi hồ sơ đi duyệt lại.'
+                ? 'Giấy tờ đã nộp trước đó vẫn được giữ. Chỉ tải thêm giấy tờ nếu phường yêu cầu. Cập nhật sẽ gửi hồ sơ đi duyệt lại.'
                 : 'Ảnh JPG, PNG, WEBP hoặc file PDF, tối đa 5 MB mỗi tệp.'
             }
           >
@@ -241,7 +241,7 @@ export function NewRegistrationEvidenceScreen() {
             </AiHint>
           ) : null}
 
-          <EvidenceEnvelope title="Phong bì hồ sơ">
+          <EvidenceEnvelope title="Giấy tờ trong hồ sơ">
             {slots.map((type) => {
               const item = draft.evidence.find((e) => e.evidenceType === type);
               const sent = submission.isPending && !!item?.uploadedUrl;
@@ -342,13 +342,12 @@ export function NewRegistrationEvidenceScreen() {
                 draft.biometricConsent ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-card px-2 py-0.5 text-[12.5px] font-semibold text-[#0B5D33] ring-1 ring-tertiary/40 dark:text-[#8BE3B0]">
                     <Icon name="check" size={13} color="currentColor" />
-                    Cùng một sự đồng ý với bước 3
+                    Đã đồng ý ở bước 3
                   </span>
                 ) : null
               }
             >
-              Tôi đồng ý <strong>riêng biệt</strong> để hệ thống dùng công nghệ nhận diện quang học
-              (OCR) đối soát ảnh CCCD/CMND. Không đồng ý vẫn nộp hồ sơ được — cán bộ phường sẽ đối chiếu
+              Tôi đồng ý (đồng ý <strong>riêng</strong> cho mục này) để hệ thống dùng công nghệ nhận dạng chữ (OCR) đối chiếu ảnh CCCD. Không đồng ý vẫn nộp hồ sơ được — cán bộ phường sẽ đối chiếu
               giấy tờ thủ công thay vì tự động. <LegalBasisLink anchor="du-lieu" />
             </ConsentRow>
           ) : null}

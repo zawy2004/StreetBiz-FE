@@ -16,7 +16,7 @@ const QUESTIONS = [
   },
   {
     q: 'Thanh toán bằng gì?',
-    a: 'Đơn hàng thanh toán qua ví MoMo hoặc ZaloPay. Đơn chỉ được tính là đã trả khi hệ thống nhận được xác nhận từ ví.',
+    a: 'Đơn hàng trả trước bằng chuyển khoản VietQR, hoặc ví MoMo, ZaloPay khi quán hỗ trợ. Đơn chỉ được tính là đã trả khi hệ thống nhận được xác nhận thanh toán.',
   },
 ];
 

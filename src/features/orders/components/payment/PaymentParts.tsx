@@ -187,7 +187,7 @@ export function PaymentReceiptStrip({ order, gateway }: { order: Order; gateway:
       style={SCALLOP_TOP}
       className="flex flex-wrap items-center gap-sm rounded-b-[20px] bg-card px-md pb-md pt-lg ring-1 ring-border"
     >
-      <span title={photos[0]?.illustrative ? 'Ảnh minh họa' : undefined}>
+      <span title={photos[0]?.illustrative ? 'Ảnh minh hoạ' : undefined}>
         <FoodImage
           photos={photos}
           icon="storefront-outline"

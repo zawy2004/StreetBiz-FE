@@ -151,7 +151,7 @@ export function SlotPanel({
   const remove = useMutation({
     mutationFn: () => wardConfigApi.deleteSlot(slot),
     onSuccess: () => {
-      showToast('Đã xóa ô');
+      showToast('Đã xoá ô');
       void client.invalidateQueries({ queryKey: ['ward', userId] });
       onClose();
     },
@@ -291,7 +291,7 @@ export function SlotPanel({
         <div className="border-t border-border pt-md">
           <Note>
             Ô đang có đơn thuê chờ xử lý nên chưa tạm ngưng được. Hãy duyệt hoặc từ chối đơn ở Hộp
-            duyệt trước; hệ thống không tự hủy đơn của hộ kinh doanh.
+            duyệt trước; hệ thống không tự huỷ đơn của hộ kinh doanh.
           </Note>
         </div>
       )}
@@ -304,11 +304,11 @@ export function SlotPanel({
         </div>
       )}
       {slot.canHardDelete ? (
-        <Button label="Xóa ô" variant="danger" onPress={() => setConfirmDelete(true)} />
+        <Button label="Xoá ô" variant="danger" onPress={() => setConfirmDelete(true)} />
       ) : (
         !readOnly && (
           <p className="text-body-sm text-muted">
-            Ô đã có lịch sử (đơn, hợp đồng, vi phạm…) nên không xóa được; dùng Tạm ngưng.
+            Ô đã có lịch sử (đơn, hợp đồng, vi phạm…) nên không xoá được; dùng Tạm ngưng.
           </p>
         )
       )}
@@ -325,9 +325,9 @@ export function SlotPanel({
       </div>
       <ConfirmDialog
         visible={confirmDelete}
-        title={`Xóa ô ${slot.slotCode}?`}
-        description="Chỉ xóa ô vẽ nhầm, chưa từng phát sinh giao dịch."
-        confirmLabel="Xóa"
+        title={`Xoá ô ${slot.slotCode}?`}
+        description="Chỉ xoá ô vẽ nhầm, chưa từng phát sinh giao dịch."
+        confirmLabel="Xoá"
         confirmVariant="danger"
         onConfirm={() => {
           setConfirmDelete(false);

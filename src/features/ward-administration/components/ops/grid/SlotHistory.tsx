@@ -17,7 +17,7 @@ const slotHistoryLabels: Record<string, string> = {
   SLOT_CREATED: 'Tạo ô',
   SLOT_UPDATED: 'Cập nhật ô',
   SLOT_STATUS_CHANGED: 'Đổi trạng thái',
-  SLOT_DELETED: 'Xóa ô',
+  SLOT_DELETED: 'Xoá ô',
 };
 
 type SlotAuditSnapshot = {

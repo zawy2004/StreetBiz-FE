@@ -41,7 +41,7 @@ beforeEach(() => {
 describe('LandingScreen doors', () => {
   it('gives each role its own way in, with names that never repeat the hero links', () => {
     renderAt('/', <LandingScreen />);
-    expect(screen.getByRole('link', { name: 'Xem quán có phép' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Xem quán có giấy phép' })).toHaveAttribute(
       'href',
       '/customer/explore',
     );

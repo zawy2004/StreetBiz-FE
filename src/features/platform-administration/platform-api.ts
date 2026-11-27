@@ -119,7 +119,7 @@ async function platformFetch(
   retried = false,
 ): Promise<Response> {
   const base = env.apiBaseUrl.replace(/\/$/, '');
-  if (!base) throw new PlatformApiError(0, 'Chưa cấu hình VITE_API_BASE_URL cho Backend.');
+  if (!base) throw new PlatformApiError(0, 'Ứng dụng chưa được cấu hình địa chỉ máy chủ.');
 
   let response: Response;
   try {
@@ -135,7 +135,7 @@ async function platformFetch(
   } catch {
     throw new PlatformApiError(
       0,
-      'Không kết nối được Backend. Kiểm tra URL API, CORS và trạng thái server.',
+      'Không kết nối được máy chủ. Kiểm tra kết nối mạng rồi thử lại.',
     );
   }
 

@@ -302,7 +302,7 @@ describe('V26 Thanh toán phí thuê ô', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Thanh toán qua MoMo/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Xem hoá đơn' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Tải lại biên nhận' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tải lại hoá đơn' })).toBeInTheDocument();
   });
 
   it('refuses a cancelled instalment', async () => {
@@ -557,7 +557,7 @@ describe('V30 Lịch sử thanh toán', () => {
       '/vendor/finance/payments': [row, { ...row, transactionId: 6, callbackReceivedAt: null }],
     });
     renderHistory();
-    expect(await screen.findAllByText(/^Ví xác nhận lúc /)).toHaveLength(1);
+    expect(await screen.findAllByText(/^Cổng thanh toán xác nhận lúc /)).toHaveLength(1);
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
   });
 

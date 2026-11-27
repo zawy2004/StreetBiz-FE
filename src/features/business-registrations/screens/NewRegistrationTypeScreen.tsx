@@ -76,7 +76,7 @@ export function NewRegistrationTypeScreen() {
                   className="mt-0.5 shrink-0"
                 />
                 <span>
-                  Bạn đang có hồ sơ {pending.displayName} chờ Phường xét. Muốn sửa hồ sơ đó, mở hồ
+                  Bạn đang có hồ sơ {pending.displayName} chờ phường xét. Muốn sửa hồ sơ đó, mở hồ
                   sơ rồi chọn “Chỉnh sửa”.
                 </span>
               </p>

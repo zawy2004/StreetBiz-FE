@@ -127,7 +127,7 @@ function AreaCard({
         ) : null}
         {!failed ? (
           <span className="pointer-events-none absolute bottom-1 right-1 rounded-sm bg-black/45 px-1.5 py-0.5 text-[10px] leading-none text-white/90">
-            Ảnh minh họa
+            Ảnh minh hoạ
           </span>
         ) : null}
       </span>

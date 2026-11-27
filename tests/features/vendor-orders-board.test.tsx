@@ -257,7 +257,7 @@ describe('VendorOrdersScreen', () => {
   it('asks the server for both closed statuses and labels each ticket', async () => {
     renderBoard();
 
-    await userEvent.click(await screen.findByRole('tab', { name: 'Từ chối / hủy' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'Từ chối / huỷ' }));
 
     await waitFor(() =>
       expect(orderApi.vendorOrders).toHaveBeenCalledWith(

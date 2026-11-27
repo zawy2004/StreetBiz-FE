@@ -118,7 +118,7 @@ function CompliancePolicySection() {
   return (
     <Section
       title="Chính sách thu hồi giấy phép do vi phạm nhiều lần"
-      description="Chỉ mang tính gợi ý cho cán bộ -- không tự động thu hồi giấy phép. Để trống để tắt."
+      description="Chỉ mang tính gợi ý cho cán bộ, không tự động thu hồi giấy phép. Để trống để tắt."
     >
       <div className="flex flex-col gap-md rounded-[20px] bg-card p-md shadow-card ring-1 ring-border md:p-lg">
         <p className="max-w-[62ch] text-[18px] leading-[2.6] text-text md:text-[19px]">
@@ -151,7 +151,7 @@ function CompliancePolicySection() {
               color="currentColor"
               className="mt-0.5 shrink-0"
             />
-            Đã nhập ngưỡng số lần vi phạm thì phải nhập cả cửa sổ thời gian.
+            Đã nhập ngưỡng số lần vi phạm thì phải nhập cả số ngày tính.
           </p>
         )}
         <div className="flex flex-col-reverse gap-sm border-t border-border pt-md sm:flex-row sm:items-center sm:justify-between">
@@ -418,7 +418,7 @@ function PenaltyTypeCard({
   const cancel = useMutation({
     mutationFn: (scheduleId: number) => wardConfigApi.cancelPenaltyRate(scheduleId),
     onSuccess: () => {
-      showToast('Đã hủy mức phạt hẹn áp dụng');
+      showToast('Đã huỷ mức phạt hẹn áp dụng');
       void refresh();
     },
     onError: (error) => {
@@ -490,7 +490,7 @@ function PenaltyTypeCard({
                 <p className="text-body-sm text-muted">
                   Hiệu lực từ {formatDateVn(current.effectiveFrom)}
                   {current.effectiveTo
-                    ? ` đến hết ngày trước ${formatDateVn(current.effectiveTo)}`
+                    ? ` đến trước ngày ${formatDateVn(current.effectiveTo)}`
                     : ''}
                 </p>
               )}
@@ -511,7 +511,7 @@ function PenaltyTypeCard({
                   <p className="text-body-sm text-muted">
                     Hiệu lực từ {formatDateVn(current.effectiveFrom)}
                     {current.effectiveTo
-                      ? ` đến hết ngày trước ${formatDateVn(current.effectiveTo)}`
+                      ? ` đến trước ngày ${formatDateVn(current.effectiveTo)}`
                       : ''}
                   </p>
                 </>
@@ -539,7 +539,7 @@ function PenaltyTypeCard({
             }
             action={
               <Button
-                label="Hủy mức hẹn"
+                label="Huỷ mức hẹn"
                 variant="outline"
                 fullWidth={false}
                 loading={cancel.isPending}
@@ -566,7 +566,7 @@ function PenaltyTypeCard({
           onPress={() => setMode(mode === 'history' ? 'view' : 'history')}
         />
         {type.scheduled && mode !== 'edit' && (
-          <p className="text-body-sm text-muted">Hủy mức đang hẹn trước khi đặt mức khác.</p>
+          <p className="text-body-sm text-muted">Huỷ mức đang hẹn trước khi đặt mức khác.</p>
         )}
       </div>
 
@@ -585,9 +585,9 @@ function PenaltyTypeCard({
 
       <ConfirmDialog
         visible={cancelling}
-        title="Hủy mức phạt hẹn áp dụng?"
+        title="Huỷ mức phạt hẹn áp dụng?"
         description="Mức phạt đang áp dụng sẽ tiếp tục có hiệu lực không thời hạn."
-        confirmLabel="Hủy mức hẹn"
+        confirmLabel="Huỷ mức hẹn"
         confirmVariant="danger"
         onConfirm={() => {
           setCancelling(false);

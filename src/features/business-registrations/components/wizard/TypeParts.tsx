@@ -330,14 +330,14 @@ export function LegalBasisNote({ vendorType }: { vendorType: ApiVendorType }) {
     >
       <p className="flex items-center gap-xs text-[15px] font-semibold text-text">
         <Icon name="information-outline" size={18} color="currentColor" className="shrink-0" />
-        {fixed ? 'Cần giấy phép kinh doanh' : 'Thường được miễn giấy phép kinh doanh'}
+        {fixed ? 'Cần đăng ký hộ kinh doanh' : 'Thường được miễn đăng ký hộ kinh doanh'}
       </p>
 
       {fixed ? (
         <ul className="flex list-disc flex-col gap-1 pl-5 text-[14px] leading-[21px] text-muted">
           <li>
             Bán cố định, thường xuyên nhằm sinh lời thuộc diện <strong>bắt buộc</strong> đăng ký hộ
-            kinh doanh — cần tải <strong>Giấy phép kinh doanh</strong> ở bước sau.
+            kinh doanh — cần tải <strong>Giấy chứng nhận đăng ký hộ kinh doanh</strong> ở bước sau.
           </li>
           <li>
             Nếu bán đồ ăn, thức uống (ngành có điều kiện) thì cần thêm <strong>cam kết/giấy ATTP</strong>{' '}
@@ -348,12 +348,11 @@ export function LegalBasisNote({ vendorType }: { vendorType: ApiVendorType }) {
         <ul className="flex list-disc flex-col gap-1 pl-5 text-[14px] leading-[21px] text-muted">
           <li>
             Bán hàng rong, quà vặt, buôn bán lưu động (không có địa điểm cố định) thường{' '}
-            <strong>được miễn</strong> đăng ký hộ kinh doanh, nên <strong>không cần</strong> Giấy phép
-            kinh doanh.
+            <strong>được miễn</strong> đăng ký hộ kinh doanh, nên <strong>không cần</strong> Giấy chứng nhận đăng ký hộ kinh doanh.
           </li>
           <li>
             Nhưng nếu bán <strong>đồ ăn, thức uống</strong> hoặc ngành có điều kiện, bạn vẫn phải{' '}
-            <strong>cam kết điều kiện ATTP</strong> cho món đó — dù được miễn giấy phép.
+            <strong>cam kết điều kiện ATTP</strong> cho món đó — dù được miễn đăng ký.
           </li>
         </ul>
       )}

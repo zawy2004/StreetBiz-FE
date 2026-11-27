@@ -40,7 +40,7 @@ function ActionSheet({ action, onClose }: { action: Action; onClose: () => void 
     reporting
       ? report.mutate(
           { referralId: action.referral.referralId, reference: reference.trim() || null, note: note.trim() || null },
-          done('Đã ghi nhận đã báo cơ quan thuế'),
+          done('Đã ghi nhận: đã báo cơ quan thuế'),
         )
       : dismiss.mutate({ referralId: action.referral.referralId, reason: reason.trim() }, done('Đã ghi nhận không cần báo'));
 

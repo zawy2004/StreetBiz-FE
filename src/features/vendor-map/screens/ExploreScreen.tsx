@@ -131,7 +131,7 @@ function TrustBand({ onScan }: { onScan: () => void }) {
             id="trust-title"
             className="font-editorial text-[34px] font-semibold leading-[1.05] tracking-[-0.02em] text-text [font-variation-settings:'opsz'_60] lg:text-[48px]"
           >
-            Ăn vỉa hè, có phường đứng sau.
+            Ăn vỉa hè, có phường cấp phép.
           </h2>
           <p className="max-w-[40ch] text-body-lg text-text/75">
             Quán trên StreetBiz bán ở đúng ô được cấp, có giấy phép còn hiệu lực. Bạn kiểm tra được

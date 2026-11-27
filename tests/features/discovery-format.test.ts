@@ -52,7 +52,7 @@ describe('weeklySchedule', () => {
     ]);
 
     expect(schedule?.map((d) => d.label)).toEqual([
-      'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật',
+      'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ nhật',
     ]);
     expect(schedule?.[0]?.ranges).toEqual(['06:00–10:00']);
     expect(schedule?.[5]?.ranges).toEqual(['06:00–10:00', '16:00–21:00']);

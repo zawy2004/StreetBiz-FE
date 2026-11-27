@@ -61,7 +61,7 @@ export function PlatformConnection({ children }: { children: ReactNode }) {
             <TwoKeysDiagram />
             <div className="flex flex-col gap-1">
               <p className="text-body-md text-text">
-                Đăng nhập Backend bằng tài khoản PLATFORM_ADMIN để thao tác dữ liệu thật.
+                Đăng nhập bằng tài khoản quản trị nền tảng để làm việc với dữ liệu thật.
               </p>
               <p className="text-body-sm text-muted">
                 Phiên này chỉ giữ trong thẻ trình duyệt hiện tại.

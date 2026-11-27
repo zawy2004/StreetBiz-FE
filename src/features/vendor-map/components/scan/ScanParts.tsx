@@ -144,10 +144,10 @@ export function ScanIdle() {
         <div className="flex min-w-0 flex-col gap-md">
           <div className="flex flex-col gap-1">
             <p className="font-editorial text-[28px] font-semibold leading-tight text-text">
-              Quán này có phép không?
+              Quán này có giấy phép không?
             </p>
             <p className="text-body-md text-muted">
-              Mỗi quán có phép đều treo một tấm giấy phép có mã QR của phường.
+              Mỗi quán có giấy phép đều treo một tấm giấy phép có mã QR của phường.
             </p>
           </div>
           <ol className="flex flex-col gap-sm">
@@ -221,7 +221,7 @@ export function PublicNotFoundPass({ headingRef }: { headingRef?: Ref<HTMLHeadin
         Mã QR không hợp lệ
       </h2>
       <p className="max-w-[44ch] text-body-md text-text/80">
-        Chữ ký hoặc giấy phép tương ứng không tồn tại. Lần kiểm tra đã được ghi nhận.
+        Mã QR không hợp lệ hoặc giấy phép không tồn tại. Lần kiểm tra đã được ghi nhận.
       </p>
     </section>
   );

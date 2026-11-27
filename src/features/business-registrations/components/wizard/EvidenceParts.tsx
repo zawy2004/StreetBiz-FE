@@ -128,7 +128,7 @@ export function ReviewSheet({ items }: { items: ReviewItem[] }) {
             color="currentColor"
             className="mt-0.5 shrink-0"
           />
-          {missingCount} mục chưa điền. Bạn vẫn bấm nộp được; Phường có thể yêu cầu bổ sung.
+          {missingCount} mục chưa điền. Bạn vẫn bấm nộp được; phường có thể yêu cầu bổ sung.
         </p>
       ) : null}
       <dl

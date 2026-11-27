@@ -190,7 +190,7 @@ describe('ward helpers', () => {
   });
 
   it('labels UNDER_REVIEW by case kind and falls back to the raw status', () => {
-    expect(statusLabel('conflicts', 'UNDER_REVIEW')).toBe('Đang xếp hàng');
+    expect(statusLabel('conflicts', 'UNDER_REVIEW')).toBe('Trong danh sách chờ');
     expect(statusLabel('proposals', 'UNDER_REVIEW')).toBe('Đang xét duyệt');
     expect(statusLabel('transfers', 'SOMETHING_NEW')).toBe('SOMETHING_NEW');
   });

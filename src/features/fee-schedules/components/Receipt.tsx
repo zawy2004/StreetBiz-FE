@@ -104,7 +104,7 @@ export function InvoiceAbout() {
         <span className="mt-0.5 shrink-0">
           <Icon name="information-outline" size={18} color="currentColor" />
         </span>
-        Cần đối chiếu? Chụp màn hình tờ hoá đơn để gửi kế toán hoặc đưa Cán bộ Phường xem.
+        Cần đối chiếu? Chụp màn hình tờ hoá đơn để gửi kế toán hoặc đưa Cán bộ phường xem.
       </p>
     </aside>
   );

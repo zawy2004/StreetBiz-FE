@@ -59,7 +59,7 @@ function SlotEditContent() {
         <EmptyState
           icon="map-marker-radius-outline"
           title="Không tìm thấy ô này"
-          description="Ô có thể đã bị xóa. Quay lại lưới ô để chọn ô khác."
+          description="Ô có thể đã bị xoá. Quay lại lưới ô để chọn ô khác."
         />
         <Button label="Về lưới ô" variant="outline" fullWidth={false} onPress={backToBoard} />
       </Screen>

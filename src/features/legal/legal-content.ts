@@ -52,7 +52,7 @@ export const LEGAL_PAGES = [
  */
 export const SLOT_COMMITMENTS = [
   'Tôi kinh doanh đúng vị trí, diện tích, khung giờ được cấp và không lấn lối đi chung.',
-  'Tôi giữ vệ sinh, tuân thủ phòng cháy chữa cháy và quy định của Phường.',
+  'Tôi giữ vệ sinh, tuân thủ phòng cháy chữa cháy và quy định của phường.',
 ] as const;
 
 const UPDATED = '18/11/2026';
@@ -69,7 +69,7 @@ export const TERMS: LegalDocument = {
   highlights: [
     'Mỗi người một tài khoản, đăng ký bằng số điện thoại chính chủ và mã OTP.',
     'StreetBiz hỗ trợ quản lý vỉa hè; mọi quyết định duyệt, cấp phép và xử phạt do cán bộ phường đưa ra, không phải AI.',
-    'Phí thuê ô trả vào tài khoản của Phường, tiền phạt nộp Kho bạc Nhà nước. StreetBiz không giữ tiền của bạn.',
+    'Phí thuê ô trả vào tài khoản của phường, tiền phạt nộp Kho bạc Nhà nước. StreetBiz không giữ tiền của bạn.',
     'Khai báo sai, giả mạo giấy tờ hoặc lạm dụng báo cáo có thể bị ẩn nội dung, khoá tài khoản và bị xử lý theo pháp luật.',
   ],
   sections: [
@@ -79,7 +79,7 @@ export const TERMS: LegalDocument = {
       blocks: [
         {
           kind: 'p',
-          text: 'StreetBiz là nền tảng giúp Phường quản lý ô vỉa hè theo hướng minh bạch: hộ kinh doanh nộp hồ sơ, thuê ô, nhận giấy phép QR và đóng phí; người mua tra cứu quầy hợp pháp và đặt món; cán bộ phường duyệt hồ sơ, kiểm tra và xử lý vi phạm.',
+          text: 'StreetBiz là nền tảng giúp phường quản lý ô vỉa hè theo hướng minh bạch: hộ kinh doanh nộp hồ sơ, thuê ô, nhận giấy phép QR và đóng phí; người mua tra cứu quầy hợp pháp và đặt món; cán bộ phường duyệt hồ sơ, kiểm tra và xử lý vi phạm.',
         },
         {
           kind: 'list',
@@ -116,7 +116,7 @@ export const TERMS: LegalDocument = {
           rows: [
             [
               'Khách (chưa đăng nhập)',
-              'Xem bản đồ quầy có phép, quét QR kiểm tra giấy phép, gửi báo cáo quầy vi phạm.',
+              'Xem bản đồ quán có giấy phép, quét QR kiểm tra giấy phép, gửi phản ánh quán vi phạm.',
               'Đặt món, đánh giá, đính kèm ảnh vào báo cáo hay theo dõi kết quả xử lý.',
             ],
             [
@@ -177,9 +177,9 @@ export const TERMS: LegalDocument = {
           kind: 'steps',
           items: [
             'Chọn món từ một quầy, thêm vào giỏ. Giỏ chỉ chứa món của một quầy.',
-            'Thanh toán trước bằng chuyển khoản VietQR (qua payOS) hoặc ví MoMo khi quán hỗ trợ.',
+            'Thanh toán trước bằng chuyển khoản VietQR (qua payOS), hoặc ví MoMo, ZaloPay khi quán hỗ trợ.',
             'Quán xác nhận và chuẩn bị. Khi sẵn sàng, bạn nhận thông báo.',
-            'Đến quầy nhận hàng bằng mã QR hoặc mã đọc của đơn. StreetBiz không giao hàng tận nơi.',
+            'Đến quầy nhận hàng bằng mã QR hoặc mã 8 ký tự của đơn. StreetBiz không giao hàng tận nơi.',
           ],
         },
         {
@@ -203,17 +203,17 @@ export const TERMS: LegalDocument = {
             [
               'Phí thuê ô',
               'Phường quản lý ô',
-              'Chuyển khoản VietQR (payOS) vào tài khoản của Phường. Hoá đơn lưu trong mục Tài chính.',
+              'Chuyển khoản VietQR (payOS) vào tài khoản của phường. Hoá đơn lưu trong mục Tài chính.',
             ],
             [
               'Đơn hàng',
               'Quán bạn mua',
-              'VietQR (payOS) vào tài khoản của quán, hoặc ví MoMo khi có.',
+              'VietQR (payOS) vào tài khoản của quán, hoặc ví MoMo, ZaloPay khi có.',
             ],
             [
               'Tiền phạt vi phạm',
               'Kho bạc Nhà nước',
-              'Nộp theo quyết định xử phạt, sau đó tải biên lai lên StreetBiz để Phường xác nhận. StreetBiz không thu tiền phạt.',
+              'Nộp theo quyết định xử phạt, sau đó tải biên lai lên StreetBiz để phường xác nhận. StreetBiz không thu tiền phạt.',
             ],
           ],
         },
@@ -225,7 +225,7 @@ export const TERMS: LegalDocument = {
         },
         {
           kind: 'p',
-          text: 'Phí thuê ô quá hạn bị đánh dấu quá hạn, hệ thống nhắc bạn và Phường có thể nhắc thêm. Hợp đồng còn nợ quá hạn không gia hạn, trả hoặc chuyển nhượng được (xem Quy định thuê ô).',
+          text: 'Phí thuê ô quá hạn bị đánh dấu quá hạn, hệ thống nhắc bạn và phường có thể nhắc thêm. Hợp đồng còn nợ quá hạn không gia hạn, trả hoặc chuyển nhượng được (xem Quy định thuê ô).',
         },
       ],
     },
@@ -246,15 +246,15 @@ export const TERMS: LegalDocument = {
     },
     {
       id: 'danh-gia-bao-cao',
-      title: 'Đánh giá và báo cáo quầy',
+      title: 'Đánh giá và phản ánh quán',
       blocks: [
         {
           kind: 'list',
           items: [
-            'Chỉ người mua đã đăng nhập mới đánh giá được quầy.',
-            'Ai cũng có thể báo cáo quầy bán sai vị trí, không có phép hoặc tính giá cao hơn niêm yết. Khách chưa đăng nhập báo cáo được nhưng không đính kèm ảnh và không theo dõi được kết quả, đồng thời bị giới hạn số báo cáo mỗi giờ.',
-            'Báo cáo được chuyển tới Phường phụ trách, không phải quản trị nền tảng. Quầy bị báo cáo không biết ai đã gửi.',
-            'Báo cáo cần đúng sự thật. Báo cáo sai có chủ ý có thể bị từ chối và người gửi bị hạn chế.',
+            'Chỉ người mua đã đăng nhập mới đánh giá được quán.',
+            'Ai cũng có thể phản ánh quán bán sai vị trí, không có giấy phép hoặc tính giá cao hơn niêm yết. Khách chưa đăng nhập vẫn gửi được nhưng không đính kèm ảnh, không theo dõi được kết quả và bị giới hạn số phản ánh mỗi giờ.',
+            'Phản ánh được chuyển tới phường phụ trách, không phải quản trị nền tảng. Quán bị phản ánh không biết ai đã gửi.',
+            'Phản ánh cần đúng sự thật. Phản ánh sai có chủ ý có thể bị từ chối và người gửi bị hạn chế.',
           ],
         },
       ],
@@ -267,7 +267,7 @@ export const TERMS: LegalDocument = {
           kind: 'list',
           items: [
             'StreetBiz cố gắng vận hành liên tục nhưng có thể gián đoạn khi bảo trì hoặc khi nhà cung cấp bên thứ ba (SMS, thanh toán, AI) gặp sự cố.',
-            'Chất lượng, giá và việc giao nhận món do quán chịu trách nhiệm. Việc duyệt, cấp phép, xử phạt do Phường chịu trách nhiệm.',
+            'Chất lượng, giá và việc giao nhận món do quán chịu trách nhiệm. Việc duyệt, cấp phép, xử phạt do phường chịu trách nhiệm.',
             'Bạn có quyền khiếu nại, tố cáo, khởi kiện đối với quyết định hành chính theo quy định của pháp luật.',
           ],
         },
@@ -354,7 +354,7 @@ export const PRIVACY: LegalDocument = {
         {
           kind: 'list',
           items: [
-            'Xác minh danh tính, xét duyệt hồ sơ và hợp đồng thuê ô, cấp giấy phép QR, thu phí và xử lý vi phạm: để thực hiện dịch vụ bạn yêu cầu và để Phường thực hiện quản lý nhà nước.',
+            'Xác minh danh tính, xét duyệt hồ sơ và hợp đồng thuê ô, cấp giấy phép QR, thu phí và xử lý vi phạm: để thực hiện dịch vụ bạn yêu cầu và để phường thực hiện quản lý nhà nước.',
             'Gửi OTP, thông báo đơn hàng, nhắc phí: để vận hành tài khoản.',
             'Trả lời câu hỏi, đọc ảnh, nhận lời nói: để thực hiện tính năng trợ lý bạn chủ động dùng.',
             'Bảo vệ an toàn hệ thống: chống mạo danh, gửi OTP hàng loạt, truy cập trái phép.',
@@ -473,7 +473,7 @@ export const PRIVACY: LegalDocument = {
           kind: 'list',
           items: [
             'Truyền dữ liệu qua HTTPS. Mật khẩu và mã OTP lưu dạng băm.',
-            'Khoá kết nối thanh toán của Phường và quán được mã hoá khi lưu và không bao giờ hiển thị lại.',
+            'Khoá kết nối thanh toán của phường và quán được mã hoá khi lưu và không bao giờ hiển thị lại.',
             'Phân quyền theo vai trò và theo phường, kiểm tra ở máy chủ cho từng yêu cầu.',
             'Thao tác của cán bộ trên hồ sơ được ghi nhật ký.',
             'Ảnh công khai được xử lý lại để xoá vị trí chụp; ảnh minh chứng được nén và xoá thông tin ẩn trước khi lưu.',
@@ -504,7 +504,7 @@ export const PRIVACY: LegalDocument = {
             ],
             [
               'Xoá tài khoản, xuất bản sao dữ liệu, chỉnh sửa dữ liệu hồ sơ đã nộp',
-              'Hiện chưa có nút trong ứng dụng. Gửi yêu cầu tới Phường nơi bạn đăng ký; yêu cầu được xử lý trong thời hạn pháp luật quy định. Dữ liệu hồ sơ phải lưu theo quy định có thể chưa xoá được.',
+              'Hiện chưa có nút trong ứng dụng. Gửi yêu cầu tới phường nơi bạn đăng ký; yêu cầu được xử lý trong thời hạn pháp luật quy định. Dữ liệu hồ sơ phải lưu theo quy định có thể chưa xoá được.',
             ],
           ],
         },
@@ -531,7 +531,7 @@ export const PRIVACY: LegalDocument = {
         {
           kind: 'list',
           items: [
-            'Câu hỏi hoặc yêu cầu về dữ liệu: gửi tới cán bộ Phường nơi bạn đăng ký. Thông tin liên hệ của Phường hiện ở trang chi tiết tuyến, trong mục thông tin tuyến.',
+            'Câu hỏi hoặc yêu cầu về dữ liệu: gửi tới cán bộ phường nơi bạn đăng ký. Thông tin liên hệ của phường hiện ở trang chi tiết tuyến, trong mục thông tin tuyến.',
             'Nếu cho rằng dữ liệu của mình bị xử lý trái pháp luật, bạn có quyền khiếu nại, tố cáo hoặc khởi kiện, và phản ánh tới cơ quan chuyên trách bảo vệ dữ liệu cá nhân của Bộ Công an.',
           ],
         },
@@ -553,9 +553,9 @@ export const SLOT_RULES: LegalDocument = {
   summary: 'Điều kiện, quy trình, chi phí và nghĩa vụ khi bạn thuê một ô vỉa hè trên StreetBiz.',
   updatedAt: UPDATED,
   highlights: [
-    'Nộp đơn khi hồ sơ kinh doanh còn đang chờ duyệt vẫn được, nhưng chỉ được duyệt thuê khi hồ sơ đã được duyệt.',
+    'Chỉ nộp được đơn thuê ô khi hồ sơ kinh doanh đã được duyệt.',
     'Giữ chỗ một ô trong 15 phút, tối đa 3 ô cùng lúc; hết giờ ô tự trả lại.',
-    'Số tiền trên đơn là ước tính; giá chính thức chốt theo giá tuyến lúc Phường duyệt.',
+    'Số tiền trên đơn là ước tính; giá chính thức chốt theo giá tuyến lúc phường duyệt.',
     'Còn nợ phí quá hạn hoặc tiền phạt chưa nộp thì không gia hạn, trả ô hay chuyển nhượng được.',
   ],
   sections: [
@@ -569,7 +569,7 @@ export const SLOT_RULES: LegalDocument = {
             'Chọn ô còn trống trên bản đồ, xem giá và quy định của tuyến; có thể giữ chỗ 15 phút để cân nhắc.',
             'Chọn thời hạn thuê, xem báo giá, tích đồng ý cam kết và nộp đơn.',
             'Phường xem xét. Đơn có thể được duyệt, bị từ chối kèm lý do hoặc cần bổ sung thông tin; bạn theo dõi trạng thái trong mục Đơn thuê và có thể rút đơn khi chưa duyệt.',
-            'Khi Phường duyệt, hợp đồng, lịch đóng phí và giấy phép QR được tạo.',
+            'Khi phường duyệt, hợp đồng, lịch đóng phí và giấy phép QR được tạo.',
             'Đóng phí đúng hạn, treo giấy phép QR và bảng giá tại quầy, bán hàng đúng vị trí và khung giờ.',
           ],
         },
@@ -582,11 +582,11 @@ export const SLOT_RULES: LegalDocument = {
         {
           kind: 'list',
           items: [
-            'Có tài khoản hộ kinh doanh và hồ sơ kinh doanh. Có thể nộp đơn khi hồ sơ đang chờ duyệt, nhưng Phường chỉ duyệt thuê khi hồ sơ đã được duyệt.',
+            'Có tài khoản hộ kinh doanh và hồ sơ kinh doanh đã được duyệt.',
             'Mỗi ô chỉ có một đơn đang xử lý tại một thời điểm.',
-            'Mỗi khu (tuyến) có thể có hạn nộp đơn. Qua hạn, Phường không nhận đơn mới ở khu đó, các hợp đồng đang chạy không bị ảnh hưởng.',
+            'Mỗi khu (tuyến) có thể có hạn nộp đơn. Qua hạn, phường không nhận đơn mới ở khu đó, các hợp đồng đang chạy không bị ảnh hưởng.',
             'Ô liền kề cửa hàng chỉ dành cho hộ có cửa hàng cố định, nằm trong bán kính quy định quanh địa chỉ cửa hàng (hiện là 150 m). Mỗi hộ chỉ có một hợp đồng ô liền kề đang hiệu lực.',
-            'Ô nằm ở vị trí bị Phường cấm kinh doanh (ví dụ trạm biến áp) không thuê được.',
+            'Ô nằm ở vị trí bị phường cấm kinh doanh (ví dụ trạm biến áp) không thuê được.',
           ],
         },
       ],
@@ -610,7 +610,7 @@ export const SLOT_RULES: LegalDocument = {
           kind: 'list',
           items: [
             'Bạn có thể giữ một ô còn trống trong 15 phút để cân nhắc. Trong lúc đó người khác không nộp đơn vào ô này được.',
-            'Mỗi hồ sơ giữ tối đa 3 ô cùng lúc. Giữ lại để gia hạn thời gian giữ.',
+            'Mỗi hồ sơ giữ tối đa 3 ô cùng lúc. Bấm giữ lại lần nữa để có thêm 15 phút.',
             'Hết thời gian, ô tự trả lại cho người khác. Nộp đơn xong, lượt giữ của bạn tự được thả.',
           ],
         },
@@ -633,7 +633,7 @@ export const SLOT_RULES: LegalDocument = {
           rows: [
             [
               'Tiền thuê',
-              'Giá của tuyến (hoặc giá riêng của ô nếu Phường đặt) nhân với thời hạn thuê.',
+              'Giá của tuyến (hoặc giá riêng của ô nếu phường đặt) nhân với thời hạn thuê.',
             ],
             [
               'Giảm theo quý',
@@ -653,7 +653,7 @@ export const SLOT_RULES: LegalDocument = {
           kind: 'note',
           tone: 'warn',
           title: 'Số tiền trên đơn chỉ là ước tính',
-          text: 'Giá chính thức chốt theo giá tuyến tại thời điểm Phường duyệt. Lịch đóng phí chỉ có sau khi đơn được duyệt.',
+          text: 'Giá chính thức chốt theo giá tuyến tại thời điểm phường duyệt. Lịch đóng phí chỉ có sau khi đơn được duyệt.',
         },
       ],
     },
@@ -665,7 +665,7 @@ export const SLOT_RULES: LegalDocument = {
           kind: 'list',
           items: [
             'Cần có hồ sơ kinh doanh đã được duyệt. Cán bộ phường quyết định duyệt, từ chối kèm lý do hoặc yêu cầu bổ sung.',
-            'Khi Phường duyệt đơn, hợp đồng và giấy phép QR được tạo tự động; ô chuyển sang trạng thái đã thuê.',
+            'Khi phường duyệt đơn, hợp đồng và giấy phép QR được tạo tự động; ô chuyển sang trạng thái đã thuê.',
             'Phí chia thành các kỳ 30 ngày, mỗi kỳ đến hạn vào ngày kỳ đó bắt đầu. Kỳ đầu gồm cả tiền cọc và các khoản thu một lần.',
             'Phường quyết định theo thẩm quyền của mình. Trợ lý AI chỉ gợi ý, không quyết định.',
           ],
@@ -680,8 +680,8 @@ export const SLOT_RULES: LegalDocument = {
           kind: 'list',
           items: [
             'Mỗi kỳ có hạn đóng ghi trong lịch phí của hợp đồng; bạn được nhắc khi còn 3 ngày đến hạn.',
-            'Quá hạn, kỳ phí chuyển sang trạng thái quá hạn và Phường có thể nhắc thêm, mỗi hộ một lần mỗi ngày.',
-            'Trả bằng chuyển khoản VietQR vào tài khoản của Phường (khi Phường đã kết nối payOS). Hệ thống tự xác nhận khi tiền về và xuất hoá đơn trong mục Tài chính.',
+            'Quá hạn, kỳ phí chuyển sang trạng thái quá hạn và phường có thể nhắc thêm, mỗi hộ một lần mỗi ngày.',
+            'Trả bằng chuyển khoản VietQR vào tài khoản của phường (khi phường đã kết nối payOS). Hệ thống tự xác nhận khi tiền về và xuất hoá đơn trong mục Tài chính.',
             'Hợp đồng còn kỳ phí quá hạn hoặc tiền phạt chưa nộp không gia hạn, trả hay chuyển nhượng được.',
           ],
         },
@@ -708,9 +708,9 @@ export const SLOT_RULES: LegalDocument = {
         {
           kind: 'list',
           items: [
-            'Chuyển nhượng: bạn gửi yêu cầu cho hộ nhận (nhập số điện thoại của họ). Hộ nhận phải có hồ sơ kinh doanh đã được duyệt và đồng ý; Phường duyệt thì quyền thuê mới chuyển sang họ.',
-            'Đổi địa chỉ kinh doanh: gửi yêu cầu kèm địa chỉ mới; Phường duyệt.',
-            'Đề xuất ô mới tại địa chỉ chưa có trên lưới của Phường: kèm ảnh vị trí và kích thước. Đề xuất trùng hoặc chồng lấn một ô đã có sẽ bị từ chối; Phường duyệt thì ô mới mới xuất hiện để thuê.',
+            'Chuyển nhượng: bạn gửi yêu cầu cho hộ nhận (nhập số điện thoại của họ). Hộ nhận phải có hồ sơ kinh doanh đã được duyệt và đồng ý; phường duyệt thì quyền thuê mới chuyển sang họ.',
+            'Đổi địa chỉ kinh doanh: gửi yêu cầu kèm địa chỉ mới; phường duyệt.',
+            'Đề xuất ô mới tại địa chỉ chưa có trên lưới của phường: kèm ảnh vị trí và kích thước. Đề xuất trùng hoặc chồng lấn một ô đã có sẽ bị từ chối; sau khi phường duyệt, ô mới xuất hiện trên lưới để thuê.',
           ],
         },
       ],
@@ -735,14 +735,14 @@ export const SLOT_RULES: LegalDocument = {
       blocks: [
         {
           kind: 'p',
-          text: 'Vi phạm cam kết có thể bị lập biên bản, phạt tiền, tạm ngưng hoặc thu hồi giấy phép theo khung xử phạt của Phường.',
+          text: 'Vi phạm cam kết có thể bị lập biên bản, phạt tiền, tạm ngưng hoặc thu hồi giấy phép theo khung xử phạt của phường.',
         },
         {
           kind: 'steps',
           items: [
             'Cán bộ phường ghi nhận vi phạm (kiểm tra tại chỗ hoặc từ báo cáo) kèm bằng chứng và lập biên bản.',
             'Bạn được giải trình: trong 2 ngày làm việc nếu giải trình trực tiếp, 5 ngày làm việc nếu bằng văn bản, khi vụ việc thuộc diện phải giải trình.',
-            'Phường ra quyết định xử phạt theo biểu mức phạt do Phường công bố. Bạn xem mức phạt của Phường ngay trong mục Lịch sử vi phạm.',
+            'Phường ra quyết định xử phạt theo biểu mức phạt do phường công bố. Bạn xem mức phạt của phường ngay trong mục Lịch sử vi phạm.',
             'Bạn nộp tiền phạt vào Kho bạc Nhà nước và tải biên lai lên StreetBiz. Phường xác nhận hoặc từ chối kèm lý do.',
           ],
         },
@@ -779,7 +779,7 @@ export const LEGAL_BASIS: LegalDocument = {
       blocks: [
         {
           kind: 'p',
-          text: 'Mỗi tuyến chỉ được mở cho thuê khi có văn bản cho phép của cơ quan có thẩm quyền ở địa phương. Số hiệu văn bản ghi trong thông tin tuyến và hiện khi bạn rê chuột vào mục Căn cứ pháp lý của tuyến đó.',
+          text: 'Mỗi tuyến chỉ được mở cho thuê khi có văn bản cho phép của cơ quan có thẩm quyền ở địa phương. Số hiệu văn bản ghi trong thông tin tuyến, ở mục Căn cứ pháp lý của tuyến đó.',
         },
       ],
     },
@@ -898,7 +898,7 @@ export const LEGAL_BASIS: LegalDocument = {
         {
           kind: 'list',
           items: [
-            'Mức phạt cụ thể và căn cứ của từng hành vi do Phường công bố trong biểu mức phạt; bạn xem được trong mục Lịch sử vi phạm.',
+            'Mức phạt cụ thể và căn cứ của từng hành vi do phường công bố trong biểu mức phạt; bạn xem được trong mục Lịch sử vi phạm.',
             'Tiền phạt là khoản thu ngân sách nhà nước: bạn nộp vào Kho bạc Nhà nước, StreetBiz không thu hộ.',
             'Ngưỡng 1,5 m phần hè còn lại cho người đi bộ mà hệ thống dùng để cảnh báo là ngưỡng vận hành mặc định của StreetBiz, không phải con số trích từ một điều luật cụ thể.',
           ],

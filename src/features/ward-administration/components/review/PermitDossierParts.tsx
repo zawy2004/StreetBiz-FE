@@ -241,7 +241,7 @@ export function SlotPlanDiagram({
           fontSize="15"
           fontWeight="700"
         >
-          Lối đi bộ tối thiểu 1.5m
+          Lối đi bộ tối thiểu 1,5 m
         </text>
         {/* pavement band where the slot sits */}
         <rect x="0" y="98" width={W} height="148" className="fill-[#FFF3E8] dark:fill-[#2A2420]" />

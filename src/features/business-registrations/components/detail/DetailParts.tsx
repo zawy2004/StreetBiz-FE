@@ -202,7 +202,7 @@ const FEEDBACK_TONE: Record<string, StatusTone> = {
 };
 
 /**
- * "Phản hồi từ Phường" as a note clipped to the folder, in the colour of the
+ * "Phản hồi từ phường" as a note clipped to the folder, in the colour of the
  * decision (green approved, mango needs more, red rejected, grey otherwise).
  */
 export function WardFeedbackNote({
@@ -248,7 +248,7 @@ export function WardFeedbackNote({
         />
       </svg>
       <h2 id={headingId} className={`text-label ${tone.ink}`}>
-        Phản hồi từ Phường
+        Phản hồi từ phường
       </h2>
       <p className="mt-xs text-[18px] leading-[28px] text-text">“{reason}”</p>
       {needsMoreInfo ? (

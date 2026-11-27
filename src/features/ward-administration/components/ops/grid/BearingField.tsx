@@ -96,7 +96,7 @@ export function BearingField({
             ? own
               ? 'Ô đang nằm dọc theo phố.'
               : 'Ô đang tự nằm dọc theo phố (chưa đặt hướng riêng).'
-            : 'Kéo tay cầm tròn trên bản đồ để xoay; gần hướng phố sẽ tự hít vào.'}
+            : 'Kéo tay cầm tròn trên bản đồ để xoay; khi gần hướng phố, ô sẽ tự khớp theo phố.'}
       </p>
     </div>
   );

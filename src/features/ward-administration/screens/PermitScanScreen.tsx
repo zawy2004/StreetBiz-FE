@@ -169,12 +169,12 @@ export function PermitScanScreen() {
   const vendorId = liveResult?.vendorId?.toString() ?? mockVendor?.id ?? '';
 
   const locationHint = liveResult?.locationWarning ? (
-    <AiHint title="Cảnh báo toạ độ thực tế [Hệ thống — chưa xác minh bằng AI]">
+    <AiHint title="Cảnh báo toạ độ thực tế [Hệ thống, không dùng AI]">
       {liveResult.locationWarning}
     </AiHint>
   ) : (liveResult?.isLocationMatched && liveResult.distanceMeters !== null) ||
     (!isLiveApi && photoUrl) ? (
-    <AiHint title="Xác minh vị trí chính xác [Hệ thống — chưa xác minh bằng AI]">
+    <AiHint title="Xác minh vị trí chính xác [Hệ thống, không dùng AI]">
       Toạ độ quét hiện trường khớp với ô cấp phép (Cách {liveResult?.distanceMeters ?? 12}m, nằm
       trong dung sai 25m).
     </AiHint>
@@ -182,10 +182,7 @@ export function PermitScanScreen() {
 
   // AI Vision Encroachment Check (Section 7.2 Master Prompt)
   const visionHint = liveResult?.aiVisionResult ? (
-    <AiSuggestionCard
-      title="Trợ lý thị giác AI Vision [AI]"
-      aiLogId={liveResult.aiVisionResult.aiLogId}
-    >
+    <AiSuggestionCard title="Trợ lý phân tích ảnh [AI]" aiLogId={liveResult.aiVisionResult.aiLogId}>
       <p>{liveResult.aiVisionResult.analysis}</p>
       {liveResult.aiVisionResult.visualCues.length > 0 ? (
         <ul className="mt-1 list-disc pl-4 text-body-sm">
@@ -199,7 +196,7 @@ export function PermitScanScreen() {
       ) : null}
     </AiSuggestionCard>
   ) : photoUrl ? (
-    <AiHint title="Trợ lý thị giác AI Vision [AI]">
+    <AiHint title="Trợ lý phân tích ảnh [AI]">
       {photoUrl.includes('lan-chiem') ? (
         <div>
           <p className="flex items-start gap-1.5 font-medium text-danger">
@@ -209,11 +206,12 @@ export function PermitScanScreen() {
               color="currentColor"
               className="mt-0.5 shrink-0"
             />
-            Phát hiện lấn chiếm: Bàn ghế và biển hiệu vượt quá vạch sơn vàng giới hạn ô khoảng 35cm.
+            Phát hiện lấn chiếm: Bàn ghế và biển hiệu vượt quá vạch sơn vàng giới hạn ô khoảng 35
+            cm.
           </p>
           <p className="mt-1 text-body-sm">
-            Lối đi bộ cho người tàn tật và người đi bộ bị thu hẹp còn ~1.15m (vi phạm quy chuẩn tối
-            thiểu 1.5m theo Nghị định 165/2024/NĐ-CP và Luật Đường bộ 2024).
+            Lối đi bộ bị thu hẹp, chỉ còn khoảng 1,15 m, dưới mức tối thiểu 1,5 m phường đang áp
+            dụng; người đi bộ và người khuyết tật khó đi qua.
           </p>
           <ul className="mt-1 list-disc pl-4 text-body-sm text-muted">
             <li>Dấu hiệu: 2 bàn nhựa 4 chân đặt lấn ra ngoài vạch kẻ</li>
@@ -229,18 +227,18 @@ export function PermitScanScreen() {
               color="currentColor"
               className="mt-0.5 shrink-0"
             />
-            Đạt tiêu chuẩn: Vật dụng kinh doanh nằm gọn trong phạm vi ô được cấp phép (2m x 3m).
+            Đạt tiêu chuẩn: Vật dụng kinh doanh nằm gọn trong phạm vi ô được cấp phép (2 m × 3 m).
           </p>
           <p className="mt-1 text-body-sm">
-            Lối đi bộ thông thoáng đạt 1.8m, đảm bảo an toàn giao thông và mỹ quan đô thị.
+            Lối đi bộ thông thoáng, rộng 1,8 m, đảm bảo an toàn giao thông và mỹ quan đô thị.
           </p>
         </div>
       )}
     </AiHint>
   ) : env.enableAiCompliance ? (
-    <AiHint title="Trợ lý hiện trường [Hệ thống — chưa xác minh bằng AI]">
-      Giấy phép tra cứu trực tiếp từ máy chủ. Cán bộ có thể đính kèm ảnh hiện trường để kích hoạt AI
-      Vision phân tích lấn chiếm.
+    <AiHint title="Trợ lý hiện trường [Hệ thống, không dùng AI]">
+      Giấy phép tra cứu trực tiếp từ máy chủ. Cán bộ có thể đính kèm ảnh hiện trường để AI phân tích
+      lấn chiếm.
     </AiHint>
   ) : null;
 
@@ -374,7 +372,7 @@ export function PermitScanScreen() {
           <SidewalkPlan />
           <div className="flex flex-col gap-md p-md md:p-lg">
             <TextField
-              label="Mã giấy phép số / Token QR"
+              label="Mã giấy phép hoặc nội dung mã QR"
               value={code}
               onChangeText={setCode}
               placeholder="Nhập mã ví dụ: SB-HC1-2026-0815"
@@ -382,7 +380,7 @@ export function PermitScanScreen() {
             <Button label={loading ? 'Đang kiểm tra...' : 'Kiểm tra'} onPress={handleInspect} />
 
             <TextField
-              label="Link ảnh hiện trường (AI Vision phân tích vạch kẻ ranh giới)"
+              label="Đường dẫn ảnh hiện trường (AI phân tích vạch kẻ ô)"
               value={photoUrl}
               onChangeText={setPhotoUrl}
               placeholder="https://example.com/anh-hien-truong.jpg"

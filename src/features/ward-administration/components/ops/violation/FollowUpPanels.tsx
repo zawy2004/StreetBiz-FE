@@ -217,7 +217,7 @@ export function SignerBlock({ title }: { title: string | null | undefined }) {
   return (
     <div className="flex flex-col gap-xs">
       <p className="text-label text-text">
-        Người ký quyết định (Chủ tịch/Phó Chủ tịch UBND Phường hoặc người được uỷ quyền — không phải
+        Người ký quyết định (Chủ tịch/Phó Chủ tịch UBND phường hoặc người được uỷ quyền — không phải
         cán bộ lập biên bản)
       </p>
       {title === undefined ? (

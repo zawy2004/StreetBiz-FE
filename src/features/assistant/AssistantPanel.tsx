@@ -410,7 +410,7 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                     ? 'Hướng dẫn công khai · Đăng nhập để tra cứu riêng'
                     : !isLiveApi
                       ? 'Chế độ mô phỏng'
-                      : `${ROLE_LABEL[role]} · ${chat.connected ? 'Sẵn sàng' : 'Đồng bộ từ máy chủ'}`}
+                      : `${ROLE_LABEL[role]} · ${chat.connected ? 'Sẵn sàng' : 'Đang kết nối…'}`}
               </p>
             </div>
             <div className="sb-head-actions">
@@ -448,7 +448,7 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                 <button
                   type="button"
                   className="sb-icon"
-                  aria-label="Tùy chọn khác"
+                  aria-label="Tuỳ chọn khác"
                   aria-haspopup="menu"
                   aria-expanded={menuOpen}
                   onClick={() => setMenuOpen(!menuOpen)}
@@ -510,7 +510,7 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                             setConfirmDelete(true);
                           }}
                         >
-                          <PiTrash aria-hidden="true" /> Xóa cuộc trò chuyện
+                          <PiTrash aria-hidden="true" /> Xoá cuộc trò chuyện
                         </button>
                       )}
                       <p className="sb-menu-note">
@@ -622,8 +622,8 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
             >
               <div className="sb-thread">
                 {confirmDelete && (
-                  <div className="sb-confirm" role="alertdialog" aria-label="Xác nhận xóa">
-                    <p>Xóa nội dung cuộc trò chuyện này khỏi lịch sử của bạn?</p>
+                  <div className="sb-confirm" role="alertdialog" aria-label="Xác nhận xoá">
+                    <p>Xoá nội dung cuộc trò chuyện này khỏi lịch sử của bạn?</p>
                     <div>
                       <button
                         type="button"
@@ -633,7 +633,7 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                           void chat.remove();
                         }}
                       >
-                        Xóa hội thoại
+                        Xoá hội thoại
                       </button>
                       <button
                         type="button"
@@ -779,8 +779,8 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                       ))}
                     </m.div>
                     <p className="sb-fineprint">
-                      Không gửi mật khẩu, OTP hoặc giấy tờ định danh. Các quyết định nghiệp vụ được
-                      thực hiện tại màn hình tương ứng.
+                      Không gửi mật khẩu, OTP hoặc giấy tờ định danh. Trợ lý không duyệt, nộp hay
+                      thanh toán thay bạn; các việc đó làm ở màn hình tương ứng.
                     </p>
                   </m.div>
                 )}
@@ -1099,7 +1099,7 @@ export function AssistantPanel({ accountKey, role, open, fullPage, onClose, onUn
                     key="cancel"
                     type="button"
                     className="sb-send is-stop"
-                    aria-label="Hủy tải ảnh"
+                    aria-label="Huỷ tải ảnh"
                     onClick={() => uploadAbort.current?.abort()}
                     initial={{ scale: 0.6, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}

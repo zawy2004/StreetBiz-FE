@@ -2,10 +2,10 @@ import type { AssistantPageContext, AssistantRole } from './types';
 
 export const ROLE_LABEL: Record<AssistantRole, string> = {
   GUEST: 'Khách',
-  CUSTOMER: 'Người dùng cộng đồng',
+  CUSTOMER: 'Người mua',
   VENDOR: 'Hộ kinh doanh',
   WARD_AUTHORITY: 'Cán bộ phường',
-  PLATFORM_ADMIN: 'Quản trị nền tảng',
+  PLATFORM_ADMIN: 'Quản trị viên',
 };
 
 export function welcome(role: AssistantRole) {

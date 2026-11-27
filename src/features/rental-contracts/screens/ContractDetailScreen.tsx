@@ -443,7 +443,7 @@ function ContractTimeline({
                 ) : null}
                 {last && openRenewal ? (
                   <p className="mt-1 text-body-xs font-semibold text-[#6B4100] dark:text-[#FFD27A]">
-                    +{openRenewal.requestedTermDays} ngày · chờ Phường
+                    +{openRenewal.requestedTermDays} ngày · chờ phường
                   </p>
                 ) : null}
               </div>

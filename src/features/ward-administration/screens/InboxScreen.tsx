@@ -225,7 +225,7 @@ type QueueItem = {
 
 const riskReasons = (item: QueueItem) =>
   item.riskBreakdown
-    .map((b) => (typeof b === 'string' ? b : `${b.reason} (+${b.points}đ)`))
+    .map((b) => (typeof b === 'string' ? b : `${b.reason} (+${b.points} điểm)`))
     .join(', ');
 
 const toBoard = (item: QueueItem): BoardItem => ({
@@ -337,7 +337,7 @@ function LiveInboxScreen() {
         key: `REG-${r.id}`,
         category: 'REG',
         title: r.displayName || r.ownerName || `Hồ sơ #${r.id}`,
-        subtitle: `Đăng ký điểm bán · ${r.vendorType === 'FIXED_STOREFRONT' ? 'Cửa hàng cố định' : 'Hàng rong lưu động'}${r.fastTrack ? ' · Ưu tiên xét nhanh' : ''}`,
+        subtitle: `Đăng ký kinh doanh · ${r.vendorType === 'FIXED_STOREFRONT' ? 'Cửa hàng cố định' : 'Bán hàng lưu động'}${r.fastTrack ? ' · Ưu tiên xét nhanh' : ''}`,
         status: r.status,
         riskScore: risk?.score ?? 0,
         riskBreakdown: risk?.breakdown ?? [],
@@ -365,12 +365,12 @@ function LiveInboxScreen() {
       if (rn.violationCount > 0) {
         riskScore += rn.violationCount * 20;
         riskBreakdown.push(
-          `${rn.violationCount} vi phạm trong hợp đồng (+${rn.violationCount * 20}đ)`,
+          `${rn.violationCount} vi phạm trong hợp đồng (+${rn.violationCount * 20} điểm)`,
         );
       }
       if (rn.isOverdue) {
         riskScore += 100;
-        riskBreakdown.push('Quá hạn xử lý theo NĐ 241/2026 (≤3 ngày làm việc) (+100đ)');
+        riskBreakdown.push('Quá hạn xử lý theo NĐ 241/2026 (≤3 ngày làm việc) (+100 điểm)');
       }
       return {
         key: `REN-${rn.id}`,
@@ -515,13 +515,13 @@ function MockInboxScreen() {
             key: `REG-${r.id}`,
             category: 'REG',
             title: r.business_name,
-            subtitle: `Đăng ký điểm bán · ${r.fast_track ? 'Ưu tiên xét nhanh' : 'Chờ thẩm định'}`,
+            subtitle: `Đăng ký kinh doanh · ${r.fast_track ? 'Ưu tiên xét nhanh' : 'Chờ thẩm định'}`,
             status: r.registration_status,
             riskScore: isDemoHighRisk ? 60 : 0,
             riskBreakdown: isDemoHighRisk
               ? [
-                  'Điểm bán từng có 1 biên bản nhắc nhở lấn chiếm hè phố (+40đ)',
-                  'Tuyến đường trọng điểm trật tự đô thị (+20đ)',
+                  'Điểm bán từng có 1 biên bản nhắc nhở lấn chiếm hè phố (+40 điểm)',
+                  'Tuyến đường trọng điểm trật tự đô thị (+20 điểm)',
                 ]
               : [],
             onPress: () => navigate(`/ward/inbox/registrations/${r.id}`),

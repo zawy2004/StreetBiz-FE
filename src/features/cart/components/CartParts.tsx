@@ -107,7 +107,7 @@ export function CartTray({
   const illustrative = dishes.some((dish) => dish.photos[0]?.illustrative);
   return (
     <section
-      aria-label="Khay món"
+      aria-label="Món trong giỏ"
       className="relative overflow-hidden rounded-[28px] bg-[#FFF3E8] px-md pb-md pt-lg ring-1 ring-[#FFD9BF] dark:bg-[#2A2420] dark:ring-white/10 md:flex md:items-center md:gap-xl md:px-xl md:py-lg"
     >
       <div
@@ -223,7 +223,7 @@ export function CartLine({
   const nameId = cartLineNameId(id);
   return (
     <li className="flex gap-sm py-md first:pt-0 last:pb-0 md:gap-md">
-      <div className="group shrink-0" title={photos[0]?.illustrative ? 'Ảnh minh họa' : undefined}>
+      <div className="group shrink-0" title={photos[0]?.illustrative ? 'Ảnh minh hoạ' : undefined}>
         <FoodImage
           photos={photos}
           icon="silverware-fork-knife"

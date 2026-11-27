@@ -48,7 +48,7 @@ export default function AssistantMiniMap({
     onZoom: (d) => setViewport((v) => ({ ...v, zoom: clampZoom(v.zoom + d) })),
   });
   return (
-    <div className="sb-mini-map relative" aria-label="Bản đồ các quầy gợi ý">
+    <div className="sb-mini-map relative" aria-label="Bản đồ các quán gợi ý">
       <MapGL
         {...GOONG_MAP_DEFAULT_PROPS}
         {...viewport}

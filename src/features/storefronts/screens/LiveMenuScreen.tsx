@@ -376,7 +376,7 @@ export function LiveMenuScreen() {
         </div>
         {editing ? (
           <div className="sm:w-auto">
-            <Button label="Hủy sửa" variant="ghost" disabled={busy} onPress={reset} />
+            <Button label="Huỷ sửa" variant="ghost" disabled={busy} onPress={reset} />
           </div>
         ) : null}
       </div>

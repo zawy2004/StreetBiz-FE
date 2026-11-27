@@ -14,8 +14,8 @@ const STEPS: { title: string; body: string; art: ReactNode }[] = [
     art: <OtpArt />,
   },
   {
-    title: 'Chọn ô, nộp hồ sơ',
-    body: 'Chọn ô trống trên bản đồ, gửi CCCD và ảnh quầy hàng.',
+    title: 'Nộp hồ sơ, chọn ô',
+    body: 'Gửi hồ sơ kèm ảnh CCCD; được duyệt thì chọn ô trống trên bản đồ.',
     art: <GridArt />,
   },
   {

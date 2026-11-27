@@ -83,7 +83,7 @@ function problems(form: Form): string[] {
   if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(day) || day < 1 || day > 31)
     list.push('Ngày hạn thông báo không hợp lệ.');
   const codes = form.rates.map((rate) => rate.code.trim());
-  if (!codes.includes('FOOD_SERVICE') || !codes.includes('OTHER')) list.push('Cần có ngành FOOD_SERVICE và OTHER.');
+  if (!codes.includes('FOOD_SERVICE') || !codes.includes('OTHER')) list.push('Cần có ngành ăn uống (mã FOOD_SERVICE) và ngành khác (mã OTHER).');
   if (new Set(codes).size !== codes.length) list.push('Mã ngành không được trùng.');
   if (form.rates.some((rate) => !/^[A-Z0-9_]{2,30}$/.test(rate.code.trim()) || rate.name.trim() === '' || !validPercent(rate.vat) || !validPercent(rate.pit)))
     list.push('Mỗi ngành cần mã (chữ in hoa, số, gạch dưới), tên và tỷ lệ hợp lệ.');
@@ -215,7 +215,7 @@ function PolicyForm({ base, onDone }: { base: TaxPolicyDto; onDone: () => void }
     <Card>
       <div className="flex flex-col gap-md">
         <p className="text-body-md text-muted">
-          Phiên bản đã ban hành không sửa được. Ban hành phiên bản mới của cùng năm để thay thế: cao nhất sẽ được áp dụng, các phiên bản cũ
+          Phiên bản đã ban hành không sửa được. Ban hành phiên bản mới của cùng năm để thay thế: phiên bản có số lớn nhất sẽ được áp dụng, các phiên bản cũ
           vẫn lưu để đối chiếu. Mọi số bên dưới phải đối chiếu với văn bản pháp luật hiện hành trước khi ban hành.
         </p>
         <div className="grid gap-md md:grid-cols-3">
@@ -299,7 +299,7 @@ function TaxPoliciesContent() {
     <Screen>
       <AppHeader
         title="Chính sách thuế hộ kinh doanh"
-        subtitle="Ngưỡng, tỷ lệ và hạn thông báo mà module thuế đang chạy. Chỉ để tham khảo cho hộ kinh doanh."
+        subtitle="Ngưỡng, tỷ lệ và hạn thông báo mà phần thuế đang dùng. Chỉ để tham khảo cho hộ kinh doanh."
         right={
           base && !editing ? (
             <Button label="Ban hành phiên bản mới" size="sm" fullWidth={false} onPress={() => setEditing(true)} />
@@ -314,7 +314,7 @@ function TaxPoliciesContent() {
           onRetry={() => policies.refetch()}
         />
       ) : rows.length === 0 || !base ? (
-        <EmptyState icon="file-document-outline" title="Chưa có chính sách thuế nào" description="Cần cài dữ liệu mẫu hoặc ban hành chính sách đầu tiên qua cơ sở dữ liệu." />
+        <EmptyState icon="file-document-outline" title="Chưa có chính sách thuế nào" description="Chưa có chính sách nào để làm mẫu. Liên hệ đội kỹ thuật để nạp chính sách thuế đầu tiên." />
       ) : (
         <>
           {editing ? (
@@ -322,7 +322,7 @@ function TaxPoliciesContent() {
               <PolicyForm base={base} onDone={() => setEditing(false)} />
             </Section>
           ) : null}
-          <Section title="Các phiên bản đã ban hành" description="Mới nhất ở trên. Phiên bản cao nhất của mỗi năm là phiên bản đang áp dụng.">
+          <Section title="Các phiên bản đã ban hành" description="Mới nhất ở trên. Phiên bản có số lớn nhất của mỗi năm là phiên bản đang áp dụng.">
             <div className="grid gap-sm md:grid-cols-2">
               {rows.map((row) => (
                 <PolicyCard key={row.policy.policyId} policy={row.policy} inForce={row.inForce} />

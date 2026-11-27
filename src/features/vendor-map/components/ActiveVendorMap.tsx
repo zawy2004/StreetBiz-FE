@@ -84,7 +84,7 @@ export function ActiveVendorMap({ vendors, onSelect }: Props) {
       })}
 
       <span className="absolute bottom-sm right-sm rounded-full bg-card/90 px-sm py-1 text-body-xs text-muted backdrop-blur">
-        Vị trí theo tọa độ cấp phép
+        Vị trí theo toạ độ cấp phép
       </span>
     </div>
   );

@@ -85,7 +85,7 @@ export function RentalApplicationsScreen() {
             <div className="flex flex-wrap items-baseline justify-between gap-x-md gap-y-1">
               <p className="flex flex-wrap items-center gap-x-sm gap-y-1 text-body-md text-text">
                 <span className="font-semibold">{counts.ALL} đơn:</span>
-                <SummaryDot className="bg-accent" text={`${counts.OPEN} đang chờ Phường`} />
+                <SummaryDot className="bg-accent" text={`${counts.OPEN} đang chờ phường`} />
                 <SummaryDot className="bg-tertiary" text={`${counts.APPROVED} đã duyệt`} />
                 <SummaryDot className="bg-muted" text={`${counts.CLOSED} từ chối hoặc đã rút`} />
               </p>

@@ -99,7 +99,7 @@ function Plate({ dish, fresh }: { dish: PlateDish; fresh: boolean }) {
       >
         {dish.name}
       </span>
-      {illustrative ? <span className="-mt-1 text-[11px] text-muted">minh họa</span> : null}
+      {illustrative ? <span className="-mt-1 text-[11px] text-muted">minh hoạ</span> : null}
     </li>
   );
 }
@@ -131,11 +131,11 @@ export function PlateRail({
   const empty = Math.max(0, slots - dishes.length);
   return (
     <section
-      aria-label="Kệ món"
+      aria-label="Thực đơn"
       className="flex flex-col gap-md rounded-[28px] bg-[#FFF3E8] p-md ring-1 ring-brand/15 dark:bg-brand/10 md:p-lg"
     >
       <ul
-        aria-label="Các món trên kệ"
+        aria-label="Các món trên thực đơn"
         tabIndex={0}
         className="no-scrollbar -mx-1 flex items-start gap-xs overflow-x-auto px-1 pb-1 pt-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:gap-md"
       >
@@ -516,7 +516,7 @@ export function EmptyMenu() {
       </svg>
       <p className="mt-md font-heading text-[19px] font-bold text-text">Chưa có món nào</p>
       <p className="mt-1 max-w-[42ch] text-body-md text-muted">
-        Món đầu tiên đặt lên kệ sẽ hiện ở đây, đúng như khách thấy trên chợ.
+        Món đầu tiên bạn thêm vào thực đơn sẽ hiện ở đây, đúng như khách thấy trên chợ.
       </p>
     </div>
   );

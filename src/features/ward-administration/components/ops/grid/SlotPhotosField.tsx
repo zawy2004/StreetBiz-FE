@@ -91,7 +91,7 @@ export function SlotPhotosField({ value, onChange, disabled = false }: Props) {
             <button
               type="button"
               disabled={disabled}
-              aria-label={`Xóa ảnh ${index + 1}`}
+              aria-label={`Xoá ảnh ${index + 1}`}
               onClick={() => remove(index)}
               className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full bg-black/65 text-white disabled:opacity-50"
             >

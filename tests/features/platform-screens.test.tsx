@@ -838,7 +838,7 @@ describe('P06 order complaint review', () => {
     expect(resolve).toBeDisabled();
     expect(reject).toBeDisabled();
     // min(40 000 − 10 000, 85 000 − 10 000) = 30 000
-    expect(screen.getByText('Tối đa 30.000₫; để trống nếu không hoàn tiền')).toBeInTheDocument();
+    expect(screen.getByText('Tối đa 30.000 đ; để trống nếu không hoàn tiền')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Ghi chú xử lý'), 'Đã xác minh');
     await user.type(screen.getByLabelText('Số tiền hoàn được duyệt (không bắt buộc)'), '30001');

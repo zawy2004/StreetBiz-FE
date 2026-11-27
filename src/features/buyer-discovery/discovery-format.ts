@@ -1,7 +1,7 @@
 import type { StorefrontHour, StorefrontSummary } from '@/core/api/commerce-api';
 
 /** Monday first, matching the ISO weekday numbers the API uses (1 = Monday ... 7 = Sunday). */
-const WEEKDAY_LABELS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+const WEEKDAY_LABELS = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ nhật'];
 
 export type DaySchedule = { day: number; label: string; ranges: string[] };
 

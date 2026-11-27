@@ -16,7 +16,7 @@ type Props = {
   /** Background of the empty tile. */
   placeholderClassName?: string;
   imgClassName?: string;
-  /** Show the "Ảnh minh họa" tag on stock photos (off for small thumbnails). */
+  /** Show the "Ảnh minh hoạ" tag on stock photos (off for small thumbnails). */
   showIllustrativeTag?: boolean;
 };
 
@@ -57,7 +57,7 @@ export function FoodImage({
       )}
       {photo?.illustrative && showIllustrativeTag ? (
         <span className="pointer-events-none absolute bottom-1 right-1 rounded-sm bg-black/45 px-1.5 py-0.5 text-[10px] leading-none text-white/90">
-          Ảnh minh họa
+          Ảnh minh hoạ
         </span>
       ) : null}
     </div>

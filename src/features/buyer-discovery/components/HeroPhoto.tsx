@@ -10,7 +10,7 @@ type Props = {
   iconSize?: number;
   className?: string;
   imgClassName?: string;
-  /** Where the "Ảnh minh họa" tag sits on a stock photo (keep it clear of overlays). */
+  /** Where the "Ảnh minh hoạ" tag sits on a stock photo (keep it clear of overlays). */
   tagClassName?: string;
 };
 
@@ -56,7 +56,7 @@ export function HeroPhoto({
         <span
           className={`pointer-events-none absolute z-[1] rounded-full bg-black/45 px-2 py-0.5 text-[11px] leading-none text-white/90 backdrop-blur-sm ${tagClassName}`}
         >
-          Ảnh minh họa
+          Ảnh minh hoạ
         </span>
       ) : null}
     </div>

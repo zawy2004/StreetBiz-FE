@@ -109,7 +109,7 @@ function DishThumb({ photo, index }: { photo: FoodPhoto; index: number }) {
       />
       {photo.illustrative ? (
         <figcaption className="absolute bottom-1 left-1 rounded-full bg-black/45 px-1.5 py-0.5 text-[10px] leading-none text-white/90">
-          Ảnh minh họa
+          Ảnh minh hoạ
         </figcaption>
       ) : null}
     </figure>

@@ -36,7 +36,7 @@ export function WardTaskBoard({
   onOpenViolations,
 }: TaskBoardProps) {
   const breakdown = [
-    [pendingRegistrations, 'đăng ký điểm bán'],
+    [pendingRegistrations, 'đăng ký kinh doanh'],
     [pendingApplications, 'đơn thuê ô'],
     [pendingRenewals, 'gia hạn'],
     [pendingReports, 'phản ánh'],

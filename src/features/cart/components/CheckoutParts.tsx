@@ -229,7 +229,7 @@ export function AfterPayNote({ provider, amount }: { provider: PaymentProvider; 
           <span key={provider} className="sb-pop inline-block font-semibold text-text">
             Quét VietQR
           </span>{' '}
-          bằng app ngân hàng để chuyển{' '}
+          bằng ứng dụng ngân hàng để chuyển{' '}
           <span className="font-semibold text-text">{amount.toLocaleString('vi-VN')} đ</span>
         </>
       ) : (
@@ -343,7 +343,7 @@ export function CheckoutLine({
 }) {
   return (
     <li className="flex items-start gap-sm py-sm first:pt-0 last:pb-0">
-      <span title={photos[0]?.illustrative ? 'Ảnh minh họa' : undefined}>
+      <span title={photos[0]?.illustrative ? 'Ảnh minh hoạ' : undefined}>
         <FoodImage
           photos={photos}
           icon="silverware-fork-knife"

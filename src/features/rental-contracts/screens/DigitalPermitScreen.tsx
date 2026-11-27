@@ -62,7 +62,7 @@ const TIPS: { icon: IconName; text: string }[] = [
   { icon: 'qrcode-scan', text: 'Giữ máy thẳng, cách camera của cán bộ một gang tay.' },
   {
     icon: 'tag-outline',
-    text: 'Không quét được thì đọc mã in dưới QR để cán bộ nhập ở màn tuần tra.',
+    text: 'Không quét được thì đọc mã in dưới QR để cán bộ nhập vào máy kiểm tra.',
   },
 ];
 

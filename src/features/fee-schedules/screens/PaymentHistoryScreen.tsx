@@ -72,7 +72,7 @@ export function PaymentHistoryScreen() {
         <EmptyState
           icon="history"
           title="Chưa có giao dịch nào"
-          description="Khoản phí và biên bản bạn trả qua ví sẽ hiện ở đây."
+          description="Các khoản phí bạn thanh toán trực tuyến sẽ hiện ở đây."
         />
       ) : (
         <>

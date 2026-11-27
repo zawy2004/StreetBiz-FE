@@ -45,7 +45,7 @@ function VendorPhoto({ result }: { result: VendorResult }) {
         src={photo.src}
         alt={
           photo.illustrative
-            ? `Ảnh minh họa món ăn, không phải ảnh thực tế của ${card.title}`
+            ? `Ảnh minh hoạ món ăn, không phải ảnh thực tế của ${card.title}`
             : `Ảnh niêm yết tại ${card.title}`
         }
         loading="lazy"
@@ -54,7 +54,7 @@ function VendorPhoto({ result }: { result: VendorResult }) {
         onError={() => setFailed((index) => index + 1)}
       />
       <span className={`sb-vendor-photo-label${photo.illustrative ? ' is-illustrative' : ''}`}>
-        {photo.illustrative ? 'Ảnh minh họa' : 'Ảnh niêm yết'}
+        {photo.illustrative ? 'Ảnh minh hoạ' : 'Ảnh niêm yết'}
       </span>
     </>
   ) : (
@@ -126,7 +126,7 @@ function VendorPreview({
             ref={closeButton}
             type="button"
             className="sb-vendor-close"
-            aria-label="Đóng xem nhanh quầy"
+            aria-label="Đóng xem nhanh quán"
             onClick={onClose}
           >
             <PiX />
@@ -171,7 +171,7 @@ function VendorPreview({
               ))}
           </dl>
           <p id={descriptionId} className="sb-vendor-disclaimer">
-            Thông tin tại thời điểm tra cứu. Hãy mở quầy để kiểm tra thông tin mới nhất; chưa xác nhận quầy
+            Thông tin tại thời điểm tra cứu. Hãy mở quán để kiểm tra thông tin mới nhất; chưa xác nhận quán
             còn món hôm nay.
           </p>
           <div className="sb-vendor-preview-actions">
@@ -181,7 +181,7 @@ function VendorPreview({
               </a>
             ) : (
               <button type="button" className="sb-btn is-ghost" onClick={onClose}>
-                Xem quầy khác
+                Xem quán khác
               </button>
             )}
             <button
@@ -192,7 +192,7 @@ function VendorPreview({
                 onNavigate(result.route);
               }}
             >
-              Mở trang quầy <PiArrowRight aria-hidden="true" />
+              Mở trang quán <PiArrowRight aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -286,7 +286,7 @@ export function AssistantVendorResults({
 
   if (compact)
     return (
-      <section className="sb-vendor-rail-wrap" aria-label="Gợi ý quầy phù hợp">
+      <section className="sb-vendor-rail-wrap" aria-label="Gợi ý quán phù hợp">
         <div className="sb-vendor-rail">
           {base.map((result) => {
             const price = value(result.card, 'Giá niêm yết');
@@ -313,9 +313,9 @@ export function AssistantVendorResults({
                 </span>
                 <span className="sb-vendor-mini-body">
                   <strong>{result.card.title}</strong>
-                  <span className="sb-vendor-mini-dish">{result.dishes.join(' · ') || 'Thông tin quầy liên quan'}</span>
+                  <span className="sb-vendor-mini-dish">{result.dishes.join(' · ') || 'Thông tin quán liên quan'}</span>
                   <span className="sb-vendor-mini-foot">
-                    {price && result.dishes.length === 1 && <span className="sb-price">{price.replace(' VND', ' ₫')}</span>}
+                    {price && result.dishes.length === 1 && <span className="sb-price">{price.replace(' VND', ' đ')}</span>}
                     {distance && <span>{distance}</span>}
                     {result.card.place?.rating != null && (
                       <span>
@@ -339,15 +339,15 @@ export function AssistantVendorResults({
     ['price', 'Giá thấp'],
   ];
   return (
-    <section className="sb-vendor-results" aria-label="Gợi ý quầy phù hợp">
+    <section className="sb-vendor-results" aria-label="Gợi ý quán phù hợp">
       <div className="sb-vendor-results-heading">
         <span>
-          <PiStorefront aria-hidden="true" /> Quầy phù hợp
+          <PiStorefront aria-hidden="true" /> Quán phù hợp
         </span>
         <span>{base.length} kết quả</span>
       </div>
       {hasPlaces && base.length > 1 && (
-        <div className="sb-sort" role="group" aria-label="Sắp xếp quầy">
+        <div className="sb-sort" role="group" aria-label="Sắp xếp quán">
           {sorts.map(([key, label]) => (
             <button
               key={key}
@@ -388,7 +388,7 @@ export function AssistantVendorResults({
               </span>
               <span className="sb-vendor-tile-copy">
                 <strong>{result.card.title}</strong>
-                <span className="sb-vendor-tile-dish">{result.dishes.join(' · ') || 'Thông tin quầy liên quan'}</span>
+                <span className="sb-vendor-tile-dish">{result.dishes.join(' · ') || 'Thông tin quán liên quan'}</span>
                 {location && (
                   <span className="sb-vendor-location">
                     <PiMapPin aria-hidden="true" />
@@ -414,7 +414,7 @@ export function AssistantVendorResults({
       <div className="sb-vendor-foot">
         {results.length > 3 && (
           <button type="button" className="sb-link" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
-            {expanded ? 'Thu gọn danh sách' : `Xem thêm ${results.length - 3} quầy`}
+            {expanded ? 'Thu gọn danh sách' : `Xem thêm ${results.length - 3} quán`}
           </button>
         )}
         {hasPlaces && (

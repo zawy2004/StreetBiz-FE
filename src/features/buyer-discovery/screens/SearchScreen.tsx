@@ -117,7 +117,7 @@ function LiveSearchScreen() {
 
   const scopeNotes = [
     filters.maxPrice != null ? 'Quán hiện khi có ít nhất một món trong mức giá' : null,
-    filters.radiusMeters != null && position ? 'Khoảng cách chỉ áp cho quán' : null,
+    filters.radiusMeters != null && position ? 'Lọc khoảng cách chỉ áp dụng cho quán' : null,
   ].filter((note): note is string => note != null);
 
   return (
@@ -407,7 +407,7 @@ function SearchLayout({
       <div aria-hidden="true" className="sb-kerb sb-kerb-thin" />
       <div className="cq mx-auto flex max-w-[1320px] flex-col gap-lg px-md pb-2xl pt-lg md:px-lg lg:px-xl lg:pt-xl">
         {env.enableAiCompliance && !liveAi && query.length > 3 ? (
-          <AiHint title="Hiểu theo ngôn ngữ tự nhiên">
+          <AiHint title="Tìm bằng câu nói thường ngày">
             Đang tìm theo từ khoá &ldquo;{query}&rdquo; — kết quả bao gồm cả tên món, danh mục và
             tên quán liên quan.
           </AiHint>

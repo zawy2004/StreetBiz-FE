@@ -170,7 +170,7 @@ export function RegistrationDetailScreen() {
           {isFixedApproved ? (
             <NextStepCard
               label="Cập nhật địa chỉ kinh doanh"
-              caption="Báo Phường khi cửa hàng chuyển địa chỉ"
+              caption="Báo phường khi cửa hàng chuyển địa chỉ"
               art="plate"
               onPress={() =>
                 navigate(`/vendor/registrations/${registration.registrationId}/address`)

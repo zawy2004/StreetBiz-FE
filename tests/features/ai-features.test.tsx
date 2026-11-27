@@ -263,7 +263,7 @@ describe('AIP-03 natural-language search assist', () => {
     const user = userEvent.setup();
     withClient(<Controlled initial="bún chả dưới 50k" hasPosition={false} onApply={onApply} />);
 
-    await user.click(screen.getByRole('button', { name: /Hiểu câu này giúp tôi/ }));
+    await user.click(screen.getByRole('button', { name: /Dùng AI hiểu câu tìm kiếm/ }));
 
     await waitFor(() => expect(onApply).toHaveBeenCalledTimes(1));
     expect(read).toHaveBeenCalledWith('bún chả dưới 50k');
@@ -277,9 +277,9 @@ describe('AIP-03 natural-language search assist', () => {
     const user = userEvent.setup();
     withClient(<Controlled initial="bún chả dưới 50k" hasPosition={false} onApply={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: /Hiểu câu này giúp tôi/ }));
+    await user.click(screen.getByRole('button', { name: /Dùng AI hiểu câu tìm kiếm/ }));
 
-    expect(await screen.findByText('Hiểu theo từ khoá:')).toBeInTheDocument();
+    expect(await screen.findByText('Tìm theo từ khoá:')).toBeInTheDocument();
   });
 
   it('asks for the position when the sentence says "near me" and none is known', async () => {
@@ -287,7 +287,7 @@ describe('AIP-03 natural-language search assist', () => {
     const user = userEvent.setup();
     withClient(<Controlled initial="bún chả gần đây" hasPosition={false} onApply={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: /Hiểu câu này giúp tôi/ }));
+    await user.click(screen.getByRole('button', { name: /Dùng AI hiểu câu tìm kiếm/ }));
 
     expect(await screen.findByText('Bật vị trí của bạn để lọc theo khoảng cách.')).toBeInTheDocument();
   });
@@ -298,7 +298,7 @@ describe('AIP-03 natural-language search assist', () => {
     const user = userEvent.setup();
     withClient(<AiSearchAssist query="bún chả dưới 50k" hasPosition={false} onApply={onApply} />);
 
-    await user.click(screen.getByRole('button', { name: /Hiểu câu này giúp tôi/ }));
+    await user.click(screen.getByRole('button', { name: /Dùng AI hiểu câu tìm kiếm/ }));
 
     expect(await screen.findByRole('status')).toHaveTextContent('Tìm kiếm vẫn chạy theo chữ bạn gõ.');
     expect(onApply).not.toHaveBeenCalled();

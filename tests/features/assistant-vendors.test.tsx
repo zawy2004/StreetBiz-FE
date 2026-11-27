@@ -65,7 +65,7 @@ describe('buyer vendor quick preview', () => {
     await user.click(trigger);
     expect(screen.getByRole('dialog', { name: 'Quầy 1' })).toBeVisible();
     expect(navigate).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Đóng xem nhanh quầy' }));
+    await user.click(screen.getByRole('button', { name: 'Đóng xem nhanh quán' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
   });
@@ -77,7 +77,7 @@ describe('buyer vendor quick preview', () => {
       <AssistantVendorResults cards={[card(1)]} actions={[action(1)]} onNavigate={navigate} />,
     );
     await user.click(screen.getByRole('button', { name: 'Xem nhanh Quầy 1' }));
-    await user.click(screen.getByRole('button', { name: 'Mở trang quầy' }));
+    await user.click(screen.getByRole('button', { name: 'Mở trang quán' }));
     expect(navigate).toHaveBeenCalledWith('/customer/explore/stores/1');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -99,7 +99,7 @@ describe('buyer vendor quick preview', () => {
     );
     expect(screen.getAllByRole('button', { name: /Xem nhanh Quầy/ })).toHaveLength(3);
     expect(screen.getByText('4 kết quả')).toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Xem thêm 1 quầy' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Xem thêm 1 quán' }));
     expect(screen.getAllByRole('button', { name: /Xem nhanh Quầy/ })).toHaveLength(4);
   });
 
@@ -112,7 +112,7 @@ describe('buyer vendor quick preview', () => {
       />,
     );
     expect(screen.getByRole('img')).toHaveAttribute('src', staticPhotoUrl('food/bun-cha.jpg'));
-    expect(screen.getByText('Ảnh minh họa')).toBeVisible();
+    expect(screen.getByText('Ảnh minh hoạ')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Xem nhanh Quầy 2' })).not.toBeInTheDocument();
   });
 
@@ -137,22 +137,22 @@ describe('buyer vendor quick preview', () => {
     const vendor = { ...card(1), title: 'Bánh mì & Xôi Cô Lan', imageUrl: null };
     render(<AssistantVendorResults cards={[vendor]} actions={[action(1)]} onNavigate={vi.fn()} />);
     expect(screen.getByRole('img')).toHaveAttribute('src', staticPhotoUrl('food/banh-mi.jpg'));
-    expect(screen.getByRole('img')).toHaveAccessibleName(/Ảnh minh họa.*không phải ảnh thực tế/);
-    expect(screen.getByText('Ảnh minh họa')).toBeVisible();
+    expect(screen.getByRole('img')).toHaveAccessibleName(/Ảnh minh hoạ.*không phải ảnh thực tế/);
+    expect(screen.getByText('Ảnh minh hoạ')).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Xem nhanh Bánh mì & Xôi Cô Lan' }));
     const dialog = within(screen.getByRole('dialog'));
     expect(dialog.getByRole('img')).toHaveAttribute('src', staticPhotoUrl('food/banh-mi.jpg'));
-    expect(dialog.getByText('Ảnh minh họa')).toBeVisible();
+    expect(dialog.getByText('Ảnh minh hoạ')).toBeVisible();
     expect(dialog.queryByText('Ảnh niêm yết')).not.toBeInTheDocument();
   });
 
   it('prefers the uploaded photo, falls back on load error, and stops after the illustration fails', () => {
     render(<AssistantVendorResults cards={[card(1)]} actions={[action(1)]} onNavigate={vi.fn()} />);
     expect(screen.getByRole('img')).toHaveAttribute('src', card(1).imageUrl);
-    expect(screen.queryByText('Ảnh minh họa')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ảnh minh hoạ')).not.toBeInTheDocument();
     fireEvent.error(screen.getByRole('img'));
     expect(screen.getByRole('img')).toHaveAttribute('src', staticPhotoUrl('food/bun-cha.jpg'));
-    expect(screen.getByText('Ảnh minh họa')).toBeVisible();
+    expect(screen.getByText('Ảnh minh hoạ')).toBeVisible();
     fireEvent.error(screen.getByRole('img'));
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(screen.getByText('Chưa có ảnh')).toBeVisible();
@@ -168,7 +168,7 @@ describe('buyer vendor quick preview', () => {
     const trigger = screen.getByRole('button', { name: 'Xem nhanh Quầy 1' });
     trigger.focus();
     await user.keyboard('{Enter}');
-    expect(screen.getByRole('button', { name: 'Đóng xem nhanh quầy' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Đóng xem nhanh quán' })).toHaveFocus();
     await user.keyboard('{Enter}');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();

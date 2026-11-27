@@ -208,7 +208,7 @@ export function VerifyPhoneScreen() {
 
       <NextStepNote>
         {isRegistration
-          ? 'Sau bước này: tài khoản được tạo, rồi bạn đăng nhập bằng mật khẩu vừa đặt.'
+          ? 'Sau bước này: tài khoản được tạo và bạn được đăng nhập ngay.'
           : 'Tiếp theo bạn đặt mật khẩu mới.'}
       </NextStepNote>
     </AuthShell>

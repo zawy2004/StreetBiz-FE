@@ -151,9 +151,9 @@ function LayersToggle() {
   return (
     <button
       type="button"
-      aria-label="Lớp tiện ích và hành lang kỹ thuật"
+      aria-label="Lớp điện, nước, chướng ngại vật"
       aria-pressed={showFeatures}
-      title="Hiện/ẩn hành lang kỹ thuật và tiện ích"
+      title="Hiện/ẩn điện, nước và chướng ngại vật"
       onClick={toggle}
       className={[
         'flex h-11 shrink-0 items-center gap-1.5 rounded-full px-sm text-label font-semibold ring-1 transition-colors',
@@ -290,7 +290,7 @@ function HoldBasket({ compact = false }: { compact?: boolean }) {
                             className="h-9 rounded-full px-sm text-label font-semibold text-error ring-1 ring-error/30 transition-colors hover:bg-tint-error"
                             onClick={() => release.mutate(hold.slotId)}
                           >
-                            Nhả
+                            Bỏ giữ
                           </button>
                         </div>
                       </li>

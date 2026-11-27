@@ -9,7 +9,7 @@ import type { OwnerSection } from './owner-progress';
 /**
  * The empty face of an ID card slot: faint text lines labelled with what that
  * side carries (taken from the step's own instructions). A neutral drawing,
- * "Hình minh họa" — no emblem, no real layout.
+ * "Hình minh hoạ" — no emblem, no real layout.
  */
 export function IdCardFace({ side }: { side: 'front' | 'back' }) {
   const fields =
@@ -41,7 +41,7 @@ export function IdCardFace({ side }: { side: 'front' | 'back' }) {
           ))}
         </span>
       </span>
-      <span className="text-[10.5px] leading-3 text-muted">Hình minh họa · bấm để chọn ảnh</span>
+      <span className="text-[10.5px] leading-3 text-muted">Hình minh hoạ · bấm để chọn ảnh</span>
     </span>
   );
 }

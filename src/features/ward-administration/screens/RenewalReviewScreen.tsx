@@ -45,7 +45,7 @@ function fmtDateTime(iso: string | null | undefined): string {
 }
 
 function vendorTypeLabel(type: string): string {
-  return type === 'FIXED_STOREFRONT' ? 'Cửa hàng cố định' : 'Hàng rong lưu động';
+  return type === 'FIXED_STOREFRONT' ? 'Cửa hàng cố định' : 'Bán hàng lưu động';
 }
 
 const isReviewableRenewalStatus = (status: string) =>
@@ -219,7 +219,7 @@ export function RenewalReviewScreen() {
       totalLabel="Tổng phí gia hạn dự kiến:"
       totalValue={formatVnd(totalEstimatedFee)}
       totalAria={`Tổng phí gia hạn dự kiến ${totalEstimatedFee.toLocaleString('vi-VN')} đồng`}
-      footnotes={<p>Theo biểu giá khu vực Phường</p>}
+      footnotes={<p>Theo biểu giá khu vực phường</p>}
     />
   );
   const noteField = isOpen ? (
@@ -440,7 +440,7 @@ export function RenewalReviewScreen() {
                   ),
                 },
                 { label: 'Mã ô', value: `${slotCode} · Đường ${slotStreet}` },
-                { label: 'Kích thước ô', value: `${slotWidth}m rộng × ${slotLength}m dài` },
+                { label: 'Kích thước ô', value: `${slotWidth.toLocaleString('vi-VN')} m rộng × ${slotLength.toLocaleString('vi-VN')} m dài` },
                 { label: 'Số hợp đồng', value: `#${contractId}` },
               ]}
             />

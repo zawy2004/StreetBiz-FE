@@ -31,7 +31,7 @@ import {
 } from '../components/ward/AttpReviewParts';
 import { formatDay } from '../format';
 
-const DEFAULT_DEPARTMENT = 'Chi cục An toàn vệ sinh thực phẩm';
+const DEFAULT_DEPARTMENT = 'Ban Quản lý An toàn thực phẩm Đà Nẵng';
 
 function DateField({
   label,
@@ -165,7 +165,7 @@ export function WardFoodSafetyReviewScreen() {
     application.status === 'APPROVED'
       ? {
           title: 'Hồ sơ đã có kết quả',
-          text: 'Chi cục đã kết luận đạt; giấy chứng nhận đang ở đầu hồ sơ.',
+          text: 'Ban Quản lý ATTP đã kết luận đạt; giấy chứng nhận đang ở đầu hồ sơ.',
           tone: VERDICT_TONES.ok,
         }
       : application.status === 'REJECTED'
@@ -246,7 +246,7 @@ export function WardFoodSafetyReviewScreen() {
             ) : null}
             {application.resultReason ? (
               <p className="text-body-md text-text/80">
-                Kết luận của cục: {application.resultReason}
+                Kết luận của cơ quan ATTP: {application.resultReason}
               </p>
             ) : application.reviewReason ? (
               <p className="text-body-md text-text/80">
@@ -307,12 +307,12 @@ export function WardFoodSafetyReviewScreen() {
                 onChangeText={setReason}
                 multiline
                 maxLength={500}
-                placeholder="VD: Hồ sơ đầy đủ, đề nghị Chi cục kiểm tra thực tế."
+                placeholder="VD: Hồ sơ đầy đủ, đề nghị Ban Quản lý ATTP kiểm tra thực tế."
                 helperText={`${reason.length}/500`}
               />
               <div className="flex flex-col gap-sm">
                 <DecisionButton
-                  label="Chuyển cục kiểm tra"
+                  label="Chuyển cơ quan ATTP kiểm tra"
                   variant="primary"
                   consequence={`Hồ sơ sang ${department.trim() || 'cơ quan kiểm tra'}; khi có kết quả, phường nhập ở đây.`}
                   disabled={!hasReason || !department.trim() || busy}
@@ -343,7 +343,7 @@ export function WardFoodSafetyReviewScreen() {
             <div className="flex flex-col gap-md">
               <CardTitle
                 id={can('FORWARD') ? 'attp-result-title' : 'attp-decision-title'}
-                title="Nhập kết quả của cục"
+                title="Nhập kết quả kiểm tra ATTP"
                 description="Cập nhật theo biên bản / giấy chứng nhận cơ quan ATTP gửi về. Người bán được thông báo ngay."
               />
               <AttpCertificate
@@ -367,7 +367,7 @@ export function WardFoodSafetyReviewScreen() {
               </div>
               <TextField
                 ref={can('FORWARD') ? undefined : reasonField}
-                label="Kết luận của cục *"
+                label="Kết luận của cơ quan ATTP *"
                 value={reason}
                 onChangeText={setReason}
                 multiline
@@ -389,7 +389,7 @@ export function WardFoodSafetyReviewScreen() {
                 <DecisionButton
                   label="Ghi nhận: Không đạt"
                   variant="danger"
-                  consequence="Hồ sơ kết thúc; người bán thấy kết luận của cục."
+                  consequence="Hồ sơ kết thúc; người bán thấy kết luận của cơ quan ATTP."
                   disabled={!hasReason || busy}
                   onPress={() => decide.mutate('RECORD_REJECTED')}
                 />

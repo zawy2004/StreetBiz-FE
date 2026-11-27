@@ -97,7 +97,7 @@ describe('FoodSafetyListScreen', () => {
 
   it('groups files by who acts next and tallies them', async () => {
     vi.spyOn(foodSafetyApi, 'mine').mockResolvedValue([
-      app(1, { status: 'MORE_INFORMATION_REQUIRED', actions: ['RESUBMIT', 'WITHDRAW'], reviewReason: 'Thiếu giấy khám sức khỏe' }),
+      app(1, { status: 'MORE_INFORMATION_REQUIRED', actions: ['RESUBMIT', 'WITHDRAW'], reviewReason: 'Thiếu giấy khám sức khoẻ' }),
       app(2, { status: 'FORWARDED', departmentName: 'Sở Y tế', forwardedAt: '2026-11-02T02:00:00Z' }),
       app(3, { status: 'APPROVED', certificateNumber: 'ATTP-1', issuedOn: '2026-11-03', expiresOn: '2029-11-03' }),
       app(4, { status: 'APPROVED', isExpired: true, expiresOn: '2026-10-01' }),
@@ -106,7 +106,7 @@ describe('FoodSafetyListScreen', () => {
     mount('/vendor/store/food-safety', '/vendor/store/food-safety', <FoodSafetyListScreen />);
 
     const todo = await screen.findByRole('region', { name: /Cần bạn bổ sung/ });
-    expect(within(todo).getByText(/Thiếu giấy khám sức khỏe/)).toBeInTheDocument();
+    expect(within(todo).getByText(/Thiếu giấy khám sức khoẻ/)).toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Đang xét' })).getByText(/Sở Y tế/)).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Giấy còn hiệu lực' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Đã kết thúc' })).toBeInTheDocument();

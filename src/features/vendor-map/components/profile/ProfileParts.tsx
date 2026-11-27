@@ -44,7 +44,7 @@ export function VendorSignboard({ vendor }: { vendor: PublicVendorProfile }) {
                   className="h-full w-full object-cover"
                 />
                 <span className="absolute bottom-1 left-1 rounded-full bg-black/45 px-1.5 py-0.5 text-[10px] leading-none text-white/90">
-                  Ảnh minh họa
+                  Ảnh minh hoạ
                 </span>
               </>
             ) : (
@@ -376,7 +376,7 @@ export function ProfileActions({
         Viết đánh giá
       </ActionButton>
       <ActionButton onPress={onReport} tone="report" icon="flag-outline">
-        Báo cáo vi phạm
+        Phản ánh vi phạm
       </ActionButton>
     </div>
   );

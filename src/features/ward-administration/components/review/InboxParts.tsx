@@ -29,8 +29,8 @@ type Plate = { short: string; label: string; icon: IconName; wash: string; ink: 
 /** Category plates: pale tint + dark ink of the same hue, every pair ≥ 7:1. */
 const PLATES: Record<string, Plate> = {
   REG: {
-    short: 'ĐK',
-    label: 'Đăng ký điểm bán',
+    short: 'HS',
+    label: 'Đăng ký kinh doanh',
     icon: 'file-document-outline',
     wash: 'bg-[#FFF3E8] dark:bg-[#3A2414]',
     ink: 'text-[#8A3200] dark:text-[#FFB98A]',
@@ -517,7 +517,7 @@ export function InboxSignposts({
       key: 'food',
       art: <FoodSafetyPictogram />,
       title: 'Hồ sơ an toàn thực phẩm (ATTP)',
-      text: 'Xét hồ sơ, chuyển Chi cục ATTP kiểm tra và cập nhật kết quả',
+      text: 'Xét hồ sơ, chuyển Ban Quản lý ATTP kiểm tra và cập nhật kết quả',
       onPress: onFoodSafety,
     },
     ...(onReports
@@ -576,12 +576,12 @@ export function PriorityExplainer({ live }: { live: boolean }) {
       <ul className="flex flex-col gap-1 px-md pb-sm text-body-sm text-text/80">
         {live ? (
           <>
-            <li>+20đ cho mỗi vi phạm trong hợp đồng của hồ sơ gia hạn.</li>
-            <li>+100đ khi hồ sơ gia hạn quá hạn xử lý (NĐ 241/2026, ≤3 ngày làm việc).</li>
+            <li>+20 điểm cho mỗi vi phạm trong hợp đồng của hồ sơ gia hạn.</li>
+            <li>+100 điểm khi hồ sơ gia hạn quá hạn xử lý (NĐ 241/2026, ≤3 ngày làm việc).</li>
             <li>Điểm của hồ sơ đăng ký do hệ thống chấm theo lịch sử điểm bán.</li>
           </>
         ) : (
-          <li>Dữ liệu giả lập: điểm ưu tiên chỉ để minh họa cách xếp hàng.</li>
+          <li>Dữ liệu giả lập: điểm ưu tiên chỉ để minh hoạ cách xếp hàng.</li>
         )}
         <li>Hồ sơ có điểm cao hơn được xếp lên trước.</li>
       </ul>

@@ -199,7 +199,7 @@ describe('step 4 — documents and filing', () => {
 
     await user.click(screen.getByRole('button', { name: 'Nộp hồ sơ' }));
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Vui lòng tải cccd mặt trước và cccd mặt sau và giấy phép kinh doanh.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Vui lòng tải cccd mặt trước và cccd mặt sau và giấy chứng nhận đăng ký hộ kinh doanh.');
   });
 
   it('files the registration into the demo database and returns to the list', async () => {

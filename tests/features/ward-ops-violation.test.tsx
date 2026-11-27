@@ -334,9 +334,7 @@ describe('RecordViolationScreen (live, WARD-12)', { timeout: 20_000 }, () => {
     renderScreen();
     await fillAndRecord(user);
 
-    expect(
-      screen.getByText('Trợ lý Pháp lý [Hệ thống — chưa xác minh bằng AI]'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Trợ lý Pháp lý [Hệ thống, không dùng AI]')).toBeInTheDocument();
     expect(screen.queryByText('Trợ lý Pháp lý [AI]')).not.toBeInTheDocument();
   });
 });

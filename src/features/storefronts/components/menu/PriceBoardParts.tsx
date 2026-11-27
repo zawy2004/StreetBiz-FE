@@ -174,7 +174,7 @@ export function PriceHistoryPanel({
           Lịch sử giá
         </h2>
         <p className="text-body-sm text-muted">
-          Hệ thống chỉ ghi thêm, không sửa hay xóa dòng nào.
+          Hệ thống chỉ ghi thêm, không sửa hay xoá dòng nào.
         </p>
       </div>
       {loading ? (

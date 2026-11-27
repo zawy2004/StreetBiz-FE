@@ -14,14 +14,14 @@ describe('kycSource', () => {
   });
 
   it('says so plainly when no AI answered', () => {
-    const result = kycSource('[Hệ thống — chưa xác minh bằng AI] Không gọi được dịch vụ eKYC.', false);
-    expect(result.label).toBe('Hệ thống — chưa xác minh bằng AI');
+    const result = kycSource('[Hệ thống, không dùng AI] Không gọi được dịch vụ eKYC.', false);
+    expect(result.label).toBe('Hệ thống, không dùng AI');
     expect(result.text).toBe('Không gọi được dịch vụ eKYC.');
   });
 
   it('falls back on the isAiGenerated flag when the text carries no tag', () => {
     expect(kycSource('Đã đọc.', true)).toEqual({ label: 'AI', text: 'Đã đọc.' });
-    expect(kycSource('Không đọc được.', false).label).toBe('Hệ thống — chưa xác minh bằng AI');
+    expect(kycSource('Không đọc được.', false).label).toBe('Hệ thống, không dùng AI');
   });
 
   it('only strips a tag at the very start', () => {

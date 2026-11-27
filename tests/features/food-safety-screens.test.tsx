@@ -138,7 +138,7 @@ describe('ward ATTP review', () => {
       .mockResolvedValue(application({ status: 'FORWARDED', actions: ['RECORD_APPROVED', 'RECORD_REJECTED'] }));
     mount('/ward/inbox/food-safety/3', '/ward/inbox/food-safety/:id', <WardFoodSafetyReviewScreen />);
 
-    const forward = await screen.findByRole('button', { name: 'Chuyển cục kiểm tra' });
+    const forward = await screen.findByRole('button', { name: 'Chuyển cơ quan ATTP kiểm tra' });
     expect(forward).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Ghi chú / lý do *'), { target: { value: 'Hồ sơ đầy đủ' } });
     fireEvent.click(forward);
@@ -148,7 +148,7 @@ describe('ward ATTP review', () => {
         decision: 'FORWARD',
         reason: 'Hồ sơ đầy đủ',
         expectedStatus: 'SUBMITTED',
-        departmentName: 'Chi cục An toàn vệ sinh thực phẩm',
+        departmentName: 'Ban Quản lý An toàn thực phẩm Đà Nẵng',
         certificateNumber: null,
         issuedOn: null,
         expiresOn: null,

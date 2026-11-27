@@ -64,7 +64,7 @@ function DriftItemCard({ item }: { item: GeofenceDriftItem }) {
         {item.maxDistanceMeters ? ` · xa nhất ${item.maxDistanceMeters} m` : ''}
       </p>
       <AiSuggestionCard
-        title={item.isAiGenerated ? 'Nhận định AI [AI]' : 'Nhận định [Hệ thống — chưa xác minh bằng AI]'}
+        title={item.isAiGenerated ? 'Nhận định [AI]' : 'Nhận định [Hệ thống, không dùng AI]'}
         aiLogId={item.aiLogId}
       >
         {item.explanation}

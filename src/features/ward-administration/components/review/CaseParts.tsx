@@ -220,7 +220,7 @@ export function CaseSlipBody({ data }: { data: CaseSlipData }) {
                 color="currentColor"
                 className={data.location === 'set' ? 'text-primary' : ''}
               />
-              {data.location === 'set' ? 'Đã có tọa độ' : 'Chưa có tọa độ'}
+              {data.location === 'set' ? 'Đã có toạ độ' : 'Chưa có toạ độ'}
             </span>
           ) : null}
         </p>
@@ -387,7 +387,7 @@ export function TransferLedgerPlate({
             <span className="font-sign text-[36px] font-extrabold leading-none tracking-[-0.01em] [font-stretch:88%] font-tabular md:text-[44px]">
               <CountUp
                 value={outstanding}
-                format={(n) => `${n.toLocaleString('vi-VN')} ₫`}
+                format={(n) => `${n.toLocaleString('vi-VN')} đ`}
                 duration={500}
               />
             </span>
@@ -537,7 +537,7 @@ export function ConflictOverlapArt() {
       <svg
         viewBox="0 0 320 150"
         role="img"
-        aria-label="Minh họa: ô của người đang thuê giữ nguyên, hồ sơ này đứng chờ phía sau"
+        aria-label="Minh hoạ: ô của người đang thuê giữ nguyên, hồ sơ này đứng chờ phía sau"
         className="h-[140px] w-full"
         onMouseEnter={() => setFocus(true)}
         onMouseLeave={() => setFocus(false)}

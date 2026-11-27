@@ -49,7 +49,7 @@ export function WardGate({ children }: { children: ReactNode }) {
                 Cần kết nối máy chủ thật
               </p>
               <p className="max-w-[62ch] text-body-md leading-[24px] text-text/80">
-                Hàng đợi hồ sơ của phường đọc dữ liệu thật từ Backend. Đặt{' '}
+                Hàng đợi hồ sơ của phường đọc dữ liệu thật từ máy chủ. Đặt{' '}
                 <code className="rounded-[6px] bg-sunken px-1.5 py-0.5 text-[13px]">
                   VITE_USE_MOCK_API=false
                 </code>{' '}

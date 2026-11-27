@@ -69,7 +69,7 @@ export function ProposalAssessmentPanel({ record }: { record: WardCase }) {
             title={
               latest.isAiGenerated
                 ? `${recommendationLabels[latest.recommendation]} [AI]`
-                : `${recommendationLabels[latest.recommendation]} [Hệ thống — chưa xác minh bằng AI]`
+                : `${recommendationLabels[latest.recommendation]} [Hệ thống, không dùng AI]`
             }
             aiLogId={latest.aiLogId}
           >

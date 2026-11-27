@@ -70,7 +70,7 @@ export function AuthPavement({ scene, variant = 'panel', className = '' }: Props
               color="rgb(var(--c-tertiary))"
               weight="fill"
             />
-            Quán có phép gần bạn
+            Quán có giấy phép gần bạn
           </span>
         </SceneLayer>
       </div>
@@ -106,7 +106,7 @@ export function AuthPavement({ scene, variant = 'panel', className = '' }: Props
         </div>
       </div>
       <span className="absolute bottom-2 right-3 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-medium text-[#2B3640]">
-        Ảnh minh họa
+        Ảnh minh hoạ
       </span>
     </div>
   );

@@ -36,7 +36,7 @@ export function FoodSafetyBadge() {
   );
 }
 
-const STEPS = ['Gửi phường', 'Chuyển cục ATTP', 'Có kết quả'] as const;
+const STEPS = ['Gửi phường', 'Chuyển kiểm tra ATTP', 'Có kết quả'] as const;
 
 const STATE_WORDS: Record<StepState, string> = {
   done: 'đã xong',

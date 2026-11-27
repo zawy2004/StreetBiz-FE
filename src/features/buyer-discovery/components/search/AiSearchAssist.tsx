@@ -50,7 +50,7 @@ export function AiSearchAssist({
           className="inline-flex min-h-11 w-fit items-center gap-xs rounded-full bg-secondary-bg px-md text-body-sm font-semibold text-on-secondary ring-1 ring-secondary/40 transition-colors hover:bg-secondary/25 disabled:opacity-60"
         >
           <Icon name="creation" size={16} color="currentColor" weight="fill" />
-          {read.isPending ? 'Đang hiểu câu của bạn…' : 'Hiểu câu này giúp tôi (AI)'}
+          {read.isPending ? 'Đang hiểu câu của bạn…' : 'Dùng AI hiểu câu tìm kiếm'}
         </button>
       ) : null}
       {read.isError ? (
@@ -65,7 +65,7 @@ export function AiSearchAssist({
         >
           <Icon name="creation" size={15} color="currentColor" weight="fill" className="text-on-secondary" />
           <span className="font-semibold text-text">
-            {shown.intent.source === 'AI' ? 'Gợi ý AI' : 'Hiểu theo từ khoá'}:
+            {shown.intent.source === 'AI' ? 'Gợi ý AI' : 'Tìm theo từ khoá'}:
           </span>
           <span>{shown.intent.explanation}</span>
           {shown.notes.map((note) => (

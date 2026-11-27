@@ -18,7 +18,7 @@ export function checkoutBlockReason(
       : 'Quán đang đóng cửa nên chưa đặt được. Giỏ vẫn được giữ.';
   }
   if (availability.some((status) => status !== 'AVAILABLE')) {
-    return 'Có món không còn bán. Giảm món đó về 0 để tiếp tục.';
+    return 'Có món không còn bán. Xoá món đó khỏi giỏ để tiếp tục.';
   }
   return null;
 }
