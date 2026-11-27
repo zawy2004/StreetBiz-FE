@@ -8,6 +8,7 @@ import { AppHeader, Screen } from '@/components/layout';
 import { BankTransferPanel, useBankTransferPolling } from '@/components/payment';
 import { commerceApi, errorMessage } from '@/core/api';
 import { env, isDev } from '@/core/config/env';
+import { CARTS_KEY } from '@/features/cart/cart-query';
 import { orderApi } from '../api/orderApi';
 import { OfflineNotice } from '../components/OrderShapes';
 import { formatClock, providerName } from '../components/order-display';
@@ -54,7 +55,7 @@ export function OrderPaymentScreen() {
       // Paying consumes the cart; failing or cancelling unfreezes it. A check that finds the
       // order still waiting (every few seconds while a VietQR is shown) changes neither.
       if (kind !== 'sync' || next.orderStatus !== 'PENDING_PAYMENT') {
-        await queryClient.invalidateQueries({ queryKey: ['commerce', 'cart'] });
+        await queryClient.invalidateQueries({ queryKey: CARTS_KEY });
       }
       if (kind === 'sync') {
         if (next.orderStatus === 'PLACED') {
@@ -156,13 +157,16 @@ export function OrderPaymentScreen() {
   // PAY-02: the cart is kept after a failed payment, so paying again is one press away. It starts a new
   // checkout (a new order, a new Idempotency-Key); the cancelled order is never reused.
   const payAgain = cancelled ? (
-    <Button label="Thanh toán lại" onPress={() => navigate('/customer/checkout')} />
+    <Button
+      label="Thanh toán lại"
+      onPress={() => navigate(`/customer/checkout?store=${data.storefront.storefrontId}`)}
+    />
   ) : null;
   const toCart = cancelled ? (
     <Button
       label="Về giỏ hàng"
       variant="outline"
-      onPress={() => navigate('/customer/explore/cart')}
+      onPress={() => navigate(`/customer/explore/cart?store=${data.storefront.storefrontId}`)}
     />
   ) : null;
   const toDetail = (
