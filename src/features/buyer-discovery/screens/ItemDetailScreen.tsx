@@ -3,12 +3,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { formatVnd, Icon } from '@/components/common';
-import { ConfirmDialog, ErrorState, Skeleton, showToast } from '@/components/feedback';
+import { ErrorState, Skeleton, showToast } from '@/components/feedback';
 import { Screen, StickyActions } from '@/components/layout';
 import { StatusChip } from '@/components/status';
 import { commerceApi, errorMessage } from '@/core/api';
 import { isLiveApi } from '@/core/config/env';
 import { useCartStore } from '@/features/cart/cart-store';
+import { CARTS_KEY, useCarts } from '@/features/cart/cart-query';
 import { FoodSafetyBadge } from '@/features/food-safety/components/FoodSafetyBits';
 import { useIsDesktop } from '@/hooks/useBreakpoint';
 import { useMockDb } from '@/mocks/db';
@@ -33,7 +34,6 @@ function LiveItemDetailScreen() {
   const queryClient = useQueryClient();
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState('');
-  const [confirmCartReplacement, setConfirmCartReplacement] = useState(false);
   const item = useQuery({
     queryKey: ['commerce', 'menu-item', itemId],
     queryFn: () => commerceApi.menuItem(itemId!),
@@ -42,16 +42,13 @@ function LiveItemDetailScreen() {
   const add = useMutation({
     mutationFn: () => commerceApi.addCartItem(item.data!.menuItemId, quantity, note.trim()),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['commerce', 'cart'] });
+      await queryClient.invalidateQueries({ queryKey: CARTS_KEY });
       showToast('Đã thêm vào giỏ');
-      navigate('/customer/explore/cart');
+      navigate(`/customer/explore/cart?store=${item.data!.storefrontId}`);
     },
   });
-  const cart = useQuery({
-    queryKey: ['commerce', 'cart'],
-    queryFn: commerceApi.cart,
-    enabled: user?.role_code === 'CUSTOMER',
-  });
+  // Every stall has its own draft cart, so dishes of another stall never replace this one.
+  const cart = useCarts();
 
   if (item.isPending) return <ItemDetailSkeleton />;
   if (item.isError || !item.data) {
@@ -69,20 +66,13 @@ function LiveItemDetailScreen() {
   const glyph = categoryIcon(item.data.categoryName);
   const changeNote = (value: string) => setNote(value.slice(0, 300));
 
-  // What the cart already holds, said before the button (the confirmation stays on the button).
-  const held = cart.data;
+  // What this stall's cart already holds, said before the button.
+  const held = cart.data?.find((row) => row.storefrontId === item.data.storefrontId);
   const heldCount = held?.items.reduce((sum, row) => sum + row.quantity, 0) ?? 0;
-  const replaces = Boolean(held && held.storefrontId !== item.data.storefrontId);
-  const cartNote = held
-    ? replaces
-      ? {
-          replaces: true,
-          text: `${heldCount > 0 ? `Giỏ đang có ${heldCount} món từ ${held.storefrontName}. ` : ''}Thêm món này sẽ thay giỏ ở ${held.storefrontName}.`,
-        }
-      : heldCount > 0
-        ? { replaces: false, text: `Giỏ đang có ${heldCount} món từ ${held.storefrontName}.` }
-        : null
-    : null;
+  const cartNote =
+    held && heldCount > 0
+      ? { replaces: false, text: `Giỏ của quán này đang có ${heldCount} món.` }
+      : null;
 
   const orderBar = (
     <OrderBar
@@ -95,11 +85,7 @@ function LiveItemDetailScreen() {
       disabled={soldOut || add.isPending || (user?.role_code === 'CUSTOMER' && cart.isPending)}
       loading={add.isPending}
       onPress={() =>
-        user?.role_code === 'CUSTOMER'
-          ? cart.data && cart.data.storefrontId !== item.data.storefrontId
-            ? setConfirmCartReplacement(true)
-            : add.mutate()
-          : navigate('/auth/sign-in')
+        user?.role_code === 'CUSTOMER' ? add.mutate() : navigate('/auth/sign-in')
       }
       stepper={
         soldOut ? null : (
@@ -168,18 +154,6 @@ function LiveItemDetailScreen() {
           label="Báo cáo món này"
         />
       </ItemLayout>
-      <ConfirmDialog
-        visible={confirmCartReplacement}
-        title="Thay giỏ hàng hiện tại?"
-        description={`Giỏ tại ${cart.data?.storefrontName ?? 'cửa hàng khác'} sẽ được thay bằng món từ ${item.data.storefrontName}.`}
-        confirmLabel="Thay giỏ hàng"
-        confirmVariant="danger"
-        onConfirm={() => {
-          setConfirmCartReplacement(false);
-          add.mutate();
-        }}
-        onCancel={() => setConfirmCartReplacement(false)}
-      />
     </Screen>
   );
 }

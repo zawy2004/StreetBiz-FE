@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 
 import { Button, Icon } from '@/components/common';
 import { ErrorState, Skeleton, showToast } from '@/components/feedback';
@@ -11,6 +11,7 @@ import { useIsDesktop } from '@/hooks/useBreakpoint';
 import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 import { useCartStore } from '../cart-store';
+import { CARTS_KEY, pickCart, useCarts, useStoreParam } from '../cart-query';
 import { useCheckoutOrder } from '@/features/orders/hooks/useOrders';
 import { OfflineNotice } from '@/features/orders/components/OrderShapes';
 import { isSandboxPaymentUrl, redirectToPayment } from '@/features/orders/payment-redirect';
@@ -51,11 +52,16 @@ function LiveCheckoutScreen() {
   const [chosen, setChosen] = useState<Provider | null>(null);
   const idempotencyKey = useRef<string | null>(null);
   const submitting = useRef(false);
-  const cart = useQuery({
-    queryKey: ['commerce', 'cart'],
-    queryFn: commerceApi.cart,
-    enabled: user?.role_code === 'CUSTOMER',
-  });
+  // `?store=` names the stall being paid for; with none, the only cart there is.
+  const storeId = useStoreParam();
+  const carts = useCarts();
+  const cart = {
+    isPending: carts.isPending,
+    isError: carts.isError,
+    error: carts.error,
+    refetch: carts.refetch,
+    data: carts.data ? pickCart(carts.data, storeId) : null,
+  };
   const place = useCheckoutOrder();
   // The methods this stall takes: its own payOS account is one only once the household has
   // connected it (it is named to the customer); without any, the stall takes no online order.
@@ -93,7 +99,7 @@ function LiveCheckoutScreen() {
         onSuccess: async (checkout) => {
           sessionStorage.setItem('streetbiz.pendingOrderId', String(checkout.orderId));
           await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ['commerce', 'cart'] }),
+            queryClient.invalidateQueries({ queryKey: CARTS_KEY }),
             queryClient.invalidateQueries({ queryKey: ['orders', 'customer', 'list'] }),
           ]);
           // The simulator and the payOS VietQR both live on the order's own payment page.
@@ -141,6 +147,10 @@ function LiveCheckoutScreen() {
         <ErrorState message={errorMessage(cart.error)} onRetry={() => cart.refetch()} />
       </Screen>
     );
+  }
+  // Several carts and none (or a gone one) named: pick one from the list.
+  if (!cart.data && carts.data && carts.data.length > 0) {
+    return <Navigate to="/customer/explore/cart" replace />;
   }
   const items = cart.data?.items ?? [];
   if (!cart.data || items.length === 0) {

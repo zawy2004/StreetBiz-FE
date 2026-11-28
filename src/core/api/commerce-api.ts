@@ -268,13 +268,17 @@ export const commerceApi = {
     ),
 
   cart: () => apiGet<CommerceCart | null>('/cart'),
+  /** Every draft cart, one per stall the buyer added dishes at. */
+  carts: () => apiGet<CommerceCart[]>('/cart/all'),
   addCartItem: (menuItemId: number, quantity: number, note?: string) =>
     apiPost<CommerceCart>('/cart/items', { menuItemId, quantity, note: note || null }),
   updateCartItem: (menuItemId: number, quantity: number, note?: string | null) =>
     apiPut<CommerceCart>(`/cart/items/${menuItemId}`, { quantity, note: note || null }),
   removeCartItem: (menuItemId: number) =>
     apiDelete<CommerceCart | null>(`/cart/items/${menuItemId}`),
-  clearCart: () => apiDelete<void>('/cart'),
+  /** One stall's cart, or every cart when no stall is named. */
+  clearCart: (storefrontId?: number) =>
+    apiDelete<void>(`/cart${queryString({ storefrontId })}`),
 
   placeOrder: (provider: 'MOMO' | 'ZALOPAY', idempotencyKey: string) =>
     apiPost<CommerceOrder>('/orders', { provider, idempotencyKey }),
