@@ -8,7 +8,7 @@ import { vi } from 'vitest';
 import type { CommerceCart } from '@/core/api';
 import type { OrderTracking, PickupRangeInfo } from '@/features/orders/types/order.types';
 
-const legacyApi = vi.hoisted(() => ({ cart: vi.fn(), storefrontPaymentOptions: vi.fn() }));
+const legacyApi = vi.hoisted(() => ({ carts: vi.fn(), storefrontPaymentOptions: vi.fn() }));
 const ordersApi = vi.hoisted(() => ({
   checkout: vi.fn(),
   pickupRange: vi.fn(),
@@ -211,7 +211,7 @@ const payButton = () => screen.findByRole('button', { name: 'Thanh toán và đ�
 describe('checkout pickup range (ORD-01)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.carts.mockResolvedValue([cart]);
     legacyApi.storefrontPaymentOptions.mockResolvedValue({
       mode: 'SANDBOX',
       providers: ['MOMO', 'ZALOPAY'],

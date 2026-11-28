@@ -9,7 +9,7 @@ import type { CommerceCart } from '@/core/api';
 import type { Order } from '@/features/orders/types/order.types';
 
 const legacyApi = vi.hoisted(() => ({
-  cart: vi.fn(),
+  carts: vi.fn(),
   paymentOptions: vi.fn(),
   storefrontPaymentOptions: vi.fn(),
 }));
@@ -228,37 +228,39 @@ describe('order UI contracts', () => {
   });
 
   it('shows the empty state when the customer has no cart', async () => {
-    legacyApi.cart.mockResolvedValue(null);
+    legacyApi.carts.mockResolvedValue([]);
     renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
     expect(await screen.findByText('Giỏ hàng trống')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Thanh toán/ })).not.toBeInTheDocument();
   });
 
   it('lists cart lines and offers checkout when the storefront is open', async () => {
-    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.carts.mockResolvedValue([cart]);
     renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
     expect(await screen.findByText('Bánh mì')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Thanh toán · 50.000 đ/ })).toBeEnabled();
   });
 
   it('blocks checkout while the storefront is closed', async () => {
-    legacyApi.cart.mockResolvedValue({ ...cart, storefrontStatus: 'CLOSED' });
+    legacyApi.carts.mockResolvedValue([{ ...cart, storefrontStatus: 'CLOSED' }]);
     renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
     expect(await screen.findByRole('button', { name: /Thanh toán · 50.000 đ/ })).toBeDisabled();
   });
 
   it('blocks checkout when a line is no longer available', async () => {
-    legacyApi.cart.mockResolvedValue({
-      ...cart,
-      items: [{ ...cart.items[0]!, availabilityStatus: 'UNAVAILABLE' }],
-    });
+    legacyApi.carts.mockResolvedValue([
+      {
+        ...cart,
+        items: [{ ...cart.items[0]!, availabilityStatus: 'UNAVAILABLE' }],
+      },
+    ]);
     renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
     expect(await screen.findByText('Món hiện không còn bán.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Thanh toán · 50.000 đ/ })).toBeDisabled();
   });
 
   it('prevents a double-click checkout from sending a second request', async () => {
-    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.carts.mockResolvedValue([cart]);
     ordersApi.checkout.mockImplementation(() => new Promise(() => undefined));
     const user = userEvent.setup();
     renderAt('/customer/checkout', '/customer/checkout', <CheckoutScreen />);
@@ -272,7 +274,7 @@ describe('order UI contracts', () => {
   });
 
   it('locks the cart and offers the pending payment instead of failing on every tap', async () => {
-    legacyApi.cart.mockResolvedValue({ ...cart, pendingOrderId: 19 });
+    legacyApi.carts.mockResolvedValue([{ ...cart, pendingOrderId: 19 }]);
     const user = userEvent.setup();
     renderAt('/customer/explore/cart', '/customer/explore/cart', <CartScreen />);
     expect(await screen.findByText('Đơn hàng đang chờ thanh toán')).toBeInTheDocument();
@@ -284,7 +286,7 @@ describe('order UI contracts', () => {
   });
 
   it('opens the in-app payment screen for a sandbox payment link', async () => {
-    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.carts.mockResolvedValue([cart]);
     ordersApi.checkout.mockResolvedValue({
       orderId: 19,
       orderCode: 'SB-000019',
@@ -367,7 +369,7 @@ describe('order UI contracts', () => {
   });
 
   it('redirects only to the payment URL returned by checkout', async () => {
-    legacyApi.cart.mockResolvedValue(cart);
+    legacyApi.carts.mockResolvedValue([cart]);
     ordersApi.checkout.mockResolvedValue({
       orderId: 19,
       orderCode: 'SB-000019',

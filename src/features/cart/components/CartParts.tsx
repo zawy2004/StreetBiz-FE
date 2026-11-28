@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { Icon, Money } from '@/components/common';
+import type { CommerceCart } from '@/core/api';
 import { Skeleton } from '@/components/feedback';
 import { StatusChip } from '@/components/status';
 import { FoodImage } from '@/features/buyer-discovery/components/FoodImage';
@@ -374,6 +375,55 @@ export function CartLockNotice({ children }: { children?: ReactNode }) {
         {children}
       </div>
     </div>
+  );
+}
+
+/** The buyer's draft carts, one per stall; a tap opens that stall's cart. */
+export function CartDraftList({
+  carts,
+  onOpen,
+}: {
+  carts: CommerceCart[];
+  onOpen: (storefrontId: number) => void;
+}) {
+  return (
+    <section aria-label="Giỏ nháp theo quán" className="flex flex-col gap-sm">
+      <p className="text-body-md text-muted">
+        Mỗi quán có một giỏ riêng. Chọn giỏ để xem hoặc thanh toán.
+      </p>
+      <ul className="flex flex-col gap-sm">
+        {carts.map((cart) => {
+          const count = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+          return (
+            <li key={cart.cartId}>
+              <button
+                type="button"
+                onClick={() => onOpen(cart.storefrontId)}
+                className="flex w-full items-center gap-md rounded-[20px] bg-card p-md text-left shadow-card ring-1 ring-border/80 transition-colors hover:bg-sunken"
+              >
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-tint-primary text-primary">
+                  <Icon name="cart-outline" size={24} color="currentColor" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[17px] font-bold text-text">
+                    {cart.storefrontName}
+                  </span>
+                  <span className="block text-body-md text-muted">
+                    {count.toLocaleString('vi-VN')} món · {cart.subtotal.toLocaleString('vi-VN')} đ
+                  </span>
+                  {cart.pendingOrderId ? (
+                    <span className="mt-2xs block text-body-sm font-semibold text-[#6B4100] dark:text-[#FFD27A]">
+                      Đang chờ thanh toán
+                    </span>
+                  ) : null}
+                </span>
+                <Icon name="chevron-right" size={22} color="currentColor" />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

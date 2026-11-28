@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import { Button, Icon } from '@/components/common';
@@ -13,7 +13,10 @@ import { useMockDb } from '@/mocks/db';
 import { useAuthStore } from '@/store/auth-store';
 import { OfflineNotice } from '@/features/orders/components/OrderShapes';
 import { useCartStore } from '../cart-store';
+import { CARTS_KEY, pickCart, putCart, useCarts, useStoreParam } from '../cart-query';
+import type { CommerceCart } from '@/core/api';
 import {
+  CartDraftList,
   CartLine,
   CartLockNotice,
   CartSkeleton,
@@ -39,17 +42,15 @@ function LiveCartScreen() {
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
   const [confirmClear, setConfirmClear] = useState(false);
-  const cart = useQuery({
-    queryKey: ['commerce', 'cart'],
-    queryFn: commerceApi.cart,
-    enabled: user?.role_code === 'CUSTOMER',
-  });
+  const storeId = useStoreParam();
+  const cart = useCarts();
   const update = useMutation({
     mutationFn: ({
       menuItemId,
       quantity,
       note,
     }: {
+      storefrontId: number;
       menuItemId: number;
       quantity: number;
       note: string | null;
@@ -57,13 +58,18 @@ function LiveCartScreen() {
       quantity > 0
         ? commerceApi.updateCartItem(menuItemId, quantity, note)
         : commerceApi.removeCartItem(menuItemId),
-    onSuccess: (next) => queryClient.setQueryData(['commerce', 'cart'], next),
+    onSuccess: (next, { storefrontId }) =>
+      queryClient.setQueryData<CommerceCart[]>(CARTS_KEY, (old) =>
+        putCart(old ?? [], storefrontId, next),
+      ),
   });
   const clear = useMutation({
-    mutationFn: commerceApi.clearCart,
-    onSuccess: () => {
+    mutationFn: (storefrontId: number) => commerceApi.clearCart(storefrontId),
+    onSuccess: (_, storefrontId) => {
       setConfirmClear(false);
-      queryClient.setQueryData(['commerce', 'cart'], null);
+      queryClient.setQueryData<CommerceCart[]>(CARTS_KEY, (old) =>
+        putCart(old ?? [], storefrontId, null),
+      );
       showToast('Đã xoá giỏ hàng');
     },
   });
@@ -97,7 +103,10 @@ function LiveCartScreen() {
     );
   }
 
-  const data = cart.data;
+  const carts = cart.data ?? [];
+  // `?store=` names the stall; with none, the only cart. Several carts and none named: the list.
+  const data = pickCart(carts, storeId);
+  const showList = !data && carts.length > 0;
   const items = data?.items ?? [];
   // An order from this cart is awaiting payment: the backend refuses every edit until
   // it is paid or cancelled, so say so and offer the way out instead of failing on tap.
@@ -126,7 +135,7 @@ function LiveCartScreen() {
     <Button
       label={`Thanh toán · ${(data?.subtotal ?? 0).toLocaleString('vi-VN')} đ`}
       disabled={!canCheckout || update.isPending}
-      onPress={() => navigate('/customer/checkout')}
+      onPress={() => navigate(`/customer/checkout?store=${data?.storefrontId}`)}
     />
   );
   const reason = blockReason ? <CheckoutBlockReason reason={blockReason} /> : null;
@@ -152,7 +161,12 @@ function LiveCartScreen() {
     >
       <AppHeader title="Giỏ hàng" back />
       <OfflineNotice message="Mất kết nối. Đổi số lượng và thanh toán cần có mạng." />
-      {items.length === 0 || !data ? (
+      {showList ? (
+        <CartDraftList
+          carts={carts}
+          onOpen={(storefrontId) => navigate(`/customer/explore/cart?store=${storefrontId}`)}
+        />
+      ) : items.length === 0 || !data ? (
         <TrayMessage
           title="Giỏ hàng trống"
           description="Chọn món ở trang Khám phá rồi quay lại đây."
@@ -166,6 +180,17 @@ function LiveCartScreen() {
         />
       ) : (
         <>
+          {carts.length > 1 ? (
+            <div>
+              <Button
+                label={`Giỏ của ${carts.length - 1} quán khác`}
+                variant="outline"
+                fullWidth={false}
+                size="sm"
+                onPress={() => navigate('/customer/explore/cart')}
+              />
+            </div>
+          ) : null}
           <div className="sb-rise">
             <CartTray
               dishes={items.map((item) => ({
@@ -209,6 +234,7 @@ function LiveCartScreen() {
                           increaseDisabled={locked || update.isPending || item.quantity >= 99}
                           onDecrease={() =>
                             update.mutate({
+                              storefrontId: data.storefrontId,
                               menuItemId: item.menuItemId,
                               quantity: item.quantity - 1,
                               note: item.note,
@@ -216,6 +242,7 @@ function LiveCartScreen() {
                           }
                           onIncrease={() =>
                             update.mutate({
+                              storefrontId: data.storefrontId,
                               menuItemId: item.menuItemId,
                               quantity: item.quantity + 1,
                               note: item.note,
@@ -274,7 +301,7 @@ function LiveCartScreen() {
         description="Tất cả món và ghi chú trong giỏ hiện tại sẽ bị xoá."
         confirmLabel="Xoá giỏ hàng"
         confirmVariant="danger"
-        onConfirm={() => clear.mutate()}
+        onConfirm={() => data && clear.mutate(data.storefrontId)}
         onCancel={() => setConfirmClear(false)}
       />
     </Screen>
